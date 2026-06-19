@@ -8,19 +8,19 @@ import {
   Trophy,
   Activity,
 } from "lucide-react";
-import { getDashboardData, type EventType } from "@/lib/analytics";
+import { redirect } from "next/navigation";
+import { getDashboardData, getOwnerCafeSlug, type EventType } from "@/lib/analytics";
+import { createClient } from "@/lib/supabase/server";
 import Counter from "@/components/dashboard/Counter";
 import AnimatedBar from "@/components/dashboard/AnimatedBar";
 import DailyChart from "@/components/dashboard/DailyChart";
+import LogoutButton from "@/components/dashboard/LogoutButton";
 
 export const metadata: Metadata = {
   title: "Analytik · Dashboard | 3Diner",
 };
 
 export const dynamic = "force-dynamic";
-
-// Pilot cafe (no auth yet — analytics-only check build)
-const CAFE_SLUG = "senja-kopi";
 
 const EVENT_LABEL: Record<EventType, string> = {
   click_menu: "Buka menu",
@@ -45,15 +45,26 @@ function relTime(iso: string): string {
 }
 
 export default async function DashboardPage() {
-  const data = await getDashboardData(CAFE_SLUG);
+  // Auth gate (middleware also protects, this is the data binding)
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const slug = await getOwnerCafeSlug(user.id);
+  const data = slug ? await getDashboardData(slug) : null;
 
   if (!data) {
     return (
       <main
-        className="min-h-dvh flex items-center justify-center px-6 text-center"
+        className="min-h-dvh flex flex-col items-center justify-center px-6 text-center gap-4"
         style={{ background: "#FDFDFD" }}
       >
-        <p style={{ color: "#51698F" }}>Data kafe tidak ditemukan.</p>
+        <p style={{ color: "#51698F" }}>
+          Belum ada kafe yang terhubung ke akun ini.
+        </p>
+        <LogoutButton />
       </main>
     );
   }
@@ -102,12 +113,15 @@ export default async function DashboardPage() {
               </p>
             </div>
           </div>
-          <div
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
-            style={{ background: "#FDD8C3", color: "#FD5002" }}
-          >
-            <Activity size={13} />
-            {totalEvents.toLocaleString("id-ID")} interaksi
+          <div className="flex items-center gap-2">
+            <div
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
+              style={{ background: "#FDD8C3", color: "#FD5002" }}
+            >
+              <Activity size={13} />
+              {totalEvents.toLocaleString("id-ID")} interaksi
+            </div>
+            <LogoutButton />
           </div>
         </header>
 

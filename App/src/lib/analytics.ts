@@ -14,6 +14,17 @@ export interface DashboardData {
 
 const DAYS = 14;
 
+/** Find the slug of the cafe owned by a given auth user (or null). */
+export async function getOwnerCafeSlug(ownerId: string): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from("Cafes")
+    .select("slug_url")
+    .eq("owner_id", ownerId)
+    .limit(1)
+    .maybeSingle();
+  return (data?.slug_url as string) ?? null;
+}
+
 export async function getDashboardData(slug: string): Promise<DashboardData | null> {
   const { data: cafe } = await supabaseAdmin
     .from("Cafes")
