@@ -9,6 +9,7 @@ const ModelViewerElement = "model-viewer" as any;
 
 interface ARSessionProps {
   url: string;
+  usdzUrl?: string;
   menuName: string;
   onClose: () => void;
 }
@@ -21,7 +22,7 @@ type SessionState =
   | "overlay_blocked"
   | "error";
 
-export default function ARSession({ url, menuName, onClose }: ARSessionProps) {
+export default function ARSession({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const uiOverlayRef = useRef<HTMLDivElement>(null);
   const modelViewerRef = useRef<any>(null);
@@ -315,8 +316,10 @@ export default function ARSession({ url, menuName, onClose }: ARSessionProps) {
         <ModelViewerElement
           ref={modelViewerRef}
           src={url}
+          ios-src={usdzUrl || undefined}
           ar
-          ar-modes="scene-viewer webxr quick-look"
+          ar-modes="webxr scene-viewer quick-look"
+          ar-scale="auto"
           camera-controls
           touch-action="pan-y"
           style={{

@@ -126,7 +126,11 @@ export default async function MenuDetailPage({ params }: PageProps) {
           </a>
 
           <div className="flex gap-3">
-            <ARButton modelUrl={menu.model_3d_url} menuName={menu.nama_menu} />
+            <ARButton
+              modelUrl={menu.model_3d_url}
+              usdzUrl={menu.usdz_url ?? undefined}
+              menuName={menu.nama_menu}
+            />
             <OrderButton
               redirectLink={menu.redirect_link}
               cafeId={cafe.id_cafe}

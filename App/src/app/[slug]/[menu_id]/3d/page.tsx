@@ -38,6 +38,7 @@ export default async function Model3DPage({ params }: PageProps) {
   return (
     <Viewer3DPage
       url={menu.model_3d_url}
+      usdzUrl={menu.usdz_url ?? undefined}
       menuName={menu.nama_menu}
       backUrl={backUrl}
     />

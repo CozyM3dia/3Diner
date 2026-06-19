@@ -9,13 +9,14 @@ const ModelViewerElement = "model-viewer" as any;
 
 interface Viewer3DPageProps {
   url: string;
+  usdzUrl?: string;
   menuName: string;
   backUrl: string;
 }
 
 type ViewerState = "loading" | "ready" | "error";
 
-export default function Viewer3DPage({ url, menuName, backUrl }: Viewer3DPageProps) {
+export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer3DPageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const viewerRef = useRef<any>(null);
@@ -190,8 +191,10 @@ export default function Viewer3DPage({ url, menuName, backUrl }: Viewer3DPagePro
           <ModelViewerElement
             ref={modelViewerRef}
             src={url}
+            ios-src={usdzUrl || undefined}
             ar
-            ar-modes="scene-viewer webxr quick-look"
+            ar-modes="webxr scene-viewer quick-look"
+            ar-scale="auto"
             camera-controls
             touch-action="pan-y"
             shadow-intensity="1"

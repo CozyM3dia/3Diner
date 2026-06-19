@@ -13,10 +13,11 @@ const ARSession = dynamic(
 
 interface ARButtonProps {
   modelUrl: string;
+  usdzUrl?: string;
   menuName: string;
 }
 
-export default function ARButton({ modelUrl, menuName }: ARButtonProps) {
+export default function ARButton({ modelUrl, usdzUrl, menuName }: ARButtonProps) {
   const [showAR, setShowAR] = useState(false);
 
   return (
@@ -37,6 +38,7 @@ export default function ARButton({ modelUrl, menuName }: ARButtonProps) {
       {showAR && (
         <ARSession
           url={modelUrl}
+          usdzUrl={usdzUrl}
           menuName={menuName}
           onClose={() => setShowAR(false)}
         />
