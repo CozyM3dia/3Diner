@@ -1,0 +1,25 @@
+# ── Secrets (NEVER commit) ──────────────────────────────
+.mcp.json
+**/.env
+**/.env.*
+!**/.env.example
+**/.vercel
+
+# ── Dependencies / build ────────────────────────────────
+**/node_modules/
+**/.next/
+**/out/
+**/dist/
+**/build/
+
+# ── Logs / OS / editor ──────────────────────────────────
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── Misc ────────────────────────────────────────────────
+*.tsbuildinfo
+**/next-env.d.ts
