@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getCafeBySlug, getMenusByCafeId } from "@/lib/data";
 import CafeHeader from "@/components/CafeHeader";
-import MenuGrid from "@/components/MenuGrid";
+import MenuBrowser from "@/components/MenuBrowser";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -31,8 +31,8 @@ export default async function CafeMenuPage({ params }: PageProps) {
     <main className="min-h-dvh" style={{ background: "#F6F8FB" }}>
       <CafeHeader cafe={cafe} menuCount={menus.length} />
 
-      <section className="px-4 pt-8 pb-10">
-        <MenuGrid menus={menus} cafeId={cafe.id_cafe} slug={slug} />
+      <section className="px-4 pt-4 pb-10">
+        <MenuBrowser menus={menus} cafeId={cafe.id_cafe} slug={slug} />
       </section>
 
       <footer className="pb-10 text-center">
