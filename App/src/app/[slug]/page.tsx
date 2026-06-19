@@ -28,17 +28,17 @@ export default async function CafeMenuPage({ params }: PageProps) {
   const menus = await getMenusByCafeId(cafe.id_cafe);
 
   return (
-    <main className="min-h-dvh" style={{ background: "#FDFDFD" }}>
+    <main className="min-h-dvh" style={{ background: "#F6F8FB" }}>
       <CafeHeader cafe={cafe} menuCount={menus.length} />
 
-      <section className="px-4 pt-6 pb-10">
+      <section className="px-4 pt-8 pb-10">
         <MenuGrid menus={menus} cafeId={cafe.id_cafe} slug={slug} />
       </section>
 
-      <footer className="pb-8 text-center">
+      <footer className="pb-10 text-center">
         <p className="text-xs" style={{ color: "#51698F" }}>
           Powered by{" "}
-          <span style={{ color: "#FD5002", fontWeight: 600 }}>3Diner</span>
+          <span className="font-display font-semibold" style={{ color: "#FD5002" }}>3Diner</span>
         </p>
       </footer>
     </main>

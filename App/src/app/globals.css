@@ -10,9 +10,16 @@
   --orange-bright:#FC6A41;
   --orange-tint:  #FDD8C3;
   --white:        #FDFDFD;
+  --paper:        #F6F8FB;
   --border:       #CFD9E4;
   --surface:      #E0E7EE;
-  --radius:       14px;
+  --radius:       18px;
+
+  /* Layered elevation */
+  --shadow-sm: 0 1px 2px rgba(2,44,96,0.06), 0 1px 1px rgba(2,44,96,0.04);
+  --shadow-md: 0 4px 14px rgba(2,44,96,0.08), 0 2px 4px rgba(2,44,96,0.05);
+  --shadow-lg: 0 18px 44px rgba(2,44,96,0.14), 0 6px 14px rgba(2,44,96,0.08);
+  --shadow-orange: 0 8px 26px rgba(253,80,2,0.32);
 }
 
 @theme inline {
@@ -24,10 +31,11 @@
   --color-orange-bright:var(--orange-bright);
   --color-orange-tint:  var(--orange-tint);
   --color-white:        var(--white);
+  --color-paper:        var(--paper);
   --color-border:       var(--border);
   --color-surface:      var(--surface);
 
-  --font-display: var(--font-poppins);
+  --font-display: var(--font-fraunces);
   --font-body:    var(--font-poppins);
 }
 
@@ -36,13 +44,9 @@
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
-
-html {
-  scroll-behavior: smooth;
-}
-
+html { scroll-behavior: smooth; }
 body {
-  background-color: var(--white);
+  background-color: var(--paper);
   color: var(--navy);
   font-family: var(--font-poppins), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -50,22 +54,50 @@ body {
   min-height: 100dvh;
 }
 
-/* ── Scrollbar – thin brand style ── */
+.font-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-optical-sizing: auto;
+}
+
+/* ── Scrollbar ── */
 ::-webkit-scrollbar       { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: var(--navy-muted); border-radius: 99px; }
 
-/* ── Menu card hover lift ── */
+/* ── Grain / noise overlay for depth ── */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+/* ── Card ── */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
 .menu-card {
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition: transform 0.32s cubic-bezier(0.22,1,0.36,1), box-shadow 0.32s ease;
+  will-change: transform;
 }
-.menu-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(2, 44, 96, 0.16);
-}
-.menu-card:active {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(2, 44, 96, 0.12);
+.menu-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+.menu-card:active { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.menu-card .card-img { transition: transform 0.55s cubic-bezier(0.22,1,0.36,1); }
+.menu-card:hover .card-img { transform: scale(1.07); }
+
+/* Intentional placeholder mesh for dishes without a photo */
+.dish-mesh {
+  background:
+    radial-gradient(120% 90% at 20% 15%, rgba(253,80,2,0.28) 0%, transparent 55%),
+    radial-gradient(110% 100% at 90% 90%, rgba(81,105,143,0.45) 0%, transparent 60%),
+    linear-gradient(150deg, #022C60 0%, #002355 100%);
 }
 
 /* ── Shimmer skeleton ── */
@@ -80,19 +112,26 @@ body {
   border-radius: 12px;
 }
 
-/* ── Fade in animation ── */
+/* ── Entrance ── */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.fade-up {
-  animation: fadeUp 0.5s ease forwards;
-}
+.fade-up { animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
 
-/* ── Stagger helper ── */
+@keyframes floatY {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-7px); }
+}
+.float { animation: floatY 4.5s ease-in-out infinite; }
+
 .stagger-1 { animation-delay: 0.05s; opacity: 0; }
-.stagger-2 { animation-delay: 0.10s; opacity: 0; }
-.stagger-3 { animation-delay: 0.15s; opacity: 0; }
-.stagger-4 { animation-delay: 0.20s; opacity: 0; }
-.stagger-5 { animation-delay: 0.25s; opacity: 0; }
-.stagger-6 { animation-delay: 0.30s; opacity: 0; }
+.stagger-2 { animation-delay: 0.11s; opacity: 0; }
+.stagger-3 { animation-delay: 0.17s; opacity: 0; }
+.stagger-4 { animation-delay: 0.23s; opacity: 0; }
+.stagger-5 { animation-delay: 0.29s; opacity: 0; }
+.stagger-6 { animation-delay: 0.35s; opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up, .float, .menu-card, .menu-card .card-img { animation: none !important; transition: none !important; opacity: 1 !important; }
+}

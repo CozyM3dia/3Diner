@@ -59,7 +59,7 @@ export default async function DashboardPage() {
     return (
       <main
         className="min-h-dvh flex flex-col items-center justify-center px-6 text-center gap-4"
-        style={{ background: "#FDFDFD" }}
+        style={{ background: "#F6F8FB" }}
       >
         <p style={{ color: "#51698F" }}>
           Belum ada kafe yang terhubung ke akun ini.
@@ -87,7 +87,7 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <main className="min-h-dvh" style={{ background: "#FDFDFD" }}>
+    <main className="min-h-dvh" style={{ background: "#F6F8FB" }}>
       <div className="max-w-5xl mx-auto px-5 py-8">
         {/* Header */}
         <header className="flex items-center justify-between gap-4 mb-8 fade-up">
@@ -105,7 +105,7 @@ export default async function DashboardPage() {
               />
             </div>
             <div>
-              <h1 className="text-xl font-bold leading-tight" style={{ color: "#022C60" }}>
+              <h1 className="font-display text-2xl font-semibold leading-tight" style={{ color: "#022C60" }}>
                 Analytik
               </h1>
               <p className="text-xs" style={{ color: "#51698F" }}>
@@ -139,7 +139,7 @@ export default async function DashboardPage() {
               >
                 <s.icon size={17} color={s.accent} strokeWidth={2.2} />
               </div>
-              <p className="text-2xl font-bold leading-none" style={{ color: "#022C60" }}>
+              <p className="font-display text-2xl font-bold leading-none" style={{ color: "#022C60" }}>
                 <Counter value={s.value} />
               </p>
               <p className="text-xs mt-1.5" style={{ color: "#51698F" }}>
@@ -159,7 +159,7 @@ export default async function DashboardPage() {
             >
               <TrendingUp size={17} color="#FD5002" strokeWidth={2.2} />
             </div>
-            <p className="text-2xl font-bold leading-none text-white">
+            <p className="font-display text-2xl font-bold leading-none text-white">
               <Counter value={conversion} decimals={1} suffix="%" />
             </p>
             <p className="text-xs mt-1.5" style={{ color: "rgba(253,253,253,0.7)" }}>
@@ -175,7 +175,7 @@ export default async function DashboardPage() {
             className="rounded-2xl p-5 fade-up"
             style={{ background: "#FFFFFF", border: "1px solid #CFD9E4" }}
           >
-            <h2 className="text-sm font-semibold mb-4" style={{ color: "#022C60" }}>
+            <h2 className="font-display text-sm font-semibold mb-4" style={{ color: "#022C60" }}>
               Alur Konversi
             </h2>
             <div className="space-y-4">
@@ -201,7 +201,7 @@ export default async function DashboardPage() {
             className="rounded-2xl p-5 fade-up stagger-1"
             style={{ background: "#FFFFFF", border: "1px solid #CFD9E4" }}
           >
-            <h2 className="text-sm font-semibold mb-4" style={{ color: "#022C60" }}>
+            <h2 className="font-display text-sm font-semibold mb-4" style={{ color: "#022C60" }}>
               Aktivitas Harian
             </h2>
             <DailyChart data={daily} />
@@ -215,7 +215,7 @@ export default async function DashboardPage() {
         >
           <div className="flex items-center gap-2 mb-4">
             <Trophy size={15} color="#FD5002" />
-            <h2 className="text-sm font-semibold" style={{ color: "#022C60" }}>
+            <h2 className="font-display text-sm font-semibold" style={{ color: "#022C60" }}>
               Menu Terpopuler
             </h2>
           </div>
@@ -253,7 +253,7 @@ export default async function DashboardPage() {
           className="rounded-2xl p-5 fade-up stagger-1"
           style={{ background: "#FFFFFF", border: "1px solid #CFD9E4" }}
         >
-          <h2 className="text-sm font-semibold mb-4" style={{ color: "#022C60" }}>
+          <h2 className="font-display text-sm font-semibold mb-4" style={{ color: "#022C60" }}>
             Aktivitas Terbaru
           </h2>
           <ul className="space-y-2.5">

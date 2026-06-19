@@ -51,7 +51,7 @@ export default function LoginPage() {
               className="object-contain"
             />
           </div>
-          <h1 className="text-xl font-bold" style={{ color: "#022C60" }}>
+          <h1 className="font-display text-2xl font-semibold" style={{ color: "#022C60" }}>
             Masuk Dashboard
           </h1>
           <p className="text-xs mt-1" style={{ color: "#51698F" }}>
