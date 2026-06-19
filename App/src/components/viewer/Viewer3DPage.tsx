@@ -44,7 +44,6 @@ export default function Viewer3DPage({ url, menuName, backUrl }: Viewer3DPagePro
     mv.addEventListener("load", handleLoad);
     mv.addEventListener("error", handleError);
 
-    // Model may have already loaded before effect ran (e.g. from cache)
     if (mv.loaded) handleLoad();
 
     return () => {
@@ -75,9 +74,6 @@ export default function Viewer3DPage({ url, menuName, backUrl }: Viewer3DPagePro
     setProgress(0);
 
     try {
-      // Step 1: Fetch the PLY in the main thread with real progress tracking.
-      // This avoids Android Chrome's "can't download securely" block on HTTP
-      // worker fetches. Main-thread fetch is always allowed.
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -97,7 +93,6 @@ export default function Viewer3DPage({ url, menuName, backUrl }: Viewer3DPagePro
         }
       }
 
-      // Combine chunks into a single ArrayBuffer so Blob constructor is happy.
       const combined = new Uint8Array(loaded);
       let offset = 0;
       for (const chunk of rawChunks) {
@@ -105,12 +100,10 @@ export default function Viewer3DPage({ url, menuName, backUrl }: Viewer3DPagePro
         offset += chunk.byteLength;
       }
 
-      // Step 2: Create a same-origin Blob URL so the GS worker can access it.
       const blob = new Blob([combined.buffer], { type: "application/octet-stream" });
       const blobUrl = URL.createObjectURL(blob);
       blobUrlRef.current = blobUrl;
 
-      // Step 3: Set up the GS viewer.
       const GS = await import("@mkkellogg/gaussian-splats-3d");
 
       if (viewerRef.current) {
@@ -167,12 +160,12 @@ export default function Viewer3DPage({ url, menuName, backUrl }: Viewer3DPagePro
   }, [initViewer]);
 
   return (
-    <div className="fixed inset-0 flex flex-col" style={{ background: "#1A0F0A" }}>
+    <div className="fixed inset-0 flex flex-col" style={{ background: "#002355" }}>
       {/* Top bar */}
       <div
         className="flex items-center gap-3 px-4 shrink-0"
         style={{
-          background: "rgba(26,15,10,0.85)",
+          background: "rgba(0,35,85,0.85)",
           backdropFilter: "blur(8px)",
           paddingTop: "calc(env(safe-area-inset-top) + 12px)",
           paddingBottom: "12px",
@@ -181,12 +174,12 @@ export default function Viewer3DPage({ url, menuName, backUrl }: Viewer3DPagePro
         <a
           href={backUrl}
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: "rgba(253,246,236,0.15)" }}
+          style={{ background: "rgba(253,253,253,0.15)" }}
           aria-label="Kembali"
         >
-          <X size={18} color="#FDF6EC" />
+          <X size={18} color="#FDFDFD" />
         </a>
-        <p className="text-sm font-semibold truncate flex-1" style={{ color: "#FDF6EC" }}>
+        <p className="text-sm font-semibold truncate flex-1" style={{ color: "#FDFDFD" }}>
           {menuName}
         </p>
       </div>
@@ -215,30 +208,30 @@ export default function Viewer3DPage({ url, menuName, backUrl }: Viewer3DPagePro
         {state === "loading" && (
           <div
             className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4"
-            style={{ background: "#F5E6D3" }}
+            style={{ background: "#002355" }}
           >
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
-              style={{ background: "#FFFBF5" }}
+              style={{ background: "rgba(253,253,253,0.1)" }}
             >
-              <Loader2 size={28} color="#8B5E3C" strokeWidth={2} className="animate-spin" />
+              <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
             </div>
-            <p className="text-sm font-semibold" style={{ color: "#8B5E3C" }}>
+            <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>
               Memuat model 3D...
             </p>
-            <div className="w-56 h-2 rounded-full overflow-hidden" style={{ background: "#E8D5C0" }}>
+            <div className="w-56 h-2 rounded-full overflow-hidden" style={{ background: "rgba(253,253,253,0.15)" }}>
               <div
                 className="h-full rounded-full transition-all duration-300"
                 style={{
                   width: `${progress}%`,
-                  background: "linear-gradient(90deg, #8B5E3C, #C4956A)",
+                  background: "linear-gradient(90deg, #022C60, #FD5002)",
                 }}
               />
             </div>
-            <p className="text-base font-bold" style={{ color: "#8B5E3C" }}>
+            <p className="text-base font-bold" style={{ color: "#FDFDFD" }}>
               {progress > 0 ? `${progress}%` : "Menyiapkan..."}
             </p>
-            <p className="text-xs text-center px-10 leading-relaxed" style={{ color: "#A0724A" }}>
+            <p className="text-xs text-center px-10 leading-relaxed" style={{ color: "rgba(253,253,253,0.6)" }}>
               Model sedang diunduh, mohon tunggu...
             </p>
           </div>
@@ -248,24 +241,24 @@ export default function Viewer3DPage({ url, menuName, backUrl }: Viewer3DPagePro
         {state === "error" && (
           <div
             className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-6"
-            style={{ background: "#F5E6D3" }}
+            style={{ background: "#002355" }}
           >
-            <p className="font-semibold text-sm" style={{ color: "#2C1810" }}>
+            <p className="font-semibold text-sm" style={{ color: "#FDFDFD" }}>
               Gagal memuat model 3D
             </p>
-            <p className="text-xs text-center" style={{ color: "#C4956A" }}>
+            <p className="text-xs text-center" style={{ color: "rgba(253,253,253,0.6)" }}>
               Cek koneksi internet & coba lagi
             </p>
             {errorMsg && (
-              <p className="text-xs text-center px-4 font-mono break-all" style={{ color: "#8B5E3C" }}>
+              <p className="text-xs text-center px-4 font-mono break-all" style={{ color: "rgba(253,253,253,0.5)" }}>
                 {errorMsg}
               </p>
             )}
             <button
               type="button"
               onClick={initViewer}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold"
-              style={{ background: "#8B5E3C", color: "#FDF6EC" }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white"
+              style={{ background: "#FD5002" }}
             >
               <RotateCcw size={14} />
               Coba Lagi
@@ -277,7 +270,7 @@ export default function Viewer3DPage({ url, menuName, backUrl }: Viewer3DPagePro
         {state === "ready" && (
           <div
             className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium pointer-events-none"
-            style={{ background: "rgba(44,24,16,0.65)", color: "#FDF6EC" }}
+            style={{ background: "rgba(0,35,85,0.8)", color: "#FDFDFD" }}
           >
             <span>👆</span>
             <span>Drag untuk memutar model</span>

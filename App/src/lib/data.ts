@@ -5,7 +5,7 @@
 import type { Cafe, Menu, AnalyticsLog } from "@/types";
 import { DUMMY_CAFE, DUMMY_MENUS } from "./dummy-data";
 
-const USE_DUMMY = true; // ← ganti false saat Supabase ready
+const USE_DUMMY = false; // ← Supabase live
 
 // ─── Lazy import Supabase helpers (hanya dipanggil kalau tidak dummy) ──────
 async function getSupabaseFns() {

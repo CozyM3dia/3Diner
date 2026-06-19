@@ -1,41 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "AR Food 3D",
-  description: "Lihat menu favoritmu dalam tampilan 3D yang memukau.",
+  title: "3Diner — Lihat Sebelum Memesan",
+  description:
+    "Jelajahi menu dalam tampilan 3D & AR yang memukau. Lihat sebelum memesan.",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#FDF6EC",
+  themeColor: "#FDFDFD",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="id"
-      className={`${playfair.variable} ${jakarta.variable}`}
-    >
+    <html lang="id" className={poppins.variable}>
       <body className="min-h-dvh">{children}</body>
     </html>
   );

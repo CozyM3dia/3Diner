@@ -1,15 +1,13 @@
 export default function MenuSkeleton() {
   return (
-    <div className="min-h-dvh" style={{ background: "#FDF6EC" }}>
+    <div className="min-h-dvh" style={{ background: "#FDFDFD" }}>
       {/* Header skeleton */}
       <div
         className="h-52 relative overflow-hidden"
-        style={{
-          background: "linear-gradient(160deg, #8B5E3C 0%, #C4956A 50%, #D4A574 100%)",
-        }}
+        style={{ background: "linear-gradient(160deg, #022C60 0%, #002355 100%)" }}
       >
         <div className="px-5 pt-12 pb-8 space-y-3">
-          <div className="skeleton w-14 h-14 rounded-2xl" />
+          <div className="skeleton w-16 h-16 rounded-2xl" />
           <div className="skeleton h-8 w-48 rounded-xl" />
           <div className="skeleton h-4 w-32 rounded-lg" />
         </div>
@@ -23,13 +21,13 @@ export default function MenuSkeleton() {
             <div
               key={i}
               className="rounded-2xl overflow-hidden"
-              style={{ background: "#FFFBF5", border: "1px solid #E8D5C0" }}
+              style={{ background: "#FFFFFF", border: "1px solid #CFD9E4" }}
             >
               <div className="skeleton aspect-[4/3] w-full" style={{ borderRadius: 0 }} />
-              <div className="px-4 py-3.5 space-y-2">
+              <div className="px-3.5 py-3 space-y-2">
                 <div className="skeleton h-4 w-24 rounded" />
                 <div className="skeleton h-3 w-16 rounded" />
-                <div className="skeleton h-5 w-20 rounded mt-3" />
+                <div className="skeleton h-5 w-20 rounded mt-2.5" />
               </div>
             </div>
           ))}

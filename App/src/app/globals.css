@@ -1,29 +1,34 @@
 @import "tailwindcss";
 
-/* ── Warm Cafe Color Tokens ── */
+/* ── 3Diner Brand Tokens (docs/BRAND-DESIGN.md) ── */
 :root {
-  --cream:    #FDF6EC;
-  --foam:     #FFFBF5;
-  --latte:    #F5E6D3;
-  --caramel:  #D4A574;
-  --coffee:   #8B5E3C;
-  --espresso: #2C1810;
-  --mist:     #E8D5C0;
-  --steam:    #C4956A;
+  --navy:         #022C60;
+  --navy-dark:    #002355;
+  --navy-soft:    #254473;
+  --navy-muted:   #51698F;
+  --orange:       #FD5002;
+  --orange-bright:#FC6A41;
+  --orange-tint:  #FDD8C3;
+  --white:        #FDFDFD;
+  --border:       #CFD9E4;
+  --surface:      #E0E7EE;
+  --radius:       14px;
 }
 
 @theme inline {
-  --color-cream:    var(--cream);
-  --color-foam:     var(--foam);
-  --color-latte:    var(--latte);
-  --color-caramel:  var(--caramel);
-  --color-coffee:   var(--coffee);
-  --color-espresso: var(--espresso);
-  --color-mist:     var(--mist);
-  --color-steam:    var(--steam);
+  --color-navy:         var(--navy);
+  --color-navy-dark:    var(--navy-dark);
+  --color-navy-soft:    var(--navy-soft);
+  --color-navy-muted:   var(--navy-muted);
+  --color-orange:       var(--orange);
+  --color-orange-bright:var(--orange-bright);
+  --color-orange-tint:  var(--orange-tint);
+  --color-white:        var(--white);
+  --color-border:       var(--border);
+  --color-surface:      var(--surface);
 
-  --font-display: var(--font-playfair);
-  --font-body:    var(--font-jakarta);
+  --font-display: var(--font-poppins);
+  --font-body:    var(--font-poppins);
 }
 
 /* ── Base ── */
@@ -37,29 +42,18 @@ html {
 }
 
 body {
-  background-color: var(--cream);
-  color: var(--espresso);
-  font-family: var(--font-jakarta), system-ui, sans-serif;
+  background-color: var(--white);
+  color: var(--navy);
+  font-family: var(--font-poppins), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100dvh;
 }
 
-/* ── Scrollbar – cozy thin style ── */
+/* ── Scrollbar – thin brand style ── */
 ::-webkit-scrollbar       { width: 4px; }
-::-webkit-scrollbar-track { background: var(--latte); }
-::-webkit-scrollbar-thumb { background: var(--caramel); border-radius: 99px; }
-
-/* ── Grain texture overlay for warmth ── */
-.grain::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.4;
-}
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--navy-muted); border-radius: 99px; }
 
 /* ── Menu card hover lift ── */
 .menu-card {
@@ -67,11 +61,11 @@ body {
 }
 .menu-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(44, 24, 16, 0.14);
+  box-shadow: 0 16px 40px rgba(2, 44, 96, 0.16);
 }
 .menu-card:active {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(44, 24, 16, 0.12);
+  box-shadow: 0 6px 16px rgba(2, 44, 96, 0.12);
 }
 
 /* ── Shimmer skeleton ── */
@@ -80,7 +74,7 @@ body {
   100% { background-position:  400px 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, var(--latte) 25%, var(--mist) 50%, var(--latte) 75%);
+  background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
   background-size: 800px 100%;
   animation: shimmer 1.6s infinite linear;
   border-radius: 12px;

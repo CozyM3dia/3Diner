@@ -21,21 +21,19 @@ export default function ARButton({ modelUrl, menuName }: ARButtonProps) {
 
   return (
     <>
-      {/* "View in AR" trigger button */}
       <button
         onClick={() => setShowAR(true)}
         className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm active:scale-95 transition-all"
         style={{
-          background: "linear-gradient(135deg, #8B5E3C, #C4956A)",
-          color: "#FDF6EC",
-          boxShadow: "0 4px 20px rgba(139,94,60,0.35)",
+          background: "#022C60",
+          color: "#FDFDFD",
+          border: "1.5px solid #022C60",
         }}
       >
         <Glasses size={18} strokeWidth={2} />
         View in AR
       </button>
 
-      {/* Full-screen AR overlay — mounts only when showAR is true */}
       {showAR && (
         <ARSession
           url={modelUrl}

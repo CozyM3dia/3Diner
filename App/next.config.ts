@@ -4,6 +4,17 @@ const nextConfig: NextConfig = {
   // Transpile ESM-only packages
   transpilePackages: ["@mkkellogg/gaussian-splats-3d", "three"],
 
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "zvkmcbvckuupjsdftsyz.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+      { protocol: "https", hostname: "*.r2.dev" },
+    ],
+  },
+
   async headers() {
     return [
       // Static 3D model files — perlu CORP agar bisa di-fetch oleh Web Workers

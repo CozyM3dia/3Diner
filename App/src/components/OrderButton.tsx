@@ -1,7 +1,7 @@
 "use client";
 
 import { ShoppingBag } from "lucide-react";
-import { logEvent } from "@/lib/supabase";
+import { logEvent } from "@/lib/data";
 
 interface OrderButtonProps {
   redirectLink: string;
@@ -23,11 +23,10 @@ export default function OrderButton({
   return (
     <button
       onClick={handleOrder}
-      className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm active:scale-95 transition-transform"
+      className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm text-white active:scale-95 transition-transform"
       style={{
-        background: "#F5E6D3",
-        color: "#8B5E3C",
-        border: "1.5px solid #E8D5C0",
+        background: "#FD5002",
+        boxShadow: "0 4px 20px rgba(253,80,2,0.35)",
       }}
     >
       <ShoppingBag size={18} strokeWidth={2} />

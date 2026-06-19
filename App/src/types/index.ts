@@ -9,6 +9,11 @@ export interface Cafe {
   subscription_type: SubscriptionType
   status_lunas: boolean
   created_at: string
+  // ── Branding per-cafe (opsional) ──
+  logo_url?: string | null
+  cover_url?: string | null
+  greeting?: string | null
+  brand_color?: string | null
 }
 
 export interface Menu {
@@ -20,6 +25,10 @@ export interface Menu {
   model_3d_url: string
   redirect_link: string
   created_at: string
+  // ── Visual + grouping ──
+  image_url?: string | null
+  category?: string | null
+  usdz_url?: string | null
 }
 
 export interface AnalyticsLog {
