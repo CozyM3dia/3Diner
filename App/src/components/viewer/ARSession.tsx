@@ -319,7 +319,7 @@ export default function ARSession({ url, usdzUrl, menuName, onClose }: ARSession
           ios-src={usdzUrl || undefined}
           ar
           ar-modes="webxr scene-viewer quick-look"
-          ar-scale="auto"
+          ar-scale="fixed"
           camera-controls
           touch-action="pan-y"
           style={{

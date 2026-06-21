@@ -29,6 +29,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
   const [errorMsg, setErrorMsg] = useState("");
   const [arSupported, setArSupported] = useState(false);
   const [arHint, setArHint] = useState(false);
+  const [arActivating, setArActivating] = useState(false);
 
   const isGlb = url.toLowerCase().endsWith(".glb");
 
@@ -50,14 +51,22 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
       window.setTimeout(() => window.dispatchEvent(new Event("resize")), 120);
     };
     const handleError = () => setState("error");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleArStatus = (e: any) => {
+      if (e.detail?.status === "not-presenting" || e.detail?.status === "failed") {
+        setArActivating(false);
+      }
+    };
 
     mv.addEventListener("load", handleLoad);
     mv.addEventListener("error", handleError);
+    mv.addEventListener("ar-status", handleArStatus);
     if (mv.loaded) handleLoad();
 
     return () => {
       mv.removeEventListener("load", handleLoad);
       mv.removeEventListener("error", handleError);
+      mv.removeEventListener("ar-status", handleArStatus);
     };
   }, [isGlb]);
 
@@ -74,6 +83,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
   function launchAR() {
     const mv = modelViewerRef.current;
     if (mv?.canActivateAR) {
+      setArActivating(true);
       mv.activateAR();
     } else {
       setArHint(true);
@@ -213,7 +223,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
             ios-src={usdzUrl || undefined}
             ar
             ar-modes="webxr scene-viewer quick-look"
-            ar-scale="auto"
+            ar-scale="fixed"
             loading="eager"
             reveal="auto"
             camera-controls
@@ -293,11 +303,15 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
 
         <button
           onClick={launchAR}
-          disabled={state !== "ready"}
+          disabled={state !== "ready" || arActivating}
           className="btn-primary press w-full h-[54px] rounded-2xl inline-flex items-center justify-center gap-2.5 font-semibold text-[15px] text-white disabled:opacity-50 max-w-xl mx-auto"
         >
-          <ScanLine size={20} strokeWidth={2.2} />
-          Lihat di Meja (AR)
+          {arActivating ? (
+            <Loader2 size={20} strokeWidth={2.2} className="animate-spin" />
+          ) : (
+            <ScanLine size={20} strokeWidth={2.2} />
+          )}
+          {arActivating ? "Membuka AR..." : "Lihat di Meja (AR)"}
         </button>
 
         <p className="text-[11px] text-center mt-2.5" style={{ color: "rgba(255,255,255,0.5)" }}>
