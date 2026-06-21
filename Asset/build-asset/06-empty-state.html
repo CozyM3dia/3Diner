@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>3Diner - Cafe Tidak Ditemukan</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed-dim": "#afc8f2",
+                        "secondary-container": "#a3c1fe",
+                        "midnight-navy": "#002355",
+                        "on-background": "#191c1e",
+                        "tertiary-fixed": "#d5e3ff",
+                        "surface-container-high": "#e6e8eb",
+                        "on-primary-fixed-variant": "#832600",
+                        "surface-container-highest": "#e0e3e6",
+                        "surface-container-low": "#f2f4f7",
+                        "surface": "#f7f9fc",
+                        "on-secondary-fixed": "#001a40",
+                        "on-tertiary-fixed-variant": "#2f476b",
+                        "on-tertiary-container": "#fefcff",
+                        "primary-container": "#d04408",
+                        "on-error-container": "#93000a",
+                        "on-surface": "#191c1e",
+                        "tertiary-container": "#5d759c",
+                        "on-tertiary-fixed": "#001c3b",
+                        "tertiary": "#455d82",
+                        "primary-fixed-dim": "#ffb59d",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "inverse-primary": "#ffb59d",
+                        "surface-dim": "#d8dadd",
+                        "soft-surface": "#E0E7EE",
+                        "secondary": "#405e94",
+                        "outline-variant": "#e2bfb4",
+                        "secondary-fixed": "#d7e2ff",
+                        "on-secondary-fixed-variant": "#26467b",
+                        "orange-warm": "#F07042",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#ffdbd0",
+                        "outline": "#8e7067",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#f7f9fc",
+                        "inverse-surface": "#2d3133",
+                        "error-container": "#ffdad6",
+                        "pure-surface": "#FDFDFD",
+                        "surface-variant": "#e0e3e6",
+                        "background": "#f7f9fc",
+                        "inverse-on-surface": "#eff1f4",
+                        "surface-container": "#eceef1",
+                        "on-surface-variant": "#5a4139",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#390b00",
+                        "on-primary-container": "#fffbff",
+                        "whisper-border": "#CFD9E4",
+                        "primary": "#a83300",
+                        "orange-blush": "#FDE8DC",
+                        "surface-tint": "#ac3400",
+                        "on-secondary-container": "#2f4e84"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "touch-target-min": "44px",
+                        "card-gap": "12px",
+                        "section-margin": "32px",
+                        "page-gutter": "16px",
+                        "chip-gap": "8px"
+                    },
+                    "fontFamily": {
+                        "caption": ["Plus Jakarta Sans"],
+                        "label-caps": ["Plus Jakarta Sans"],
+                        "badge-micro": ["Plus Jakarta Sans"],
+                        "section-header": ["Plus Jakarta Sans"],
+                        "headline-h1": ["Plus Jakarta Sans"],
+                        "price-lg": ["Plus Jakarta Sans"],
+                        "headline-h2": ["Plus Jakarta Sans"],
+                        "body-main": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "caption": ["11px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "600" }],
+                        "badge-micro": ["10px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700" }],
+                        "section-header": ["18px", { "lineHeight": "1.4", "fontWeight": "700" }],
+                        "headline-h1": ["28px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-h1-mobile": ["24px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "price-lg": ["20px", { "lineHeight": "1", "fontWeight": "700" }],
+                        "headline-h2": ["22px", { "lineHeight": "1.3", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-h2-mobile": ["18px", { "lineHeight": "1.3", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-main": ["14px", { "lineHeight": "1.6", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #F6F8FB; /* Paper White */
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-main text-on-surface antialiased min-h-screen flex flex-col max-w-[375px] mx-auto bg-[#F6F8FB] relative shadow-[0_0_40px_rgba(2,44,96,0.05)] overflow-hidden">
+<!-- HEADER: Minimalistic Wordmark -->
+<header class="flex justify-center items-center h-16 px-page-gutter z-40 bg-surface/90 backdrop-blur-md border-b border-whisper-border shadow-[0_2px_15px_rgba(2,44,96,0.04)] sticky top-0">
+<h1 class="font-headline-h1 text-headline-h1-mobile text-midnight-navy tracking-tight">3DINER</h1>
+</header>
+<!-- CONTENT: Empty State -->
+<main class="flex-grow flex flex-col justify-center items-center px-6 py-12 text-center">
+<!-- Illustration Placeholder -->
+<div class="mb-8 relative w-48 h-48 flex items-center justify-center">
+<!-- Simulated Line-Art QR Code Graphic -->
+<div class="absolute inset-0 bg-soft-surface rounded-full opacity-50 blur-xl"></div>
+<div class="relative w-32 h-32 border-2 border-midnight-navy rounded-xl p-4 flex flex-col justify-between shadow-[0_10px_30px_rgba(2,44,96,0.07)] bg-pure-surface">
+<div class="flex justify-between w-full">
+<div class="w-6 h-6 border-2 border-midnight-navy rounded"></div>
+<div class="w-6 h-6 border-2 border-midnight-navy rounded"></div>
+</div>
+<div class="flex-grow flex items-center justify-center">
+<span class="material-symbols-outlined text-[48px] text-orange-warm" style="font-variation-settings: 'wght' 600;">qr_code_scanner</span>
+</div>
+<div class="flex justify-start w-full">
+<div class="w-6 h-6 border-2 border-midnight-navy rounded"></div>
+</div>
+<!-- Question Mark Badge -->
+<div class="absolute -bottom-2 -right-2 bg-orange-warm w-10 h-10 rounded-full flex items-center justify-center text-white font-headline-h2 text-headline-h2-mobile shadow-[0_4px_12px_rgba(240,112,66,0.3)]">
+                    ?
+                </div>
+</div>
+</div>
+<!-- Text Context -->
+<h2 class="font-headline-h2 text-headline-h2-mobile text-midnight-navy mb-3">Cafe Tidak Ditemukan</h2>
+<p class="font-body-main text-body-main text-tertiary-container mb-10 max-w-[280px]">
+            Pastikan kamu scan QR yang benar dari meja cafe, atau minta bantuan staff.
+        </p>
+<!-- Actions -->
+<div class="w-full flex flex-col gap-4">
+<button class="w-full h-[52px] bg-orange-warm text-white font-label-caps text-label-caps rounded-xl shadow-[0_6px_20px_rgba(240,112,66,0.28)] flex items-center justify-center gap-2 hover:bg-primary-container transition-colors active:scale-[0.98]">
+<span class="material-symbols-outlined text-[20px]">qr_code_scanner</span>
+                Coba Scan Lagi
+            </button>
+<button class="w-full h-[52px] bg-pure-surface text-midnight-navy border border-whisper-border font-label-caps text-label-caps rounded-xl flex items-center justify-center gap-2 hover:bg-soft-surface transition-colors active:scale-[0.98]">
+<span class="material-symbols-outlined text-[20px]">support_agent</span>
+                Hubungi Staff
+            </button>
+</div>
+</main>
+<!-- FOOTER -->
+<footer class="py-6 text-center text-midnight-navy/50">
+<span class="font-caption text-caption tracking-wide">Powered by 3Diner</span>
+</footer>
+</body></html>

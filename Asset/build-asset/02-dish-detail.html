@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>3Diner - Kopi Susu Senja</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed-dim": "#afc8f2",
+                        "secondary-container": "#a3c1fe",
+                        "midnight-navy": "#002355",
+                        "on-background": "#191c1e",
+                        "tertiary-fixed": "#d5e3ff",
+                        "surface-container-high": "#e6e8eb",
+                        "on-primary-fixed-variant": "#832600",
+                        "surface-container-highest": "#e0e3e6",
+                        "surface-container-low": "#f2f4f7",
+                        "surface": "#f7f9fc",
+                        "on-secondary-fixed": "#001a40",
+                        "on-tertiary-fixed-variant": "#2f476b",
+                        "on-tertiary-container": "#fefcff",
+                        "primary-container": "#d04408",
+                        "on-error-container": "#93000a",
+                        "on-surface": "#191c1e",
+                        "tertiary-container": "#5d759c",
+                        "on-tertiary-fixed": "#001c3b",
+                        "tertiary": "#455d82",
+                        "primary-fixed-dim": "#ffb59d",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "inverse-primary": "#ffb59d",
+                        "surface-dim": "#d8dadd",
+                        "soft-surface": "#E0E7EE",
+                        "secondary": "#405e94",
+                        "outline-variant": "#e2bfb4",
+                        "secondary-fixed": "#d7e2ff",
+                        "on-secondary-fixed-variant": "#26467b",
+                        "orange-warm": "#F07042",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#ffdbd0",
+                        "outline": "#8e7067",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#f7f9fc",
+                        "inverse-surface": "#2d3133",
+                        "error-container": "#ffdad6",
+                        "pure-surface": "#FDFDFD",
+                        "surface-variant": "#e0e3e6",
+                        "background": "#f6f8fb", /* Paper White */
+                        "inverse-on-surface": "#eff1f4",
+                        "surface-container": "#eceef1",
+                        "on-surface-variant": "#5a4139",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#390b00",
+                        "on-primary-container": "#fffbff",
+                        "whisper-border": "#CFD9E4",
+                        "primary": "#a83300",
+                        "orange-blush": "#FDE8DC",
+                        "surface-tint": "#ac3400",
+                        "on-secondary-container": "#2f4e84"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "touch-target-min": "44px",
+                        "card-gap": "12px",
+                        "section-margin": "32px",
+                        "page-gutter": "16px",
+                        "chip-gap": "8px"
+                    },
+                    "fontFamily": {
+                        "caption": ["Plus Jakarta Sans"],
+                        "label-caps": ["Plus Jakarta Sans"],
+                        "badge-micro": ["Plus Jakarta Sans"],
+                        "section-header": ["Plus Jakarta Sans"],
+                        "headline-h1": ["Plus Jakarta Sans"],
+                        "price-lg": ["Plus Jakarta Sans"],
+                        "headline-h2": ["Plus Jakarta Sans"],
+                        "body-main": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "caption": ["11px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "600" }],
+                        "badge-micro": ["10px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700" }],
+                        "section-header": ["18px", { "lineHeight": "1.4", "fontWeight": "700" }],
+                        "headline-h1": ["28px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "price-lg": ["20px", { "lineHeight": "1", "fontWeight": "700" }],
+                        "headline-h2": ["22px", { "lineHeight": "1.3", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-main": ["14px", { "lineHeight": "1.6", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+            background-color: #f6f8fb; /* Paper white base */
+        }
+        
+        /* 3D Pulse Animation for Badge */
+        @keyframes pulse-soft {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+        .animate-pulse-soft {
+            animation: pulse-soft 2s ease-in-out infinite;
+        }
+
+        /* Prevent overscroll on sticky footer */
+        main {
+            padding-bottom: 120px; /* Space for CTA bar */
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-midnight-navy font-body-main antialiased min-h-screen relative max-w-[375px] mx-auto overflow-x-hidden shadow-2xl sm:border sm:border-whisper-border">
+<!-- HERO IMAGE FULL BLEED -->
+<div class="relative w-full h-[280px]">
+<img class="w-full h-full object-cover" data-alt="Close-up professional macro photography of a latte art coffee drink, 'Kopi Susu Senja', served in an artisanal ceramic cup. The setting is a bright, modern cafe with natural morning light streaming in, creating soft, appealing shadows. The mood is warm and inviting, emphasizing the rich, creamy texture of the milk and the deep, dark espresso base. The overall aesthetic is highly detailed, premium, and appetizing, suitable for a high-end food delivery application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtOEc5ESaYlqER2gHeemPoXM87MubzYsjlpc03QDm5LD_3oMahVaVi8cKo2q0HeU62MOXvm2IB5MXSfMiOKbnNw7gSuznnUWE-LN3i4QCNUXVcwhDCseRu43erRcdkhvX6Kf-vsrMmPUvUcaciXiRY2FQdaXCPXe0BWaYCFmkJbQiFBmxUpewbpy7YjTh1Jh8kEMu_VCDFzOpkFb_cN8lOpaCAKR9cokQcfEQxHTOOEwkEJbXpCqZPFvjLHC-BZD750lmuhqwj8Tk"/>
+<!-- Top Navigation Overlay -->
+<div class="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-10">
+<!-- Back Button -->
+<button aria-label="Go back" class="w-10 h-10 rounded-full bg-midnight-navy/50 backdrop-blur-sm flex items-center justify-center text-white active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</button>
+<!-- Share Button -->
+<button aria-label="Share" class="w-10 h-10 rounded-full bg-midnight-navy/50 backdrop-blur-sm flex items-center justify-center text-white active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">share</span>
+</button>
+</div>
+<!-- 3D Badge -->
+<div class="absolute bottom-4 left-4 bg-orange-blush px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-[0_2px_10px_rgba(240,90,34,0.15)] animate-pulse-soft border border-orange-warm/20">
+<span class="material-symbols-outlined text-orange-warm text-[16px]" style="font-variation-settings: 'FILL' 1;">view_in_ar</span>
+<span class="font-badge-micro text-badge-micro text-orange-warm tracking-wider uppercase">LIHAT 3D</span>
+</div>
+</div>
+<!-- CONTENT CANVAS -->
+<main class="bg-pure-surface rounded-t-3xl -mt-6 relative z-20 px-page-gutter pt-6 pb-section-margin shadow-[0_-4px_20px_rgba(2,44,96,0.05)] min-h-[442px]">
+<!-- Header Info -->
+<div class="flex justify-between items-start mb-2">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-caps text-label-caps text-secondary uppercase tracking-wider">KOPI</span>
+<span class="w-1 h-1 rounded-full bg-whisper-border"></span>
+<div class="flex items-center text-midnight-navy">
+<span class="font-caption text-caption font-semibold">4.8</span>
+<span class="material-symbols-outlined text-orange-warm text-[12px] ml-0.5" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<h1 class="text-[26px] font-bold leading-tight tracking-tight text-midnight-navy mb-1">Kopi Susu Senja</h1>
+</div>
+</div>
+<!-- Price -->
+<div class="mb-6">
+<span class="font-price-lg text-price-lg text-orange-warm">Rp 28.000</span>
+</div>
+<!-- Divider -->
+<hr class="border-t border-whisper-border mb-6"/>
+<!-- Description -->
+<div class="mb-6">
+<h2 class="font-section-header text-section-header mb-2 text-midnight-navy">Deskripsi</h2>
+<p class="font-body-main text-body-main text-midnight-navy/80 leading-relaxed">
+                Espresso premium yang dipadukan dengan susu segar pilihan, menghasilkan cita rasa yang kaya dan lembut. Cocok dinikmati saat sore hari untuk menemani waktu bersantai Anda. Disajikan dingin.
+            </p>
+</div>
+<!-- Tags -->
+<div class="flex flex-wrap gap-chip-gap mb-8">
+<span class="px-3 py-1.5 bg-soft-surface rounded-full font-caption text-caption text-secondary border border-whisper-border">Susu Segar</span>
+<span class="px-3 py-1.5 bg-soft-surface rounded-full font-caption text-caption text-secondary border border-whisper-border">Espresso</span>
+</div>
+</main>
+<!-- STICKY CTA BAR (Replaces BottomNav) -->
+<div class="fixed bottom-0 left-0 right-0 max-w-[375px] mx-auto bg-pure-surface/95 backdrop-blur-xl border-t border-whisper-border px-page-gutter py-4 z-50 shadow-[0_-8px_30px_rgba(2,44,96,0.08)] pb-[max(1rem,env(safe-area-inset-bottom))]"><div class="flex items-center justify-between gap-3 px-4 py-3">
+<!-- Ghost Button (Left) -->
+<button class="flex-none h-[44px] px-3 rounded-[18px] border-[1.5px] border-midnight-navy text-midnight-navy font-bold text-[12px] uppercase flex items-center justify-center gap-1.5 active:bg-soft-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 0;">view_in_ar</span>
+        LIHAT 3D
+    </button>
+<!-- Quantity Stepper (Center) -->
+<div class="flex items-center gap-3">
+<button class="w-9 h-9 rounded-full bg-soft-surface flex items-center justify-center text-midnight-navy active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">remove</span>
+</button>
+<span class="font-bold text-[16px] text-midnight-navy min-w-[12px] text-center">1</span>
+<button class="w-9 h-9 rounded-full bg-orange-warm flex items-center justify-center text-white active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+<!-- Primary CTA Button (Right) -->
+<button class="flex-1 h-[52px] rounded-[18px] bg-orange-warm text-white font-semibold text-[14px] flex items-center justify-center shadow-[0_6px_20px_rgba(240,90,34,0.28)] active:scale-[0.98] transition-transform">
+        Tambah • Rp 28.000
+    </button>
+</div></div>
+</body></html>

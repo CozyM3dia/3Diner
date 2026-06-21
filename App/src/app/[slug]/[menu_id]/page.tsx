@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
+import { Box } from "lucide-react";
 import { getCafeBySlug, getMenuById, logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
 import DetailHeader from "@/components/DetailHeader";
-import ARButton from "@/components/ARButton";
-import OrderButton from "@/components/OrderButton";
-import { Box, Sparkles } from "lucide-react";
+import AddToCartBar from "@/components/AddToCartBar";
 
 interface PageProps {
   params: Promise<{ slug: string; menu_id: string }>;
@@ -35,12 +34,14 @@ export default async function MenuDetailPage({ params }: PageProps) {
 
   logEvent({ cafe_id: cafe.id_cafe, menu_id: menu.id_menu, event_type: "view_3d", duration: 0 });
 
+  const has3d = Boolean(menu.model_3d_url);
+
   return (
-    <main className="min-h-dvh" style={{ background: "#F6F8FB", paddingBottom: "96px" }}>
+    <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "96px" }}>
       <DetailHeader cafeName={cafe.nama_cafe} slug={slug} />
 
       {/* Hero */}
-      <div className="relative w-full aspect-[4/3] overflow-hidden grain">
+      <div className="relative w-full overflow-hidden grain" style={{ height: "300px" }}>
         {menu.image_url ? (
           <Image src={menu.image_url} alt={menu.nama_menu} fill priority sizes="100vw" className="object-cover" />
         ) : (
@@ -48,68 +49,55 @@ export default async function MenuDetailPage({ params }: PageProps) {
             <Box size={56} color="rgba(253,253,253,0.45)" strokeWidth={1.3} className="float" />
           </div>
         )}
-        <div className="absolute inset-x-0 bottom-0 h-1/2" style={{ background: "linear-gradient(to top, rgba(0,35,85,0.85), transparent)" }} />
-        <span
-          className="absolute top-[64px] right-4 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-white"
-          style={{ background: "#FD5002", boxShadow: "0 6px 16px rgba(253,80,2,0.4)" }}
-        >
-          <Sparkles size={11} /> 3D · AR READY
-        </span>
+        <div
+          className="absolute inset-x-0 bottom-0 h-12 pointer-events-none"
+          style={{ background: "linear-gradient(to top, var(--paper), transparent)" }}
+        />
+        {has3d && (
+          <span className="badge-3d absolute bottom-4 left-4 inline-flex items-center gap-1">
+            <Box size={11} strokeWidth={2.5} /> Lihat 3D
+          </span>
+        )}
       </div>
 
-      {/* Title card overlapping hero */}
-      <div className="relative -mt-8 px-4">
-        <div className="card p-5" style={{ boxShadow: "var(--shadow-lg)" }}>
-          <div className="flex items-start justify-between gap-3">
-            <h1 className="font-display text-2xl font-semibold leading-tight flex-1" style={{ color: "#022C60", letterSpacing: "-0.01em" }}>
-              {menu.nama_menu}
-            </h1>
-            <span className="font-display text-xl font-bold shrink-0" style={{ color: "#FD5002" }}>
-              {formatRupiah(menu.harga_menu)}
+      {/* Content */}
+      <div className="px-4 pt-3">
+        <div className="flex items-start justify-between gap-3">
+          {menu.category && (
+            <span
+              className="text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full"
+              style={{ background: "var(--surface)", color: "var(--navy-muted)" }}
+            >
+              {menu.category}
             </span>
-          </div>
-
-          {menu.description_menu && (
-            <>
-              <div className="w-full h-px my-4" style={{ background: "#E0E7EE" }} />
-              <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "#51698F" }}>
-                Deskripsi
-              </p>
-              <p className="text-sm leading-relaxed" style={{ color: "#254473" }}>
-                {menu.description_menu}
-              </p>
-            </>
           )}
         </div>
 
-        <p className="text-center text-xs mt-5" style={{ color: "#51698F" }}>
-          Lihat dalam 3D & AR sebelum memesan
+        <h1
+          className="font-display text-[26px] font-extrabold leading-tight mt-3"
+          style={{ color: "var(--navy)" }}
+        >
+          {menu.nama_menu}
+        </h1>
+
+        <p className="text-[22px] font-bold mt-1.5" style={{ color: "var(--orange-ink)" }}>
+          {formatRupiah(menu.harga_menu)}
         </p>
+
+        {menu.description_menu && (
+          <>
+            <div className="w-full h-px my-4" style={{ background: "var(--border)" }} />
+            <h2 className="text-sm font-semibold mb-1.5" style={{ color: "var(--navy)" }}>
+              Tentang Hidangan
+            </h2>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--navy-muted)" }}>
+              {menu.description_menu}
+            </p>
+          </>
+        )}
       </div>
 
-      {/* Sticky action bar */}
-      <div
-        className="fixed bottom-0 inset-x-0 z-40 px-4 py-3"
-        style={{
-          background: "rgba(246,248,251,0.9)",
-          backdropFilter: "blur(14px)",
-          WebkitBackdropFilter: "blur(14px)",
-          borderTop: "1px solid #CFD9E4",
-        }}
-      >
-        <div className="flex gap-2.5 max-w-xl mx-auto">
-          <a
-            href={`/${slug}/${menu_id}/3d`}
-            className="flex items-center justify-center gap-1.5 px-4 py-3.5 rounded-2xl font-semibold text-sm shrink-0"
-            style={{ background: "#E0E7EE", color: "#022C60" }}
-          >
-            <Box size={16} strokeWidth={2} />
-            3D
-          </a>
-          <ARButton modelUrl={menu.model_3d_url} usdzUrl={menu.usdz_url ?? undefined} menuName={menu.nama_menu} />
-          <OrderButton redirectLink={menu.redirect_link} cafeId={cafe.id_cafe} menuId={menu.id_menu} />
-        </div>
-      </div>
+      <AddToCartBar menu={menu} slug={slug} />
     </main>
   );
 }

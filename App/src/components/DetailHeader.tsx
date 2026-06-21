@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ShoppingBag } from "lucide-react";
+import { useCart } from "@/lib/cart";
 
 interface DetailHeaderProps {
   cafeName: string;
@@ -10,29 +12,34 @@ interface DetailHeaderProps {
 
 export default function DetailHeader({ cafeName, slug }: DetailHeaderProps) {
   const router = useRouter();
+  const { count } = useCart();
+
+  const circle =
+    "press w-9 h-9 rounded-full inline-flex items-center justify-center shrink-0";
+  const circleStyle = { background: "rgba(0,35,85,0.5)", backdropFilter: "blur(6px)" };
 
   return (
-    <header
-      className="fixed top-0 left-0 right-0 z-50 flex items-center gap-3 px-4 py-3"
-      style={{
-        background: "rgba(253,253,253,0.88)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        borderBottom: "1px solid #CFD9E4",
-      }}
-    >
-      <button
-        onClick={() => router.push(`/${slug}`)}
-        className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform shrink-0"
-        style={{ background: "#E0E7EE" }}
-        aria-label="Kembali ke menu"
-      >
-        <ArrowLeft size={18} color="#022C60" strokeWidth={2.5} />
+    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 pt-3">
+      <button onClick={() => router.push(`/${slug}`)} aria-label="Kembali ke menu" className={circle} style={circleStyle}>
+        <ArrowLeft size={18} color="#fff" strokeWidth={2.5} />
       </button>
 
-      <p className="text-sm font-semibold truncate" style={{ color: "#022C60" }}>
-        {cafeName}
-      </p>
+      <Link
+        href={`/${slug}/keranjang`}
+        aria-label={count > 0 ? `Keranjang, ${count} item` : "Keranjang"}
+        className={`${circle} relative`}
+        style={circleStyle}
+      >
+        <ShoppingBag size={17} color="#fff" strokeWidth={2.2} />
+        {count > 0 && (
+          <span
+            className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
+            style={{ background: "var(--orange)", color: "#fff" }}
+          >
+            {count}
+          </span>
+        )}
+      </Link>
     </header>
   );
 }

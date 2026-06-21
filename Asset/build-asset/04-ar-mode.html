@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>3Diner AR Mode</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed-dim": "#afc8f2",
+                        "secondary-container": "#a3c1fe",
+                        "midnight-navy": "#002355",
+                        "on-background": "#191c1e",
+                        "tertiary-fixed": "#d5e3ff",
+                        "surface-container-high": "#e6e8eb",
+                        "on-primary-fixed-variant": "#832600",
+                        "surface-container-highest": "#e0e3e6",
+                        "surface-container-low": "#f2f4f7",
+                        "surface": "#f7f9fc",
+                        "on-secondary-fixed": "#001a40",
+                        "on-tertiary-fixed-variant": "#2f476b",
+                        "on-tertiary-container": "#fefcff",
+                        "primary-container": "#d04408",
+                        "on-error-container": "#93000a",
+                        "on-surface": "#191c1e",
+                        "tertiary-container": "#5d759c",
+                        "on-tertiary-fixed": "#001c3b",
+                        "tertiary": "#455d82",
+                        "primary-fixed-dim": "#ffb59d",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "inverse-primary": "#ffb59d",
+                        "surface-dim": "#d8dadd",
+                        "soft-surface": "#E0E7EE",
+                        "secondary": "#405e94",
+                        "outline-variant": "#e2bfb4",
+                        "secondary-fixed": "#d7e2ff",
+                        "on-secondary-fixed-variant": "#26467b",
+                        "orange-warm": "#F07042",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#ffdbd0",
+                        "outline": "#8e7067",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#f7f9fc",
+                        "inverse-surface": "#2d3133",
+                        "error-container": "#ffdad6",
+                        "pure-surface": "#FDFDFD",
+                        "surface-variant": "#e0e3e6",
+                        "background": "#f7f9fc",
+                        "inverse-on-surface": "#eff1f4",
+                        "surface-container": "#eceef1",
+                        "on-surface-variant": "#5a4139",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#390b00",
+                        "on-primary-container": "#fffbff",
+                        "whisper-border": "#CFD9E4",
+                        "primary": "#a83300",
+                        "orange-blush": "#FDE8DC",
+                        "surface-tint": "#ac3400",
+                        "on-secondary-container": "#2f4e84"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "touch-target-min": "44px",
+                        "card-gap": "12px",
+                        "section-margin": "32px",
+                        "page-gutter": "16px",
+                        "chip-gap": "8px"
+                    },
+                    "fontFamily": {
+                        "caption": ["Plus Jakarta Sans"],
+                        "label-caps": ["Plus Jakarta Sans"],
+                        "badge-micro": ["Plus Jakarta Sans"],
+                        "section-header": ["Plus Jakarta Sans"],
+                        "headline-h1": ["Plus Jakarta Sans"],
+                        "price-lg": ["Plus Jakarta Sans"],
+                        "headline-h2": ["Plus Jakarta Sans"],
+                        "body-main": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "caption-mobile": ["11px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "label-caps-mobile": ["11px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "600" }],
+                        "badge-micro-mobile": ["10px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700" }],
+                        "section-header-mobile": ["16px", { "lineHeight": "1.4", "fontWeight": "700" }],
+                        "headline-h1-mobile": ["24px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "price-lg-mobile": ["18px", { "lineHeight": "1", "fontWeight": "700" }],
+                        "headline-h2-mobile": ["20px", { "lineHeight": "1.3", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-main-mobile": ["14px", { "lineHeight": "1.6", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        .scan-line {
+            animation: scan 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        @keyframes scan {
+            0% { transform: translateY(-50vh) scaleX(0.8); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(50vh) scaleX(1.2); opacity: 0; }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-black text-on-primary font-body-main-mobile h-screen w-full max-w-[375px] mx-auto overflow-hidden relative">
+<!-- AR Camera Passthrough Background -->
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover" data-alt="A POV shot looking down at a rustic wooden cafe table. The lighting is warm and inviting, typical of a cozy coffee shop with soft natural light streaming in. The table surface has rich textures and natural wood grains. The scene is slightly blurred to simulate an out-of-focus background for augmented reality passthrough. The overall aesthetic is warm, tactile, and highly realistic, fitting a premium dining app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAC8jsscisvyUyLi-7itYs9ntCNrrisL96v-cpAao_OSyApeUx9KRK9d4mNUqGNqZBTTEt9EEtCd0lHx0NWi2EMzSFpGOHlQ3egMnGvVWumAVFNB3aOIisNIYPk0K4T7iFCwo96ENQHI0OI_EWlKLIlWWhrzRTJTT36BvCHwQki50clFlbuLTxxhg1TvLQPgYiljpQqGk9aH8uPz3iYkU1ByzAvYXSpyh8eaTV79R373y1tuCPYVTFVRSEdeZPL_ekoeS0oFtWMT2Q"/>
+<!-- Simulated 3D Object overlay -->
+<div class="absolute inset-0 flex items-center justify-center">
+<img class="w-48 h-48 object-contain translate-y-12 drop-shadow-xl" data-alt="A highly realistic 3D render of an iced latte in a clear glass on the wooden table. The glass is sweating slightly with condensation. The coffee has distinct layers of dark espresso and creamy milk. It casts a soft, realistic shadow on the table surface, perfectly matching the warm cafe lighting. The style is highly appetizing, photorealistic, and fits seamlessly into the environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDi-s5UhqALH86beRyD8ZazKVdw2eu-J9SCw57HSQ34HnKeX1Lh8lhWdjWb2I7MaVQopa47Fs7cGpD1jgOb3PAm5NyVkuD0LbrKToKiCXfIPvV1JkSXegBIhsHtZm-DQ1gdx0hhZ9HS_vuasbAadqm4i1ne43IbTq74t_KM6jcl6wpgXYv7LhKBM2Bn-SFpEZSa0qA7CgMlFnMUX4e9WnpRp_oMxSiyViNvda0iRVW53O8KHy4-OVAu3-JvGrMUca7a0htrdVxgjrM"/>
+</div>
+</div>
+<!-- Scanning Line Effect -->
+<div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
+<div class="w-3/4 h-[2px] bg-orange-warm shadow-[0_0_15px_rgba(240,112,66,0.8)] rounded-full scan-line relative">
+<div class="absolute inset-0 bg-white opacity-50 blur-sm rounded-full"></div>
+</div>
+</div>
+<!-- UI Layer -->
+<div class="absolute inset-0 z-20 flex flex-col justify-between pointer-events-none">
+<!-- Top UI -->
+<div class="flex justify-between items-start pt-safe px-page-gutter mt-4 pointer-events-auto">
+<button class="w-touch-target-min h-touch-target-min flex items-center justify-center bg-midnight-navy/60 backdrop-blur-md rounded-full text-white hover:bg-midnight-navy/80 transition-colors active:scale-95">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+<div class="flex items-center gap-2 bg-midnight-navy/60 backdrop-blur-md px-4 py-2 rounded-full border border-whisper-border/20 shadow-lg">
+<div class="w-2 h-2 rounded-full bg-green-500 pulse-dot"></div>
+<span class="font-label-caps-mobile text-label-caps-mobile text-white tracking-widest">AR AKTIF</span>
+</div>
+<div class="w-touch-target-min h-touch-target-min"></div> <!-- Spacer for centering -->
+</div>
+<!-- Center Guidance -->
+<div class="flex-grow flex items-center justify-center">
+<div class="bg-midnight-navy/80 backdrop-blur-md px-6 py-3 rounded-full shadow-2xl border border-whisper-border/10 transform -translate-y-8 animate-pulse">
+<p class="font-caption-mobile text-caption-mobile text-white opacity-90 text-center tracking-wide">Ketuk meja untuk meletakkan hidangan</p>
+</div>
+</div>
+<!-- Bottom Panel -->
+<div class="bg-midnight-navy/80 backdrop-blur-xl border-t border-whisper-border/10 pb-safe pt-6 px-6 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,35,85,0.4)] pointer-events-auto">
+<div class="flex justify-between items-center mb-6">
+<div>
+<h2 class="font-headline-h2-mobile text-headline-h2-mobile text-white mb-1">Kopi Susu Senja</h2>
+<p class="font-price-lg-mobile text-price-lg-mobile text-orange-warm">Rp 28.000</p>
+</div>
+<div class="flex gap-4">
+<button class="flex flex-col items-center justify-center gap-1 group active:scale-95 transition-transform">
+<div class="w-touch-target-min h-touch-target-min bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors border border-white/5">
+<span class="material-symbols-outlined text-white" data-icon="photo_camera">photo_camera</span>
+</div>
+<span class="font-badge-micro-mobile text-badge-micro-mobile text-tertiary-fixed-dim">FOTO</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 group active:scale-95 transition-transform">
+<div class="w-touch-target-min h-touch-target-min bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors border border-white/5">
+<span class="material-symbols-outlined text-white" data-icon="aspect_ratio">aspect_ratio</span>
+</div>
+<span class="font-badge-micro-mobile text-badge-micro-mobile text-tertiary-fixed-dim">UKURAN</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

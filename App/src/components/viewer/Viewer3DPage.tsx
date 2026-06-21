@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { X, Loader2, RotateCcw } from "lucide-react";
+import { X, Loader2, RotateCcw, ScanLine, Move3d } from "lucide-react";
 import { fitCameraToModel } from "@/lib/fit-camera";
 
 // Bypassing TypeScript JSX check for custom elements
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ModelViewerElement = "model-viewer" as any;
 
 interface Viewer3DPageProps {
@@ -26,25 +27,32 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
   const [state, setState] = useState<ViewerState>("loading");
   const [progress, setProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
+  const [arSupported, setArSupported] = useState(false);
+  const [arHint, setArHint] = useState(false);
 
   const isGlb = url.toLowerCase().endsWith(".glb");
 
-  // For GLB: attach load/error listeners via ref (onLoad prop unreliable on web components)
+  // GLB: attach load/error listeners via ref (onLoad prop unreliable on web components)
   useEffect(() => {
     if (!isGlb) return;
-
     const mv = modelViewerRef.current;
     if (!mv) return;
 
     const handleLoad = () => {
       setProgress(100);
       setState("ready");
+      // canActivateAR resolves once model-viewer evaluates ar-modes for the device
+      setArSupported(Boolean(mv.canActivateAR));
+      window.setTimeout(() => setArSupported(Boolean(mv.canActivateAR)), 600);
+      // Nudge model-viewer to (re)measure its canvas in case the flex layout
+      // settled after the WebGL context was created (canvas can init at 0×0).
+      window.dispatchEvent(new Event("resize"));
+      window.setTimeout(() => window.dispatchEvent(new Event("resize")), 120);
     };
     const handleError = () => setState("error");
 
     mv.addEventListener("load", handleLoad);
     mv.addEventListener("error", handleError);
-
     if (mv.loaded) handleLoad();
 
     return () => {
@@ -53,7 +61,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
     };
   }, [isGlb]);
 
-  // For GLB: import model-viewer library
+  // GLB: import model-viewer library
   useEffect(() => {
     if (isGlb) {
       import("@google/model-viewer").catch((err) => {
@@ -62,6 +70,24 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
       });
     }
   }, [isGlb]);
+
+  function launchAR() {
+    const mv = modelViewerRef.current;
+    if (mv?.canActivateAR) {
+      mv.activateAR();
+    } else {
+      setArHint(true);
+      window.setTimeout(() => setArHint(false), 3600);
+    }
+  }
+
+  function resetView() {
+    const mv = modelViewerRef.current;
+    if (mv) {
+      mv.cameraOrbit = "0deg 75deg auto";
+      mv.fieldOfView = "auto";
+    }
+  }
 
   const initViewer = useCallback(async () => {
     if (isGlb) {
@@ -89,9 +115,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
         if (done) break;
         rawChunks.push(new Uint8Array(value.buffer.slice(0)));
         loaded += value.byteLength;
-        if (total > 0) {
-          setProgress(Math.min(95, Math.round((loaded / total) * 100)));
-        }
+        if (total > 0) setProgress(Math.min(95, Math.round((loaded / total) * 100)));
       }
 
       const combined = new Uint8Array(loaded);
@@ -161,32 +185,27 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
   }, [initViewer]);
 
   return (
-    <div className="fixed inset-0 flex flex-col" style={{ background: "#002355" }}>
+    <div className="fixed inset-0 flex flex-col" style={{ background: "radial-gradient(120% 90% at 50% 35%, #0A3A78 0%, #022C60 45%, #002355 100%)" }}>
       {/* Top bar */}
       <div
         className="flex items-center gap-3 px-4 shrink-0"
-        style={{
-          background: "rgba(0,35,85,0.85)",
-          backdropFilter: "blur(8px)",
-          paddingTop: "calc(env(safe-area-inset-top) + 12px)",
-          paddingBottom: "12px",
-        }}
+        style={{ paddingTop: "calc(env(safe-area-inset-top,0px) + 14px)", paddingBottom: "14px" }}
       >
         <a
           href={backUrl}
-          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: "rgba(253,253,253,0.15)" }}
-          aria-label="Kembali"
+          className="press w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+          style={{ background: "rgba(255,255,255,0.14)" }}
+          aria-label="Tutup"
         >
-          <X size={18} color="#FDFDFD" />
+          <X size={19} color="#FDFDFD" strokeWidth={2.2} />
         </a>
-        <p className="text-sm font-semibold truncate flex-1" style={{ color: "#FDFDFD" }}>
+        <p className="text-[15px] font-semibold truncate flex-1 text-center pr-10" style={{ color: "#FDFDFD" }}>
           {menuName}
         </p>
       </div>
 
       {/* Canvas */}
-      <div className="relative flex-1 overflow-hidden">
+      <div className="relative flex-1 overflow-hidden min-h-0">
         {isGlb ? (
           <ModelViewerElement
             ref={modelViewerRef}
@@ -195,90 +214,95 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
             ar
             ar-modes="webxr scene-viewer quick-look"
             ar-scale="auto"
+            loading="eager"
+            reveal="auto"
             camera-controls
             touch-action="pan-y"
             shadow-intensity="1"
+            exposure="1.05"
+            environment-image="neutral"
             autoplay
             auto-rotate
+            rotation-per-second="18deg"
+            interaction-prompt="none"
             alt={menuName}
-            style={{ width: "100%", height: "100%", outline: "none", "--poster-color": "transparent" } as any}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", outline: "none", "--poster-color": "transparent" } as React.CSSProperties}
           />
         ) : (
           <div ref={containerRef} className="absolute inset-0" />
         )}
 
+        {/* Reset view (only when ready) */}
+        {state === "ready" && (
+          <button
+            onClick={resetView}
+            aria-label="Atur ulang tampilan"
+            className="press absolute top-3 right-4 w-10 h-10 rounded-full inline-flex items-center justify-center"
+            style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}
+          >
+            <RotateCcw size={17} strokeWidth={2.2} />
+          </button>
+        )}
+
         {/* Loading */}
         {state === "loading" && (
-          <div
-            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4"
-            style={{ background: "#002355" }}
-          >
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
-              style={{ background: "rgba(253,253,253,0.1)" }}
-            >
-              <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.1)" }}>
+              <Loader2 size={28} color="var(--orange)" strokeWidth={2} className="animate-spin" />
             </div>
-            <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>
-              Memuat model 3D...
-            </p>
-            <div className="w-56 h-2 rounded-full overflow-hidden" style={{ background: "rgba(253,253,253,0.15)" }}>
-              <div
-                className="h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${progress}%`,
-                  background: "linear-gradient(90deg, #022C60, #FD5002)",
-                }}
-              />
+            <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>Memuat model 3D...</p>
+            <div className="w-56 h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.15)" }}>
+              <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progress}%`, background: "var(--orange)" }} />
             </div>
-            <p className="text-base font-bold" style={{ color: "#FDFDFD" }}>
-              {progress > 0 ? `${progress}%` : "Menyiapkan..."}
-            </p>
-            <p className="text-xs text-center px-10 leading-relaxed" style={{ color: "rgba(253,253,253,0.6)" }}>
-              Model sedang diunduh, mohon tunggu...
-            </p>
+            <p className="text-base font-bold" style={{ color: "#FDFDFD" }}>{progress > 0 ? `${progress}%` : "Menyiapkan..."}</p>
           </div>
         )}
 
         {/* Error */}
         {state === "error" && (
-          <div
-            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-6"
-            style={{ background: "#002355" }}
-          >
-            <p className="font-semibold text-sm" style={{ color: "#FDFDFD" }}>
-              Gagal memuat model 3D
-            </p>
-            <p className="text-xs text-center" style={{ color: "rgba(253,253,253,0.6)" }}>
-              Cek koneksi internet & coba lagi
-            </p>
-            {errorMsg && (
-              <p className="text-xs text-center px-4 font-mono break-all" style={{ color: "rgba(253,253,253,0.5)" }}>
-                {errorMsg}
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={initViewer}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white"
-              style={{ background: "#FD5002" }}
-            >
-              <RotateCcw size={14} />
-              Coba Lagi
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-6 text-center">
+            <p className="font-semibold text-sm" style={{ color: "#FDFDFD" }}>Gagal memuat model 3D</p>
+            <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>Cek koneksi internet lalu coba lagi</p>
+            {errorMsg && <p className="text-xs px-4 font-mono break-all" style={{ color: "rgba(255,255,255,0.45)" }}>{errorMsg}</p>}
+            <button onClick={initViewer} className="btn-primary press inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white">
+              <RotateCcw size={14} /> Coba Lagi
             </button>
           </div>
         )}
+      </div>
 
-        {/* Ready hint */}
+      {/* Bottom control panel */}
+      <div
+        className="shrink-0 px-4 pt-4"
+        style={{
+          paddingBottom: "calc(env(safe-area-inset-bottom,0px) + 16px)",
+          background: "linear-gradient(180deg, rgba(0,35,85,0) 0%, rgba(0,35,85,0.55) 40%)",
+        }}
+      >
         {state === "ready" && (
-          <div
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium pointer-events-none"
-            style={{ background: "rgba(0,35,85,0.8)", color: "#FDFDFD" }}
-          >
-            <span>👆</span>
-            <span>Drag untuk memutar model</span>
-          </div>
+          <p className="flex items-center justify-center gap-1.5 text-xs mb-3" style={{ color: "rgba(255,255,255,0.7)" }}>
+            <Move3d size={14} /> Putar dengan jari, cubit untuk perbesar
+          </p>
         )}
+
+        {arHint && (
+          <p className="text-[12px] text-center mb-2.5 leading-relaxed px-4" style={{ color: "rgba(255,255,255,0.78)" }}>
+            Mode AR berjalan di HP (Android atau iPhone). Buka halaman ini lewat kamera HP untuk menaruh hidangan di mejamu.
+          </p>
+        )}
+
+        <button
+          onClick={launchAR}
+          disabled={state !== "ready"}
+          className="btn-primary press w-full h-[54px] rounded-2xl inline-flex items-center justify-center gap-2.5 font-semibold text-[15px] text-white disabled:opacity-50 max-w-xl mx-auto"
+        >
+          <ScanLine size={20} strokeWidth={2.2} />
+          Lihat di Meja (AR)
+        </button>
+
+        <p className="text-[11px] text-center mt-2.5" style={{ color: "rgba(255,255,255,0.5)" }}>
+          {arSupported ? "Arahkan kamera ke meja untuk menaruh hidangan" : "Tampilan nyata ukuran asli di mejamu"}
+        </p>
       </div>
     </div>
   );

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Keranjang - Senja Kopi 3Diner</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#191c1e",
+                        "on-tertiary": "#ffffff",
+                        "inverse-on-surface": "#eff1f4",
+                        "on-primary-container": "#fffbff",
+                        "inverse-surface": "#2d3133",
+                        "primary": "#a83300",
+                        "surface-tint": "#ac3400",
+                        "outline-variant": "#e2bfb4",
+                        "surface-container": "#eceef1",
+                        "on-secondary-container": "#2f4e84",
+                        "orange-blush": "#FDE8DC",
+                        "on-primary-fixed": "#390b00",
+                        "error-container": "#ffdad6",
+                        "whisper-border": "#CFD9E4",
+                        "inverse-primary": "#ffb59d",
+                        "surface-container-highest": "#e0e3e6",
+                        "tertiary": "#455d82",
+                        "on-secondary-fixed": "#001a40",
+                        "secondary-fixed": "#d7e2ff",
+                        "orange-warm": "#F07042",
+                        "tertiary-fixed-dim": "#afc8f2",
+                        "surface-bright": "#f7f9fc",
+                        "tertiary-fixed": "#d5e3ff",
+                        "on-primary": "#ffffff",
+                        "on-surface": "#191c1e",
+                        "secondary-container": "#a3c1fe",
+                        "on-surface-variant": "#5a4139",
+                        "tertiary-container": "#5d759c",
+                        "primary-container": "#d04408",
+                        "on-error-container": "#93000a",
+                        "midnight-navy": "#002355",
+                        "soft-surface": "#E0E7EE",
+                        "on-secondary-fixed-variant": "#26467b",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-container": "#fefcff",
+                        "surface-dim": "#d8dadd",
+                        "pure-surface": "#FDFDFD",
+                        "primary-fixed": "#ffdbd0",
+                        "on-tertiary-fixed": "#001c3b",
+                        "error": "#ba1a1a",
+                        "surface": "#f7f9fc",
+                        "on-tertiary-fixed-variant": "#2f476b",
+                        "outline": "#8e7067",
+                        "background": "#f7f9fc",
+                        "surface-variant": "#e0e3e6",
+                        "surface-container-high": "#e6e8eb",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#ffb59d",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "secondary": "#405e94",
+                        "surface-container-low": "#f2f4f7",
+                        "on-primary-fixed-variant": "#832600"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "chip-gap": "8px",
+                        "page-gutter": "16px",
+                        "card-gap": "12px",
+                        "touch-target-min": "44px",
+                        "section-margin": "32px"
+                    },
+                    "fontFamily": {
+                        "price-lg": ["Plus Jakarta Sans"],
+                        "headline-h1": ["Plus Jakarta Sans"],
+                        "caption": ["Plus Jakarta Sans"],
+                        "label-caps": ["Plus Jakarta Sans"],
+                        "headline-h2": ["Plus Jakarta Sans"],
+                        "section-header": ["Plus Jakarta Sans"],
+                        "body-main": ["Plus Jakarta Sans"],
+                        "badge-micro": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "price-lg": ["20px", { "lineHeight": "1", "fontWeight": "700" }],
+                        "headline-h1": ["28px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "caption": ["11px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "600" }],
+                        "headline-h2": ["22px", { "lineHeight": "1.3", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "section-header": ["18px", { "lineHeight": "1.4", "fontWeight": "700" }],
+                        "body-main": ["14px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "badge-micro": ["10px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Hide scrollbar for clean look */
+        ::-webkit-scrollbar { display: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-midnight-navy min-h-screen pb-[140px] pt-[64px] antialiased selection:bg-orange-blush selection:text-orange-warm max-w-md mx-auto relative shadow-2xl">
+<!-- STICKY HEADER -->
+<header class="fixed top-0 left-0 right-0 max-w-md mx-auto w-full z-50 bg-pure-surface border-b border-whisper-border flex items-center px-page-gutter h-[64px]">
+<button class="w-10 h-10 flex items-center justify-start text-midnight-navy active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<div class="flex-1 ml-2">
+<h1 class="font-section-header text-section-header text-midnight-navy tracking-tight">Pesanan Kamu</h1>
+</div>
+<div class="text-tertiary text-[12px] font-medium">
+            3 item
+        </div>
+</header>
+<!-- MAIN CONTENT CANVAS -->
+<main class="px-page-gutter pt-6 space-y-6">
+<!-- ORDER ITEMS LIST -->
+<section class="space-y-card-gap">
+<!-- Item 1 -->
+<article class="bg-pure-surface border border-whisper-border rounded-xl p-[12px] flex items-center gap-[12px] shadow-[0_4px_12px_rgba(2,44,96,0.02)] transition-all hover:shadow-[0_4px_12px_rgba(2,44,96,0.05)]">
+<div class="w-[72px] h-[72px] shrink-0 rounded-lg overflow-hidden bg-surface-container relative">
+<img class="w-full h-full object-cover" data-alt="A macro shot of a meticulously crafted iced Kopi Susu in a textured highball glass, showcasing beautiful distinct layers of dark espresso and creamy milk. The setting is a minimalist cafe table with soft, natural daylight highlighting the condensation on the glass. The aesthetic combines Tokyo minimalism with warm Indonesian coffee culture vibes, emphasizing premium tactile textures." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMRfjJuC3x20Y_SOncDIwb3bzc7Bk4mI5CteuNWbfBrLlaEWBbd7qsTCsj4EJAOF7-bqD1MWrXN53r7o8lnIb70cae2wBWicKihmLORPyw5iefHPBtJ7h6SZWj9ixSqfISC5t5RJx1bEiECJhTWPJv7c3gGw4dqHpVhE9LZkxLnSXkSGK2J4fD39n7UMeKlXyjU8mvjHomN4V3tjhjs6CLi_NBlXFayayN5pFSmqC9xd4-BB4f2UjuayV9YitSSBaBwN60tP7zMsQ"/>
+</div>
+<div class="flex-1 py-1 flex flex-col justify-between h-full">
+<h2 class="font-body-main text-[14px] font-bold text-midnight-navy leading-tight mb-1">Kopi Susu Senja</h2>
+<span class="text-orange-warm font-bold text-[14px]">Rp 28.000</span>
+</div>
+<div class="flex items-center gap-3 shrink-0 bg-soft-surface/30 p-1 rounded-full border border-whisper-border/30">
+<button class="w-8 h-8 rounded-full bg-soft-surface text-midnight-navy flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<span class="font-bold text-midnight-navy text-[14px] min-w-[12px] text-center">2</span>
+<button class="w-8 h-8 rounded-full bg-orange-warm text-pure-surface flex items-center justify-center active:scale-90 transition-transform shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</article>
+<!-- Item 2 -->
+<article class="bg-pure-surface border border-whisper-border rounded-xl p-[12px] flex items-center gap-[12px] shadow-[0_4px_12px_rgba(2,44,96,0.02)] transition-all hover:shadow-[0_4px_12px_rgba(2,44,96,0.05)]">
+<div class="w-[72px] h-[72px] shrink-0 rounded-lg overflow-hidden bg-surface-container relative">
+<img class="w-full h-full object-cover" data-alt="A beautifully baked butter croissant resting on a minimalist ceramic plate. The pastry features a deeply golden, flaky crust with visible, appetizing layers. Shot in high-key lighting that emphasizes the crisp texture and rich buttery warmth. The background is a clean, corporate modern off-white surface, presenting the food as premium and tactile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnyl2wdb-nPLh2YNU4uUvgc9PlzsSzpjuw2nogdGKAEsljFKzW5e563Pt0lqLovZv13KsQQIvtQZfz2d8rL8uk1QFnJle0tTMj13pyEQ05v9OTO2ehi9UfdB881PjsIjZ09ob5qPTqxqMAzc1WIcCV3jKtxwMPW8etkFoOni4vJX2a-0UVeX-VZGbXxe3jkh5srrZKgM-bpusa__NYH81iP6V1qoUX6MYkMeII8zczALmF1JYdlMyjSsmp1c7D_bhVdMLDK_mY4bU"/>
+</div>
+<div class="flex-1 py-1 flex flex-col justify-between h-full">
+<h2 class="font-body-main text-[14px] font-bold text-midnight-navy leading-tight mb-1">Croissant Mentega</h2>
+<span class="text-orange-warm font-bold text-[14px]">Rp 22.000</span>
+</div>
+<div class="flex items-center gap-3 shrink-0 bg-soft-surface/30 p-1 rounded-full border border-whisper-border/30">
+<button class="w-8 h-8 rounded-full bg-soft-surface text-midnight-navy flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<span class="font-bold text-midnight-navy text-[14px] min-w-[12px] text-center">1</span>
+<button class="w-8 h-8 rounded-full bg-orange-warm text-pure-surface flex items-center justify-center active:scale-90 transition-transform shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</article>
+<!-- Item 3 -->
+<article class="bg-pure-surface border border-whisper-border rounded-xl p-[12px] flex items-center gap-[12px] shadow-[0_4px_12px_rgba(2,44,96,0.02)] transition-all hover:shadow-[0_4px_12px_rgba(2,44,96,0.05)]">
+<div class="w-[72px] h-[72px] shrink-0 rounded-lg overflow-hidden bg-surface-container relative">
+<img class="w-full h-full object-cover" data-alt="An elegant iced Matcha Latte in a tall, minimal glass, showing a striking gradient from vivid emerald green at the top to bright creamy white milk at the bottom. The lighting is pristine and modern, highlighting the condensation droplets. Placed on a smooth, paper-white surface, the image feels refreshing, high-end, and perfectly aligned with a premium digital cafe aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2d4TheiYehwhGpjLX7CUziEIxlyB2PNazPXBeQvUO6PEV-kObWyGIsP2OwRHtXu3gbaP3sAG4IIMrr55o9psIwejzif5BGQ_x3EL7SuuGXsyVu5MBagnD7HDuB7Hlxlv8Fh0Uj5DHVMyW7LB_smwyucDdDQQ77obj4ykl9Q8w-oRowgQMiKe7O_ELKF1tfTn-NRcO4RUF4PK9iI2xYjN_GszZpoZWbi4XzRUvlI1rpX3NXNJKL0QsJeCsYXhpOL6wXiDnH6GI_Ew"/>
+</div>
+<div class="flex-1 py-1 flex flex-col justify-between h-full">
+<h2 class="font-body-main text-[14px] font-bold text-midnight-navy leading-tight mb-1">Matcha Latte</h2>
+<span class="text-orange-warm font-bold text-[14px]">Rp 32.000</span>
+</div>
+<div class="flex items-center gap-3 shrink-0 bg-soft-surface/30 p-1 rounded-full border border-whisper-border/30">
+<button class="w-8 h-8 rounded-full bg-soft-surface text-midnight-navy flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<span class="font-bold text-midnight-navy text-[14px] min-w-[12px] text-center">1</span>
+<button class="w-8 h-8 rounded-full bg-orange-warm text-pure-surface flex items-center justify-center active:scale-90 transition-transform shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</article>
+</section>
+<!-- ADD MORE LINK -->
+<div class="flex justify-center pt-2">
+<button class="font-body-main text-[13px] font-semibold text-orange-warm hover:text-surface-tint active:scale-95 transition-all flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">add</span>
+                Tambah item lain
+            </button>
+</div>
+<!-- TABLE NUMBER INPUT -->
+<section class="bg-pure-surface rounded-xl p-page-gutter shadow-[0_4px_12px_rgba(2,44,96,0.03)] border border-whisper-border/40 mt-6">
+<label class="font-bold text-[14px] text-midnight-navy mb-3 block" for="table-number">Nomor Meja</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-tertiary text-[20px] pointer-events-none">table_restaurant</span>
+<input class="w-full h-[48px] bg-soft-surface/70 border-none rounded-[12px] pl-10 pr-4 text-midnight-navy font-medium placeholder:text-tertiary/70 outline-none focus:ring-2 focus:ring-orange-warm/50 focus:bg-soft-surface transition-all" id="table-number" placeholder="Contoh: 12" type="text"/>
+</div>
+<span class="text-[11px] text-tertiary mt-2 block font-medium">Wajib diisi</span>
+</section>
+<!-- ORDER SUMMARY -->
+<section class="bg-pure-surface rounded-xl p-page-gutter shadow-[0_4px_12px_rgba(2,44,96,0.03)] border border-whisper-border/40 mt-6">
+<div class="space-y-3">
+<div class="flex justify-between items-center text-[14px]">
+<span class="text-tertiary">Subtotal</span>
+<span class="font-semibold text-midnight-navy">Rp 110.000</span>
+</div>
+<div class="flex justify-between items-center text-[14px]">
+<span class="text-tertiary">Pajak &amp; Layanan</span>
+<span class="font-semibold text-midnight-navy">Rp 0</span>
+</div>
+</div>
+<div class="h-[1px] bg-whisper-border/50 my-4"></div>
+<div class="flex justify-between items-end">
+<span class="font-bold text-[16px] text-midnight-navy">Total</span>
+<span class="font-price-lg text-price-lg text-orange-warm tracking-tight">Rp 110.000</span>
+</div>
+</section>
+</main>
+<!-- STICKY BOTTOM CTA BAR -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto w-full z-50 bg-pure-surface/90 backdrop-blur-md px-page-gutter pt-4 pb-safe border-t border-whisper-border/30">
+<button class="w-full h-[52px] bg-orange-warm text-pure-surface rounded-[18px] font-bold text-[16px] shadow-[0_6px_20px_rgba(240,90,34,0.28)] flex items-center justify-center active:scale-[0.98] hover:bg-surface-tint transition-all relative overflow-hidden group">
+<span class="relative z-10 flex items-center gap-2">
+                Pesan Sekarang
+                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</span>
+<div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+</button>
+<p class="text-center text-[11px] text-tertiary mt-3 mb-2 font-medium">Pesananmu akan dikirim ke dapur cafe</p>
+</div>
+</body></html>

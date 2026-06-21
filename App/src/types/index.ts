@@ -39,3 +39,30 @@ export interface AnalyticsLog {
   duration: number
   created_at: string
 }
+
+// ── In-app ordering (v2 pivot) ──
+export interface CartItem {
+  id_menu: string
+  nama_menu: string
+  harga_menu: number
+  image_url?: string | null
+  qty: number
+}
+
+export type PaymentMethod = 'cash' | 'qris'
+export type PaymentStatus = 'unpaid' | 'pending' | 'paid'
+export type OrderStatus = 'received' | 'preparing' | 'ready'
+
+export interface Order {
+  id_order: string
+  cafe_id: string
+  cafe_slug: string
+  cafe_name: string
+  table_number: string
+  items: CartItem[]
+  total: number
+  status: OrderStatus
+  payment_method: PaymentMethod | null
+  payment_status: PaymentStatus
+  created_at: string
+}

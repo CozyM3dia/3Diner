@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>3Diner - Senja Kopi</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed-dim": "#afc8f2",
+                        "secondary-container": "#a3c1fe",
+                        "midnight-navy": "#002355",
+                        "on-background": "#191c1e",
+                        "tertiary-fixed": "#d5e3ff",
+                        "surface-container-high": "#e6e8eb",
+                        "on-primary-fixed-variant": "#832600",
+                        "surface-container-highest": "#e0e3e6",
+                        "surface-container-low": "#f2f4f7",
+                        "surface": "#f7f9fc",
+                        "on-secondary-fixed": "#001a40",
+                        "on-tertiary-fixed-variant": "#2f476b",
+                        "on-tertiary-container": "#fefcff",
+                        "primary-container": "#d04408",
+                        "on-error-container": "#93000a",
+                        "on-surface": "#191c1e",
+                        "tertiary-container": "#5d759c",
+                        "on-tertiary-fixed": "#001c3b",
+                        "tertiary": "#455d82",
+                        "primary-fixed-dim": "#ffb59d",
+                        "secondary-fixed-dim": "#acc7ff",
+                        "inverse-primary": "#ffb59d",
+                        "surface-dim": "#d8dadd",
+                        "soft-surface": "#E0E7EE",
+                        "secondary": "#405e94",
+                        "outline-variant": "#e2bfb4",
+                        "secondary-fixed": "#d7e2ff",
+                        "on-secondary-fixed-variant": "#26467b",
+                        "orange-warm": "#F07042",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#ffdbd0",
+                        "outline": "#8e7067",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#f7f9fc",
+                        "inverse-surface": "#2d3133",
+                        "error-container": "#ffdad6",
+                        "pure-surface": "#FDFDFD",
+                        "surface-variant": "#e0e3e6",
+                        "background": "#F6F8FB", // Adjusted to paper white from prompt
+                        "inverse-on-surface": "#eff1f4",
+                        "surface-container": "#eceef1",
+                        "on-surface-variant": "#5a4139",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#390b00",
+                        "on-primary-container": "#fffbff",
+                        "whisper-border": "#CFD9E4",
+                        "primary": "#a83300",
+                        "orange-blush": "#FDE8DC",
+                        "surface-tint": "#ac3400",
+                        "on-secondary-container": "#2f4e84",
+                        "muted-navy": "#51698F" // Added from prompt
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem", // 16px
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "touch-target-min": "44px",
+                        "card-gap": "14px", // Adjusted to 14px from prompt
+                        "section-margin": "32px",
+                        "page-gutter": "16px",
+                        "chip-gap": "8px",
+                        "pb-safe": "env(safe-area-inset-bottom)"
+                    },
+                    "fontFamily": {
+                        "caption": ["Plus Jakarta Sans"],
+                        "label-caps": ["Plus Jakarta Sans"],
+                        "badge-micro": ["Plus Jakarta Sans"],
+                        "section-header": ["Plus Jakarta Sans"],
+                        "headline-h1": ["Plus Jakarta Sans"],
+                        "price-lg": ["Plus Jakarta Sans"],
+                        "headline-h2": ["Plus Jakarta Sans"],
+                        "body-main": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "caption": ["11px", {"lineHeight": "1.4", "fontWeight": "400"}],
+                        "label-caps": ["11px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "600"}],
+                        "badge-micro": ["10px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                        "section-header": ["18px", {"lineHeight": "1.4", "fontWeight": "700"}],
+                        "headline-h1": ["28px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "price-lg": ["20px", {"lineHeight": "1", "fontWeight": "700"}],
+                        "headline-h2": ["22px", {"lineHeight": "1.3", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-main": ["14px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "cafe-name": ["18px", {"lineHeight": "1.2", "fontWeight": "700"}], // Custom from prompt
+                        "location-small": ["12px", {"lineHeight": "1", "fontWeight": "400"}] // Custom from prompt
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Custom styles for animations and specific UI tweaks */
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #F6F8FB;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Hide scrollbar for horizontal scrolling but keep functionality */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* 3D Badge Pulse Animation */
+        @keyframes subtlePulse {
+            0% { box-shadow: 0 0 0 0 rgba(240, 112, 66, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(240, 112, 66, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(240, 112, 66, 0); }
+        }
+        .badge-pulse {
+            animation: subtlePulse 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-background text-midnight-navy pb-[90px] antialiased">
+<!-- TOP APP BAR (Shared Component JSON logic applied) -->
+<header class="sticky top-0 w-full z-40 border-b border-whisper-border shadow-[0_2px_15px_rgba(2,44,96,0.04)] flex justify-between items-center h-16 px-page-gutter bg-surface/90 backdrop-blur-md">
+<div class="flex items-center gap-3">
+<img alt="3Diner Logo" class="w-7 h-7 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZQtdRpSRhmNV9UMEai-jptk-yuGKMIZavt5YcW7COzEHIUhUM2NvKTl6b7rD1st_MzOOabQcebWPV5Unl3jajp33oo_53jrgOjfuOcJc2FJH8ZOD6DAX0AGTN0sOieWb9BuSI5qmssRb4EZOrX6YoNFuTpwDPdCdzTAlLpxMgwZ8jVpXBBM0yiUDuAxwmWKh0r6TjAKiweHbYSJH4m10wTWP3Dnqgn8c1FDDv1e_ydbsavB_NpOks7AyEe_0HZmvEBk72Ug_E75s"/>
+<div class="flex flex-col justify-center">
+<h1 class="text-[18px] font-bold leading-tight text-midnight-navy">Senja Kopi</h1>
+<div class="flex items-center gap-1 text-[12px] text-muted-navy">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span>Bandar Lampung</span>
+</div>
+</div>
+</div>
+<button aria-label="Search" class="w-10 h-10 rounded-full bg-soft-surface flex items-center justify-center hover:opacity-80 transition-opacity active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-midnight-navy">search</span>
+</button>
+</header>
+<!-- HERO BANNER -->
+<section class="w-full h-[200px] relative">
+<div class="absolute inset-0 bg-cover bg-center w-full h-full" data-alt="A warm, inviting view inside a cozy specialty coffee shop during evening hours. Rustic wooden tables are illuminated by soft, golden overhead lighting, casting gentle shadows. The atmosphere is calm and inviting, with a modern yet tactile aesthetic. Deep espresso tones mix with warm amber lights and soft paper-white walls, embodying a premium, relaxed cafe experience." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDYL6-lzwVSX9I2cDqlf3pOMH6xZl4T655dr4kEirBkVj8o-Ct0KpPBnCWASk7p8L82lNhfivtAKGOd9h0cUjr8qn-RzSHdbdOshvKyY4gctobmKTBhHP_7jI4UwwxDFPVIzJ3mYQZARyiMrqQHb0XfI93G-w-YRgqe_z8eq0DO7SVenUhU6TDtMrmtOOM8MKzG19OcUKvR9MnqDirvO3Obe54DJ4TXRxYeHFS5RpvZG9jdnY6_UDzf-cZjc4V9EPS3Q0V66d5OImI')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-midnight-navy/30 to-transparent"></div>
+</section>
+<!-- MAIN CONTENT CANVAS -->
+<main class="px-page-gutter pt-6">
+<!-- SEARCH BAR -->
+<div class="relative w-full h-12 mb-6">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-tertiary-container">search</span>
+</div>
+<input class="w-full h-full pl-11 pr-4 rounded-full bg-soft-surface border-none text-body-main text-midnight-navy placeholder:text-tertiary-container focus:ring-2 focus:ring-orange-warm transition-all outline-none" placeholder="Cari hidangan..." type="text"/>
+</div>
+<!-- CATEGORY FILTER (Horizontal Scroll) -->
+<div class="flex overflow-x-auto hide-scrollbar gap-chip-gap pb-4 -mx-page-gutter px-page-gutter mb-2 sticky top-16 z-30 bg-background/95 backdrop-blur-sm py-2">
+<button class="px-5 h-9 rounded-full bg-midnight-navy text-white font-label-caps text-label-caps whitespace-nowrap active:scale-95 transition-transform">SEMUA</button>
+<button class="px-5 h-9 rounded-full bg-soft-surface text-tertiary-container font-label-caps text-label-caps whitespace-nowrap hover:bg-surface-dim transition-colors active:scale-95 transition-transform">KOPI</button>
+<button class="px-5 h-9 rounded-full bg-soft-surface text-tertiary-container font-label-caps text-label-caps whitespace-nowrap hover:bg-surface-dim transition-colors active:scale-95 transition-transform">MINUMAN</button>
+<button class="px-5 h-9 rounded-full bg-soft-surface text-tertiary-container font-label-caps text-label-caps whitespace-nowrap hover:bg-surface-dim transition-colors active:scale-95 transition-transform">MAKANAN RINGAN</button>
+</div>
+<!-- MENU GRID (Asymmetric 2-column) -->
+<div class="grid grid-cols-2 gap-card-gap pb-8">
+<!-- CARD 1 (Has 3D Badge) -->
+<article class="bg-pure-surface rounded-2xl border border-whisper-border overflow-hidden flex flex-col shadow-[0_4px_12px_rgba(2,44,96,0.03)] active:scale-[0.98] transition-transform">
+<div class="relative w-full aspect-[4/5] bg-surface-container-low">
+<img class="w-full h-full object-cover" data-alt="A meticulously crafted glass of Kopi Susu (iced milk coffee) sitting on a smooth, lightly textured surface. The espresso slowly cascades into the fresh white milk, creating beautiful swirling patterns. The lighting is soft and natural, highlighting the condensation on the glass. The color palette focuses on rich coffee browns, creamy whites, and warm background tones, reflecting a high-end food photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB88NBr0IWvzBpOXYUF2I7PfrDtNnxG3b8U7R6xss6qYZEPYczJ41XhbZnxJ4wdkTvPf5nN1NUtjJ3Jj9YWZDoMuPeMuUo7ykngnd1M0NLLXm7rCDC-P7ipmhO71v_h_BLJmjVPPBFUUEr5Mydn8eizGm1HNwkXUjvLQZn_cqds_tOFGhI9Fgn2rqCyPLh44XWFq9odbXOl5SG8M_3hZJuoOIJpxR0MN3bvV0wdQAPXyDA9BVJbj-Sy3fFmMPsUuyYfSadCmrhrEw0"/>
+<div class="absolute bottom-2 left-2 bg-orange-blush text-orange-warm px-2 py-1 rounded-[4px] flex items-center gap-1 badge-pulse z-10">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">view_in_ar</span>
+<span class="font-badge-micro text-badge-micro">LIHAT 3D</span>
+</div>
+</div>
+<div class="p-3 flex flex-col flex-grow">
+<h3 class="font-bold text-[14px] text-midnight-navy leading-snug mb-1 line-clamp-2">Kopi Susu Senja</h3>
+<p class="font-caption text-caption text-tertiary-container mb-2 line-clamp-2">Espresso dengan susu segar</p>
+<div class="mt-auto pt-1">
+<span class="font-price-lg text-[16px] text-midnight-navy">Rp 28.000</span>
+</div>
+</div>
+</article>
+<!-- CARD 2 -->
+<article class="bg-pure-surface rounded-2xl border border-whisper-border overflow-hidden flex flex-col shadow-[0_4px_12px_rgba(2,44,96,0.03)] active:scale-[0.98] transition-transform">
+<div class="relative w-full aspect-[4/5] bg-surface-container-low">
+<img class="w-full h-full object-cover" data-alt="A perfectly baked butter croissant on a minimalist ceramic plate. The pastry is golden-brown, flaky, and visibly crisp on the outside, with soft, buttery layers hinted at inside. The scene is shot from a slight angle with sharp focus on the pastry texture. Soft, indirect lighting creates gentle shadows, maintaining a clean, premium, and appetizing aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCzYK5ve1G6QO-Gi3X3P2rWH54MIWvlhMPpsHxwJt75qY-_xS1TUSSUlCS8mRf73pChW273vAoROTaaphNyF6PD0dcqzgRMgIbvTdTL_XQyebm0u0ZlciBY_3vj2YUy2AhHA63UzwuBihTIl4ES7ksBH1I4OQxG7odtLRMxmuITscg7GsWQuibctcpjP18RdOqQS6Zw12jeGtABhbKt21ewx_49GpYW6qkKVOJLLDxsfXd_XMuKy_G-gW_MNRKrNui8SZiwGcQLKiM"/>
+</div>
+<div class="p-3 flex flex-col flex-grow">
+<h3 class="font-bold text-[14px] text-midnight-navy leading-snug mb-1 line-clamp-2">Croissant Mentega</h3>
+<div class="mt-auto pt-1">
+<span class="font-price-lg text-[16px] text-midnight-navy">Rp 22.000</span>
+</div>
+</div>
+</article>
+<!-- CARD 3 (Has 3D Badge) -->
+<article class="bg-pure-surface rounded-2xl border border-whisper-border overflow-hidden flex flex-col shadow-[0_4px_12px_rgba(2,44,96,0.03)] active:scale-[0.98] transition-transform">
+<div class="relative w-full aspect-[4/5] bg-surface-container-low">
+<img class="w-full h-full object-cover" data-alt="A vibrant green iced matcha latte in a clear glass, showing distinct layers of vibrant green matcha resting over creamy white milk. Condensation beads on the outside of the glass. The background is a clean, slightly warm paper-white surface, creating a fresh and modern composition. The lighting is crisp, highlighting the vivid colors of the beverage." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxVWlvIokBlcax1lY997Bpouog-tUepeYBC1HGBgu6pOU83SAFMSkYEVQRFX9Tvo9FDIsdd3CeI9JFP8VhlENWkNSQ6lAgw3WJPtu0al9_F3jkoiPhV7mbGivN6LnOIsvNnbwlhU1OMzGzJbyDscwAAgeuQx3eiLG_kpIUfDjFKGpOSRntaZU1SwdqH8YpW77CZl5950ZlNz5Nbm2sqBL8yMvysD6R5IddMFru9slMYRe9k-ajhEfBNmM92f0EE0WtyuNIl8TBb1M"/>
+<div class="absolute bottom-2 left-2 bg-orange-blush text-orange-warm px-2 py-1 rounded-[4px] flex items-center gap-1 badge-pulse z-10">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">view_in_ar</span>
+<span class="font-badge-micro text-badge-micro">LIHAT 3D</span>
+</div>
+</div>
+<div class="p-3 flex flex-col flex-grow">
+<h3 class="font-bold text-[14px] text-midnight-navy leading-snug mb-1 line-clamp-2">Matcha Latte</h3>
+<div class="mt-auto pt-1">
+<span class="font-price-lg text-[16px] text-midnight-navy">Rp 32.000</span>
+</div>
+</div>
+</article>
+<!-- CARD 4 -->
+<article class="bg-pure-surface rounded-2xl border border-whisper-border overflow-hidden flex flex-col shadow-[0_4px_12px_rgba(2,44,96,0.03)] active:scale-[0.98] transition-transform">
+<div class="relative w-full aspect-[4/5] bg-surface-container-low">
+<img class="w-full h-full object-cover" data-alt="A beautifully plated portion of traditional Indonesian Nasi Goreng Kampung (fried rice) on a textured ceramic plate. The dish is garnished with a sunny-side-up egg with a bright yellow yolk, cucumber slices, and a sprinkle of fried shallots. The composition is overhead and tightly framed, focusing on the rich textures and savory colors of the dish against a neutral background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeZ36VBKNYQq8BAraNWUJZuMFClG2dAJOEnuXUd1qBO0cyCgw3wLGOf284iQfhTT-tia5rtXEaFv9bjFPXGT9ucSwRB6-_P9mteoJG-KSHncPRakRHmXohOnWDT4U5WMIp62maSo1-_4Fdt59rw8UVs0cdU4QURgmsssk0MFJJKmqTmi-Rwc1uwqUdobh0gC_Y6H0qOFKncPEesioUjsdl4y27wWAAZS68H3r1mUXNby07nXKBjY7Eo-aoeqAmrA3Ta3rlC_HnXA0"/>
+</div>
+<div class="p-3 flex flex-col flex-grow">
+<h3 class="font-bold text-[14px] text-midnight-navy leading-snug mb-1 line-clamp-2">Nasi Goreng Kampung</h3>
+<div class="mt-auto pt-1">
+<span class="font-price-lg text-[16px] text-midnight-navy">Rp 35.000</span>
+</div>
+</div>
+</article>
+</div>
+</main>
+<!-- BOTTOM NAV BAR (Shared Component JSON logic applied) -->
+<nav class="fixed bottom-0 w-full z-50 bg-midnight-navy shadow-[0_-4px_20px_rgba(2,44,96,0.15)] flex justify-around items-center h-[72px] px-6 pb-safe">
+<!-- HOME (Active) -->
+<button class="flex flex-col items-center justify-center text-orange-warm relative after:content-[''] after:absolute after:-bottom-1 after:w-1 after:h-1 after:bg-orange-warm after:rounded-full w-16 h-full active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined mb-1 text-[24px]" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-caps text-label-caps">HOME</span>
+</button>
+<!-- MENU (Inactive) -->
+<button class="flex flex-col items-center justify-center text-secondary-fixed-dim opacity-70 w-16 h-full hover:text-white transition-colors active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined mb-1 text-[24px]">restaurant_menu</span>
+<span class="font-label-caps text-label-caps">MENU</span>
+</button>
+<!-- SEARCH (Inactive) -->
+<button class="flex flex-col items-center justify-center text-secondary-fixed-dim opacity-70 w-16 h-full hover:text-white transition-colors active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined mb-1 text-[24px]">search</span>
+<span class="font-label-caps text-label-caps">CARI</span>
+</button>
+</nav>
+</body></html>
