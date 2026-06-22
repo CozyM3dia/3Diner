@@ -103,13 +103,14 @@ function GlbAR({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
 
       // Clone scene so the cache stays pristine for next session
       const model = (gltf.scene as any).clone(true);
+      model.updateMatrixWorld(true); // ensure child matrices are correct before bounding box
 
-      // Normalize: scale to ~0.25m, base at y=0
+      // Normalize: scale to ~0.35m (realistic plate size), base at y=0 in group space
       const box0 = new THREE.Box3().setFromObject(model);
       const size0 = box0.getSize(new THREE.Vector3());
       const center0 = box0.getCenter(new THREE.Vector3());
       const maxDim = Math.max(size0.x, size0.y, size0.z);
-      const s = maxDim > 0 ? 0.25 / maxDim : 1;
+      const s = maxDim > 0.001 ? 0.35 / maxDim : 0.35;
       model.scale.setScalar(s);
       model.position.set(-center0.x * s, -box0.min.y * s, -center0.z * s);
 
@@ -135,46 +136,67 @@ function GlbAR({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
       renderer.toneMapping = THREE.LinearToneMapping;
       renderer.toneMappingExposure = 1.2;
       renderer.xr.enabled = true;
-      renderer.xr.setReferenceSpaceType("local-floor");
+      // "local" reference space: no floor-estimation drift, guaranteed on all ARCore devices.
+      // "local-floor" continuously refines the floor plane causing the model to drift when
+      // the phone is physically translated — switching to "local" fixes that.
+      renderer.xr.setReferenceSpaceType("local");
       Object.assign(renderer.domElement.style, {
         position: "absolute", top: "0", left: "0", width: "100%", height: "100%",
       });
       canvasSlotRef.current.appendChild(renderer.domElement);
 
-      // Pre-compile shaders BEFORE opening the camera — eliminates first-frame stutter
+      // Pre-warm: compile shaders + force-upload ALL textures to this GL context before
+      // the XR session opens. Eliminates the 2-3s freeze after the model first appears.
       group.visible = true;
       renderer.compile(scene, camera);
+      scene.traverse((obj: any) => {
+        if (!obj.isMesh) return;
+        const mats: any[] = Array.isArray(obj.material) ? obj.material : [obj.material];
+        mats.forEach((mat) => {
+          Object.values(mat).forEach((val: any) => {
+            if (val?.isTexture) renderer.initTexture(val);
+          });
+        });
+      });
       group.visible = false;
 
-      // Request AR session (camera opens here)
+      // Request AR session — "local" is guaranteed so no need to list it in optionalFeatures
       const session = await (navigator.xr as any).requestSession("immersive-ar", {
-        optionalFeatures: ["local-floor", "dom-overlay"],
+        optionalFeatures: ["dom-overlay"],
         domOverlay: { root: overlayRef.current },
       });
       await renderer.xr.setSession(session);
       setArStarted(true);
 
-      // Place ONCE on the first XR frame — then LOCK forever
+      // Place ONCE after 4 warm-up frames, then LOCK forever.
+      // Uses the TRUE 3D forward direction (including the phone's downward tilt toward the table)
+      // so the model lands on the table surface, not on the floor.
       let placed = false;
+      let warmup = 0;
       const tmpPos = new THREE.Vector3();
       const tmpDir = new THREE.Vector3();
+      const yawDir = new THREE.Vector3();
 
       renderer.setAnimationLoop(() => {
-        if (!placed) {
+        warmup++;
+        if (!placed && warmup > 4) {
           const xrCam = renderer.xr.getCamera();
           xrCam.getWorldPosition(tmpPos);
-          xrCam.getWorldDirection(tmpDir);
-          tmpDir.y = 0;
+          xrCam.getWorldDirection(tmpDir); // includes downward tilt — naturally hits table surface
           if (tmpDir.lengthSq() > 1e-6) {
-            tmpDir.normalize();
+            // 0.6m along the camera's forward ray → lands on the table when phone tilts down
             group.position.set(
-              tmpPos.x + tmpDir.x * 1.0,
-              0,
-              tmpPos.z + tmpDir.z * 1.0
+              tmpPos.x + tmpDir.x * 0.6,
+              tmpPos.y + tmpDir.y * 0.6,
+              tmpPos.z + tmpDir.z * 0.6
             );
-            group.rotation.y = Math.atan2(-tmpDir.x, -tmpDir.z);
+            // Face model toward user using yaw only so it stays upright
+            yawDir.set(tmpDir.x, 0, tmpDir.z).normalize();
+            if (yawDir.lengthSq() > 1e-6) {
+              group.rotation.y = Math.atan2(-yawDir.x, -yawDir.z);
+            }
             group.visible = true;
-            placed = true;
+            placed = true; // LOCKED — group.position never updated again
           }
         }
         renderer.render(scene, camera);
