@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Box } from "lucide-react";
+import { Box, Flame } from "lucide-react";
 import { logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
 import type { Menu } from "@/types";
@@ -69,9 +69,17 @@ export default function MenuCard({ menu, cafeId, slug, index }: MenuCardProps) {
             {menu.description_menu}
           </p>
         )}
-        <p className="text-sm font-bold mt-1.5" style={{ color: "var(--orange-ink)" }}>
-          {formatRupiah(menu.harga_menu)}
-        </p>
+        <div className="flex items-center justify-between gap-1 mt-1.5">
+          <p className="text-sm font-bold" style={{ color: "var(--orange-ink)" }}>
+            {formatRupiah(menu.harga_menu)}
+          </p>
+          {menu.calories && (
+            <span className="inline-flex items-center gap-0.5 text-[10px]" style={{ color: "var(--navy-muted)" }}>
+              <Flame size={10} style={{ color: "var(--orange)" }} />
+              {menu.calories}
+            </span>
+          )}
+        </div>
       </div>
     </Link>
   );
