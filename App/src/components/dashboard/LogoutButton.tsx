@@ -17,12 +17,11 @@ export default function LogoutButton() {
   return (
     <button
       onClick={handleLogout}
-      className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform"
-      style={{ background: "#E0E7EE" }}
-      aria-label="Keluar"
-      title="Keluar"
+      className="flex items-center gap-2 text-sm font-medium w-full transition-colors duration-150 hover:opacity-80"
+      style={{ color: "#5A7898" }}
     >
-      <LogOut size={16} color="#022C60" strokeWidth={2.2} />
+      <LogOut size={15} strokeWidth={1.9} />
+      Keluar
     </button>
   );
 }

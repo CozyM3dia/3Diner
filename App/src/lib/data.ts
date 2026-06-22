@@ -1,7 +1,12 @@
-import type { Cafe, Menu, AnalyticsLog } from "@/types";
+import type { Cafe, Menu, AnalyticsLog, Announcement } from "@/types";
 
 async function getSupabaseFns() {
   return import("./supabase");
+}
+
+export async function getActiveAnnouncement(cafeId: string): Promise<Announcement | null> {
+  const { getActiveAnnouncement: fn } = await getSupabaseFns();
+  return fn(cafeId);
 }
 
 export async function getCafeBySlug(slug: string): Promise<Cafe | null> {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Box, Clock, Flame, Star } from "lucide-react";
 import { getCafeBySlug, getMenuById, logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
+import { effectivePrice, hasDiscount } from "@/lib/menu-availability";
 import DetailHeader from "@/components/DetailHeader";
 import AddToCartBar from "@/components/AddToCartBar";
 
@@ -90,9 +91,21 @@ export default async function MenuDetailPage({ params }: PageProps) {
         </h1>
 
         {/* Price */}
-        <p className="text-[22px] font-bold mt-1" style={{ color: "var(--orange-ink)" }}>
-          {formatRupiah(menu.harga_menu)}
-        </p>
+        <div className="flex items-baseline gap-2.5 mt-1">
+          <p className="text-[22px] font-bold" style={{ color: "var(--orange-ink)" }}>
+            {formatRupiah(effectivePrice(menu))}
+          </p>
+          {hasDiscount(menu) && (
+            <>
+              <p className="text-base line-through" style={{ color: "var(--navy-muted)" }}>
+                {formatRupiah(menu.harga_menu)}
+              </p>
+              <span className="text-xs font-bold px-1.5 py-0.5 rounded-md text-white" style={{ background: "var(--orange)" }}>
+                -{menu.discount_pct}%
+              </span>
+            </>
+          )}
+        </div>
 
         {/* Stats row */}
         {(menu.prep_time_minutes || menu.calories) && (

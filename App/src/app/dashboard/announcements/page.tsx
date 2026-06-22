@@ -1,0 +1,41 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getOwnerCafeSlug } from "@/lib/analytics";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import AnnouncementForm from "@/components/dashboard/AnnouncementForm";
+import type { Announcement } from "@/types";
+
+export const dynamic = "force-dynamic";
+
+export default async function AnnouncementsPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const slug = await getOwnerCafeSlug(user.id);
+  const { data: cafe } = slug
+    ? await supabaseAdmin.from("Cafes").select("id_cafe").eq("slug_url", slug).single()
+    : { data: null };
+
+  const { data: announcement } = cafe
+    ? await supabaseAdmin
+        .from("Announcements")
+        .select("*")
+        .eq("cafe_id", cafe.id_cafe)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+
+  return (
+    <div className="p-5 lg:p-8 max-w-2xl mx-auto">
+      <div className="mb-7">
+        <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>Pengumuman</h1>
+        <p className="text-sm mt-1" style={{ color: "#5A7898" }}>Banner real-time di halaman menu pelanggan</p>
+      </div>
+      <AnnouncementForm announcement={(announcement as Announcement) ?? null} />
+    </div>
+  );
+}

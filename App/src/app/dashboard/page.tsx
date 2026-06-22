@@ -1,35 +1,25 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import {
-  MousePointerClick,
-  Box,
-  ShoppingBag,
-  TrendingUp,
-  Trophy,
-  Activity,
-} from "lucide-react";
 import { redirect } from "next/navigation";
+import { MousePointerClick, Box, ShoppingBag, Target } from "lucide-react";
 import { getDashboardData, getOwnerCafeSlug, type EventType } from "@/lib/analytics";
 import { createClient } from "@/lib/supabase/server";
-import Counter from "@/components/dashboard/Counter";
-import AnimatedBar from "@/components/dashboard/AnimatedBar";
-import DailyChart from "@/components/dashboard/DailyChart";
-import LogoutButton from "@/components/dashboard/LogoutButton";
+import StatCard from "@/components/dashboard/StatCard";
+import LineChart from "@/components/dashboard/LineChart";
+import FunnelBars from "@/components/dashboard/FunnelBars";
+import HeatmapGrid from "@/components/dashboard/HeatmapGrid";
+import DonutChart from "@/components/dashboard/DonutChart";
 
-export const metadata: Metadata = {
-  title: "Analytik · Dashboard | 3Diner",
-};
-
+export const metadata: Metadata = { title: "Analitik · Dashboard | 3Diner" };
 export const dynamic = "force-dynamic";
 
 const EVENT_LABEL: Record<EventType, string> = {
   click_menu: "Buka menu",
   view_3d: "Lihat 3D",
-  click_order: "Klik pesan",
+  click_order: "Mulai pesan",
 };
 const EVENT_COLOR: Record<EventType, string> = {
-  click_menu: "#254473",
-  view_3d: "#022C60",
+  click_menu: "#5A7898",
+  view_3d: "#00C2A8",
   click_order: "#FD5002",
 };
 
@@ -40,12 +30,20 @@ function relTime(iso: string): string {
   if (m < 60) return `${m} mnt lalu`;
   const h = Math.round(m / 60);
   if (h < 24) return `${h} jam lalu`;
-  const d = Math.round(h / 24);
-  return `${d} hari lalu`;
+  return `${Math.round(h / 24)} hari lalu`;
 }
 
-export default async function DashboardPage() {
-  // Auth gate (middleware also protects, this is the data binding)
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-[11px] font-semibold uppercase tracking-wider mb-4" style={{ color: "#5A7898" }}>
+      {children}
+    </h2>
+  );
+}
+
+const PANEL = { background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" } as const;
+
+export default async function AnalyticsPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -57,230 +55,178 @@ export default async function DashboardPage() {
 
   if (!data) {
     return (
-      <main
-        className="min-h-dvh flex flex-col items-center justify-center px-6 text-center gap-4"
-        style={{ background: "#F6F8FB" }}
-      >
-        <p style={{ color: "#51698F" }}>
-          Belum ada kafe yang terhubung ke akun ini.
-        </p>
-        <LogoutButton />
-      </main>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-2 text-center px-6">
+        <p className="font-semibold" style={{ color: "#E9EEF6" }}>Belum ada kafe terhubung</p>
+        <p className="text-sm" style={{ color: "#5A7898" }}>Akun ini belum terkait ke kafe mana pun.</p>
+      </div>
     );
   }
 
-  const { totals, conversion, totalEvents, daily, topDishes, recent } = data;
-  const maxView = Math.max(1, ...topDishes.map((d) => d.views));
-
-  const stats = [
-    { label: "Tampilan Menu", value: totals.click_menu, icon: MousePointerClick, accent: "#254473" },
-    { label: "Lihat Model 3D", value: totals.view_3d, icon: Box, accent: "#022C60" },
-    { label: "Klik Pesan", value: totals.click_order, icon: ShoppingBag, accent: "#FD5002" },
-  ];
-
-  // Funnel stages (relative to top of funnel)
+  const { totals, deltas, conversion, view3dRate, totalEvents, daily, hourly, topDishes, recent } = data;
   const base = Math.max(1, totals.click_menu);
+
   const funnel = [
-    { label: "Buka Menu", value: totals.click_menu, pct: 100 },
-    { label: "Lihat Model 3D", value: totals.view_3d, pct: (totals.view_3d / base) * 100 },
-    { label: "Klik Pesan", value: totals.click_order, pct: (totals.click_order / base) * 100 },
+    { label: "Buka Menu", value: totals.click_menu, pct: 100, color: "#5A7898" },
+    { label: "Lihat Model 3D", value: totals.view_3d, pct: (totals.view_3d / base) * 100, color: "#00C2A8" },
+    { label: "Mulai Pesan", value: totals.click_order, pct: (totals.click_order / base) * 100, color: "#FD5002" },
   ];
+
+  const maxDishViews = Math.max(1, ...topDishes.map((d) => d.views || d.clicks));
 
   return (
-    <main className="min-h-dvh" style={{ background: "#F6F8FB" }}>
-      <div className="max-w-5xl mx-auto px-5 py-8">
-        {/* Header */}
-        <header className="flex items-center justify-between gap-4 mb-8 fade-up">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
-              style={{ background: "#022C60" }}
-            >
-              <Image
-                src="/brand/logo-3diner-mark.svg"
-                alt="3Diner"
-                width={28}
-                height={28}
-                className="object-contain"
-              />
-            </div>
-            <div>
-              <h1 className="font-display text-2xl font-semibold leading-tight" style={{ color: "#022C60" }}>
-                Analytik
-              </h1>
-              <p className="text-xs" style={{ color: "#51698F" }}>
-                {data.cafe.nama_cafe} · 14 hari terakhir
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
-              style={{ background: "#FDD8C3", color: "#FD5002" }}
-            >
-              <Activity size={13} />
-              {totalEvents.toLocaleString("id-ID")} interaksi
-            </div>
-            <LogoutButton />
-          </div>
-        </header>
+    <div className="p-5 lg:p-8 max-w-[1400px] mx-auto">
+      {/* Header */}
+      <div className="mb-7">
+        <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>
+          Analitik
+        </h1>
+        <p className="text-sm mt-1" style={{ color: "#5A7898" }}>
+          Ringkasan engagement 14 hari terakhir · {totalEvents.toLocaleString("id-ID")} total interaksi
+        </p>
+      </div>
 
-        {/* Stat cards */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-          {stats.map((s, i) => (
-            <div
-              key={s.label}
-              className={`rounded-2xl p-4 fade-up stagger-${i + 1}`}
-              style={{ background: "#FFFFFF", border: "1px solid #CFD9E4" }}
-            >
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
-                style={{ background: "#E0E7EE" }}
-              >
-                <s.icon size={17} color={s.accent} strokeWidth={2.2} />
-              </div>
-              <p className="font-display text-2xl font-bold leading-none" style={{ color: "#022C60" }}>
-                <Counter value={s.value} />
-              </p>
-              <p className="text-xs mt-1.5" style={{ color: "#51698F" }}>
-                {s.label}
-              </p>
-            </div>
-          ))}
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+        <StatCard
+          value={totals.click_menu}
+          label="Tampilan Menu"
+          icon={MousePointerClick}
+          accent="#9FB6D1"
+          accentBg="rgba(159,182,209,0.12)"
+          delta={deltas.click_menu}
+        />
+        <StatCard
+          value={totals.view_3d}
+          label="Lihat Model 3D"
+          icon={Box}
+          accent="#00C2A8"
+          accentBg="rgba(0,194,168,0.12)"
+          delta={deltas.view_3d}
+        />
+        <StatCard
+          value={totals.click_order}
+          label="Mulai Pesan"
+          icon={ShoppingBag}
+          accent="#FD5002"
+          accentBg="rgba(253,80,2,0.12)"
+          delta={deltas.click_order}
+        />
+        <StatCard
+          value={Math.round(conversion)}
+          suffix="%"
+          label="Konversi ke Pesan"
+          icon={Target}
+          accent="#22D3A6"
+          accentBg="rgba(34,211,166,0.12)"
+          sub={`${Math.round(view3dRate)}% buka model 3D`}
+        />
+      </div>
 
-          {/* Conversion card — accent */}
-          <div
-            className="rounded-2xl p-4 fade-up stagger-4"
-            style={{ background: "#022C60" }}
-          >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
-              style={{ background: "rgba(253,80,2,0.2)" }}
-            >
-              <TrendingUp size={17} color="#FD5002" strokeWidth={2.2} />
-            </div>
-            <p className="font-display text-2xl font-bold leading-none text-white">
-              <Counter value={conversion} decimals={1} suffix="%" />
-            </p>
-            <p className="text-xs mt-1.5" style={{ color: "rgba(253,253,253,0.7)" }}>
-              Konversi ke Pesan
-            </p>
+      {/* Timeline + Funnel */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+        <section className="lg:col-span-2 rounded-2xl p-5" style={PANEL}>
+          <SectionLabel>Aktivitas Harian</SectionLabel>
+          <LineChart data={daily.map((d) => ({ label: d.label, value: d.count }))} />
+        </section>
+        <section className="rounded-2xl p-5" style={PANEL}>
+          <SectionLabel>Corong Engagement</SectionLabel>
+          <FunnelBars stages={funnel} />
+          <p className="text-xs mt-5 leading-relaxed" style={{ color: "#5A7898" }}>
+            Dari setiap 100 tamu yang membuka menu,{" "}
+            <span style={{ color: "#00C2A8", fontWeight: 600 }}>{Math.round(view3dRate)}</span> melihat model 3D dan{" "}
+            <span style={{ color: "#FD5002", fontWeight: 600 }}>{Math.round(conversion)}</span> mulai memesan.
+          </p>
+        </section>
+      </div>
+
+      {/* Heatmap + composition donut */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+        <section className="lg:col-span-2 rounded-2xl p-5" style={PANEL}>
+          <SectionLabel>Jam Tersibuk</SectionLabel>
+          <HeatmapGrid hourly={hourly} />
+          <p className="text-xs mt-3" style={{ color: "#5A7898" }}>
+            Sebaran interaksi per jam · kotak paling terang = jam paling ramai
+          </p>
+        </section>
+        <section className="rounded-2xl p-5 flex flex-col" style={PANEL}>
+          <SectionLabel>Komposisi Interaksi</SectionLabel>
+          <div className="flex-1 flex items-center">
+            <DonutChart
+              centerLabel="Interaksi"
+              segments={[
+                { label: "Buka menu", value: totals.click_menu, color: "#5A7898" },
+                { label: "Lihat 3D", value: totals.view_3d, color: "#00C2A8" },
+                { label: "Mulai pesan", value: totals.click_order, color: "#FD5002" },
+              ]}
+            />
           </div>
         </section>
+      </div>
 
-        {/* Funnel + Daily chart */}
-        <section className="grid md:grid-cols-2 gap-4 mb-4">
-          {/* Funnel */}
-          <div
-            className="rounded-2xl p-5 fade-up"
-            style={{ background: "#FFFFFF", border: "1px solid #CFD9E4" }}
-          >
-            <h2 className="font-display text-sm font-semibold mb-4" style={{ color: "#022C60" }}>
-              Alur Konversi
-            </h2>
-            <div className="space-y-4">
-              {funnel.map((f, i) => (
-                <div key={f.label}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-medium" style={{ color: "#254473" }}>
-                      {f.label}
-                    </span>
-                    <span className="text-xs font-semibold" style={{ color: "#022C60" }}>
-                      {f.value.toLocaleString("id-ID")}
-                      <span style={{ color: "#51698F" }}> · {f.pct.toFixed(0)}%</span>
-                    </span>
+      {/* Top dishes + recent */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <section className="lg:col-span-2 rounded-2xl p-5" style={PANEL}>
+          <SectionLabel>Menu Terpopuler</SectionLabel>
+          {topDishes.length === 0 ? (
+            <p className="text-sm py-8 text-center" style={{ color: "#5A7898" }}>Belum ada data interaksi.</p>
+          ) : (
+            <div className="space-y-1">
+              <div className="grid grid-cols-[20px_1fr_auto] gap-3 px-2 pb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>
+                <span>#</span>
+                <span>Menu</span>
+                <span className="text-right">3D · Pesan</span>
+              </div>
+              {topDishes.map((d, i) => (
+                <div
+                  key={i}
+                  className="grid grid-cols-[20px_1fr_auto] gap-3 items-center px-2 py-2 rounded-lg"
+                  style={{ background: i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent" }}
+                >
+                  <span className="text-xs font-bold tabular-nums" style={{ color: i === 0 ? "#FD5002" : "#5A7898" }}>
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: "#E9EEF6" }}>
+                      {d.name}
+                    </p>
+                    <div className="h-1 rounded-full mt-1.5 overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${((d.views || d.clicks) / maxDishViews) * 100}%`, background: "#00C2A8" }}
+                      />
+                    </div>
                   </div>
-                  <AnimatedBar pct={f.pct} delayMs={i * 150} gradient />
+                  <div className="flex items-center gap-3 text-right tabular-nums">
+                    <span className="text-xs font-semibold" style={{ color: "#00C2A8" }}>{d.views}</span>
+                    <span className="text-xs font-semibold" style={{ color: "#FD5002" }}>{d.orders}</span>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Daily */}
-          <div
-            className="rounded-2xl p-5 fade-up stagger-1"
-            style={{ background: "#FFFFFF", border: "1px solid #CFD9E4" }}
-          >
-            <h2 className="font-display text-sm font-semibold mb-4" style={{ color: "#022C60" }}>
-              Aktivitas Harian
-            </h2>
-            <DailyChart data={daily} />
-          </div>
+          )}
         </section>
 
-        {/* Top dishes */}
-        <section
-          className="rounded-2xl p-5 mb-4 fade-up"
-          style={{ background: "#FFFFFF", border: "1px solid #CFD9E4" }}
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <Trophy size={15} color="#FD5002" />
-            <h2 className="font-display text-sm font-semibold" style={{ color: "#022C60" }}>
-              Menu Terpopuler
-            </h2>
-          </div>
-          <div className="space-y-3.5">
-            {topDishes.map((d, i) => (
-              <div key={d.name} className="flex items-center gap-3">
-                <span
-                  className="w-5 text-sm font-bold shrink-0"
-                  style={{ color: i === 0 ? "#FD5002" : "#51698F" }}
-                >
-                  {i + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium truncate" style={{ color: "#022C60" }}>
-                      {d.name}
-                    </span>
-                    <span className="text-xs ml-2 shrink-0" style={{ color: "#51698F" }}>
-                      {d.views} lihat · {d.orders} pesan
-                    </span>
-                  </div>
-                  <AnimatedBar
-                    pct={(d.views / maxView) * 100}
-                    delayMs={i * 90}
-                    fill={i === 0 ? "#FD5002" : "#254473"}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+        <section className="rounded-2xl p-5" style={PANEL}>
+          <SectionLabel>Aktivitas Terbaru</SectionLabel>
+          {recent.length === 0 ? (
+            <p className="text-sm py-8 text-center" style={{ color: "#5A7898" }}>Belum ada aktivitas.</p>
+          ) : (
+            <ul className="space-y-3">
+              {recent.map((r, i) => (
+                <li key={i} className="flex items-center gap-3">
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: EVENT_COLOR[r.type] }} />
+                  <span className="text-sm flex-1 min-w-0 truncate" style={{ color: "#9FB6D1" }}>
+                    <span style={{ color: "#E9EEF6", fontWeight: 500 }}>{EVENT_LABEL[r.type]}</span> · {r.name}
+                  </span>
+                  <span className="text-[11px] shrink-0 tabular-nums" style={{ color: "#5A7898" }}>
+                    {relTime(r.at)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
-
-        {/* Recent activity */}
-        <section
-          className="rounded-2xl p-5 fade-up stagger-1"
-          style={{ background: "#FFFFFF", border: "1px solid #CFD9E4" }}
-        >
-          <h2 className="font-display text-sm font-semibold mb-4" style={{ color: "#022C60" }}>
-            Aktivitas Terbaru
-          </h2>
-          <ul className="space-y-2.5">
-            {recent.map((r, i) => (
-              <li key={i} className="flex items-center gap-3">
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ background: EVENT_COLOR[r.type] }}
-                />
-                <span className="text-sm flex-1 min-w-0 truncate" style={{ color: "#254473" }}>
-                  <span className="font-medium" style={{ color: "#022C60" }}>
-                    {EVENT_LABEL[r.type]}
-                  </span>{" "}
-                  — {r.name}
-                </span>
-                <span className="text-xs shrink-0" style={{ color: "#51698F" }}>
-                  {relTime(r.at)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <p className="text-center text-xs mt-8" style={{ color: "#51698F" }}>
-          3Diner Dashboard · mode preview (tanpa login)
-        </p>
       </div>
-    </main>
+    </div>
   );
 }

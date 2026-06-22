@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Cafe, Menu, AnalyticsLog } from "@/types";
+import type { Cafe, Menu, AnalyticsLog, Announcement } from "@/types";
+import { isMenuAvailableNow } from "./menu-availability";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://placeholder.supabase.co";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "placeholder";
@@ -27,7 +28,7 @@ export async function getCafeBySlug(slug: string): Promise<Cafe | null> {
 // Menu queries
 // ─────────────────────────────────────────────
 
-/** Fetch all menus belonging to a cafe */
+/** Fetch all customer-visible menus (active + within schedule) for a cafe. */
 export async function getMenusByCafeId(cafeId: string): Promise<Menu[]> {
   const { data, error } = await supabase
     .from("Menus")
@@ -36,7 +37,26 @@ export async function getMenusByCafeId(cafeId: string): Promise<Menu[]> {
     .order("created_at", { ascending: true });
 
   if (error) return [];
-  return data as Menu[];
+  return (data as Menu[]).filter((m) => isMenuAvailableNow(m));
+}
+
+// ─────────────────────────────────────────────
+// Announcements
+// ─────────────────────────────────────────────
+
+/** Active announcement banner for a cafe, or null. */
+export async function getActiveAnnouncement(cafeId: string): Promise<Announcement | null> {
+  const { data, error } = await supabase
+    .from("Announcements")
+    .select("*")
+    .eq("cafe_id", cafeId)
+    .eq("is_active", true)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return null;
+  return (data as Announcement) ?? null;
 }
 
 // ─────────────────────────────────────────────

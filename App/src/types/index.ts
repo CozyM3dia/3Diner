@@ -35,6 +35,22 @@ export interface Menu {
   prep_time_minutes?: number | null
   calories?: number | null
   ingredients?: string | null   // comma-separated, e.g. "Pasta, Daging Sapi, Saus Tomat"
+  // ── Availability & scheduling ──
+  is_active?: boolean
+  discount_pct?: number | null
+  schedule_days?: string | null   // comma ISO weekday nums "1,2,3" (1=Mon..7=Sun)
+  schedule_start?: string | null  // "HH:MM"
+  schedule_end?: string | null    // "HH:MM"
+}
+
+export interface Announcement {
+  id: string
+  cafe_id: string
+  message: string
+  bg_color: string
+  is_active: boolean
+  created_at: string
+  updated_at?: string
 }
 
 export interface AnalyticsLog {

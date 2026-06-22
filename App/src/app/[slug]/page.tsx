@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { MapPin, Star } from "lucide-react";
-import { getCafeBySlug, getMenusByCafeId } from "@/lib/data";
+import { getCafeBySlug, getMenusByCafeId, getActiveAnnouncement } from "@/lib/data";
 import MenuBrowser from "@/components/MenuBrowser";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -25,10 +26,16 @@ export default async function CafeMenuPage({ params }: PageProps) {
   const cafe = await getCafeBySlug(slug);
   if (!cafe) notFound();
 
-  const menus = await getMenusByCafeId(cafe.id_cafe);
+  const [menus, announcement] = await Promise.all([
+    getMenusByCafeId(cafe.id_cafe),
+    getActiveAnnouncement(cafe.id_cafe),
+  ]);
 
   return (
     <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "96px" }}>
+      {announcement && (
+        <AnnouncementBanner message={announcement.message} bgColor={announcement.bg_color} />
+      )}
       {/* Immersive hero — cafe identity over cover photo */}
       <header className="relative w-full overflow-hidden grain" style={{ height: "280px" }}>
         {cafe.cover_url ? (

@@ -5,16 +5,20 @@ import { Minus, Plus } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
+import { effectivePrice } from "@/lib/menu-availability";
 import type { Menu } from "@/types";
 
 export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string }) {
   const { items, add, setQty } = useCart();
   const item = items.find((i) => i.id_menu === menu.id_menu);
   const qty = item?.qty ?? 0;
+  const price = effectivePrice(menu);
+  // Cart stores the post-discount price the customer actually pays.
+  const cartMenu: Menu = { ...menu, harga_menu: price };
 
   function inc() {
     if (qty === 0) {
-      add(menu, 1);
+      add(cartMenu, 1);
       logEvent({ cafe_id: menu.cafe_id, menu_id: menu.id_menu, event_type: "click_order", duration: 0 });
     } else {
       setQty(menu.id_menu, qty + 1);
@@ -41,7 +45,7 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
             className="btn-primary press flex-1 inline-flex items-center justify-between gap-2 h-[52px] px-5 rounded-2xl text-white"
           >
             <span className="font-semibold text-sm whitespace-nowrap">Tambah ke Pesanan</span>
-            <span className="font-bold text-sm whitespace-nowrap tabular-nums">{formatRupiah(menu.harga_menu)}</span>
+            <span className="font-bold text-sm whitespace-nowrap tabular-nums">{formatRupiah(price)}</span>
           </button>
         ) : (
           <>
@@ -76,7 +80,7 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
             >
               <span className="font-semibold text-sm whitespace-nowrap">Pesanan</span>
               <span className="font-bold text-sm whitespace-nowrap tabular-nums">
-                {formatRupiah(menu.harga_menu * qty)}
+                {formatRupiah(price * qty)}
               </span>
             </Link>
           </>
