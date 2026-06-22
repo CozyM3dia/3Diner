@@ -13,20 +13,21 @@ interface Viewer3DPageProps {
   usdzUrl?: string;
   menuName: string;
   backUrl: string;
-  autoAR?: boolean;
 }
 
 type ViewerState = "loading" | "ready" | "error";
 
-export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, autoAR }: Viewer3DPageProps) {
+export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer3DPageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const viewerRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const gltfCacheRef = useRef<any>(null);
   const blobUrlRef = useRef<string | null>(null);
   const [state, setState] = useState<ViewerState>("loading");
   const [progress, setProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
-  const [showAR, setShowAR] = useState(autoAR ?? false);
+  const [showAR, setShowAR] = useState(false);
 
   const isGlb = url.toLowerCase().endsWith(".glb");
 
@@ -152,6 +153,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, autoAR }
             url={url}
             onReady={() => setState("ready")}
             onError={(msg) => { setErrorMsg(msg); setState("error"); }}
+            onGltfLoaded={(g) => { gltfCacheRef.current = g; }}
           />
         ) : (
           <div ref={containerRef} className="absolute inset-0" />
@@ -219,6 +221,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, autoAR }
           usdzUrl={usdzUrl}
           menuName={menuName}
           onClose={() => setShowAR(false)}
+          preloadedGltf={gltfCacheRef.current}
         />
       )}
     </div>

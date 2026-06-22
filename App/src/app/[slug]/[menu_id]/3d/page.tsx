@@ -5,7 +5,6 @@ import Viewer3DPage from "@/components/viewer/Viewer3DPage";
 
 interface PageProps {
   params: Promise<{ slug: string; menu_id: string }>;
-  searchParams: Promise<{ ar?: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -17,9 +16,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: `${menu.nama_menu} · Model 3D` };
 }
 
-export default async function Model3DPage({ params, searchParams }: PageProps) {
+export default async function Model3DPage({ params }: PageProps) {
   const { slug, menu_id } = await params;
-  const sp = await searchParams;
 
   const cafe = await getCafeBySlug(slug);
   if (!cafe) notFound();
@@ -28,7 +26,6 @@ export default async function Model3DPage({ params, searchParams }: PageProps) {
   if (!menu) notFound();
 
   const backUrl = `/${slug}/${menu_id}`;
-  const autoAR = sp.ar === "1";
 
   return (
     <Viewer3DPage
@@ -36,7 +33,6 @@ export default async function Model3DPage({ params, searchParams }: PageProps) {
       usdzUrl={menu.usdz_url ?? undefined}
       menuName={menu.nama_menu}
       backUrl={backUrl}
-      autoAR={autoAR}
     />
   );
 }

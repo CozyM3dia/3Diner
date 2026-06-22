@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Box, Clock, Flame, ScanLine } from "lucide-react";
+import { Box, Clock, Flame } from "lucide-react";
 import { getCafeBySlug, getMenuById, logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
 import DetailHeader from "@/components/DetailHeader";
@@ -159,30 +159,18 @@ export default async function MenuDetailPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* AR + 3D buttons */}
+        {/* 3D button */}
         {has3d && (
-          <div className="mt-5 flex flex-col gap-2.5">
+          <div className="mt-5">
             <Link
-              href={`/${slug}/${menu_id}/3d?ar=1`}
+              href={`/${slug}/${menu_id}/3d`}
               className="press w-full h-[52px] rounded-2xl inline-flex items-center justify-center gap-2.5 font-semibold text-[15px]"
               style={{
                 background: "var(--navy)",
                 color: "var(--white)",
               }}
             >
-              <ScanLine size={18} strokeWidth={2.2} />
-              Lihat di Meja (AR)
-            </Link>
-            <Link
-              href={`/${slug}/${menu_id}/3d`}
-              className="press w-full h-[46px] rounded-2xl inline-flex items-center justify-center gap-2 font-semibold text-sm"
-              style={{
-                border: "1.5px solid var(--border)",
-                color: "var(--navy-soft)",
-                background: "transparent",
-              }}
-            >
-              <Box size={16} strokeWidth={2} />
+              <Box size={18} strokeWidth={2} />
               Lihat Model 3D
             </Link>
           </div>

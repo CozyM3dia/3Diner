@@ -7,9 +7,11 @@ interface GlbViewerProps {
   url: string;
   onReady?: () => void;
   onError?: (msg: string) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onGltfLoaded?: (gltf: any) => void;
 }
 
-export default function GlbViewer({ url, onReady, onError }: GlbViewerProps) {
+export default function GlbViewer({ url, onReady, onError, onGltfLoaded }: GlbViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<any>(null);
   const frameRef = useRef<number>(0);
@@ -89,6 +91,7 @@ export default function GlbViewer({ url, onReady, onError }: GlbViewerProps) {
         );
       });
 
+      onGltfLoaded?.(gltf);
       setProgress(95);
 
       const model = gltf.scene;

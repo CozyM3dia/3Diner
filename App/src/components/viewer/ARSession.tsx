@@ -24,22 +24,24 @@ interface ARSessionProps {
   usdzUrl?: string;
   menuName: string;
   onClose: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  preloadedGltf?: any;
 }
 
 type GlbState = "loading" | "ready" | "ar" | "unsupported" | "error";
 type PlyState = "loading" | "ready" | "unsupported" | "active" | "overlay_blocked" | "error";
 
-export default function ARSession({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
+export default function ARSession({ url, usdzUrl, menuName, onClose, preloadedGltf }: ARSessionProps) {
   const isGlb = url.toLowerCase().endsWith(".glb");
 
   return isGlb ? (
-    <GlbAR url={url} usdzUrl={usdzUrl} menuName={menuName} onClose={onClose} />
+    <GlbAR url={url} usdzUrl={usdzUrl} menuName={menuName} onClose={onClose} preloadedGltf={preloadedGltf} />
   ) : (
     <PlyAR url={url} menuName={menuName} onClose={onClose} />
   );
 }
 
-function GlbAR({ url, usdzUrl, menuName: _menuName, onClose }: ARSessionProps) {
+function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: ARSessionProps) {
   const [state, setState] = useState<GlbState>("loading");
   const [arStarted, setArStarted] = useState(false);
   const sessionEndRef = useRef<(() => void) | null>(null);
@@ -76,11 +78,14 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose }: ARSessionProps) {
 
     try {
       const THREE = await import("three");
-      const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
 
-      const gltf = await new Promise<any>((res, rej) =>
-        new GLTFLoader().load(url, res, undefined, rej)
-      );
+      let gltf: any = preloadedGltf;
+      if (!gltf) {
+        const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
+        gltf = await new Promise<any>((res, rej) =>
+          new GLTFLoader().load(url, res, undefined, rej)
+        );
+      }
 
       const model = (gltf.scene as any).clone(true);
       model.updateMatrixWorld(true);
