@@ -39,47 +39,32 @@ export default function ARSession({ url, usdzUrl, menuName, onClose }: ARSession
   );
 }
 
-function GlbAR({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
-  const [state, setState] = useState<GlbState>("ready");
+function GlbAR({ url, usdzUrl, menuName: _menuName, onClose }: ARSessionProps) {
+  const [state, setState] = useState<GlbState>("loading");
   const [arStarted, setArStarted] = useState(false);
   const sessionEndRef = useRef<(() => void) | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const canvasSlotRef = useRef<HTMLDivElement>(null);
-  const gltfCacheRef = useRef<any>(null); // pre-loaded while preview is visible
 
-  // Pre-load GLB in background so it's ready when user taps AR
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    let live = true;
-    (async () => {
-      try {
-        const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
-        const gltf = await new Promise<any>((res, rej) =>
-          new GLTFLoader().load(url, res, undefined, rej)
-        );
-        if (live) gltfCacheRef.current = gltf;
-      } catch { /* preview handles its own error */ }
-    })();
-    return () => { live = false; };
-  }, [url]);
+    startAR();
+    return () => { sessionEndRef.current?.(); };
+  }, []);
 
-  // End XR session on unmount
-  useEffect(() => () => { sessionEndRef.current?.(); }, []);
-
-  const startAR = async () => {
-    if (!overlayRef.current || !canvasSlotRef.current) return;
-
-    // iOS: USDZ QuickLook
+  async function startAR() {
+    // iOS: USDZ QuickLook — trigger and return immediately
     if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
       if (usdzUrl) {
         const a = document.createElement("a");
         a.setAttribute("rel", "ar");
         a.href = usdzUrl;
-        const img = new Image();
-        img.src = usdzUrl;
+        const img = new Image(); img.src = usdzUrl;
         a.appendChild(img);
         document.body.appendChild(a);
         a.click();
         setTimeout(() => document.body.removeChild(a), 200);
+        onClose();
         return;
       }
       setState("unsupported");
@@ -89,28 +74,23 @@ function GlbAR({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
     const supported = await navigator.xr?.isSessionSupported("immersive-ar").catch(() => false);
     if (!supported) { setState("unsupported"); return; }
 
-    setState("ar");
-    setArStarted(false);
-
     try {
       const THREE = await import("three");
       const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
 
-      // Use pre-loaded cache, or load now as fallback
-      const gltf = gltfCacheRef.current ?? await new Promise<any>((res, rej) =>
+      const gltf = await new Promise<any>((res, rej) =>
         new GLTFLoader().load(url, res, undefined, rej)
       );
 
-      // Clone scene so the cache stays pristine for next session
       const model = (gltf.scene as any).clone(true);
-      model.updateMatrixWorld(true); // ensure child matrices are correct before bounding box
+      model.updateMatrixWorld(true);
 
-      // Normalize: scale to ~0.35m (realistic plate size), base at y=0 in group space
+      // Normalize: scale to ~0.35m, base at y=0
       const box0 = new THREE.Box3().setFromObject(model);
       const size0 = box0.getSize(new THREE.Vector3());
       const center0 = box0.getCenter(new THREE.Vector3());
-      const maxDim = Math.max(size0.x, size0.y, size0.z);
-      const s = maxDim > 0.001 ? 0.35 / maxDim : 0.35;
+      const maxDim0 = Math.max(size0.x, size0.y, size0.z);
+      const s = maxDim0 > 0.001 ? 0.35 / maxDim0 : 0.35;
       model.scale.setScalar(s);
       model.position.set(-center0.x * s, -box0.min.y * s, -center0.z * s);
 
@@ -118,17 +98,23 @@ function GlbAR({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
       group.add(model);
       group.visible = false;
 
-      // Lightweight lighting for mobile AR
+      // Reticle ring — shown at hit-test surface
+      const reticle = new THREE.Mesh(
+        new THREE.RingGeometry(0.08, 0.11, 32).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
+      );
+      reticle.matrixAutoUpdate = false;
+      reticle.visible = false;
+
       const scene = new THREE.Scene();
       scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 1.5));
       const sun = new THREE.DirectionalLight(0xffffff, 1.2);
       sun.position.set(1, 3, 2);
       scene.add(sun);
       scene.add(group);
+      scene.add(reticle);
 
       const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
-      // Mobile-optimised: no antialias, capped pixel ratio, linear tonemapping
       const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -136,17 +122,13 @@ function GlbAR({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
       renderer.toneMapping = THREE.LinearToneMapping;
       renderer.toneMappingExposure = 1.2;
       renderer.xr.enabled = true;
-      // "local" reference space: no floor-estimation drift, guaranteed on all ARCore devices.
-      // "local-floor" continuously refines the floor plane causing the model to drift when
-      // the phone is physically translated — switching to "local" fixes that.
-      renderer.xr.setReferenceSpaceType("local");
+      renderer.xr.setReferenceSpaceType("local-floor");
       Object.assign(renderer.domElement.style, {
         position: "absolute", top: "0", left: "0", width: "100%", height: "100%",
       });
-      canvasSlotRef.current.appendChild(renderer.domElement);
+      canvasSlotRef.current!.appendChild(renderer.domElement);
 
-      // Pre-warm: compile shaders + force-upload ALL textures to this GL context before
-      // the XR session opens. Eliminates the 2-3s freeze after the model first appears.
+      // Pre-warm shaders + textures before XR session opens
       group.visible = true;
       renderer.compile(scene, camera);
       scene.traverse((obj: any) => {
@@ -160,43 +142,75 @@ function GlbAR({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
       });
       group.visible = false;
 
-      // Request AR session — "local" is guaranteed so no need to list it in optionalFeatures
       const session = await (navigator.xr as any).requestSession("immersive-ar", {
-        optionalFeatures: ["dom-overlay"],
+        requiredFeatures: ["local-floor"],
+        optionalFeatures: ["hit-test", "dom-overlay"],
         domOverlay: { root: overlayRef.current },
       });
       await renderer.xr.setSession(session);
+      setState("ar");
       setArStarted(true);
 
-      // Place ONCE after 4 warm-up frames, then LOCK forever.
-      // Uses the TRUE 3D forward direction (including the phone's downward tilt toward the table)
-      // so the model lands on the table surface, not on the floor.
-      let placed = false;
-      let warmup = 0;
-      const tmpPos = new THREE.Vector3();
-      const tmpDir = new THREE.Vector3();
-      const yawDir = new THREE.Vector3();
+      // Hit-test source (optional — falls back gracefully)
+      let hitTestSource: any = null;
+      try {
+        const viewerSpace = await (session as any).requestReferenceSpace("viewer");
+        hitTestSource = await (session as any).requestHitTestSource({ space: viewerSpace });
+      } catch { /* device doesn't support hit-test, fallback to tap-forward */ }
 
-      renderer.setAnimationLoop(() => {
-        warmup++;
-        if (!placed && warmup > 4) {
+      let placed = false;
+      const hitMatrix = new THREE.Matrix4();
+
+      // Tap → place or reposition model at reticle
+      const onSelect = () => {
+        if (reticle.visible) {
+          group.position.setFromMatrixPosition(reticle.matrix);
+          group.visible = true;
+          placed = true;
+        } else if (!placed) {
+          // Fallback: place at floor level 0.6 m ahead
           const xrCam = renderer.xr.getCamera();
-          xrCam.getWorldPosition(tmpPos);
-          xrCam.getWorldDirection(tmpDir); // includes downward tilt — naturally hits table surface
-          if (tmpDir.lengthSq() > 1e-6) {
-            // 0.6m along the camera's forward ray → lands on the table when phone tilts down
-            group.position.set(
-              tmpPos.x + tmpDir.x * 0.6,
-              tmpPos.y + tmpDir.y * 0.6,
-              tmpPos.z + tmpDir.z * 0.6
-            );
-            // Face model toward user using yaw only so it stays upright
-            yawDir.set(tmpDir.x, 0, tmpDir.z).normalize();
-            if (yawDir.lengthSq() > 1e-6) {
-              group.rotation.y = Math.atan2(-yawDir.x, -yawDir.z);
+          const p = new THREE.Vector3();
+          const d = new THREE.Vector3();
+          xrCam.getWorldPosition(p);
+          xrCam.getWorldDirection(d);
+          group.position.set(p.x + d.x * 0.6, 0, p.z + d.z * 0.6);
+          group.visible = true;
+          placed = true;
+        }
+      };
+      session.addEventListener("select", onSelect);
+
+      // Single-finger drag on DOM overlay → rotate model Y
+      let rotating = false;
+      let lastRotX = 0;
+      const onTouchStart = (e: TouchEvent) => {
+        if (e.touches.length === 1) { rotating = true; lastRotX = e.touches[0].clientX; }
+      };
+      const onTouchMove = (e: TouchEvent) => {
+        if (!rotating || !placed || e.touches.length !== 1) return;
+        group.rotation.y += (e.touches[0].clientX - lastRotX) * 0.015;
+        lastRotX = e.touches[0].clientX;
+      };
+      const onTouchEnd = () => { rotating = false; };
+      const overlay = overlayRef.current;
+      overlay?.addEventListener("touchstart", onTouchStart, { passive: true });
+      overlay?.addEventListener("touchmove", onTouchMove, { passive: true });
+      overlay?.addEventListener("touchend", onTouchEnd);
+
+      renderer.setAnimationLoop((_: number, frame: any) => {
+        if (frame && hitTestSource) {
+          const hits = frame.getHitTestResults(hitTestSource);
+          if (hits.length > 0) {
+            const refSpace = renderer.xr.getReferenceSpace();
+            const pose = hits[0].getPose(refSpace);
+            if (pose) {
+              reticle.visible = true;
+              hitMatrix.fromArray(pose.transform.matrix);
+              reticle.matrix.copy(hitMatrix);
             }
-            group.visible = true;
-            placed = true; // LOCKED — group.position never updated again
+          } else {
+            reticle.visible = false;
           }
         }
         renderer.render(scene, camera);
@@ -206,12 +220,17 @@ function GlbAR({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
       const cleanup = () => {
         if (cleaned) return;
         cleaned = true;
+        session.removeEventListener("select", onSelect);
+        overlay?.removeEventListener("touchstart", onTouchStart);
+        overlay?.removeEventListener("touchmove", onTouchMove);
+        overlay?.removeEventListener("touchend", onTouchEnd);
+        hitTestSource?.cancel();
         renderer.setAnimationLoop(null);
         renderer.domElement.remove();
         renderer.dispose();
         sessionEndRef.current = null;
         setArStarted(false);
-        setState("ready");
+        onClose(); // return to 3D viewer when AR session ends
       };
 
       session.addEventListener("end", cleanup);
@@ -224,60 +243,39 @@ function GlbAR({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
       setArStarted(false);
       setState("unsupported");
     }
-  };
+  }
 
   const exitAR = () => sessionEndRef.current?.();
 
   return (
     <div className="fixed inset-0 z-[100]" style={{ background: "#002355" }}>
-      {/* WebXR canvas injected here when AR starts */}
       <div ref={canvasSlotRef} className="absolute inset-0" />
 
-      {/* Three.js 3D preview — unmounted during AR to free resources */}
-      {state === "ready" && <GlbViewer url={url} />}
-
-      {/* DOM overlay — always in DOM; registered as dom-overlay root for WebXR */}
+      {/* DOM overlay root — always mounted for WebXR registration */}
       <div ref={overlayRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
         {state === "ar" && arStarted && (
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto">
-            <button onClick={exitAR}
-              className="px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2"
-              style={{ background: "rgba(0,35,85,0.8)", color: "#FDFDFD", backdropFilter: "blur(8px)" }}>
-              <X size={16} /> Keluar AR
-            </button>
-          </div>
+          <>
+            <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs font-semibold"
+              style={{ background: "rgba(0,0,0,0.5)", color: "#FDFDFD", backdropFilter: "blur(6px)", whiteSpace: "nowrap" }}>
+              Arahkan ke meja · ketuk untuk meletakkan
+            </div>
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto">
+              <button onClick={exitAR}
+                className="px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2"
+                style={{ background: "rgba(0,35,85,0.8)", color: "#FDFDFD", backdropFilter: "blur(8px)" }}>
+                <X size={16} /> Keluar AR
+              </button>
+            </div>
+          </>
         )}
       </div>
 
-      {/* AR loading (session starting, before camera opens) */}
-      {state === "ar" && !arStarted && (
+      {/* Loading / initializing */}
+      {(state === "loading" || (state === "ar" && !arStarted)) && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4" style={{ background: "#002355" }}>
           <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
           <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>Menyiapkan AR...</p>
         </div>
-      )}
-
-      {/* Ready: close + name chip + AR button layered over 3D preview */}
-      {state === "ready" && (
-        <>
-          <button onClick={onClose}
-            className="absolute top-4 left-4 z-10 w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: "rgba(0,35,85,0.7)", backdropFilter: "blur(6px)" }}>
-            <X size={18} color="#FDFDFD" />
-          </button>
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-4 py-1.5 rounded-full"
-            style={{ background: "rgba(0,35,85,0.6)", backdropFilter: "blur(6px)" }}>
-            <p className="text-sm font-semibold whitespace-nowrap" style={{ color: "#FDFDFD" }}>{menuName}</p>
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 z-10 px-5 pb-8 pt-12"
-            style={{ background: "linear-gradient(to top, rgba(0,35,85,0.9) 0%, transparent 100%)" }}>
-            <button onClick={startAR}
-              className="w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
-              style={{ background: "linear-gradient(135deg, #FD5002, #FC6A41)", color: "#FDFDFD", boxShadow: "0 4px 24px rgba(253,80,2,0.45)" }}>
-              <Scan size={18} strokeWidth={2} /> Lihat di Meja (AR)
-            </button>
-          </div>
-        </>
       )}
 
       {/* Unsupported */}
@@ -313,20 +311,6 @@ function GlbAR({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
             </button>
           </div>
         </>
-      )}
-
-      {/* Error */}
-      {state === "error" && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-6"
-          style={{ background: "rgba(0,35,85,0.97)" }}>
-          <p className="font-semibold" style={{ color: "#FDFDFD" }}>Gagal memuat model</p>
-          <p className="text-sm" style={{ color: "rgba(253,253,253,0.6)" }}>Cek koneksi internet kamu</p>
-          <button onClick={onClose}
-            className="px-8 py-3 rounded-2xl text-sm font-semibold text-white"
-            style={{ background: "#FD5002" }}>
-            Kembali
-          </button>
-        </div>
       )}
     </div>
   );

@@ -101,7 +101,7 @@ export default function GlbViewer({ url, onReady, onError }: GlbViewerProps) {
       model.position.sub(center);
 
       const maxDim = Math.max(size.x, size.y, size.z);
-      const dist = maxDim * 2.2;
+      let dist = maxDim * 2.2;
       camera.near = maxDim * 0.001;
       camera.far = maxDim * 100;
       camera.updateProjectionMatrix();
@@ -150,20 +150,37 @@ export default function GlbViewer({ url, onReady, onError }: GlbViewerProps) {
       const onMouseMove = (e: MouseEvent) => onDragMove(e.clientX, e.clientY);
       const onMouseUp = () => onDragEnd();
 
-      // Touch
+      // Touch — single finger: rotate, two fingers: pinch-to-zoom
+      let pinchDist0 = 0;
+      let distAtPinch = dist;
+
+      const getPinchDist = (t: TouchList) =>
+        Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
       const onTouchStart = (e: TouchEvent) => {
+        e.preventDefault();
         if (e.touches.length === 1) {
-          e.preventDefault();
           onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+        } else if (e.touches.length === 2) {
+          dragging = false;
+          pinchDist0 = getPinchDist(e.touches);
+          distAtPinch = dist;
         }
       };
       const onTouchMove = (e: TouchEvent) => {
+        e.preventDefault();
         if (e.touches.length === 1) {
-          e.preventDefault();
           onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+        } else if (e.touches.length === 2 && pinchDist0 > 0) {
+          const newDist = getPinchDist(e.touches);
+          dist = Math.max(maxDim * 0.5, Math.min(maxDim * 8, distAtPinch * (pinchDist0 / newDist)));
+          updateCamera();
         }
       };
-      const onTouchEnd = () => onDragEnd();
+      const onTouchEnd = (e: TouchEvent) => {
+        if (e.touches.length === 0) onDragEnd();
+        if (e.touches.length < 2) pinchDist0 = 0;
+      };
 
       renderer.domElement.addEventListener("mousedown", onMouseDown);
       window.addEventListener("mousemove", onMouseMove);
