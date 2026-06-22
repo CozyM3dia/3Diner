@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Box, Minus, Plus, ShoppingBag } from "lucide-react";
+import { Box, Minus, Plus } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
@@ -36,12 +36,12 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
         borderTop: "1px solid var(--border)",
       }}
     >
-      <div className="flex items-center gap-2.5 max-w-xl mx-auto">
+      <div className="flex items-center gap-2 max-w-xl mx-auto">
         {has3d && (
           <Link
             href={`/${slug}/${menu.id_menu}/3d`}
             aria-label="Lihat dalam 3D"
-            className="press shrink-0 inline-flex items-center justify-center w-[52px] h-[52px] rounded-2xl"
+            className="press shrink-0 inline-flex items-center justify-center w-[48px] h-[52px] rounded-2xl"
             style={{ border: "1.5px solid var(--navy)", color: "var(--navy)" }}
           >
             <Box size={20} strokeWidth={2} />
@@ -61,38 +61,36 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
           <>
             {/* In cart → live quantity stepper (minus at 1 removes) */}
             <div
-              className="shrink-0 inline-flex items-center h-[52px] px-1.5 rounded-2xl"
+              className="shrink-0 inline-flex items-center h-[52px] px-1 rounded-2xl"
               style={{ background: "var(--surface)" }}
             >
               <button
                 onClick={dec}
                 aria-label={qty === 1 ? `Hapus ${menu.nama_menu} dari pesanan` : "Kurangi jumlah"}
-                className="press w-10 h-10 rounded-full inline-flex items-center justify-center"
+                className="press w-9 h-9 rounded-full inline-flex items-center justify-center"
                 style={{ background: "var(--white)", color: "var(--navy)" }}
               >
-                <Minus size={16} strokeWidth={2.5} />
+                <Minus size={15} strokeWidth={2.5} />
               </button>
-              <span className="w-7 text-center font-bold text-base tabular-nums" style={{ color: "var(--navy)" }}>
+              <span className="w-6 text-center font-bold text-base tabular-nums" style={{ color: "var(--navy)" }}>
                 {qty}
               </span>
               <button
                 onClick={inc}
                 aria-label="Tambah jumlah"
-                className="press w-10 h-10 rounded-full inline-flex items-center justify-center text-white"
+                className="press w-9 h-9 rounded-full inline-flex items-center justify-center text-white"
                 style={{ background: "var(--orange)" }}
               >
-                <Plus size={16} strokeWidth={2.5} />
+                <Plus size={15} strokeWidth={2.5} />
               </button>
             </div>
 
             {/* Go to cart with running line total */}
             <Link
               href={`/${slug}/keranjang`}
-              className="btn-primary press flex-1 inline-flex items-center justify-between gap-2 h-[52px] px-4 rounded-2xl text-white"
+              className="btn-primary press flex-1 min-w-0 inline-flex items-center justify-between gap-2 h-[52px] px-3 rounded-2xl text-white"
             >
-              <span className="inline-flex items-center gap-1.5 font-semibold text-sm whitespace-nowrap">
-                <ShoppingBag size={16} strokeWidth={2.2} /> Pesanan
-              </span>
+              <span className="font-semibold text-sm whitespace-nowrap">Pesanan</span>
               <span className="font-bold text-sm whitespace-nowrap tabular-nums">
                 {formatRupiah(menu.harga_menu * qty)}
               </span>
