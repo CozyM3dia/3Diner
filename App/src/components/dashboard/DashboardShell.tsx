@@ -87,7 +87,7 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
             </div>
           </div>
           <button
-            className="lg:hidden p-1.5 rounded-lg shrink-0"
+            className="dash-icon-btn lg:hidden p-1.5 rounded-lg shrink-0"
             style={{ color: "#5A7898" }}
             onClick={() => setOpen(false)}
             aria-label="Tutup"
@@ -105,11 +105,10 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
                 key={href}
                 href={href}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
+                className={`dash-nav flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium ${active ? "is-active" : ""}`}
                 style={{
                   background: active ? "rgba(253,80,2,0.12)" : "transparent",
                   color: active ? "#FD5002" : "#5A7898",
-                  transition: "background 150ms ease-out, color 150ms ease-out",
                 }}
               >
                 <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
@@ -129,7 +128,7 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
               href={`/${cafe.slug_url}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 hover:opacity-80"
+              className="dash-nav flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
               style={{ color: "#5A7898" }}
             >
               <ExternalLink size={15} strokeWidth={1.8} />
@@ -148,7 +147,7 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
           className="lg:hidden flex items-center gap-3 px-4 shrink-0"
           style={{ height: "56px", borderBottom: "1px solid rgba(255,255,255,0.07)", background: "#0D1829" }}
         >
-          <button onClick={() => setOpen(true)} className="p-1.5 rounded-lg" style={{ color: "#5A7898" }} aria-label="Buka menu">
+          <button onClick={() => setOpen(true)} className="dash-icon-btn p-1.5 rounded-lg" style={{ color: "#5A7898" }} aria-label="Buka menu">
             <MenuIcon size={18} />
           </button>
           <p className="text-sm font-semibold" style={{ color: "#E9EEF6" }}>

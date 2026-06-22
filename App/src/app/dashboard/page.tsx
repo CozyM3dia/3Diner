@@ -76,7 +76,7 @@ export default async function AnalyticsPage() {
   return (
     <div className="p-5 lg:p-8 max-w-[1400px] mx-auto">
       {/* Header */}
-      <div className="mb-7">
+      <div className="mb-7 dash-reveal">
         <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>
           Analitik
         </h1>
@@ -86,7 +86,7 @@ export default async function AnalyticsPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5 dash-reveal dash-d1">
         <StatCard
           value={totals.click_menu}
           label="Tampilan Menu"
@@ -123,7 +123,7 @@ export default async function AnalyticsPage() {
       </div>
 
       {/* Timeline + Funnel */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5 dash-reveal dash-d2">
         <section className="lg:col-span-2 rounded-2xl p-5" style={PANEL}>
           <SectionLabel>Aktivitas Harian</SectionLabel>
           <LineChart data={daily.map((d) => ({ label: d.label, value: d.count }))} />
@@ -140,7 +140,7 @@ export default async function AnalyticsPage() {
       </div>
 
       {/* Heatmap + composition donut */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5 dash-reveal dash-d3">
         <section className="lg:col-span-2 rounded-2xl p-5" style={PANEL}>
           <SectionLabel>Jam Tersibuk</SectionLabel>
           <HeatmapGrid hourly={hourly} />
@@ -164,7 +164,7 @@ export default async function AnalyticsPage() {
       </div>
 
       {/* Top dishes + recent */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 dash-reveal dash-d4">
         <section className="lg:col-span-2 rounded-2xl p-5" style={PANEL}>
           <SectionLabel>Menu Terpopuler</SectionLabel>
           {topDishes.length === 0 ? (

@@ -30,14 +30,14 @@ export default async function MenuListPage() {
 
   return (
     <div className="p-5 lg:p-8 max-w-[1100px] mx-auto">
-      <div className="flex items-center justify-between mb-7">
+      <div className="flex items-center justify-between mb-7 dash-reveal">
         <div>
           <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>Menu</h1>
           <p className="text-sm mt-1" style={{ color: "#5A7898" }}>{list.length} item terdaftar</p>
         </div>
         <Link
           href="/dashboard/menu/new"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
+          className="dash-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
           style={{ background: "#FD5002" }}
         >
           <Plus size={16} /> Tambah Menu
@@ -49,12 +49,12 @@ export default async function MenuListPage() {
           <Box size={38} style={{ color: "#5A7898" }} strokeWidth={1.2} />
           <p className="mt-4 font-semibold" style={{ color: "#E9EEF6" }}>Belum ada menu</p>
           <p className="text-sm mt-1 mb-6" style={{ color: "#5A7898" }}>Tambah menu pertama untuk kafe kamu</p>
-          <Link href="/dashboard/menu/new" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: "#FD5002" }}>
+          <Link href="/dashboard/menu/new" className="dash-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: "#FD5002" }}>
             <Plus size={15} /> Tambah Menu
           </Link>
         </div>
       ) : (
-        <div className="rounded-2xl overflow-hidden" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
+        <div className="rounded-2xl overflow-hidden dash-reveal dash-d1" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
@@ -67,7 +67,7 @@ export default async function MenuListPage() {
             </thead>
             <tbody>
               {list.map((menu, i) => (
-                <tr key={menu.id_menu} style={{ borderBottom: i < list.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                <tr key={menu.id_menu} className="dash-row" style={{ borderBottom: i < list.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
                   <td className="px-4 py-3">
                     <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center" style={{ background: "#132136" }}>
                       {menu.image_url ? (
@@ -106,7 +106,7 @@ export default async function MenuListPage() {
                   <td className="px-4 py-3 text-right">
                     <Link
                       href={`/dashboard/menu/${menu.id_menu}/edit`}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg"
+                      className="dash-press dash-icon-btn inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg"
                       style={{ background: "#132136", color: "#E9EEF6" }}
                     >
                       <Pencil size={12} /> Edit

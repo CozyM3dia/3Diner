@@ -104,12 +104,11 @@ export default function OrdersClient({ initial, cafeId }: { initial: OrderRow[];
             <button
               key={t.v}
               onClick={() => setFilter(t.v)}
-              className="shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium"
+              className="dash-chip shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium"
               style={{
                 background: on ? "rgba(253,80,2,0.12)" : "#0D1829",
                 color: on ? "#FD5002" : "#5A7898",
                 border: `1px solid ${on ? "rgba(253,80,2,0.3)" : "rgba(255,255,255,0.07)"}`,
-                transition: "all 150ms ease-out",
               }}
             >
               {t.l}
@@ -134,7 +133,7 @@ export default function OrdersClient({ initial, cafeId }: { initial: OrderRow[];
             const Icon = meta.icon;
             const items = Array.isArray(o.items) ? o.items : [];
             return (
-              <div key={o.id_order} className="rounded-2xl p-5" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
+              <div key={o.id_order} className="dash-card dash-reveal rounded-2xl p-5" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2">
@@ -169,7 +168,7 @@ export default function OrdersClient({ initial, cafeId }: { initial: OrderRow[];
                     <button
                       onClick={() => advance(o)}
                       disabled={pending && busyId === o.id_order}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white"
+                      className="dash-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white"
                       style={{ background: o.status === "received" ? "#FD5002" : "#F59E0B" }}
                     >
                       {pending && busyId === o.id_order ? (

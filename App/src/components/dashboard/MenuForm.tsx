@@ -49,7 +49,7 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
   );
   const [active, setActive] = useState(menu?.is_active !== false);
 
-  const inputCls = "w-full px-3.5 py-2.5 rounded-xl text-sm outline-none focus:border-[rgba(253,80,2,0.5)]";
+  const inputCls = "dash-input w-full px-3.5 py-2.5 rounded-xl text-sm outline-none";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -176,7 +176,7 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
                   key={d.v}
                   type="button"
                   onClick={() => toggleDay(d.v)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                  className="dash-chip px-3 py-1.5 rounded-lg text-xs font-medium"
                   style={{
                     background: on ? "rgba(253,80,2,0.14)" : "#132136",
                     color: on ? "#FD5002" : "#5A7898",
@@ -207,7 +207,7 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
+          className="dash-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
           style={{ background: "#FD5002", opacity: saving ? 0.7 : 1 }}
         >
           {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
@@ -218,7 +218,7 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
             type="button"
             onClick={handleDelete}
             disabled={deleting}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
+            className="dash-press inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
             style={{ background: "rgba(239,68,68,0.1)", color: "#FCA5A5" }}
           >
             {deleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}

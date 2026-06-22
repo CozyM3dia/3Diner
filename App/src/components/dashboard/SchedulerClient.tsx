@@ -68,7 +68,7 @@ function MenuRow({ menu }: { menu: Menu }) {
   const inputStyle: React.CSSProperties = { background: "#132136", border: "1px solid rgba(255,255,255,0.1)", color: "#E9EEF6" };
 
   return (
-    <div className="rounded-2xl p-4 lg:p-5" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
+    <div className="dash-card rounded-2xl p-4 lg:p-5" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
       <div className="flex items-center justify-between gap-3 mb-4">
         <p className="text-sm font-semibold truncate" style={{ color: "#E9EEF6" }}>{menu.nama_menu}</p>
         <button onClick={() => mark({ is_active: !st.is_active })} className="shrink-0">
@@ -88,7 +88,7 @@ function MenuRow({ menu }: { menu: Menu }) {
                 <button
                   key={i}
                   onClick={() => toggleDay(d.v)}
-                  className="w-8 h-8 rounded-lg text-xs font-semibold"
+                  className="dash-chip w-8 h-8 rounded-lg text-xs font-semibold"
                   style={{
                     background: on ? "rgba(253,80,2,0.14)" : "#132136",
                     color: on ? "#FD5002" : "#5A7898",
@@ -106,11 +106,11 @@ function MenuRow({ menu }: { menu: Menu }) {
         <div className="flex items-end gap-3">
           <div>
             <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#5A7898" }}>Mulai</label>
-            <input type="time" value={st.start} onChange={(e) => mark({ start: e.target.value })} className="px-2.5 py-2 rounded-lg text-sm outline-none" style={inputStyle} />
+            <input type="time" value={st.start} onChange={(e) => mark({ start: e.target.value })} className="dash-input px-2.5 py-2 rounded-lg text-sm outline-none" style={inputStyle} />
           </div>
           <div>
             <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#5A7898" }}>Selesai</label>
-            <input type="time" value={st.end} onChange={(e) => mark({ end: e.target.value })} className="px-2.5 py-2 rounded-lg text-sm outline-none" style={inputStyle} />
+            <input type="time" value={st.end} onChange={(e) => mark({ end: e.target.value })} className="dash-input px-2.5 py-2 rounded-lg text-sm outline-none" style={inputStyle} />
           </div>
           <div>
             <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#5A7898" }}>Diskon</label>
@@ -121,7 +121,7 @@ function MenuRow({ menu }: { menu: Menu }) {
                 max="100"
                 value={st.discount_pct}
                 onChange={(e) => mark({ discount_pct: Number(e.target.value) })}
-                className="w-20 pl-2.5 pr-7 py-2 rounded-lg text-sm outline-none tabular-nums"
+                className="dash-input w-20 pl-2.5 pr-7 py-2 rounded-lg text-sm outline-none tabular-nums"
                 style={inputStyle}
               />
               <Percent size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2" style={{ color: "#5A7898" }} />
@@ -135,8 +135,8 @@ function MenuRow({ menu }: { menu: Menu }) {
           <button
             onClick={save}
             disabled={pending || !dirty}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white"
-            style={{ background: saved ? "#22D3A6" : "#FD5002", opacity: pending ? 0.7 : 1, transition: "background 200ms ease-out" }}
+            className="dash-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white"
+            style={{ background: saved ? "#22D3A6" : "#FD5002", opacity: pending ? 0.7 : 1, transition: "background 200ms ease-out, filter 0.15s, transform 0.12s" }}
           >
             {pending ? <Loader2 size={13} className="animate-spin" /> : saved ? <Check size={13} /> : null}
             {saved ? "Tersimpan" : "Simpan"}

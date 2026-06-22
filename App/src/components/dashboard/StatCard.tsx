@@ -57,7 +57,7 @@ export default function StatCard({ value, label, icon, accent, accentBg, delta, 
   return (
     <div
       ref={ref}
-      className="rounded-2xl p-5"
+      className="dash-card rounded-2xl p-5"
       style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}
     >
       <div className="flex items-start justify-between">

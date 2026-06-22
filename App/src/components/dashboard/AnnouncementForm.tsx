@@ -71,7 +71,7 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
             onChange={(e) => setMessage(e.target.value)}
             rows={2}
             maxLength={120}
-            className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none"
+            className="dash-input w-full px-3.5 py-2.5 rounded-xl text-sm outline-none"
             style={{ background: "#132136", border: "1px solid rgba(255,255,255,0.1)", color: "#E9EEF6" }}
             placeholder="Live music malam ini mulai jam 19.00!"
           />
@@ -88,7 +88,7 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
                 key={p.value}
                 type="button"
                 onClick={() => setColor(p.value)}
-                className="w-9 h-9 rounded-xl"
+                className="dash-press w-9 h-9 rounded-xl"
                 style={{
                   background: p.value,
                   outline: color === p.value ? "2px solid #E9EEF6" : "1px solid rgba(255,255,255,0.1)",
@@ -114,8 +114,8 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
       <button
         type="submit"
         disabled={saving}
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
-        style={{ background: saved ? "#22D3A6" : "#FD5002", opacity: saving ? 0.7 : 1, transition: "background 200ms ease-out" }}
+        className="dash-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
+        style={{ background: saved ? "#22D3A6" : "#FD5002", opacity: saving ? 0.7 : 1, transition: "background 200ms ease-out, filter 0.15s, transform 0.12s" }}
       >
         {saving ? <Loader2 size={15} className="animate-spin" /> : saved ? <Check size={15} /> : <Save size={15} />}
         {saved ? "Tersimpan" : "Simpan Pengumuman"}

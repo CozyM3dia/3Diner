@@ -208,6 +208,41 @@ model-viewer::part(default-ar-button) { display: none !important; }
 .stagger-5 { animation-delay: 0.24s; opacity: 0; }
 .stagger-6 { animation-delay: 0.29s; opacity: 0; }
 
+/* ── Dashboard (dark) interaction layer ── */
+.dash-card {
+  transition: border-color 0.18s var(--ease-out), transform 0.18s var(--ease-out);
+}
+@media (hover: hover) {
+  .dash-card:hover { border-color: rgba(255,255,255,0.16); transform: translateY(-2px); }
+}
+.dash-press { transition: transform 0.12s var(--ease-soft), background 0.15s var(--ease-out), filter 0.15s var(--ease-out), opacity 0.15s; }
+.dash-press:active { transform: scale(0.96); }
+.dash-row { transition: background 0.15s var(--ease-out); }
+@media (hover: hover) { .dash-row:hover { background: rgba(255,255,255,0.035); } }
+.dash-nav { transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out); }
+@media (hover: hover) { .dash-nav:not(.is-active):hover { background: rgba(255,255,255,0.05); color: #E9EEF6 !important; } }
+.dash-input { transition: border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out); }
+.dash-input:focus { border-color: rgba(253,80,2,0.6) !important; box-shadow: 0 0 0 3px rgba(253,80,2,0.13); outline: none; }
+.dash-btn { transition: filter 0.15s var(--ease-out), transform 0.12s var(--ease-soft), box-shadow 0.18s var(--ease-out); }
+@media (hover: hover) { .dash-btn:hover { filter: brightness(1.08); } }
+.dash-btn:active { transform: scale(0.97); }
+.dash-icon-btn { transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out); }
+@media (hover: hover) { .dash-icon-btn:hover { background: rgba(255,255,255,0.06); color: #E9EEF6; } }
+.dash-chip { transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out), border-color 0.15s var(--ease-out), transform 0.12s var(--ease-soft); }
+.dash-chip:active { transform: scale(0.95); }
+
+/* Dashboard section reveal (JS-free, runs on mount) */
+@keyframes dashReveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.dash-reveal { animation: dashReveal 0.45s var(--ease-out) both; }
+.dash-d1 { animation-delay: 0.05s; }
+.dash-d2 { animation-delay: 0.10s; }
+.dash-d3 { animation-delay: 0.15s; }
+.dash-d4 { animation-delay: 0.20s; }
+.dash-d5 { animation-delay: 0.25s; }
+
 /* ── Accessibility: respect reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -216,6 +251,6 @@ model-viewer::part(default-ar-button) { display: none !important; }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .fade-up, .float, .pulse-ring, .pulse-dot, .fab-in { animation: none !important; opacity: 1 !important; }
+  .fade-up, .float, .pulse-ring, .pulse-dot, .fab-in, .dash-reveal { animation: none !important; opacity: 1 !important; transform: none !important; }
   .menu-card, .menu-card .card-img { transition: none !important; }
 }

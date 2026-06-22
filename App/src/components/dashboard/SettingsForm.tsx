@@ -28,7 +28,7 @@ export default function SettingsForm({ cafe }: { cafe: Cafe }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const inputCls = "w-full px-3.5 py-2.5 rounded-xl text-sm outline-none focus:border-[rgba(253,80,2,0.5)]";
+  const inputCls = "dash-input w-full px-3.5 py-2.5 rounded-xl text-sm outline-none";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,7 +53,7 @@ export default function SettingsForm({ cafe }: { cafe: Cafe }) {
         </div>
       )}
 
-      <div className="rounded-2xl p-5 space-y-4" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
+      <div className="rounded-2xl p-5 space-y-4 dash-reveal dash-d1" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
         <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>Identitas</p>
         <Field label="Nama Kafe *">
           <input name="nama_cafe" defaultValue={cafe.nama_cafe} required className={inputCls} style={inputStyle} />
@@ -66,7 +66,7 @@ export default function SettingsForm({ cafe }: { cafe: Cafe }) {
         </Field>
       </div>
 
-      <div className="rounded-2xl p-5 space-y-4" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
+      <div className="rounded-2xl p-5 space-y-4 dash-reveal dash-d2" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
         <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>Tampilan & Tautan</p>
         <Field label="URL Logo">
           <input name="logo_url" defaultValue={cafe.logo_url ?? ""} className={inputCls} style={inputStyle} placeholder="https://…/logo.png" />
@@ -82,8 +82,8 @@ export default function SettingsForm({ cafe }: { cafe: Cafe }) {
       <button
         type="submit"
         disabled={saving}
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
-        style={{ background: saved ? "#22D3A6" : "#FD5002", opacity: saving ? 0.7 : 1, transition: "background 200ms ease-out" }}
+        className="dash-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
+        style={{ background: saved ? "#22D3A6" : "#FD5002", opacity: saving ? 0.7 : 1, transition: "background 200ms ease-out, filter 0.15s, transform 0.12s" }}
       >
         {saving ? <Loader2 size={15} className="animate-spin" /> : saved ? <Check size={15} /> : <Save size={15} />}
         {saved ? "Tersimpan" : "Simpan Perubahan"}
