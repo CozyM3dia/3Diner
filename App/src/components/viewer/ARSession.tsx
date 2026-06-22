@@ -147,9 +147,9 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       });
       await renderer.xr.setSession(session);
       setState("ar");
-      setArStarted(true);
+      // setArStarted(true) called only when model is first placed — keeps hint visible until then
 
-      // Hit-test source from viewer (camera forward ray)
+      // Hit-test for accurate surface detection
       let hitTestSource: any = null;
       try {
         const viewerSpace = await (session as any).requestReferenceSpace("viewer");
@@ -161,7 +161,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       const hitScale = new THREE.Vector3();
       const hitMatrix = new THREE.Matrix4();
 
-      // Single-finger drag → rotate model Y (always active once visible)
+      // Single-finger drag → rotate model Y
       let rotating = false;
       let lastRotX = 0;
       const onTouchStart = (e: TouchEvent) => {
@@ -178,10 +178,11 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       overlay?.addEventListener("touchmove", onTouchMove, { passive: true });
       overlay?.addEventListener("touchend", onTouchEnd);
 
-      let fallbackPlaced = false;
+      // Lock model after first hit — never update position again
+      let placed = false;
 
       renderer.setAnimationLoop((_: number, frame: any) => {
-        if (frame) {
+        if (!placed && frame) {
           if (hitTestSource) {
             const hits = frame.getHitTestResults(hitTestSource);
             if (hits.length > 0) {
@@ -190,24 +191,26 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
               if (pose) {
                 hitMatrix.fromArray(pose.transform.matrix);
                 hitMatrix.decompose(hitPos, hitQuat, hitScale);
-                // Y > -1.2 in "local" space = above floor, i.e. elevated surface (table)
+                // Y > -1.2 in "local" space = table surface (not floor)
                 if (hitPos.y > -1.2) {
                   group.position.copy(hitPos);
                   group.visible = true;
+                  placed = true;
+                  setArStarted(true);
                 }
               }
             }
-          } else if (!fallbackPlaced) {
-            // No hit-test: place once at camera forward on a flat horizontal plane
+          } else {
+            // No hit-test: place once using camera forward ray toward table surface
             const xrCam = renderer.xr.getCamera();
             const p = new THREE.Vector3();
             const d = new THREE.Vector3();
             xrCam.getWorldPosition(p);
             xrCam.getWorldDirection(d);
-            // Project forward 0.6m, keep Y = estimated table height (cam Y - 0.8m)
-            group.position.set(p.x + d.x * 0.6, p.y - 0.8, p.z + d.z * 0.6);
+            group.position.set(p.x + d.x * 0.6, p.y + d.y * 0.6 - 0.03, p.z + d.z * 0.6);
             group.visible = true;
-            fallbackPlaced = true;
+            placed = true;
+            setArStarted(true);
           }
         }
         renderer.render(scene, camera);
@@ -249,25 +252,29 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
 
       {/* DOM overlay root — always mounted for WebXR registration */}
       <div ref={overlayRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
+        {/* Hint shown over camera feed while waiting for hit-test to find a surface */}
+        {state === "ar" && !arStarted && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="px-5 py-3 rounded-2xl flex items-center gap-3"
+              style={{ background: "rgba(0,35,85,0.78)", backdropFilter: "blur(12px)" }}>
+              <Loader2 size={18} color="#FD5002" strokeWidth={2.5} className="animate-spin" />
+              <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>Arahkan ke permukaan meja</p>
+            </div>
+          </div>
+        )}
         {state === "ar" && arStarted && (
-          <>
-            <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs font-semibold"
-              style={{ background: "rgba(0,0,0,0.5)", color: "#FDFDFD", backdropFilter: "blur(6px)", whiteSpace: "nowrap" }}>
-              Arahkan kamera ke permukaan meja
-            </div>
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto">
-              <button onClick={exitAR}
-                className="px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2"
-                style={{ background: "rgba(0,35,85,0.8)", color: "#FDFDFD", backdropFilter: "blur(8px)" }}>
-                <X size={16} /> Keluar AR
-              </button>
-            </div>
-          </>
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto">
+            <button onClick={exitAR}
+              className="px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2"
+              style={{ background: "rgba(0,35,85,0.8)", color: "#FDFDFD", backdropFilter: "blur(8px)" }}>
+              <X size={16} /> Keluar AR
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Loading / initializing */}
-      {(state === "loading" || (state === "ar" && !arStarted)) && (
+      {/* Dark loading screen while GLB loads + session starts (before camera opens) */}
+      {state === "loading" && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4" style={{ background: "#002355" }}>
           <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
           <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>Menyiapkan AR...</p>
