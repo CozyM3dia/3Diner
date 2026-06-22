@@ -90,7 +90,7 @@ export default async function AnalyticsPage() {
         <StatCard
           value={totals.click_menu}
           label="Tampilan Menu"
-          icon={MousePointerClick}
+          icon={<MousePointerClick size={17} strokeWidth={2} />}
           accent="#9FB6D1"
           accentBg="rgba(159,182,209,0.12)"
           delta={deltas.click_menu}
@@ -98,7 +98,7 @@ export default async function AnalyticsPage() {
         <StatCard
           value={totals.view_3d}
           label="Lihat Model 3D"
-          icon={Box}
+          icon={<Box size={17} strokeWidth={2} />}
           accent="#00C2A8"
           accentBg="rgba(0,194,168,0.12)"
           delta={deltas.view_3d}
@@ -106,7 +106,7 @@ export default async function AnalyticsPage() {
         <StatCard
           value={totals.click_order}
           label="Mulai Pesan"
-          icon={ShoppingBag}
+          icon={<ShoppingBag size={17} strokeWidth={2} />}
           accent="#FD5002"
           accentBg="rgba(253,80,2,0.12)"
           delta={deltas.click_order}
@@ -115,7 +115,7 @@ export default async function AnalyticsPage() {
           value={Math.round(conversion)}
           suffix="%"
           label="Konversi ke Pesan"
-          icon={Target}
+          icon={<Target size={17} strokeWidth={2} />}
           accent="#22D3A6"
           accentBg="rgba(34,211,166,0.12)"
           sub={`${Math.round(view3dRate)}% buka model 3D`}

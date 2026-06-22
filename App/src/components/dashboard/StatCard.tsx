@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, ArrowDownRight, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 interface StatCardProps {
   value: number;
   label: string;
-  icon: LucideIcon;
+  icon: React.ReactNode;
   accent: string;
   accentBg: string;
   delta?: number; // % change vs last week
@@ -36,7 +36,7 @@ function useCountUp(target: number, run: boolean, ms = 900) {
   return n;
 }
 
-export default function StatCard({ value, label, icon: Icon, accent, accentBg, delta, sub, suffix }: StatCardProps) {
+export default function StatCard({ value, label, icon, accent, accentBg, delta, sub, suffix }: StatCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [on, setOn] = useState(false);
   const n = useCountUp(value, on);
@@ -65,8 +65,8 @@ export default function StatCard({ value, label, icon: Icon, accent, accentBg, d
           {n.toLocaleString("id-ID")}
           {suffix && <span className="text-lg" style={{ color: "#5A7898" }}>{suffix}</span>}
         </span>
-        <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: accentBg }}>
-          <Icon size={17} style={{ color: accent }} strokeWidth={2} />
+        <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: accentBg, color: accent }}>
+          {icon}
         </span>
       </div>
       <p className="text-sm mt-2.5" style={{ color: "#5A7898" }}>
