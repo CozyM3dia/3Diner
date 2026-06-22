@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
-import { MapPin } from "lucide-react";
+import { MapPin, Star } from "lucide-react";
 import { getCafeBySlug, getMenusByCafeId } from "@/lib/data";
 import MenuBrowser from "@/components/MenuBrowser";
 
@@ -93,6 +93,23 @@ export default async function CafeMenuPage({ params }: PageProps) {
       <section className="px-4 pt-5 pb-10">
         <MenuBrowser menus={menus} cafeId={cafe.id_cafe} slug={slug} />
       </section>
+
+      {/* Google Maps review CTA */}
+      {cafe.google_maps_review_url && (
+        <div className="px-4 pb-6 flex flex-col items-center gap-2">
+          <p className="text-xs" style={{ color: "var(--navy-muted)" }}>Puas dengan pengalaman di sini?</p>
+          <a
+            href={cafe.google_maps_review_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="press inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm"
+            style={{ background: "var(--white)", border: "1.5px solid var(--border)", color: "var(--navy)" }}
+          >
+            <Star size={15} style={{ color: "#FBBC04" }} fill="#FBBC04" strokeWidth={0} />
+            Beri Ulasan di Google Maps
+          </a>
+        </div>
+      )}
 
       <footer className="pb-8 flex items-center justify-center gap-2">
         <Image src="/brand/logo-3diner-mark.svg" alt="" width={20} height={20} className="object-contain opacity-90" />

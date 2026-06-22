@@ -14,6 +14,8 @@ export interface Cafe {
   cover_url?: string | null
   greeting?: string | null
   brand_color?: string | null
+  // ── External links ──
+  google_maps_review_url?: string | null
 }
 
 export interface Menu {

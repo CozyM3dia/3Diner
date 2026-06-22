@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Box, Clock, Flame } from "lucide-react";
+import { Box, Clock, Flame, Star } from "lucide-react";
 import { getCafeBySlug, getMenuById, logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
 import DetailHeader from "@/components/DetailHeader";
@@ -173,6 +173,23 @@ export default async function MenuDetailPage({ params }: PageProps) {
               <Box size={18} strokeWidth={2} />
               Lihat Model 3D
             </Link>
+          </div>
+        )}
+
+        {/* Google Maps review */}
+        {cafe.google_maps_review_url && (
+          <div className="mt-4 pt-4 flex flex-col items-center gap-1.5" style={{ borderTop: "1px solid var(--border)" }}>
+            <p className="text-xs" style={{ color: "var(--navy-muted)" }}>Suka hidangan ini?</p>
+            <a
+              href={cafe.google_maps_review_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="press inline-flex items-center gap-1.5 text-sm font-semibold"
+              style={{ color: "var(--navy)" }}
+            >
+              <Star size={14} style={{ color: "#FBBC04" }} fill="#FBBC04" strokeWidth={0} />
+              Tulis ulasan di Google Maps
+            </a>
           </div>
         )}
       </div>
