@@ -98,21 +98,12 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose }: ARSessionProps) {
       group.add(model);
       group.visible = false;
 
-      // Reticle ring — shown at hit-test surface
-      const reticle = new THREE.Mesh(
-        new THREE.RingGeometry(0.08, 0.11, 32).rotateX(-Math.PI / 2),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
-      );
-      reticle.matrixAutoUpdate = false;
-      reticle.visible = false;
-
       const scene = new THREE.Scene();
       scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 1.5));
       const sun = new THREE.DirectionalLight(0xffffff, 1.2);
       sun.position.set(1, 3, 2);
       scene.add(sun);
       scene.add(group);
-      scene.add(reticle);
 
       const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
       const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false });
@@ -122,7 +113,10 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose }: ARSessionProps) {
       renderer.toneMapping = THREE.LinearToneMapping;
       renderer.toneMappingExposure = 1.2;
       renderer.xr.enabled = true;
-      renderer.xr.setReferenceSpaceType("local-floor");
+      // "local" ref space: Y=0 = camera start height (~eye level, ~1.5m above floor).
+      // floor ≈ Y -1.5m, table ≈ Y -0.7m in this space.
+      // Filtering hit Y > -1.2 keeps table hits, rejects floor hits.
+      renderer.xr.setReferenceSpaceType("local");
       Object.assign(renderer.domElement.style, {
         position: "absolute", top: "0", left: "0", width: "100%", height: "100%",
       });
@@ -143,7 +137,6 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose }: ARSessionProps) {
       group.visible = false;
 
       const session = await (navigator.xr as any).requestSession("immersive-ar", {
-        requiredFeatures: ["local-floor"],
         optionalFeatures: ["hit-test", "dom-overlay"],
         domOverlay: { root: overlayRef.current },
       });
@@ -151,44 +144,26 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose }: ARSessionProps) {
       setState("ar");
       setArStarted(true);
 
-      // Hit-test source (optional — falls back gracefully)
+      // Hit-test source from viewer (camera forward ray)
       let hitTestSource: any = null;
       try {
         const viewerSpace = await (session as any).requestReferenceSpace("viewer");
         hitTestSource = await (session as any).requestHitTestSource({ space: viewerSpace });
-      } catch { /* device doesn't support hit-test, fallback to tap-forward */ }
+      } catch { /* fallback: fixed placement */ }
 
-      let placed = false;
+      const hitPos = new THREE.Vector3();
+      const hitQuat = new THREE.Quaternion();
+      const hitScale = new THREE.Vector3();
       const hitMatrix = new THREE.Matrix4();
 
-      // Tap → place or reposition model at reticle
-      const onSelect = () => {
-        if (reticle.visible) {
-          group.position.setFromMatrixPosition(reticle.matrix);
-          group.visible = true;
-          placed = true;
-        } else if (!placed) {
-          // Fallback: place at floor level 0.6 m ahead
-          const xrCam = renderer.xr.getCamera();
-          const p = new THREE.Vector3();
-          const d = new THREE.Vector3();
-          xrCam.getWorldPosition(p);
-          xrCam.getWorldDirection(d);
-          group.position.set(p.x + d.x * 0.6, 0, p.z + d.z * 0.6);
-          group.visible = true;
-          placed = true;
-        }
-      };
-      session.addEventListener("select", onSelect);
-
-      // Single-finger drag on DOM overlay → rotate model Y
+      // Single-finger drag → rotate model Y (always active once visible)
       let rotating = false;
       let lastRotX = 0;
       const onTouchStart = (e: TouchEvent) => {
         if (e.touches.length === 1) { rotating = true; lastRotX = e.touches[0].clientX; }
       };
       const onTouchMove = (e: TouchEvent) => {
-        if (!rotating || !placed || e.touches.length !== 1) return;
+        if (!rotating || !group.visible || e.touches.length !== 1) return;
         group.rotation.y += (e.touches[0].clientX - lastRotX) * 0.015;
         lastRotX = e.touches[0].clientX;
       };
@@ -198,19 +173,36 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose }: ARSessionProps) {
       overlay?.addEventListener("touchmove", onTouchMove, { passive: true });
       overlay?.addEventListener("touchend", onTouchEnd);
 
+      let fallbackPlaced = false;
+
       renderer.setAnimationLoop((_: number, frame: any) => {
-        if (frame && hitTestSource) {
-          const hits = frame.getHitTestResults(hitTestSource);
-          if (hits.length > 0) {
-            const refSpace = renderer.xr.getReferenceSpace();
-            const pose = hits[0].getPose(refSpace);
-            if (pose) {
-              reticle.visible = true;
-              hitMatrix.fromArray(pose.transform.matrix);
-              reticle.matrix.copy(hitMatrix);
+        if (frame) {
+          if (hitTestSource) {
+            const hits = frame.getHitTestResults(hitTestSource);
+            if (hits.length > 0) {
+              const refSpace = renderer.xr.getReferenceSpace();
+              const pose = hits[0].getPose(refSpace);
+              if (pose) {
+                hitMatrix.fromArray(pose.transform.matrix);
+                hitMatrix.decompose(hitPos, hitQuat, hitScale);
+                // Y > -1.2 in "local" space = above floor, i.e. elevated surface (table)
+                if (hitPos.y > -1.2) {
+                  group.position.copy(hitPos);
+                  group.visible = true;
+                }
+              }
             }
-          } else {
-            reticle.visible = false;
+          } else if (!fallbackPlaced) {
+            // No hit-test: place once at camera forward on a flat horizontal plane
+            const xrCam = renderer.xr.getCamera();
+            const p = new THREE.Vector3();
+            const d = new THREE.Vector3();
+            xrCam.getWorldPosition(p);
+            xrCam.getWorldDirection(d);
+            // Project forward 0.6m, keep Y = estimated table height (cam Y - 0.8m)
+            group.position.set(p.x + d.x * 0.6, p.y - 0.8, p.z + d.z * 0.6);
+            group.visible = true;
+            fallbackPlaced = true;
           }
         }
         renderer.render(scene, camera);
@@ -220,7 +212,6 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose }: ARSessionProps) {
       const cleanup = () => {
         if (cleaned) return;
         cleaned = true;
-        session.removeEventListener("select", onSelect);
         overlay?.removeEventListener("touchstart", onTouchStart);
         overlay?.removeEventListener("touchmove", onTouchMove);
         overlay?.removeEventListener("touchend", onTouchEnd);
@@ -230,7 +221,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose }: ARSessionProps) {
         renderer.dispose();
         sessionEndRef.current = null;
         setArStarted(false);
-        onClose(); // return to 3D viewer when AR session ends
+        onClose();
       };
 
       session.addEventListener("end", cleanup);
@@ -257,7 +248,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose }: ARSessionProps) {
           <>
             <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs font-semibold"
               style={{ background: "rgba(0,0,0,0.5)", color: "#FDFDFD", backdropFilter: "blur(6px)", whiteSpace: "nowrap" }}>
-              Arahkan ke meja · ketuk untuk meletakkan
+              Arahkan kamera ke permukaan meja
             </div>
             <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto">
               <button onClick={exitAR}
