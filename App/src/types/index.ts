@@ -29,6 +29,10 @@ export interface Menu {
   image_url?: string | null
   category?: string | null
   usdz_url?: string | null
+  // ── Detail info ──
+  prep_time_minutes?: number | null
+  calories?: number | null
+  ingredients?: string | null   // comma-separated, e.g. "Pasta, Daging Sapi, Saus Tomat"
 }
 
 export interface AnalyticsLog {

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Box, Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
@@ -11,7 +11,6 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
   const { items, add, setQty } = useCart();
   const item = items.find((i) => i.id_menu === menu.id_menu);
   const qty = item?.qty ?? 0;
-  const has3d = Boolean(menu.model_3d_url);
 
   function inc() {
     if (qty === 0) {
@@ -22,7 +21,6 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
     }
   }
 
-  // At qty 1, minus drops to 0 → cart removes the item (reverts to "Tambah").
   function dec() {
     setQty(menu.id_menu, qty - 1);
   }
@@ -37,19 +35,7 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
       }}
     >
       <div className="flex items-center gap-2 max-w-xl mx-auto">
-        {has3d && (
-          <Link
-            href={`/${slug}/${menu.id_menu}/3d`}
-            aria-label="Lihat dalam 3D"
-            className="press shrink-0 inline-flex items-center justify-center w-[48px] h-[52px] rounded-2xl"
-            style={{ border: "1.5px solid var(--navy)", color: "var(--navy)" }}
-          >
-            <Box size={20} strokeWidth={2} />
-          </Link>
-        )}
-
         {qty === 0 ? (
-          /* Not in cart yet → single add button */
           <button
             onClick={inc}
             className="btn-primary press flex-1 inline-flex items-center justify-between gap-2 h-[52px] px-5 rounded-2xl text-white"
@@ -59,7 +45,6 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
           </button>
         ) : (
           <>
-            {/* In cart → live quantity stepper (minus at 1 removes) */}
             <div
               className="shrink-0 inline-flex items-center h-[52px] px-1 rounded-2xl"
               style={{ background: "var(--surface)" }}
@@ -72,7 +57,7 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
               >
                 <Minus size={15} strokeWidth={2.5} />
               </button>
-              <span className="w-6 text-center font-bold text-base tabular-nums" style={{ color: "var(--navy)" }}>
+              <span className="w-7 text-center font-bold text-base tabular-nums" style={{ color: "var(--navy)" }}>
                 {qty}
               </span>
               <button
@@ -85,10 +70,9 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
               </button>
             </div>
 
-            {/* Go to cart with running line total */}
             <Link
               href={`/${slug}/keranjang`}
-              className="btn-primary press flex-1 min-w-0 inline-flex items-center justify-between gap-2 h-[52px] px-3 rounded-2xl text-white"
+              className="btn-primary press flex-1 min-w-0 inline-flex items-center justify-between gap-2 h-[52px] px-4 rounded-2xl text-white"
             >
               <span className="font-semibold text-sm whitespace-nowrap">Pesanan</span>
               <span className="font-bold text-sm whitespace-nowrap tabular-nums">
