@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { X, Loader2, RotateCcw, ScanLine, Move3d } from "lucide-react";
 import { fitCameraToModel } from "@/lib/fit-camera";
+import GlbViewer from "./GlbViewer";
+import dynamic from "next/dynamic";
 
-// Bypassing TypeScript JSX check for custom elements
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ModelViewerElement = "model-viewer" as any;
+const ARSession = dynamic(() => import("./ARSession"), { ssr: false });
 
 interface Viewer3DPageProps {
   url: string;
@@ -21,83 +21,13 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const viewerRef = useRef<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const modelViewerRef = useRef<any>(null);
   const blobUrlRef = useRef<string | null>(null);
   const [state, setState] = useState<ViewerState>("loading");
   const [progress, setProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
-  const [arSupported, setArSupported] = useState(false);
-  const [arHint, setArHint] = useState(false);
-  const [arActivating, setArActivating] = useState(false);
+  const [showAR, setShowAR] = useState(false);
 
   const isGlb = url.toLowerCase().endsWith(".glb");
-
-  // GLB: attach load/error listeners via ref (onLoad prop unreliable on web components)
-  useEffect(() => {
-    if (!isGlb) return;
-    const mv = modelViewerRef.current;
-    if (!mv) return;
-
-    const handleLoad = () => {
-      setProgress(100);
-      setState("ready");
-      // canActivateAR resolves once model-viewer evaluates ar-modes for the device
-      setArSupported(Boolean(mv.canActivateAR));
-      window.setTimeout(() => setArSupported(Boolean(mv.canActivateAR)), 600);
-      // Nudge model-viewer to (re)measure its canvas in case the flex layout
-      // settled after the WebGL context was created (canvas can init at 0×0).
-      window.dispatchEvent(new Event("resize"));
-      window.setTimeout(() => window.dispatchEvent(new Event("resize")), 120);
-    };
-    const handleError = () => setState("error");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleArStatus = (e: any) => {
-      if (e.detail?.status === "not-presenting" || e.detail?.status === "failed") {
-        setArActivating(false);
-      }
-    };
-
-    mv.addEventListener("load", handleLoad);
-    mv.addEventListener("error", handleError);
-    mv.addEventListener("ar-status", handleArStatus);
-    if (mv.loaded) handleLoad();
-
-    return () => {
-      mv.removeEventListener("load", handleLoad);
-      mv.removeEventListener("error", handleError);
-      mv.removeEventListener("ar-status", handleArStatus);
-    };
-  }, [isGlb]);
-
-  // GLB: import model-viewer library
-  useEffect(() => {
-    if (isGlb) {
-      import("@google/model-viewer").catch((err) => {
-        console.error("Failed to load model-viewer", err);
-        setState("error");
-      });
-    }
-  }, [isGlb]);
-
-  function launchAR() {
-    const mv = modelViewerRef.current;
-    if (mv?.canActivateAR) {
-      setArActivating(true);
-      mv.activateAR();
-    } else {
-      setArHint(true);
-      window.setTimeout(() => setArHint(false), 3600);
-    }
-  }
-
-  function resetView() {
-    const mv = modelViewerRef.current;
-    if (mv) {
-      mv.cameraOrbit = "0deg 75deg auto";
-      mv.fieldOfView = "auto";
-    }
-  }
 
   const initViewer = useCallback(async () => {
     if (isGlb) {
@@ -217,45 +147,17 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
       {/* Canvas */}
       <div className="relative flex-1 overflow-hidden min-h-0">
         {isGlb ? (
-          <ModelViewerElement
-            ref={modelViewerRef}
-            src={url}
-            ios-src={usdzUrl || undefined}
-            ar
-            ar-modes="webxr scene-viewer quick-look"
-            ar-scale="fixed"
-            loading="eager"
-            reveal="auto"
-            camera-controls
-            touch-action="pan-y"
-            shadow-intensity="1"
-            exposure="1.05"
-            environment-image="neutral"
-            autoplay
-            auto-rotate
-            rotation-per-second="18deg"
-            interaction-prompt="none"
-            alt={menuName}
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", outline: "none", "--poster-color": "transparent" } as React.CSSProperties}
+          <GlbViewer
+            url={url}
+            onReady={() => setState("ready")}
+            onError={(msg) => { setErrorMsg(msg); setState("error"); }}
           />
         ) : (
           <div ref={containerRef} className="absolute inset-0" />
         )}
 
-        {/* Reset view (only when ready) */}
-        {state === "ready" && (
-          <button
-            onClick={resetView}
-            aria-label="Atur ulang tampilan"
-            className="press absolute top-3 right-4 w-10 h-10 rounded-full inline-flex items-center justify-center"
-            style={{ background: "rgba(255,255,255,0.14)", color: "#fff" }}
-          >
-            <RotateCcw size={17} strokeWidth={2.2} />
-          </button>
-        )}
-
-        {/* Loading */}
-        {state === "loading" && (
+        {/* Loading overlay — PLY only (GlbViewer handles its own) */}
+        {!isGlb && state === "loading" && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.1)" }}>
               <Loader2 size={28} color="var(--orange)" strokeWidth={2} className="animate-spin" />
@@ -268,8 +170,8 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
           </div>
         )}
 
-        {/* Error */}
-        {state === "error" && (
+        {/* Error — PLY only */}
+        {!isGlb && state === "error" && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-6 text-center">
             <p className="font-semibold text-sm" style={{ color: "#FDFDFD" }}>Gagal memuat model 3D</p>
             <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>Cek koneksi internet lalu coba lagi</p>
@@ -295,29 +197,29 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
           </p>
         )}
 
-        {arHint && (
-          <p className="text-[12px] text-center mb-2.5 leading-relaxed px-4" style={{ color: "rgba(255,255,255,0.78)" }}>
-            Mode AR berjalan di HP (Android atau iPhone). Buka halaman ini lewat kamera HP untuk menaruh hidangan di mejamu.
-          </p>
-        )}
-
         <button
-          onClick={launchAR}
-          disabled={state !== "ready" || arActivating}
+          onClick={() => setShowAR(true)}
+          disabled={state !== "ready"}
           className="btn-primary press w-full h-[54px] rounded-2xl inline-flex items-center justify-center gap-2.5 font-semibold text-[15px] text-white disabled:opacity-50 max-w-xl mx-auto"
         >
-          {arActivating ? (
-            <Loader2 size={20} strokeWidth={2.2} className="animate-spin" />
-          ) : (
-            <ScanLine size={20} strokeWidth={2.2} />
-          )}
-          {arActivating ? "Membuka AR..." : "Lihat di Meja (AR)"}
+          <ScanLine size={20} strokeWidth={2.2} />
+          Lihat di Meja (AR)
         </button>
 
         <p className="text-[11px] text-center mt-2.5" style={{ color: "rgba(255,255,255,0.5)" }}>
-          {arSupported ? "Arahkan kamera ke meja untuk menaruh hidangan" : "Tampilan nyata ukuran asli di mejamu"}
+          Tampilan nyata ukuran asli di mejamu
         </p>
       </div>
+
+      {/* AR overlay */}
+      {showAR && (
+        <ARSession
+          url={url}
+          usdzUrl={usdzUrl}
+          menuName={menuName}
+          onClose={() => setShowAR(false)}
+        />
+      )}
     </div>
   );
 }

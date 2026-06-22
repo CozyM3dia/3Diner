@@ -3,9 +3,21 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { X, Loader2, Scan, AlertTriangle, RotateCcw } from "lucide-react";
 import { fitCameraToModel } from "@/lib/fit-camera";
+import GlbViewer from "./GlbViewer";
 
-// Bypassing TypeScript JSX check for custom elements
-const ModelViewerElement = "model-viewer" as any;
+// model-viewer v3.4.0 — same version as tgo.4d-menu.com
+const MV_CDN = "https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js";
+const ModelViewerEl = "model-viewer" as any;
+
+async function loadModelViewerCDN(): Promise<void> {
+  if (typeof customElements === "undefined") return;
+  if (customElements.get("model-viewer")) return;
+  const s = document.createElement("script");
+  s.type = "module";
+  s.src = MV_CDN;
+  document.head.appendChild(s);
+  await customElements.whenDefined("model-viewer");
+}
 
 interface ARSessionProps {
   url: string;
@@ -14,81 +26,304 @@ interface ARSessionProps {
   onClose: () => void;
 }
 
-type SessionState =
-  | "loading"
-  | "ready"
-  | "unsupported"
-  | "active"
-  | "overlay_blocked"
-  | "error";
+type GlbState = "loading" | "ready" | "ar" | "unsupported" | "error";
+type PlyState = "loading" | "ready" | "unsupported" | "active" | "overlay_blocked" | "error";
 
 export default function ARSession({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const uiOverlayRef = useRef<HTMLDivElement>(null);
-  const modelViewerRef = useRef<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const viewerRef = useRef<any>(null);
-  const [sessionState, setSessionState] = useState<SessionState>("loading");
-  const [progress, setProgress] = useState(0);
-  const [arStarting, setArStarting] = useState(false);
-
   const isGlb = url.toLowerCase().endsWith(".glb");
 
-  // Handle GLB load and AR status events
+  return isGlb ? (
+    <GlbAR url={url} usdzUrl={usdzUrl} menuName={menuName} onClose={onClose} />
+  ) : (
+    <PlyAR url={url} menuName={menuName} onClose={onClose} />
+  );
+}
+
+function GlbAR({ url, usdzUrl, menuName, onClose }: ARSessionProps) {
+  const [state, setState] = useState<GlbState>("ready");
+  const [arStarted, setArStarted] = useState(false);
+  const sessionEndRef = useRef<(() => void) | null>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const canvasSlotRef = useRef<HTMLDivElement>(null);
+  const gltfCacheRef = useRef<any>(null); // pre-loaded while preview is visible
+
+  // Pre-load GLB in background so it's ready when user taps AR
   useEffect(() => {
-    if (isGlb && modelViewerRef.current) {
-      const mv = modelViewerRef.current;
+    let live = true;
+    (async () => {
+      try {
+        const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
+        const gltf = await new Promise<any>((res, rej) =>
+          new GLTFLoader().load(url, res, undefined, rej)
+        );
+        if (live) gltfCacheRef.current = gltf;
+      } catch { /* preview handles its own error */ }
+    })();
+    return () => { live = false; };
+  }, [url]);
 
-      const handleLoad = () => {
-        console.log("[ARSession] GLB loaded");
-        setProgress(100);
-        setSessionState("ready");
-      };
+  // End XR session on unmount
+  useEffect(() => () => { sessionEndRef.current?.(); }, []);
 
-      const handleError = (err: any) => {
-        console.error("[ARSession] GLB load error:", err);
-        setSessionState("error");
-      };
+  const startAR = async () => {
+    if (!overlayRef.current || !canvasSlotRef.current) return;
 
-      const handleArStatus = (event: any) => {
-        console.log("[ARSession] GLB AR Status:", event.detail.status);
-        if (event.detail.status === "not-presenting") {
-          onClose();
-        } else if (event.detail.status === "failed") {
-          setSessionState("unsupported");
-        }
-      };
-
-      mv.addEventListener("load", handleLoad);
-      mv.addEventListener("error", handleError);
-      mv.addEventListener("ar-status", handleArStatus);
-
-      if (mv.loaded) {
-        handleLoad();
+    // iOS: USDZ QuickLook
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      if (usdzUrl) {
+        const a = document.createElement("a");
+        a.setAttribute("rel", "ar");
+        a.href = usdzUrl;
+        const img = new Image();
+        img.src = usdzUrl;
+        a.appendChild(img);
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => document.body.removeChild(a), 200);
+        return;
       }
-
-      return () => {
-        mv.removeEventListener("load", handleLoad);
-        mv.removeEventListener("error", handleError);
-        mv.removeEventListener("ar-status", handleArStatus);
-      };
+      setState("unsupported");
+      return;
     }
-  }, [isGlb, onClose]);
+
+    const supported = await navigator.xr?.isSessionSupported("immersive-ar").catch(() => false);
+    if (!supported) { setState("unsupported"); return; }
+
+    setState("ar");
+    setArStarted(false);
+
+    try {
+      const THREE = await import("three");
+      const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
+
+      // Use pre-loaded cache, or load now as fallback
+      const gltf = gltfCacheRef.current ?? await new Promise<any>((res, rej) =>
+        new GLTFLoader().load(url, res, undefined, rej)
+      );
+
+      // Clone scene so the cache stays pristine for next session
+      const model = (gltf.scene as any).clone(true);
+
+      // Normalize: scale to ~0.25m, base at y=0
+      const box0 = new THREE.Box3().setFromObject(model);
+      const size0 = box0.getSize(new THREE.Vector3());
+      const center0 = box0.getCenter(new THREE.Vector3());
+      const maxDim = Math.max(size0.x, size0.y, size0.z);
+      const s = maxDim > 0 ? 0.25 / maxDim : 1;
+      model.scale.setScalar(s);
+      model.position.set(-center0.x * s, -box0.min.y * s, -center0.z * s);
+
+      const group = new THREE.Group();
+      group.add(model);
+      group.visible = false;
+
+      // Lightweight lighting for mobile AR
+      const scene = new THREE.Scene();
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 1.5));
+      const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+      sun.position.set(1, 3, 2);
+      scene.add(sun);
+      scene.add(group);
+
+      const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+
+      // Mobile-optimised: no antialias, capped pixel ratio, linear tonemapping
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.LinearToneMapping;
+      renderer.toneMappingExposure = 1.2;
+      renderer.xr.enabled = true;
+      renderer.xr.setReferenceSpaceType("local-floor");
+      Object.assign(renderer.domElement.style, {
+        position: "absolute", top: "0", left: "0", width: "100%", height: "100%",
+      });
+      canvasSlotRef.current.appendChild(renderer.domElement);
+
+      // Pre-compile shaders BEFORE opening the camera — eliminates first-frame stutter
+      group.visible = true;
+      renderer.compile(scene, camera);
+      group.visible = false;
+
+      // Request AR session (camera opens here)
+      const session = await (navigator.xr as any).requestSession("immersive-ar", {
+        optionalFeatures: ["local-floor", "dom-overlay"],
+        domOverlay: { root: overlayRef.current },
+      });
+      await renderer.xr.setSession(session);
+      setArStarted(true);
+
+      // Place ONCE on the first XR frame — then LOCK forever
+      let placed = false;
+      const tmpPos = new THREE.Vector3();
+      const tmpDir = new THREE.Vector3();
+
+      renderer.setAnimationLoop(() => {
+        if (!placed) {
+          const xrCam = renderer.xr.getCamera();
+          xrCam.getWorldPosition(tmpPos);
+          xrCam.getWorldDirection(tmpDir);
+          tmpDir.y = 0;
+          if (tmpDir.lengthSq() > 1e-6) {
+            tmpDir.normalize();
+            group.position.set(
+              tmpPos.x + tmpDir.x * 1.0,
+              0,
+              tmpPos.z + tmpDir.z * 1.0
+            );
+            group.rotation.y = Math.atan2(-tmpDir.x, -tmpDir.z);
+            group.visible = true;
+            placed = true;
+          }
+        }
+        renderer.render(scene, camera);
+      });
+
+      let cleaned = false;
+      const cleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
+        renderer.setAnimationLoop(null);
+        renderer.domElement.remove();
+        renderer.dispose();
+        sessionEndRef.current = null;
+        setArStarted(false);
+        setState("ready");
+      };
+
+      session.addEventListener("end", cleanup);
+      sessionEndRef.current = () => { (session as any).end().catch(() => {}); };
+
+    } catch (err) {
+      console.error("[GlbAR]", err);
+      canvasSlotRef.current?.querySelectorAll("canvas").forEach(c => c.remove());
+      sessionEndRef.current = null;
+      setArStarted(false);
+      setState("unsupported");
+    }
+  };
+
+  const exitAR = () => sessionEndRef.current?.();
+
+  return (
+    <div className="fixed inset-0 z-[100]" style={{ background: "#002355" }}>
+      {/* WebXR canvas injected here when AR starts */}
+      <div ref={canvasSlotRef} className="absolute inset-0" />
+
+      {/* Three.js 3D preview — unmounted during AR to free resources */}
+      {state === "ready" && <GlbViewer url={url} />}
+
+      {/* DOM overlay — always in DOM; registered as dom-overlay root for WebXR */}
+      <div ref={overlayRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
+        {state === "ar" && arStarted && (
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto">
+            <button onClick={exitAR}
+              className="px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2"
+              style={{ background: "rgba(0,35,85,0.8)", color: "#FDFDFD", backdropFilter: "blur(8px)" }}>
+              <X size={16} /> Keluar AR
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* AR loading (session starting, before camera opens) */}
+      {state === "ar" && !arStarted && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4" style={{ background: "#002355" }}>
+          <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
+          <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>Menyiapkan AR...</p>
+        </div>
+      )}
+
+      {/* Ready: close + name chip + AR button layered over 3D preview */}
+      {state === "ready" && (
+        <>
+          <button onClick={onClose}
+            className="absolute top-4 left-4 z-10 w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: "rgba(0,35,85,0.7)", backdropFilter: "blur(6px)" }}>
+            <X size={18} color="#FDFDFD" />
+          </button>
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-4 py-1.5 rounded-full"
+            style={{ background: "rgba(0,35,85,0.6)", backdropFilter: "blur(6px)" }}>
+            <p className="text-sm font-semibold whitespace-nowrap" style={{ color: "#FDFDFD" }}>{menuName}</p>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 z-10 px-5 pb-8 pt-12"
+            style={{ background: "linear-gradient(to top, rgba(0,35,85,0.9) 0%, transparent 100%)" }}>
+            <button onClick={startAR}
+              className="w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
+              style={{ background: "linear-gradient(135deg, #FD5002, #FC6A41)", color: "#FDFDFD", boxShadow: "0 4px 24px rgba(253,80,2,0.45)" }}>
+              <Scan size={18} strokeWidth={2} /> Lihat di Meja (AR)
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Unsupported */}
+      {state === "unsupported" && (
+        <>
+          <button onClick={onClose}
+            className="absolute top-4 left-4 z-10 w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: "rgba(0,35,85,0.7)", backdropFilter: "blur(6px)" }}>
+            <X size={18} color="#FDFDFD" />
+          </button>
+          <div className="absolute bottom-0 left-0 right-0 z-10 rounded-t-3xl px-5 pt-4 pb-8"
+            style={{ background: "#FDFDFD" }}>
+            <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#CFD9E4" }} />
+            <div className="flex items-start gap-3 mb-5">
+              <span className="text-2xl mt-0.5">📱</span>
+              <div className="flex-1">
+                <h3 className="font-bold text-base mb-1" style={{ color: "#022C60" }}>AR Belum Didukung</h3>
+                <p className="text-xs leading-relaxed" style={{ color: "#51698F" }}>
+                  Perangkat ini membutuhkan <strong>Google Play Services for AR</strong>.
+                </p>
+              </div>
+            </div>
+            <a href="https://play.google.com/store/apps/details?id=com.google.ar.core"
+              target="_blank" rel="noopener noreferrer"
+              className="w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 mb-3 text-white"
+              style={{ background: "linear-gradient(135deg, #FD5002, #FC6A41)" }}>
+              Install Google AR Services →
+            </a>
+            <button onClick={onClose}
+              className="w-full py-3 rounded-2xl text-sm font-semibold"
+              style={{ background: "#E0E7EE", color: "#022C60" }}>
+              Kembali ke Detail Menu
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Error */}
+      {state === "error" && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-6"
+          style={{ background: "rgba(0,35,85,0.97)" }}>
+          <p className="font-semibold" style={{ color: "#FDFDFD" }}>Gagal memuat model</p>
+          <p className="text-sm" style={{ color: "rgba(253,253,253,0.6)" }}>Cek koneksi internet kamu</p>
+          <button onClick={onClose}
+            className="px-8 py-3 rounded-2xl text-sm font-semibold text-white"
+            style={{ background: "#FD5002" }}>
+            Kembali
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PLY AR via Gaussian Splatting + WebXR ────────────────────────────────────
+
+function PlyAR({ url, menuName, onClose }: { url: string; menuName: string; onClose: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const uiOverlayRef = useRef<HTMLDivElement>(null);
+  const viewerRef = useRef<any>(null);
+  const [state, setState] = useState<PlyState>("loading");
+  const [progress, setProgress] = useState(0);
+  const [arStarting, setArStarting] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
     async function init() {
-      if (isGlb) {
-        try {
-          await import("@google/model-viewer");
-        } catch (err) {
-          console.error("Failed to load model-viewer", err);
-          if (mounted) setSessionState("error");
-        }
-        return;
-      }
-
       if (!containerRef.current) return;
 
       const arSupported =
@@ -119,9 +354,7 @@ export default function ARSession({ url, usdzUrl, menuName, onClose }: ARSession
               webXRMode: GS.WebXRMode.AR,
               webXRSessionInit: {
                 optionalFeatures: ["hit-test", "dom-overlay"],
-                domOverlay: {
-                  root: uiOverlayRef.current!,
-                },
+                domOverlay: { root: uiOverlayRef.current! },
               },
             }
           : {}),
@@ -134,9 +367,7 @@ export default function ARSession({ url, usdzUrl, menuName, onClose }: ARSession
         showLoadingUI: false,
         progressiveLoad: false,
         format: GS.SceneFormat.Ply,
-        onProgress: (pct: number) => {
-          if (mounted) setProgress(Math.min(100, Math.round(pct)));
-        },
+        onProgress: (pct: number) => { if (mounted) setProgress(Math.min(100, Math.round(pct))); },
       });
 
       if (!mounted) return;
@@ -149,74 +380,37 @@ export default function ARSession({ url, usdzUrl, menuName, onClose }: ARSession
       }
 
       if (arSupported && viewer.renderer?.xr) {
-        let savedScale: [number, number, number] | null = null;
-        let savedPosition: [number, number, number] | null = null;
-
         viewer.renderer.xr.addEventListener("sessionstart", async () => {
-          if (mounted) setSessionState("active");
-
+          if (mounted) setState("active");
           const mesh = viewer.splatMesh;
           if (!mesh) return;
           try {
             const THREE = await import("three");
-
-            savedScale = [mesh.scale.x, mesh.scale.y, mesh.scale.z];
-            savedPosition = [mesh.position.x, mesh.position.y, mesh.position.z];
-
             const bb = mesh.computeBoundingBox(true);
             if (bb) {
               const size = new THREE.Vector3();
               const center = new THREE.Vector3();
               bb.getSize(size);
               bb.getCenter(center);
-
               const maxDim = Math.max(size.x, size.y, size.z);
               if (maxDim > 0) {
-                const targetSize = 0.20;
-                const scaleFactor = targetSize / maxDim;
-
-                mesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
-
-                mesh.position.set(
-                  -center.x * scaleFactor,
-                  -center.y * scaleFactor - 0.3,
-                  -center.z * scaleFactor - 0.5
-                );
+                const scale = 0.20 / maxDim;
+                mesh.scale.set(scale, scale, scale);
+                mesh.position.set(-center.x * scale, -center.y * scale - 0.3, -center.z * scale - 0.5);
                 mesh.updateMatrixWorld(true);
-
-                console.log(
-                  `[ARSession] AR scale applied: maxDim=${maxDim.toFixed(3)}, ` +
-                  `factor=${scaleFactor.toFixed(6)}, target=${targetSize}m`
-                );
               }
             }
-          } catch (err) {
-            console.warn("[ARSession] Could not scale model for AR:", err);
-          }
+          } catch { /* noop */ }
         });
-
-        viewer.renderer.xr.addEventListener("sessionend", () => {
-          if (mounted) setSessionState("ready");
-
-          const mesh = viewer.splatMesh;
-          if (mesh && savedScale && savedPosition) {
-            mesh.scale.set(savedScale[0], savedScale[1], savedScale[2]);
-            mesh.position.set(savedPosition[0], savedPosition[1], savedPosition[2]);
-            mesh.updateMatrixWorld(true);
-            savedScale = null;
-            savedPosition = null;
-          }
-        });
+        viewer.renderer.xr.addEventListener("sessionend", () => { if (mounted) setState("ready"); });
       }
 
-      if (mounted) {
-        setSessionState(arSupported ? "ready" : "unsupported");
-      }
+      if (mounted) setState(arSupported ? "ready" : "unsupported");
     }
 
     init().catch((err) => {
-      console.error("[ARSession]", err);
-      if (mounted) setSessionState("error");
+      console.error("[PlyAR]", err);
+      if (mounted) setState("error");
     });
 
     return () => {
@@ -229,63 +423,22 @@ export default function ARSession({ url, usdzUrl, menuName, onClose }: ARSession
   }, [url]);
 
   const triggerAR = useCallback(async () => {
-    if (isGlb) {
-      const mv = modelViewerRef.current;
-      if (!mv) return;
-
-      if (!mv.canActivateAR) {
-        setSessionState("unsupported");
-        return;
-      }
-
-      try {
-        await mv.activateAR();
-      } catch (err) {
-        console.error("[ARSession] GLB activateAR error:", err);
-        setSessionState("unsupported");
-      }
-      return;
-    }
-
-    if (!navigator.xr) {
-      setSessionState("unsupported");
-      return;
-    }
-    if (!uiOverlayRef.current) {
-      console.error("[ARSession] uiOverlayRef is null");
-      setSessionState("error");
-      return;
-    }
-
-    if (sessionState === "active") {
-      if (viewerRef.current?.renderer?.xr) {
-        const session = viewerRef.current.renderer.xr.getSession();
-        if (session) {
-          try {
-            await session.end();
-          } catch (err) {
-            console.error("[ARSession] Failed to end session:", err);
-          }
-        }
-      }
+    if (!navigator.xr || !uiOverlayRef.current) { setState("unsupported"); return; }
+    if (state === "active") {
+      const session = viewerRef.current?.renderer?.xr?.getSession();
+      if (session) try { await session.end(); } catch { /* noop */ }
       return;
     }
 
     setArStarting(true);
-
-    const timeout = setTimeout(() => {
-      setArStarting(false);
-      setSessionState("overlay_blocked");
-    }, 6000);
+    const timeout = setTimeout(() => { setArStarting(false); setState("overlay_blocked"); }, 6000);
 
     try {
       const session = await navigator.xr.requestSession("immersive-ar", {
         optionalFeatures: ["hit-test", "dom-overlay"],
         domOverlay: { root: uiOverlayRef.current },
       });
-
       clearTimeout(timeout);
-
       if (viewerRef.current?.renderer?.xr) {
         viewerRef.current.renderer.xr.setReferenceSpaceType("local");
         await viewerRef.current.renderer.xr.setSession(session);
@@ -294,223 +447,108 @@ export default function ARSession({ url, usdzUrl, menuName, onClose }: ARSession
     } catch (err) {
       clearTimeout(timeout);
       setArStarting(false);
-      console.error("[ARSession] triggerAR error:", err);
-      if (err instanceof DOMException && err.name === "NotAllowedError") {
-        setSessionState("overlay_blocked");
-      } else if (err instanceof DOMException && err.name === "NotSupportedError") {
-        setSessionState("unsupported");
-      } else {
-        setSessionState("error");
-      }
+      if (err instanceof DOMException && err.name === "NotAllowedError") setState("overlay_blocked");
+      else if (err instanceof DOMException && err.name === "NotSupportedError") setState("unsupported");
+      else setState("error");
     }
-  }, [sessionState, isGlb, onClose]);
-
-  const retryAR = useCallback(() => {
-    setSessionState("ready");
-  }, []);
+  }, [state]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-black" style={{ touchAction: "none" }}>
-      <style>{`#ARButton { display: none !important; }`}</style>
-      {isGlb ? (
-        <ModelViewerElement
-          ref={modelViewerRef}
-          src={url}
-          ios-src={usdzUrl || undefined}
-          ar
-          ar-modes="webxr scene-viewer quick-look"
-          ar-scale="fixed"
-          camera-controls
-          touch-action="pan-y"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            outline: "none",
-            "--poster-color": "transparent",
-          } as any}
-        />
-      ) : (
-        <div ref={containerRef} className="absolute inset-0" />
-      )}
+      <div ref={containerRef} className="absolute inset-0" />
 
-      {/* Loading */}
-      {sessionState === "loading" && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4"
-          style={{ background: "rgba(0,35,85,0.96)" }}>
-          <button onClick={onClose}
-            className="absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: "rgba(253,253,253,0.15)" }}>
+      {state === "loading" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: "rgba(0,35,85,0.96)" }}>
+          <button onClick={onClose} className="absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(253,253,253,0.15)" }}>
             <X size={18} color="#FDFDFD" />
           </button>
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
-            style={{ background: "rgba(253,253,253,0.1)" }}>
-            <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
-          </div>
+          <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
           <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>Memuat model AR...</p>
           <div className="w-40 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(253,253,253,0.15)" }}>
-            <div className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${progress}%`, background: "linear-gradient(90deg, #022C60, #FD5002)" }} />
+            <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: "linear-gradient(90deg, #022C60, #FD5002)" }} />
           </div>
-          <p className="text-xs" style={{ color: "rgba(253,253,253,0.7)" }}>
-            {progress > 0 ? `${progress}%` : "Menyiapkan..."}
-          </p>
+          <p className="text-xs" style={{ color: "rgba(253,253,253,0.7)" }}>{progress > 0 ? `${progress}%` : "Menyiapkan..."}</p>
         </div>
       )}
 
-      {/* Ready */}
-      {sessionState === "ready" && (
+      {state === "ready" && (
         <>
-          <button onClick={onClose}
-            className="absolute top-4 left-4 z-[101] w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: "rgba(0,35,85,0.7)", backdropFilter: "blur(6px)" }}>
+          <button onClick={onClose} className="absolute top-4 left-4 z-[101] w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(0,35,85,0.7)", backdropFilter: "blur(6px)" }}>
             <X size={18} color="#FDFDFD" />
           </button>
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[101] px-4 py-2 rounded-full"
-            style={{ background: "rgba(0,35,85,0.6)", backdropFilter: "blur(6px)" }}>
-            <p className="text-sm font-semibold whitespace-nowrap" style={{ color: "#FDFDFD" }}>
-              {menuName}
-            </p>
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 z-[101] px-5 pb-8 pt-12"
-            style={{ background: "linear-gradient(to top, rgba(0,35,85,0.9) 0%, transparent 100%)" }}>
-            <p className="text-center text-xs mb-3" style={{ color: "rgba(253,253,253,0.65)" }}>
-              👆 Drag untuk memutar model
-            </p>
+          <div className="absolute bottom-0 left-0 right-0 z-[101] px-5 pb-8 pt-12" style={{ background: "linear-gradient(to top, rgba(0,35,85,0.9) 0%, transparent 100%)" }}>
             <button onClick={triggerAR} disabled={arStarting}
               className="w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
-              style={{ background: "linear-gradient(135deg, #FD5002, #FC6A41)", color: "#FDFDFD",
-                boxShadow: "0 4px 24px rgba(253,80,2,0.45)",
-                opacity: arStarting ? 0.7 : 1 }}>
-              {arStarting
-                ? <><Loader2 size={18} strokeWidth={2} className="animate-spin" />Memulai AR...</>
-                : <><Scan size={18} strokeWidth={2} />Mulai AR — Arahkan ke Permukaan Datar</>
-              }
+              style={{ background: "linear-gradient(135deg, #FD5002, #FC6A41)", color: "#FDFDFD", boxShadow: "0 4px 24px rgba(253,80,2,0.45)", opacity: arStarting ? 0.7 : 1 }}>
+              {arStarting ? <><Loader2 size={18} className="animate-spin" />Memulai AR...</> : <><Scan size={18} />Mulai AR — Arahkan ke Permukaan Datar</>}
             </button>
           </div>
         </>
       )}
 
-      {/* Overlay blocked */}
-      {sessionState === "overlay_blocked" && (
-        <div className="absolute inset-0 z-[101] flex flex-col items-end justify-end"
-          style={{ background: "rgba(0,0,0,0.5)" }}>
+      {state === "overlay_blocked" && (
+        <div className="absolute inset-0 z-[101] flex flex-col items-end justify-end" style={{ background: "rgba(0,0,0,0.5)" }}>
           <div className="w-full rounded-t-3xl px-5 pt-5 pb-8" style={{ background: "#FDFDFD" }}>
             <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#CFD9E4" }} />
             <div className="flex items-start gap-3 mb-5">
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-                style={{ background: "#FDD8C3" }}>
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "#FDD8C3" }}>
                 <AlertTriangle size={20} color="#FD5002" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-base mb-2" style={{ color: "#022C60" }}>
-                  Ada Aplikasi Mengambang
-                </h3>
-                <p className="text-sm leading-relaxed mb-3" style={{ color: "#254473" }}>
-                  Izin kamera diblokir oleh Android karena ada aplikasi yang tampil di atas layar.
-                </p>
-                <p className="text-xs leading-relaxed" style={{ color: "#51698F" }}>
-                  Tutup terlebih dahulu:
-                </p>
+                <h3 className="font-bold text-base mb-2" style={{ color: "#022C60" }}>Ada Aplikasi Mengambang</h3>
+                <p className="text-sm leading-relaxed mb-3" style={{ color: "#254473" }}>Izin kamera diblokir oleh Android karena ada aplikasi yang tampil di atas layar.</p>
                 <ul className="text-xs mt-1.5 space-y-1" style={{ color: "#51698F" }}>
                   <li>• Chat bubble WhatsApp / Telegram</li>
-                  <li>• Notifikasi mengambang TrueCaller</li>
                   <li>• Floating window aplikasi lain</li>
                 </ul>
               </div>
             </div>
-            <a
-              href="intent:#Intent;action=android.settings.action.MANAGE_OVERLAY_PERMISSION;end"
-              className="w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 mb-3"
-              style={{ background: "#FDD8C3", color: "#FD5002", border: "1px solid #CFD9E4" }}
-            >
-              Buka Pengaturan Android →
-            </a>
             <div className="flex gap-3">
-              <button onClick={onClose}
-                className="flex-1 py-3 rounded-2xl text-sm font-semibold"
-                style={{ background: "#E0E7EE", color: "#022C60" }}>
-                Kembali
-              </button>
-              <button onClick={retryAR}
-                className="flex-1 py-3 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 text-white"
-                style={{ background: "#FD5002" }}>
-                <RotateCcw size={14} />
-                Coba Lagi
+              <button onClick={onClose} className="flex-1 py-3 rounded-2xl text-sm font-semibold" style={{ background: "#E0E7EE", color: "#022C60" }}>Kembali</button>
+              <button onClick={() => setState("ready")} className="flex-1 py-3 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 text-white" style={{ background: "#FD5002" }}>
+                <RotateCcw size={14} />Coba Lagi
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Unsupported */}
-      {sessionState === "unsupported" && (
+      {state === "unsupported" && (
         <>
-          <button onClick={onClose}
-            className="absolute top-4 left-4 z-[101] w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: "rgba(0,35,85,0.7)", backdropFilter: "blur(6px)" }}>
+          <button onClick={onClose} className="absolute top-4 left-4 z-[101] w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(0,35,85,0.7)", backdropFilter: "blur(6px)" }}>
             <X size={18} color="#FDFDFD" />
           </button>
-          <div className="absolute bottom-0 left-0 right-0 z-[101] rounded-t-3xl px-5 pt-4 pb-8"
-            style={{ background: "#FDFDFD", boxShadow: "0 -4px 32px rgba(2,44,96,0.2)" }}>
+          <div className="absolute bottom-0 left-0 right-0 z-[101] rounded-t-3xl px-5 pt-4 pb-8" style={{ background: "#FDFDFD" }}>
             <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#CFD9E4" }} />
             <div className="flex items-start gap-3 mb-5">
-              <span className="text-2xl mt-0.5">📱</span>
-              <div className="flex-1">
-                <h3 className="font-bold text-base mb-1" style={{ color: "#022C60" }}>
-                  AR Belum Didukung
-                </h3>
-                <p className="text-xs leading-relaxed mb-2" style={{ color: "#51698F" }}>
-                  Perangkat ini membutuhkan <strong>Google Play Services for AR</strong> untuk menampilkan AR.
-                </p>
-                <p className="text-xs leading-relaxed" style={{ color: "#51698F" }}>
-                  Install dari Play Store, lalu coba lagi.
-                </p>
+              <span className="text-2xl">📱</span>
+              <div>
+                <h3 className="font-bold text-base mb-1" style={{ color: "#022C60" }}>AR Belum Didukung</h3>
+                <p className="text-xs leading-relaxed" style={{ color: "#51698F" }}>Perangkat ini membutuhkan Google Play Services for AR.</p>
               </div>
             </div>
-            <a
-              href="https://play.google.com/store/apps/details?id=com.google.ar.core"
-              target="_blank"
-              rel="noopener noreferrer"
+            <a href="https://play.google.com/store/apps/details?id=com.google.ar.core" target="_blank" rel="noopener noreferrer"
               className="w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 mb-3 text-white"
-              style={{ background: "linear-gradient(135deg, #FD5002, #FC6A41)",
-                boxShadow: "0 4px 24px rgba(253,80,2,0.45)" }}>
+              style={{ background: "linear-gradient(135deg, #FD5002, #FC6A41)" }}>
               Install Google AR Services →
             </a>
-            <button onClick={onClose}
-              className="w-full py-3 rounded-2xl text-sm font-semibold"
-              style={{ background: "#E0E7EE", color: "#022C60" }}>
-              Kembali ke Detail Menu
-            </button>
+            <button onClick={onClose} className="w-full py-3 rounded-2xl text-sm font-semibold" style={{ background: "#E0E7EE", color: "#022C60" }}>Kembali</button>
           </div>
         </>
       )}
 
-      {/* Error */}
-      {sessionState === "error" && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6"
-          style={{ background: "rgba(0,35,85,0.97)" }}>
+      {state === "error" && (
+        <div className="absolute inset-0 z-[101] flex flex-col items-center justify-center gap-4" style={{ background: "rgba(0,35,85,0.97)" }}>
           <p className="font-semibold" style={{ color: "#FDFDFD" }}>Gagal memuat model</p>
-          <p className="text-sm" style={{ color: "rgba(253,253,253,0.6)" }}>Cek koneksi internet kamu</p>
-          <button onClick={onClose}
-            className="px-8 py-3 rounded-2xl text-sm font-semibold text-white"
-            style={{ background: "#FD5002" }}>
-            Kembali
-          </button>
+          <button onClick={onClose} className="px-8 py-3 rounded-2xl text-sm font-semibold text-white" style={{ background: "#FD5002" }}>Kembali</button>
         </div>
       )}
 
-      {/* WebXR DOM Overlay Container */}
       <div ref={uiOverlayRef} className="absolute inset-0 pointer-events-none z-[101]">
-        {sessionState === "active" && (
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[101] pointer-events-auto">
-            <button onClick={triggerAR}
-              className="px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2 active:scale-95 transition-transform"
-              style={{ background: "rgba(0,35,85,0.8)", color: "#FDFDFD", backdropFilter: "blur(8px)" }}>
-              <X size={16} />
-              Keluar AR
+        {state === "active" && (
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-auto">
+            <button onClick={triggerAR} className="px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2" style={{ background: "rgba(0,35,85,0.8)", color: "#FDFDFD", backdropFilter: "blur(8px)" }}>
+              <X size={16} />Keluar AR
             </button>
           </div>
         )}
