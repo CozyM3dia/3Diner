@@ -178,10 +178,10 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       overlay?.addEventListener("touchmove", onTouchMove, { passive: true });
       overlay?.addEventListener("touchend", onTouchEnd);
 
-      let fallbackPlaced = false;
+      let placed = false;
 
       renderer.setAnimationLoop((_: number, frame: any) => {
-        if (frame) {
+        if (!placed && frame) {
           if (hitTestSource) {
             const hits = frame.getHitTestResults(hitTestSource);
             if (hits.length > 0) {
@@ -190,24 +190,26 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
               if (pose) {
                 hitMatrix.fromArray(pose.transform.matrix);
                 hitMatrix.decompose(hitPos, hitQuat, hitScale);
-                // Y > -1.2 in "local" space = above floor, i.e. elevated surface (table)
+                // Y > -1.2 in "local" space = elevated surface (table), not floor
                 if (hitPos.y > -1.2) {
                   group.position.copy(hitPos);
                   group.visible = true;
+                  placed = true;          // lock position forever
+                  hitTestSource.cancel(); // stop hit-test → eliminates GC lag
+                  hitTestSource = null;
                 }
               }
             }
-          } else if (!fallbackPlaced) {
-            // No hit-test: place once at camera forward on a flat horizontal plane
+          } else {
+            // No hit-test: place once using camera forward ray
             const xrCam = renderer.xr.getCamera();
             const p = new THREE.Vector3();
             const d = new THREE.Vector3();
             xrCam.getWorldPosition(p);
             xrCam.getWorldDirection(d);
-            // Project forward 0.6m, keep Y = estimated table height (cam Y - 0.8m)
             group.position.set(p.x + d.x * 0.6, p.y - 0.8, p.z + d.z * 0.6);
             group.visible = true;
-            fallbackPlaced = true;
+            placed = true;
           }
         }
         renderer.render(scene, camera);
