@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Trash2, Save, AlertCircle } from "lucide-react";
 import type { Menu } from "@/types";
 import type { ActionResult } from "@/lib/dashboard-actions";
+import FileUpload from "./FileUpload";
 
 interface MenuFormProps {
   menu?: Menu;
@@ -131,17 +132,31 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
       {/* Media */}
       <div className="rounded-2xl p-5 space-y-4" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
         <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>Media & 3D</p>
-        <Field label="URL Gambar">
-          <input name="image_url" defaultValue={menu?.image_url ?? ""} className={inputCls} style={inputStyle} placeholder="https://…/foto.jpg" />
-        </Field>
-        <div className="grid grid-cols-1 gap-4">
-          <Field label="URL Model 3D (.glb)">
-            <input name="model_3d_url" defaultValue={menu?.model_3d_url ?? ""} className={inputCls} style={inputStyle} placeholder="https://…/model.glb" />
-          </Field>
-          <Field label="URL Model iOS (.usdz)">
-            <input name="usdz_url" defaultValue={menu?.usdz_url ?? ""} className={inputCls} style={inputStyle} placeholder="https://…/model.usdz" />
-          </Field>
-        </div>
+        <FileUpload
+          name="image_url"
+          kind="image"
+          label="Foto Menu"
+          variant="image"
+          accept="image/png,image/jpeg,image/webp,image/avif"
+          hint="JPG, PNG, atau WebP · maks 30MB"
+          defaultUrl={menu?.image_url}
+        />
+        <FileUpload
+          name="model_3d_url"
+          kind="glb"
+          label="Model 3D (.glb)"
+          accept=".glb,model/gltf-binary,application/octet-stream"
+          hint="File .glb untuk tampilan 3D & AR Android · maks 30MB"
+          defaultUrl={menu?.model_3d_url}
+        />
+        <FileUpload
+          name="usdz_url"
+          kind="usdz"
+          label="Model iOS (.usdz)"
+          accept=".usdz,model/vnd.usdz+zip"
+          hint="File .usdz untuk AR di iPhone · maks 30MB"
+          defaultUrl={menu?.usdz_url}
+        />
         <Field label="Link Pesan (opsional)">
           <input name="redirect_link" defaultValue={menu?.redirect_link ?? ""} className={inputCls} style={inputStyle} placeholder="https://…" />
         </Field>

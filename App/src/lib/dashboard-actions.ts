@@ -162,6 +162,32 @@ export async function saveAnnouncement(fd: FormData): Promise<ActionResult> {
   return {};
 }
 
+// ── Media upload ───────────────────────────────────────────────────────────
+
+const BUCKET = "menu-media";
+
+export async function uploadMenuMedia(fd: FormData): Promise<{ url?: string; error?: string }> {
+  const cafeId = await getAuthCafeId();
+  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
+
+  const file = fd.get("file");
+  const kind = (str(fd, "kind") ?? "file").replace(/[^a-z0-9_-]/gi, "");
+  if (!(file instanceof File) || file.size === 0) return { error: "File tidak ditemukan." };
+  if (file.size > 30 * 1024 * 1024) return { error: "Ukuran maksimal 30MB." };
+
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-60);
+  const path = `${cafeId}/${kind}/${Date.now()}-${safe}`;
+  const buf = Buffer.from(await file.arrayBuffer());
+
+  const { error } = await supabaseAdmin.storage
+    .from(BUCKET)
+    .upload(path, buf, { contentType: file.type || "application/octet-stream", upsert: false });
+  if (error) return { error: error.message };
+
+  const { data } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path);
+  return { url: data.publicUrl };
+}
+
 // ── Orders ───────────────────────────────────────────────────────────────
 
 export async function updateOrderStatus(
