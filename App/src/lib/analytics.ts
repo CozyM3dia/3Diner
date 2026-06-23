@@ -217,6 +217,7 @@ export interface RevenueData {
   revenueDelta: number; // this-week vs last-week %
   dailyRevenue: { label: string; value: number }[]; // last 14 days
   statusCounts: { received: number; preparing: number; ready: number };
+  paymentCounts: { cash: number; qris: number; unpaid: number };
   topByRevenue: { name: string; qty: number; revenue: number }[];
   recentOrders: { id: string; table: string; total: number; status: string; at: string }[];
 }
@@ -231,7 +232,7 @@ export async function getRevenueData(slug: string): Promise<RevenueData | null> 
 
   const { data: orders } = await supabaseAdmin
     .from("Orders")
-    .select("id_order, table_number, items, total, status, created_at")
+    .select("id_order, table_number, items, total, status, created_at, payment_method, payment_status")
     .eq("cafe_id", cafe.id_cafe)
     .gte("created_at", sinceDays(DAYS));
 
@@ -240,6 +241,7 @@ export async function getRevenueData(slug: string): Promise<RevenueData | null> 
   let totalRevenue = 0;
   let itemsSold = 0;
   const statusCounts = { received: 0, preparing: 0, ready: 0 };
+  const paymentCounts = { cash: 0, qris: 0, unpaid: 0 };
   const dayBuckets = new Map<string, number>();
   const perItem = new Map<string, { qty: number; revenue: number }>();
 
@@ -261,6 +263,17 @@ export async function getRevenueData(slug: string): Promise<RevenueData | null> 
 
     const st = o.status as keyof typeof statusCounts;
     if (st in statusCounts) statusCounts[st]++;
+
+    // Aggregasi metode & status pembayaran
+    const pm = o.payment_method as string | null;
+    const ps = o.payment_status as string;
+    if (ps !== "paid") {
+      paymentCounts.unpaid++;
+    } else if (pm === "qris") {
+      paymentCounts.qris++;
+    } else {
+      paymentCounts.cash++;
+    }
 
     const dayKey = (o.created_at as string).slice(0, 10);
     if (dayBuckets.has(dayKey)) dayBuckets.set(dayKey, (dayBuckets.get(dayKey) ?? 0) + total);
@@ -308,5 +321,5 @@ export async function getRevenueData(slug: string): Promise<RevenueData | null> 
       at: o.created_at as string,
     }));
 
-  return { totalRevenue, orderCount, avgOrder, itemsSold, revenueDelta, dailyRevenue, statusCounts, topByRevenue, recentOrders };
+  return { totalRevenue, orderCount, avgOrder, itemsSold, revenueDelta, dailyRevenue, statusCounts, paymentCounts, topByRevenue, recentOrders };
 }

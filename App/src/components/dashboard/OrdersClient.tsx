@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ShoppingBag, Clock, ChefHat, CheckCircle2, Loader2 } from "lucide-react";
+import { ShoppingBag, Clock, ChefHat, CheckCircle2, Loader2, Copy, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { updateOrderStatus } from "@/lib/dashboard-actions";
 import { formatRupiah } from "@/lib/format";
@@ -48,6 +48,13 @@ export default function OrdersClient({ initial, cafeId }: { initial: OrderRow[];
   const [filter, setFilter] = useState<Filter>("all");
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  function handleCopy(id: string) {
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
+  }
 
   useEffect(() => {
     if (!cafeId) return;
@@ -138,7 +145,21 @@ export default function OrdersClient({ initial, cafeId }: { initial: OrderRow[];
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold" style={{ color: "#E9EEF6" }}>Meja {o.table_number}</span>
-                      <span className="text-xs" style={{ color: "#5A7898" }}>· {o.id_order}</span>
+                      <span className="text-xs flex items-center gap-1 group/id" style={{ color: "#5A7898" }}>
+                        · {o.id_order}
+                        <button
+                          onClick={() => handleCopy(o.id_order)}
+                          className="dash-press p-0.5 rounded transition-colors duration-150 hover:bg-white/10 hover:text-white"
+                          title="Salin ID Pesanan"
+                          aria-label="Salin ID Pesanan"
+                        >
+                          {copiedId === o.id_order ? (
+                            <Check size={11} className="text-emerald-400" />
+                          ) : (
+                            <Copy size={11} className="opacity-60 group-hover/id:opacity-100 transition-opacity" />
+                          )}
+                        </button>
+                      </span>
                     </div>
                     <p className="text-[11px] mt-0.5" style={{ color: "#5A7898" }}>{relTime(o.created_at)}</p>
                   </div>

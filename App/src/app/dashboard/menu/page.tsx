@@ -59,7 +59,11 @@ export default async function MenuListPage() {
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
                 {["", "Nama", "Kategori", "Harga", "3D", "Status", ""].map((h, i) => (
-                  <th key={i} className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>
+                  <th
+                    key={i}
+                    className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider ${h === "Harga" ? "text-right" : "text-left"}`}
+                    style={{ color: "#5A7898" }}
+                  >
                     {h}
                   </th>
                 ))}
@@ -67,7 +71,14 @@ export default async function MenuListPage() {
             </thead>
             <tbody>
               {list.map((menu, i) => (
-                <tr key={menu.id_menu} className="dash-row" style={{ borderBottom: i < list.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                <tr
+                  key={menu.id_menu}
+                  className="dash-row group transition-opacity duration-150"
+                  style={{
+                    borderBottom: i < list.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                    opacity: menu.is_active !== false ? 1 : 0.55,
+                  }}
+                >
                   <td className="px-4 py-3">
                     <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center" style={{ background: "#132136" }}>
                       {menu.image_url ? (
@@ -78,14 +89,16 @@ export default async function MenuListPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-sm font-medium" style={{ color: "#E9EEF6" }}>{menu.nama_menu}</p>
+                    <p className="text-sm font-medium truncate max-w-[200px]" style={{ color: "#E9EEF6" }} title={menu.nama_menu}>
+                      {menu.nama_menu}
+                    </p>
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: "#132136", color: "#5A7898" }}>
                       {menu.category ?? "—"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm font-semibold tabular-nums" style={{ color: "#E9EEF6" }}>
+                  <td className="px-4 py-3 text-sm font-semibold tabular-nums text-right" style={{ color: "#E9EEF6" }}>
                     {formatRupiah(menu.harga_menu)}
                   </td>
                   <td className="px-4 py-3">
@@ -104,13 +117,15 @@ export default async function MenuListPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/dashboard/menu/${menu.id_menu}/edit`}
-                      className="dash-press dash-icon-btn inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg"
-                      style={{ background: "#132136", color: "#E9EEF6" }}
-                    >
-                      <Pencil size={12} /> Edit
-                    </Link>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      <Link
+                        href={`/dashboard/menu/${menu.id_menu}/edit`}
+                        className="dash-press dash-icon-btn inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg"
+                        style={{ background: "#132136", color: "#E9EEF6" }}
+                      >
+                        <Pencil size={12} /> Edit
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -51,7 +51,7 @@ export default async function RevenuePage() {
     );
   }
 
-  const { totalRevenue, orderCount, avgOrder, itemsSold, revenueDelta, dailyRevenue, statusCounts, topByRevenue, recentOrders } = data;
+  const { totalRevenue, orderCount, avgOrder, itemsSold, revenueDelta, dailyRevenue, statusCounts, paymentCounts, topByRevenue, recentOrders } = data;
   const maxItemRev = Math.max(1, ...topByRevenue.map((d) => d.revenue));
 
   return (
@@ -75,17 +75,32 @@ export default async function RevenuePage() {
           <SectionLabel>Pendapatan Harian</SectionLabel>
           <RevenueChart data={dailyRevenue} />
         </section>
-        <section className="rounded-2xl p-5 flex flex-col" style={PANEL}>
-          <SectionLabel>Status Pesanan</SectionLabel>
-          <div className="flex-1 flex items-center">
-            <DonutChart
-              centerLabel="Pesanan"
-              segments={[
-                { label: "Baru", value: statusCounts.received, color: "#FD5002" },
-                { label: "Diproses", value: statusCounts.preparing, color: "#F59E0B" },
-                { label: "Siap", value: statusCounts.ready, color: "#22D3A6" },
-              ]}
-            />
+        <section className="rounded-2xl p-5 flex flex-col gap-6" style={PANEL}>
+          <div>
+            <SectionLabel>Status Pesanan</SectionLabel>
+            <div className="flex items-center justify-center">
+              <DonutChart
+                centerLabel="Pesanan"
+                segments={[
+                  { label: "Baru", value: statusCounts.received, color: "#FD5002" },
+                  { label: "Diproses", value: statusCounts.preparing, color: "#F59E0B" },
+                  { label: "Siap", value: statusCounts.ready, color: "#22D3A6" },
+                ]}
+              />
+            </div>
+          </div>
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: "20px" }}>
+            <SectionLabel>Metode Pembayaran</SectionLabel>
+            <div className="flex items-center justify-center">
+              <DonutChart
+                centerLabel="Transaksi"
+                segments={[
+                  { label: "Tunai (Cash)", value: paymentCounts.cash, color: "#22D3A6" },
+                  { label: "QRIS", value: paymentCounts.qris, color: "#00C2A8" },
+                  { label: "Belum Bayar", value: paymentCounts.unpaid, color: "#5A7898" },
+                ]}
+              />
+            </div>
           </div>
         </section>
       </div>

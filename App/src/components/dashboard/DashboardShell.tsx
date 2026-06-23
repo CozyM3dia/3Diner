@@ -26,14 +26,14 @@ interface DashboardShellProps {
   children: React.ReactNode;
 }
 
-const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
-  { href: "/dashboard", label: "Analitik", icon: BarChart3, exact: true },
-  { href: "/dashboard/revenue", label: "Penjualan", icon: Wallet },
-  { href: "/dashboard/orders", label: "Pesanan", icon: ShoppingBag },
-  { href: "/dashboard/menu", label: "Menu", icon: UtensilsCrossed },
-  { href: "/dashboard/announcements", label: "Pengumuman", icon: Megaphone },
-  { href: "/dashboard/scheduler", label: "Jadwal & Diskon", icon: CalendarClock },
-  { href: "/dashboard/settings", label: "Pengaturan", icon: Settings },
+const NAV: { href: string; label: string; desc: string; icon: LucideIcon; exact?: boolean }[] = [
+  { href: "/dashboard", label: "Analitik", desc: "Ringkasan & performa kafe", icon: BarChart3, exact: true },
+  { href: "/dashboard/revenue", label: "Penjualan", desc: "Laporan transaksi & omzet", icon: Wallet },
+  { href: "/dashboard/orders", label: "Pesanan", desc: "Kelola pesanan masuk", icon: ShoppingBag },
+  { href: "/dashboard/menu", label: "Menu", desc: "Atur hidangan & model 3D", icon: UtensilsCrossed },
+  { href: "/dashboard/announcements", label: "Pengumuman", desc: "Banner info pelanggan", icon: Megaphone },
+  { href: "/dashboard/scheduler", label: "Jadwal & Diskon", desc: "Jam tayang & promo otomatis", icon: CalendarClock },
+  { href: "/dashboard/settings", label: "Pengaturan", desc: "Profil & branding kafe", icon: Settings },
 ];
 
 const JAKARTA = "var(--font-jakarta), system-ui, sans-serif";
@@ -61,11 +61,13 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full z-50 flex flex-col lg:relative lg:translate-x-0 lg:shrink-0 ${
+        className={`fixed top-0 left-0 z-50 flex flex-col lg:sticky lg:translate-x-0 lg:shrink-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
         style={{
           width: "240px",
+          height: "100dvh",
+          top: 0,
           background: "#0D1829",
           borderRight: "1px solid rgba(255,255,255,0.07)",
           transition: "transform 200ms cubic-bezier(0.22,1,0.36,1)",
@@ -108,23 +110,33 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-0.5">
-          {NAV.map(({ href, label, icon: Icon, exact }) => {
+          {NAV.map(({ href, label, desc, icon: Icon, exact }) => {
             const active = isActive(href, exact);
             return (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setOpen(false)}
-                className={`dash-nav flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium ${active ? "is-active" : ""}`}
+                className={`dash-nav group flex items-start gap-3 px-3 py-2.5 rounded-xl ${active ? "is-active" : ""}`}
                 style={{
                   background: active ? "rgba(253,80,2,0.12)" : "transparent",
                   color: active ? "#FD5002" : "#5A7898",
                   boxShadow: active ? "inset 2px 0 0 #FD5002" : "none",
-                  fontWeight: active ? 700 : 500,
                 }}
               >
-                <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
-                {label}
+                <Icon size={16} strokeWidth={active ? 2.2 : 1.8} className="mt-0.5 shrink-0" />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm leading-tight" style={{ fontWeight: active ? 700 : 500 }}>
+                    {label}
+                  </span>
+                  <span
+                    className={`text-[11px] mt-1 font-normal leading-normal transition-colors duration-150 ${
+                      active ? "text-[#FD5002]/70" : "text-[#5A7898] group-hover:text-[#9FB6D1]"
+                    }`}
+                  >
+                    {desc}
+                  </span>
+                </div>
               </Link>
             );
           })}
