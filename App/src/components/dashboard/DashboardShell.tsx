@@ -15,6 +15,9 @@ import {
   Menu as MenuIcon,
   X,
   ExternalLink,
+  Bell,
+  HelpCircle,
+  type LucideIcon,
 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 
@@ -23,7 +26,7 @@ interface DashboardShellProps {
   children: React.ReactNode;
 }
 
-const NAV = [
+const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
   { href: "/dashboard", label: "Analitik", icon: BarChart3, exact: true },
   { href: "/dashboard/revenue", label: "Penjualan", icon: Wallet },
   { href: "/dashboard/orders", label: "Pesanan", icon: ShoppingBag },
@@ -33,6 +36,8 @@ const NAV = [
   { href: "/dashboard/settings", label: "Pengaturan", icon: Settings },
 ];
 
+const JAKARTA = "var(--font-jakarta), system-ui, sans-serif";
+
 export default function DashboardShell({ cafe, children }: DashboardShellProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -40,8 +45,11 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 
+  const current = NAV.find((n) => isActive(n.href, n.exact)) ?? NAV[0];
+  const CurrentIcon = current.icon;
+
   return (
-    <div className="min-h-dvh flex" style={{ background: "#060E1B" }}>
+    <div className="dash-root min-h-dvh flex" style={{ background: "#060E1B", fontFamily: JAKARTA }}>
       {open && (
         <button
           aria-label="Tutup menu"
@@ -80,10 +88,10 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
               )}
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-semibold truncate" style={{ color: "#E9EEF6" }}>
+              <p className="text-sm font-bold truncate" style={{ color: "#E9EEF6" }}>
                 {cafe?.nama_cafe ?? "3Diner"}
               </p>
-              <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5A7898" }}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: "#5A7898" }}>
                 Dashboard
               </p>
             </div>
@@ -111,6 +119,8 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
                 style={{
                   background: active ? "rgba(253,80,2,0.12)" : "transparent",
                   color: active ? "#FD5002" : "#5A7898",
+                  boxShadow: active ? "inset 2px 0 0 #FD5002" : "none",
+                  fontWeight: active ? 700 : 500,
                 }}
               >
                 <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
@@ -130,10 +140,10 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
               href={`/${cafe.slug_url}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="dash-nav flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
-              style={{ color: "#5A7898" }}
+              className="dash-btn flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-white"
+              style={{ background: "#FD5002" }}
             >
-              <ExternalLink size={15} strokeWidth={1.8} />
+              <ExternalLink size={15} strokeWidth={2} />
               Lihat Menu
             </a>
           )}
@@ -145,16 +155,42 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
 
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Top app bar */}
         <header
-          className="lg:hidden flex items-center gap-3 px-4 shrink-0"
-          style={{ height: "56px", borderBottom: "1px solid rgba(255,255,255,0.07)", background: "#0D1829" }}
+          className="flex items-center justify-between gap-3 px-4 lg:px-6 shrink-0 sticky top-0 z-30"
+          style={{ height: "60px", borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(6,14,27,0.85)", backdropFilter: "blur(8px)" }}
         >
-          <button onClick={() => setOpen(true)} className="dash-icon-btn p-1.5 rounded-lg" style={{ color: "#5A7898" }} aria-label="Buka menu">
-            <MenuIcon size={18} />
-          </button>
-          <p className="text-sm font-semibold" style={{ color: "#E9EEF6" }}>
-            {cafe?.nama_cafe ?? "Dashboard"}
-          </p>
+          <div className="flex items-center gap-3 min-w-0">
+            <button onClick={() => setOpen(true)} className="dash-icon-btn lg:hidden p-1.5 rounded-lg" style={{ color: "#5A7898" }} aria-label="Buka menu">
+              <MenuIcon size={18} />
+            </button>
+            <span className="hidden lg:inline-flex w-7 h-7 rounded-lg items-center justify-center" style={{ background: "rgba(253,80,2,0.12)", color: "#FD5002" }}>
+              <CurrentIcon size={15} strokeWidth={2.2} />
+            </span>
+            <h1 className="text-base font-bold truncate" style={{ color: "#E9EEF6" }}>
+              {current.label}
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button className="dash-icon-btn p-2 rounded-full" style={{ color: "#5A7898" }} aria-label="Notifikasi">
+              <Bell size={17} strokeWidth={1.9} />
+            </button>
+            <button className="dash-icon-btn p-2 rounded-full" style={{ color: "#5A7898" }} aria-label="Bantuan">
+              <HelpCircle size={17} strokeWidth={1.9} />
+            </button>
+            <span
+              className="ml-1 w-8 h-8 rounded-full overflow-hidden inline-flex items-center justify-center text-xs font-bold"
+              style={{ background: "rgba(253,80,2,0.14)", color: "#FD5002", border: "1px solid rgba(255,255,255,0.08)" }}
+              title={cafe?.nama_cafe ?? "3Diner"}
+            >
+              {cafe?.logo_url ? (
+                <Image src={cafe.logo_url} alt="" width={32} height={32} className="object-cover w-full h-full" />
+              ) : (
+                (cafe?.nama_cafe ?? "3D").slice(0, 2).toUpperCase()
+              )}
+            </span>
+          </div>
         </header>
 
         <main className="flex-1 overflow-auto">{children}</main>

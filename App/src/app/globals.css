@@ -208,6 +208,11 @@ model-viewer::part(default-ar-button) { display: none !important; }
 .stagger-5 { animation-delay: 0.24s; opacity: 0; }
 .stagger-6 { animation-delay: 0.29s; opacity: 0; }
 
+/* ── Dashboard uses Plus Jakarta Sans (overrides Poppins .font-display inside) ── */
+.dash-root, .dash-root .font-display {
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+}
+
 /* ── Dashboard (dark) interaction layer ── */
 .dash-card {
   transition: border-color 0.18s var(--ease-out), transform 0.18s var(--ease-out);
