@@ -13,6 +13,7 @@ interface FileUploadProps {
   hint?: string;
   variant?: "image" | "file";
   defaultUrl?: string | null;
+  onChange?: (url: string) => void;
 }
 
 function fileName(url: string): string {
@@ -25,7 +26,7 @@ function fileName(url: string): string {
   }
 }
 
-export default function FileUpload({ name, kind, label, accept, hint, variant = "file", defaultUrl }: FileUploadProps) {
+export default function FileUpload({ name, kind, label, accept, hint, variant = "file", defaultUrl, onChange }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState<string>(defaultUrl ?? "");
   const [busy, setBusy] = useState(false);
@@ -47,6 +48,7 @@ export default function FileUpload({ name, kind, label, accept, hint, variant = 
       return;
     }
     setUrl(res.url);
+    onChange?.(res.url);
     setJustDone(true);
     setTimeout(() => setJustDone(false), 2000);
   }
@@ -104,7 +106,7 @@ export default function FileUpload({ name, kind, label, accept, hint, variant = 
             <button type="button" onClick={() => inputRef.current?.click()} className="dash-press dash-icon-btn text-xs font-medium px-3 py-1.5 rounded-lg" style={{ background: "#0D1829", color: "#9FB6D1" }}>
               Ganti
             </button>
-            <button type="button" onClick={() => setUrl("")} aria-label="Hapus" className="dash-icon-btn p-1.5 rounded-lg" style={{ color: "#5A7898" }}>
+            <button type="button" onClick={() => { setUrl(""); onChange?.(""); }} aria-label="Hapus" className="dash-icon-btn p-1.5 rounded-lg" style={{ color: "#5A7898" }}>
               <X size={15} />
             </button>
           </div>
