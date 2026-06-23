@@ -3,7 +3,10 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { UploadCloud, Loader2, X, ImageIcon, Box, CheckCircle2, AlertCircle } from "lucide-react";
-import { uploadMenuMedia } from "@/lib/dashboard-actions";
+import { createMediaUploadUrl } from "@/lib/dashboard-actions";
+import { createClient } from "@/lib/supabase/client";
+
+const BUCKET = "menu-media";
 
 interface FileUploadProps {
   name: string;            // hidden input name (form field)
@@ -38,17 +41,28 @@ export default function FileUpload({ name, kind, label, accept, hint, variant = 
     setError("");
     setBusy(true);
     setJustDone(false);
-    const fd = new FormData();
-    fd.set("file", file);
-    fd.set("kind", kind);
-    const res = await uploadMenuMedia(fd);
-    setBusy(false);
-    if (res.error || !res.url) {
-      setError(res.error ?? "Gagal mengunggah.");
+
+    // 1) Ask server for a signed upload token (instant, no file transfer).
+    const sig = await createMediaUploadUrl(kind, file.name);
+    if (sig.error || !sig.path || !sig.token || !sig.publicUrl) {
+      setBusy(false);
+      setError(sig.error ?? "Gagal menyiapkan unggahan.");
       return;
     }
-    setUrl(res.url);
-    onChange?.(res.url);
+
+    // 2) Upload the file DIRECTLY browser → Supabase Storage (no Vercel hop).
+    const supabase = createClient();
+    const { error: upErr } = await supabase.storage
+      .from(BUCKET)
+      .uploadToSignedUrl(sig.path, sig.token, file, { contentType: file.type || "application/octet-stream" });
+
+    setBusy(false);
+    if (upErr) {
+      setError(upErr.message || "Gagal mengunggah.");
+      return;
+    }
+    setUrl(sig.publicUrl);
+    onChange?.(sig.publicUrl);
     setJustDone(true);
     setTimeout(() => setJustDone(false), 2000);
   }

@@ -166,6 +166,24 @@ export async function saveAnnouncement(fd: FormData): Promise<ActionResult> {
 
 const BUCKET = "menu-media";
 
+/** Issue a short-lived signed upload URL so the browser uploads the file
+ *  DIRECTLY to Supabase Storage (no Vercel serverless hop) — much faster. */
+export async function createMediaUploadUrl(
+  kind: string,
+  filename: string
+): Promise<{ path?: string; token?: string; publicUrl?: string; error?: string }> {
+  const cafeId = await getAuthCafeId();
+  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
+  const k = (kind || "file").replace(/[^a-z0-9_-]/gi, "");
+  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-60);
+  const path = `${cafeId}/${k}/${Date.now()}-${safe}`;
+  const { data, error } = await supabaseAdmin.storage.from(BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return { error: error?.message ?? "Gagal membuat URL unggah." };
+  const { data: pub } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path);
+  return { path: data.path, token: data.token, publicUrl: pub.publicUrl };
+}
+
+/** Legacy server-side upload (kept as fallback). Slower: routes file through the server. */
 export async function uploadMenuMedia(fd: FormData): Promise<{ url?: string; error?: string }> {
   const cafeId = await getAuthCafeId();
   if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
