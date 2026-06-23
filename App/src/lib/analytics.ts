@@ -12,8 +12,17 @@ export interface DashboardData {
   totalEvents: number;
   daily: { label: string; count: number }[]; // last 14 days
   hourly: number[]; // 24 buckets, event count per hour of day
+  weekday: number[]; // 7 buckets, Mon..Sun
   topDishes: { name: string; clicks: number; views: number; orders: number }[];
   recent: { name: string; type: EventType; at: string }[];
+  insights: {
+    peakHour: number | null;       // 0-23, busiest hour
+    busiestWeekday: number | null; // 0=Mon..6=Sun
+    avgPerDay: number;
+    bestDish: string | null;       // most viewed dish
+    bestConvDish: { name: string; rate: number } | null; // highest order/click
+    quietHint: string | null;      // suggestion text
+  };
 }
 
 const DAYS = 14;
@@ -56,6 +65,7 @@ export async function getDashboardData(slug: string): Promise<DashboardData | nu
   const perDish = new Map<string, { clicks: number; views: number; orders: number }>();
   const dayBuckets = new Map<string, number>();
   const hourly = new Array<number>(24).fill(0);
+  const weekday = new Array<number>(7).fill(0); // 0=Mon..6=Sun
 
   // Build 14-day skeleton (oldest → newest)
   const today = new Date();
@@ -85,6 +95,9 @@ export async function getDashboardData(slug: string): Promise<DashboardData | nu
 
     const h = ts.getHours();
     if (h >= 0 && h < 24) hourly[h]++;
+
+    const wd = ts.getDay() === 0 ? 6 : ts.getDay() - 1; // Mon=0..Sun=6
+    weekday[wd]++;
 
     const age = now - ts.getTime();
     if (type in totals) {
@@ -127,15 +140,42 @@ export async function getDashboardData(slug: string): Promise<DashboardData | nu
   const view3dRate =
     totals.click_menu > 0 ? (totals.view_3d / totals.click_menu) * 100 : 0;
 
+  // ── Derived insights (plain-language, real data) ──
+  const totalEvents = (logs ?? []).length;
+  const hourMax = Math.max(...hourly);
+  const peakHour = hourMax > 0 ? hourly.indexOf(hourMax) : null;
+  const wdMax = Math.max(...weekday);
+  const busiestWeekday = wdMax > 0 ? weekday.indexOf(wdMax) : null;
+  const avgPerDay = Math.round(totalEvents / DAYS);
+
+  const dishArr = [...perDish.entries()].map(([id, v]) => ({ name: menuName.get(id) ?? "—", ...v }));
+  const bestDish = dishArr.length ? [...dishArr].sort((a, b) => b.views - a.views)[0].name : null;
+  const convCandidates = dishArr
+    .filter((d) => d.clicks >= 3)
+    .map((d) => ({ name: d.name, rate: Math.round((d.orders / d.clicks) * 100) }))
+    .sort((a, b) => b.rate - a.rate);
+  const bestConvDish = convCandidates.length ? convCandidates[0] : null;
+
+  let quietHint: string | null = null;
+  if (conversion < 10 && totals.click_menu > 20) {
+    quietHint = "Konversi ke pesan rendah. Coba tambah foto/model 3D di menu populer.";
+  } else if (view3dRate > 60) {
+    quietHint = "Tamu sangat tertarik model 3D. Pastikan menu unggulan punya model 3D.";
+  } else if (peakHour !== null) {
+    quietHint = `Trafik memuncak jam ${String(peakHour).padStart(2, "0")}.00. Jadwalkan promo di sekitar jam itu.`;
+  }
+
   return {
     cafe: { nama_cafe: cafe.nama_cafe as string, slug_url: cafe.slug_url as string },
     totals,
     deltas,
     conversion,
     view3dRate,
-    totalEvents: (logs ?? []).length,
+    totalEvents,
     daily,
     hourly,
+    weekday,
+    insights: { peakHour, busiestWeekday, avgPerDay, bestDish, bestConvDish, quietHint },
     topDishes,
     recent,
   };
