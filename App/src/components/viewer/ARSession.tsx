@@ -111,8 +111,8 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       scene.add(group);
 
       const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, powerPreference: "low-power" });
+      renderer.setPixelRatio(1); // force 1:1 — reduces GPU load ~55% vs 1.5x, slows thermal throttle
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.LinearToneMapping;
