@@ -118,10 +118,10 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       renderer.toneMapping = THREE.LinearToneMapping;
       renderer.toneMappingExposure = 1.2;
       renderer.xr.enabled = true;
-      // "local" ref space: Y=0 = camera start height (~eye level, ~1.5m above floor).
-      // floor ≈ Y -1.5m, table ≈ Y -0.7m in this space.
-      // Filtering hit Y > -1.2 keeps table hits, rejects floor hits.
       renderer.xr.setReferenceSpaceType("local");
+      // Render XR framebuffer at 60% of native resolution — cuts GPU work ~64%,
+      // delays thermal throttle significantly. Imperceptible at phone viewing distance.
+      renderer.xr.setFramebufferScaleFactor(0.6);
       Object.assign(renderer.domElement.style, {
         position: "absolute", top: "0", left: "0", width: "100%", height: "100%",
       });
