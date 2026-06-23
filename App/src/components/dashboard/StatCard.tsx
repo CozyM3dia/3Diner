@@ -12,6 +12,7 @@ interface StatCardProps {
   delta?: number; // % change vs last week
   sub?: string; // alternative caption when no delta
   suffix?: string; // e.g. "%" appended to the value
+  prefix?: string; // e.g. "Rp " before the value
 }
 
 function useCountUp(target: number, run: boolean, ms = 900) {
@@ -36,7 +37,7 @@ function useCountUp(target: number, run: boolean, ms = 900) {
   return n;
 }
 
-export default function StatCard({ value, label, icon, accent, accentBg, delta, sub, suffix }: StatCardProps) {
+export default function StatCard({ value, label, icon, accent, accentBg, delta, sub, suffix, prefix }: StatCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [on, setOn] = useState(false);
   const n = useCountUp(value, on);
@@ -62,6 +63,7 @@ export default function StatCard({ value, label, icon, accent, accentBg, delta, 
     >
       <div className="flex items-start justify-between">
         <span className="text-[28px] font-bold leading-none tabular-nums" style={{ color: "#E9EEF6" }}>
+          {prefix && <span className="text-lg" style={{ color: "#5A7898" }}>{prefix}</span>}
           {n.toLocaleString("id-ID")}
           {suffix && <span className="text-lg" style={{ color: "#5A7898" }}>{suffix}</span>}
         </span>

@@ -140,3 +140,112 @@ export async function getDashboardData(slug: string): Promise<DashboardData | nu
     recent,
   };
 }
+
+// ── Revenue / Sales analytics (from Orders) ────────────────────────────────
+
+interface OrderItemShape {
+  nama_menu?: string;
+  harga_menu?: number;
+  qty?: number;
+}
+
+export interface RevenueData {
+  totalRevenue: number;
+  orderCount: number;
+  avgOrder: number;
+  itemsSold: number;
+  revenueDelta: number; // this-week vs last-week %
+  dailyRevenue: { label: string; value: number }[]; // last 14 days
+  statusCounts: { received: number; preparing: number; ready: number };
+  topByRevenue: { name: string; qty: number; revenue: number }[];
+  recentOrders: { id: string; table: string; total: number; status: string; at: string }[];
+}
+
+export async function getRevenueData(slug: string): Promise<RevenueData | null> {
+  const { data: cafe } = await supabaseAdmin
+    .from("Cafes")
+    .select("id_cafe")
+    .eq("slug_url", slug)
+    .single();
+  if (!cafe) return null;
+
+  const { data: orders } = await supabaseAdmin
+    .from("Orders")
+    .select("id_order, table_number, items, total, status, created_at")
+    .eq("cafe_id", cafe.id_cafe);
+
+  const list = orders ?? [];
+
+  let totalRevenue = 0;
+  let itemsSold = 0;
+  const statusCounts = { received: 0, preparing: 0, ready: 0 };
+  const dayBuckets = new Map<string, number>();
+  const perItem = new Map<string, { qty: number; revenue: number }>();
+
+  const today = new Date();
+  for (let i = DAYS - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    dayBuckets.set(d.toISOString().slice(0, 10), 0);
+  }
+
+  const now = Date.now();
+  const WEEK = 7 * 24 * 60 * 60 * 1000;
+  let thisWeekRev = 0;
+  let lastWeekRev = 0;
+
+  for (const o of list) {
+    const total = (o.total as number) ?? 0;
+    totalRevenue += total;
+
+    const st = o.status as keyof typeof statusCounts;
+    if (st in statusCounts) statusCounts[st]++;
+
+    const dayKey = (o.created_at as string).slice(0, 10);
+    if (dayBuckets.has(dayKey)) dayBuckets.set(dayKey, (dayBuckets.get(dayKey) ?? 0) + total);
+
+    const age = now - new Date(o.created_at as string).getTime();
+    if (age <= WEEK) thisWeekRev += total;
+    else if (age <= 2 * WEEK) lastWeekRev += total;
+
+    const items = (Array.isArray(o.items) ? o.items : []) as OrderItemShape[];
+    for (const it of items) {
+      const qty = it.qty ?? 0;
+      const rev = (it.harga_menu ?? 0) * qty;
+      itemsSold += qty;
+      const name = it.nama_menu ?? "—";
+      const cur = perItem.get(name) ?? { qty: 0, revenue: 0 };
+      cur.qty += qty;
+      cur.revenue += rev;
+      perItem.set(name, cur);
+    }
+  }
+
+  const orderCount = list.length;
+  const avgOrder = orderCount > 0 ? Math.round(totalRevenue / orderCount) : 0;
+  const revenueDelta =
+    lastWeekRev === 0 ? (thisWeekRev > 0 ? 100 : 0) : Math.round(((thisWeekRev - lastWeekRev) / lastWeekRev) * 100);
+
+  const dailyRevenue = [...dayBuckets.entries()].map(([date, value]) => ({
+    label: new Date(date).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
+    value,
+  }));
+
+  const topByRevenue = [...perItem.entries()]
+    .map(([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 6);
+
+  const recentOrders = [...list]
+    .sort((a, b) => ((a.created_at as string) < (b.created_at as string) ? 1 : -1))
+    .slice(0, 8)
+    .map((o) => ({
+      id: o.id_order as string,
+      table: o.table_number as string,
+      total: (o.total as number) ?? 0,
+      status: o.status as string,
+      at: o.created_at as string,
+    }));
+
+  return { totalRevenue, orderCount, avgOrder, itemsSold, revenueDelta, dailyRevenue, statusCounts, topByRevenue, recentOrders };
+}

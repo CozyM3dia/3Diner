@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Wallet,
   UtensilsCrossed,
   ShoppingBag,
   Settings,
@@ -24,6 +25,7 @@ interface DashboardShellProps {
 
 const NAV = [
   { href: "/dashboard", label: "Analitik", icon: BarChart3, exact: true },
+  { href: "/dashboard/revenue", label: "Penjualan", icon: Wallet },
   { href: "/dashboard/orders", label: "Pesanan", icon: ShoppingBag },
   { href: "/dashboard/menu", label: "Menu", icon: UtensilsCrossed },
   { href: "/dashboard/announcements", label: "Pengumuman", icon: Megaphone },

@@ -231,6 +231,17 @@ model-viewer::part(default-ar-button) { display: none !important; }
 .dash-chip { transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out), border-color 0.15s var(--ease-out), transform 0.12s var(--ease-soft); }
 .dash-chip:active { transform: scale(0.95); }
 
+/* Dashboard dark skeleton shimmer */
+@keyframes dashShimmer {
+  0%   { background-position: -360px 0; }
+  100% { background-position:  360px 0; }
+}
+.dash-skel {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 720px 100%;
+  animation: dashShimmer 1.5s infinite linear;
+}
+
 /* Dashboard section reveal (JS-free, runs on mount) */
 @keyframes dashReveal {
   from { opacity: 0; transform: translateY(10px); }
