@@ -146,6 +146,15 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
         domOverlay: { root: overlayRef.current },
       });
       await renderer.xr.setSession(session);
+
+      // Cap XR frame rate at 30fps — halves GPU work and prevents thermal throttle.
+      // This is how model-viewer avoids lag; our raw Three.js loop runs at 60fps by default.
+      try {
+        if (typeof (session as any).updateTargetFrameRate === "function") {
+          await (session as any).updateTargetFrameRate(30);
+        }
+      } catch { /* Chrome <120 or device doesn't support rate control — stays at 60fps */ }
+
       setState("ar");
       setArStarted(true);
 
