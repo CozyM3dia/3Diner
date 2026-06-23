@@ -1,6 +1,15 @@
+import { cache } from "react";
 import { supabaseAdmin } from "./supabase-admin";
+import { createClient } from "./supabase/server";
 
 export type EventType = "click_menu" | "view_3d" | "click_order";
+
+/** ISO timestamp N days ago (start of window for queries). */
+function sinceDays(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString();
+}
 
 export interface DashboardData {
   cafe: { nama_cafe: string; slug_url: string };
@@ -27,8 +36,18 @@ export interface DashboardData {
 
 const DAYS = 14;
 
-/** Find the slug of the cafe owned by a given auth user (or null). */
-export async function getOwnerCafeSlug(ownerId: string): Promise<string | null> {
+/** Authenticated user id for this request (cached: dedupes layout + page). */
+export const getSessionUserId = cache(async (): Promise<string | null> => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
+});
+
+/** Find the slug of the cafe owned by a given auth user (or null).
+ *  Wrapped in React cache() so layout + page in the same request dedupe to one query. */
+export const getOwnerCafeSlug = cache(async (ownerId: string): Promise<string | null> => {
   const { data } = await supabaseAdmin
     .from("Cafes")
     .select("slug_url")
@@ -36,7 +55,7 @@ export async function getOwnerCafeSlug(ownerId: string): Promise<string | null> 
     .limit(1)
     .maybeSingle();
   return (data?.slug_url as string) ?? null;
-}
+});
 
 export async function getDashboardData(slug: string): Promise<DashboardData | null> {
   const { data: cafe } = await supabaseAdmin
@@ -52,7 +71,8 @@ export async function getDashboardData(slug: string): Promise<DashboardData | nu
     supabaseAdmin
       .from("Analytics_Logs")
       .select("menu_id, event_type, created_at")
-      .eq("cafe_id", cafe.id_cafe),
+      .eq("cafe_id", cafe.id_cafe)
+      .gte("created_at", sinceDays(DAYS)),
   ]);
 
   const menuName = new Map<string, string>(
@@ -212,7 +232,8 @@ export async function getRevenueData(slug: string): Promise<RevenueData | null> 
   const { data: orders } = await supabaseAdmin
     .from("Orders")
     .select("id_order, table_number, items, total, status, created_at")
-    .eq("cafe_id", cafe.id_cafe);
+    .eq("cafe_id", cafe.id_cafe)
+    .gte("created_at", sinceDays(DAYS));
 
   const list = orders ?? [];
 

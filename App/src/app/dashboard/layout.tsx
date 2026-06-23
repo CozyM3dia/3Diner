@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getOwnerCafeSlug } from "@/lib/analytics";
+import { getOwnerCafeSlug, getSessionUserId } from "@/lib/analytics";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 
@@ -11,13 +10,10 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/login");
 
-  const slug = await getOwnerCafeSlug(user.id);
+  const slug = await getOwnerCafeSlug(userId);
   let cafe: { nama_cafe: string; logo_url: string | null; slug_url: string } | null = null;
   if (slug) {
     const { data } = await supabaseAdmin

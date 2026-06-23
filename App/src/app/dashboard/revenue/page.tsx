@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Wallet, Receipt, TrendingUp, Package } from "lucide-react";
-import { getRevenueData, getOwnerCafeSlug } from "@/lib/analytics";
-import { createClient } from "@/lib/supabase/server";
+import { getRevenueData, getOwnerCafeSlug, getSessionUserId } from "@/lib/analytics";
 import { formatRupiah } from "@/lib/format";
 import StatCard from "@/components/dashboard/StatCard";
 import RevenueChart from "@/components/dashboard/RevenueChart";
@@ -37,13 +36,10 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 const PANEL = { background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" } as const;
 
 export default async function RevenuePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/login");
 
-  const slug = await getOwnerCafeSlug(user.id);
+  const slug = await getOwnerCafeSlug(userId);
   const data = slug ? await getRevenueData(slug) : null;
 
   if (!data) {

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { MousePointerClick, Box, ShoppingBag, Target, Clock, Flame, Sparkles, CalendarDays } from "lucide-react";
-import { getDashboardData, getOwnerCafeSlug, type EventType } from "@/lib/analytics";
-import { createClient } from "@/lib/supabase/server";
+import { getDashboardData, getOwnerCafeSlug, getSessionUserId, type EventType } from "@/lib/analytics";
 import StatCard from "@/components/dashboard/StatCard";
 import LineChart from "@/components/dashboard/LineChart";
 import FunnelBars from "@/components/dashboard/FunnelBars";
@@ -46,13 +45,10 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 const PANEL = { background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" } as const;
 
 export default async function AnalyticsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/login");
 
-  const slug = await getOwnerCafeSlug(user.id);
+  const slug = await getOwnerCafeSlug(userId);
   const data = slug ? await getDashboardData(slug) : null;
 
   if (!data) {
