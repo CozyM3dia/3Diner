@@ -171,48 +171,145 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       const hitScale = new THREE.Vector3();
       const hitMatrix = new THREE.Matrix4();
 
-      // Single-finger drag → rotate model Y (always active once visible)
-      let rotating = false;
-      let lastRotX = 0;
-      const onTouchStart = (e: TouchEvent) => {
-        if (e.touches.length === 1) { rotating = true; lastRotX = e.touches[0].clientX; }
+      // Gesture state
+      let placed = false;
+      let isDragging = false;
+      let respawning = false;
+      let dragHitTestSource: any = null;
+      let userScale = 1;
+      let lastPinchDist = 0;
+      let lastPinchAngle = 0;
+      let lastTapTime = 0;
+
+      const requestHitSource = async () => {
+        try {
+          const vs = await (session as any).requestReferenceSpace("viewer");
+          return await (session as any).requestHitTestSource({ space: vs });
+        } catch { return null; }
       };
-      const onTouchMove = (e: TouchEvent) => {
-        if (!rotating || !group.visible || e.touches.length !== 1) return;
-        group.rotation.y += (e.touches[0].clientX - lastRotX) * 0.015;
-        lastRotX = e.touches[0].clientX;
-      };
-      const onTouchEnd = () => { rotating = false; };
+
       const overlay = overlayRef.current;
+
+      const onTouchStart = (e: TouchEvent) => {
+        if (e.touches.length === 2) {
+          isDragging = false;
+          const dx = e.touches[1].clientX - e.touches[0].clientX;
+          const dy = e.touches[1].clientY - e.touches[0].clientY;
+          lastPinchDist = Math.hypot(dx, dy);
+          lastPinchAngle = Math.atan2(dy, dx);
+          return;
+        }
+        if (e.touches.length === 1 && group.visible) {
+          const now = Date.now();
+          if (now - lastTapTime < 300) {
+            // Double-tap: reset scale and respawn on current surface
+            lastTapTime = 0;
+            userScale = 1;
+            group.scale.setScalar(1);
+            group.visible = false;
+            placed = false;
+            respawning = true;
+            setModelPlaced(false);
+            requestHitSource().then(src => { dragHitTestSource = src; });
+            return;
+          }
+          lastTapTime = now;
+          isDragging = true;
+          requestHitSource().then(src => { dragHitTestSource = src; });
+        }
+      };
+
+      const onTouchMove = (e: TouchEvent) => {
+        if (e.touches.length === 2 && group.visible) {
+          const dx = e.touches[1].clientX - e.touches[0].clientX;
+          const dy = e.touches[1].clientY - e.touches[0].clientY;
+          const dist = Math.hypot(dx, dy);
+          const angle = Math.atan2(dy, dx);
+          if (lastPinchDist > 0) {
+            userScale *= dist / lastPinchDist;
+            userScale = Math.max(0.2, Math.min(5, userScale));
+            group.scale.setScalar(userScale);
+            group.rotation.y += angle - lastPinchAngle;
+          }
+          lastPinchDist = dist;
+          lastPinchAngle = angle;
+        }
+      };
+
+      const onTouchEnd = (e: TouchEvent) => {
+        if (e.touches.length < 1) {
+          isDragging = false;
+          dragHitTestSource?.cancel();
+          dragHitTestSource = null;
+        }
+        if (e.touches.length < 2) {
+          lastPinchDist = 0;
+          lastPinchAngle = 0;
+        }
+      };
+
       overlay?.addEventListener("touchstart", onTouchStart, { passive: true });
       overlay?.addEventListener("touchmove", onTouchMove, { passive: true });
       overlay?.addEventListener("touchend", onTouchEnd);
 
-      let placed = false;
-
       renderer.setAnimationLoop((_: number, frame: any) => {
-        if (!placed && frame) {
-          if (hitTestSource) {
+        if (frame) {
+          const refSpace = renderer.xr.getReferenceSpace();
+
+          // Initial placement — only elevated surfaces (table)
+          if (!placed && !respawning && hitTestSource) {
             const hits = frame.getHitTestResults(hitTestSource);
             if (hits.length > 0) {
-              const refSpace = renderer.xr.getReferenceSpace();
               const pose = hits[0].getPose(refSpace);
               if (pose) {
                 hitMatrix.fromArray(pose.transform.matrix);
                 hitMatrix.decompose(hitPos, hitQuat, hitScale);
-                // Y > -1.2 in "local" space = elevated surface (table), not floor
                 if (hitPos.y > -1.2) {
                   group.position.copy(hitPos);
                   group.visible = true;
-                  placed = true;          // lock position forever
-                  hitTestSource.cancel(); // stop hit-test → eliminates GC lag
+                  placed = true;
+                  hitTestSource.cancel();
                   hitTestSource = null;
-                  setModelPlaced(true);   // reveal camera + model together
+                  setModelPlaced(true);
                 }
               }
             }
-          } else {
-            // No hit-test: place once using camera forward ray
+          }
+
+          // Respawn after double-tap — any surface
+          if (!placed && respawning && dragHitTestSource) {
+            const hits = frame.getHitTestResults(dragHitTestSource);
+            if (hits.length > 0) {
+              const pose = hits[0].getPose(refSpace);
+              if (pose) {
+                hitMatrix.fromArray(pose.transform.matrix);
+                hitMatrix.decompose(hitPos, hitQuat, hitScale);
+                group.position.copy(hitPos);
+                group.visible = true;
+                placed = true;
+                respawning = false;
+                dragHitTestSource.cancel();
+                dragHitTestSource = null;
+                setModelPlaced(true);
+              }
+            }
+          }
+
+          // Drag — snaps to any surface (table or floor)
+          if (placed && isDragging && dragHitTestSource) {
+            const hits = frame.getHitTestResults(dragHitTestSource);
+            if (hits.length > 0) {
+              const pose = hits[0].getPose(refSpace);
+              if (pose) {
+                hitMatrix.fromArray(pose.transform.matrix);
+                hitMatrix.decompose(hitPos, hitQuat, hitScale);
+                group.position.copy(hitPos);
+              }
+            }
+          }
+
+          // Fallback: no hit-test support — place in front of camera
+          if (!placed && !respawning && !hitTestSource && !dragHitTestSource) {
             const xrCam = renderer.xr.getCamera();
             const p = new THREE.Vector3();
             const d = new THREE.Vector3();
@@ -235,6 +332,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
         overlay?.removeEventListener("touchmove", onTouchMove);
         overlay?.removeEventListener("touchend", onTouchEnd);
         hitTestSource?.cancel();
+        dragHitTestSource?.cancel();
         renderer.setAnimationLoop(null);
         renderer.domElement.remove();
         renderer.dispose();
@@ -268,7 +366,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: "#002355" }}>
             <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
             <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>
-              {arStarted ? "Arahkan kamera ke permukaan meja..." : "Menyiapkan AR..."}
+              {"Memuat AR..."}
             </p>
           </div>
         )}
