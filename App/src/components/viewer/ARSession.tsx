@@ -263,6 +263,16 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
 
       {/* DOM overlay root — always mounted for WebXR registration */}
       <div ref={overlayRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
+        {/* Loading overlay inside domOverlay so it stays visible over the XR camera feed */}
+        {!modelPlaced && state !== "unsupported" && state !== "error" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: "#002355" }}>
+            <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
+            <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>
+              {arStarted ? "Arahkan kamera ke permukaan meja..." : "Menyiapkan AR..."}
+            </p>
+          </div>
+        )}
+
         {state === "ar" && modelPlaced && (
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto">
             <button onClick={exitAR}
@@ -273,16 +283,6 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
           </div>
         )}
       </div>
-
-      {/* Loading overlay — stays until model is placed on surface */}
-      {!modelPlaced && state !== "unsupported" && state !== "error" && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4" style={{ background: "#002355" }}>
-          <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
-          <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>
-            {arStarted ? "Arahkan kamera ke permukaan meja..." : "Menyiapkan AR..."}
-          </p>
-        </div>
-      )}
 
       {/* Unsupported */}
       {state === "unsupported" && (
