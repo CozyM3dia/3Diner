@@ -44,6 +44,7 @@ export default function ARSession({ url, usdzUrl, menuName, onClose, preloadedGl
 function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: ARSessionProps) {
   const [state, setState] = useState<GlbState>("loading");
   const [arStarted, setArStarted] = useState(false);
+  const [modelPlaced, setModelPlaced] = useState(false);
   const sessionEndRef = useRef<(() => void) | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const canvasSlotRef = useRef<HTMLDivElement>(null);
@@ -206,6 +207,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
                   placed = true;          // lock position forever
                   hitTestSource.cancel(); // stop hit-test → eliminates GC lag
                   hitTestSource = null;
+                  setModelPlaced(true);   // reveal camera + model together
                 }
               }
             }
@@ -219,6 +221,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
             group.position.set(p.x + d.x * 0.6, p.y - 0.8, p.z + d.z * 0.6);
             group.visible = true;
             placed = true;
+            setModelPlaced(true);
           }
         }
         renderer.render(scene, camera);
@@ -260,28 +263,24 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
 
       {/* DOM overlay root — always mounted for WebXR registration */}
       <div ref={overlayRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
-        {state === "ar" && arStarted && (
-          <>
-            <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs font-semibold"
-              style={{ background: "rgba(0,0,0,0.5)", color: "#FDFDFD", backdropFilter: "blur(6px)", whiteSpace: "nowrap" }}>
-              Arahkan kamera ke permukaan meja
-            </div>
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto">
-              <button onClick={exitAR}
-                className="px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2"
-                style={{ background: "rgba(0,35,85,0.8)", color: "#FDFDFD", backdropFilter: "blur(8px)" }}>
-                <X size={16} /> Keluar AR
-              </button>
-            </div>
-          </>
+        {state === "ar" && modelPlaced && (
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto">
+            <button onClick={exitAR}
+              className="px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2"
+              style={{ background: "rgba(0,35,85,0.8)", color: "#FDFDFD", backdropFilter: "blur(8px)" }}>
+              <X size={16} /> Keluar AR
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Loading / initializing */}
-      {(state === "loading" || (state === "ar" && !arStarted)) && (
+      {/* Loading overlay — stays until model is placed on surface */}
+      {!modelPlaced && state !== "unsupported" && state !== "error" && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4" style={{ background: "#002355" }}>
           <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
-          <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>Menyiapkan AR...</p>
+          <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>
+            {arStarted ? "Arahkan kamera ke permukaan meja..." : "Menyiapkan AR..."}
+          </p>
         </div>
       )}
 
