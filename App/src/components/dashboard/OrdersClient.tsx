@@ -17,6 +17,7 @@ export interface OrderRow {
   payment_method: string | null;
   payment_status: string;
   created_at: string;
+  notes?: string | null;
 }
 
 type Filter = "all" | "received" | "preparing" | "ready";
@@ -178,6 +179,13 @@ export default function OrdersClient({ initial, cafeId }: { initial: OrderRow[];
                     </li>
                   ))}
                 </ul>
+
+                {o.notes && (
+                  <div className="mb-3 p-3 rounded-xl text-xs" style={{ background: "rgba(253,80,2,0.06)", border: "1px solid rgba(253,80,2,0.15)" }}>
+                    <p style={{ color: "#FD5002", fontWeight: 600, marginBottom: "3px" }}>Catatan:</p>
+                    <p style={{ color: "#E9EEF6", whiteSpace: "pre-wrap" }}>{o.notes}</p>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
                   <span className="text-sm font-bold tabular-nums" style={{ color: "#E9EEF6" }}>{formatRupiah(o.total)}</span>
