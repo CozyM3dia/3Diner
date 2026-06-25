@@ -258,22 +258,35 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
   const exitAR = () => sessionEndRef.current?.();
 
   return (
-    <div className="fixed inset-0 z-[100]" style={{ background: "#002355" }}>
+    <div className="fixed inset-0 z-[100]" style={{ background: arStarted ? "transparent" : "#002355" }}>
       <div ref={canvasSlotRef} className="absolute inset-0" />
 
       {/* DOM overlay root — always mounted for WebXR registration */}
       <div ref={overlayRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
-        {/* Loading overlay inside domOverlay so it stays visible over the XR camera feed */}
-        {!modelPlaced && state !== "unsupported" && state !== "error" && (
+        {/* Full-screen loading before XR camera is ready */}
+        {!arStarted && state !== "unsupported" && state !== "error" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: "#002355" }}>
             <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
-            <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>
-              {arStarted ? "Arahkan kamera ke permukaan meja..." : "Menyiapkan AR..."}
-            </p>
+            <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>Menyiapkan AR...</p>
           </div>
         )}
 
-        {state === "ar" && modelPlaced && (
+        {/* Floating guidance toast over camera feed when scanning for table */}
+        {arStarted && !modelPlaced && state !== "unsupported" && state !== "error" && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="px-5 py-3.5 rounded-2xl flex items-center gap-3 shadow-2xl"
+              style={{ background: "rgba(0,35,85,0.85)", backdropFilter: "blur(12px)", border: "1px solid rgba(253,253,253,0.1)" }}>
+              <Loader2 size={18} color="#FD5002" strokeWidth={2.5} className="animate-spin" />
+              <div className="flex flex-col">
+                <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>Arahkan ke permukaan meja</p>
+                <p className="text-[10px]" style={{ color: "rgba(253,253,253,0.7)" }}>Gerakkan ponsel Anda perlahan</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Exit button: always show once XR starts so user is never trapped */}
+        {state === "ar" && arStarted && (
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto">
             <button onClick={exitAR}
               className="px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2"
