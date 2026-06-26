@@ -119,6 +119,23 @@ export async function setMenuAvailability(
   return {};
 }
 
+/** Persist a new display order. `orderedIds` is the full list of menu ids in
+ *  the desired order; each gets sort_order = its index. Scoped to the cafe. */
+export async function reorderMenus(orderedIds: string[]): Promise<ActionResult> {
+  const cafeId = await getAuthCafeId();
+  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) return {};
+  const updates = orderedIds.map((id, i) =>
+    supabaseAdmin.from("Menus").update({ sort_order: i }).eq("id_menu", id).eq("cafe_id", cafeId)
+  );
+  const results = await Promise.all(updates);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { error: failed.error.message };
+  revalidatePath("/dashboard/menu");
+  revalidatePath("/[slug]", "page");
+  return {};
+}
+
 // ── Cafe settings ────────────────────────────────────────────────────────
 
 export async function updateCafeSettings(fd: FormData): Promise<ActionResult> {

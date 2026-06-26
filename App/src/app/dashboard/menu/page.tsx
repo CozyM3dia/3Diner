@@ -1,12 +1,10 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { Plus, Box, Pencil } from "lucide-react";
+import { Plus, Box } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getOwnerCafeSlug } from "@/lib/analytics";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { formatRupiah } from "@/lib/format";
-import MenuActiveToggle from "@/components/dashboard/MenuActiveToggle";
+import MenuTable from "@/components/dashboard/MenuTable";
 import type { Menu } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +22,12 @@ export default async function MenuListPage() {
     : { data: null };
 
   const { data: menus } = cafe
-    ? await supabaseAdmin.from("Menus").select("*").eq("cafe_id", cafe.id_cafe).order("created_at", { ascending: false })
+    ? await supabaseAdmin
+        .from("Menus")
+        .select("*")
+        .eq("cafe_id", cafe.id_cafe)
+        .order("sort_order", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true })
     : { data: [] };
 
   const list = (menus ?? []) as Menu[];
@@ -55,79 +58,7 @@ export default async function MenuListPage() {
           </Link>
         </div>
       ) : (
-        <div className="rounded-2xl overflow-hidden dash-reveal dash-d1" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
-          <table className="w-full">
-            <thead>
-              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                {["", "Nama", "Kategori", "Harga", "3D", "Status", ""].map((h, i) => (
-                  <th
-                    key={i}
-                    className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider ${h === "Harga" ? "text-right" : "text-left"}`}
-                    style={{ color: "#5A7898" }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((menu, i) => (
-                <tr
-                  key={menu.id_menu}
-                  className="dash-row group transition-opacity duration-150"
-                  style={{
-                    borderBottom: i < list.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
-                    opacity: menu.is_active !== false ? 1 : 0.55,
-                  }}
-                >
-                  <td className="px-4 py-3">
-                    <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center" style={{ background: "#132136" }}>
-                      {menu.image_url ? (
-                        <Image src={menu.image_url} alt="" width={40} height={40} className="object-cover w-full h-full" />
-                      ) : (
-                        <Box size={16} style={{ color: "#5A7898" }} />
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="text-sm font-medium truncate max-w-[200px]" style={{ color: "#E9EEF6" }} title={menu.nama_menu}>
-                      {menu.nama_menu}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: "#132136", color: "#5A7898" }}>
-                      {menu.category ?? "—"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm font-semibold tabular-nums text-right" style={{ color: "#E9EEF6" }}>
-                    {formatRupiah(menu.harga_menu)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {menu.model_3d_url ? (
-                      <span className="text-xs font-bold" style={{ color: "#00C2A8" }}>3D</span>
-                    ) : (
-                      <span style={{ color: "#5A7898" }}>—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <MenuActiveToggle menuId={menu.id_menu} initialActive={menu.is_active !== false} />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                      <Link
-                        href={`/dashboard/menu/${menu.id_menu}/edit`}
-                        className="dash-press dash-icon-btn inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg"
-                        style={{ background: "#132136", color: "#E9EEF6" }}
-                      >
-                        <Pencil size={12} /> Edit
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <MenuTable menus={list} />
       )}
     </div>
   );

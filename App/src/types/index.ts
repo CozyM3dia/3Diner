@@ -41,6 +41,8 @@ export interface Menu {
   schedule_days?: string | null   // comma ISO weekday nums "1,2,3" (1=Mon..7=Sun)
   schedule_start?: string | null  // "HH:MM"
   schedule_end?: string | null    // "HH:MM"
+  // ── Display order (dashboard drag-to-reorder) ──
+  sort_order?: number | null
 }
 
 export interface Announcement {
