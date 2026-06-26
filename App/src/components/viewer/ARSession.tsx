@@ -45,9 +45,19 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
   const [state, setState] = useState<GlbState>("loading");
   const [arStarted, setArStarted] = useState(false);
   const [modelPlaced, setModelPlaced] = useState(false);
+  const [arTimedOut, setArTimedOut] = useState(false);
   const sessionEndRef = useRef<(() => void) | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const canvasSlotRef = useRef<HTMLDivElement>(null);
+
+  // After 6s in AR without model placed, hide loading screen and show camera with hint
+  useEffect(() => {
+    if (state === "ar" && !modelPlaced) {
+      const t = setTimeout(() => setArTimedOut(true), 6000);
+      return () => clearTimeout(t);
+    }
+    if (modelPlaced) setArTimedOut(false);
+  }, [state, modelPlaced]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -390,18 +400,32 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
   const exitAR = () => sessionEndRef.current?.();
 
   return (
-    <div className="fixed inset-0 z-[100]" style={{ background: "#002355" }}>
+    <div className="fixed inset-0 z-[100]" style={{ background: "#002355", touchAction: "none" }}>
       <div ref={canvasSlotRef} className="absolute inset-0" />
 
       {/* DOM overlay root — always mounted for WebXR registration */}
-      <div ref={overlayRef} className="absolute inset-0" style={{ zIndex: 20 }}>
+      <div ref={overlayRef} className="absolute inset-0" style={{ zIndex: 20, touchAction: "none" }}>
         {/* Loading overlay inside domOverlay so it stays visible over the XR camera feed */}
-        {!modelPlaced && state !== "unsupported" && state !== "error" && (
+        {!modelPlaced && state !== "unsupported" && state !== "error" && !arTimedOut && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: "#002355" }}>
             <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
             <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>
               {"Memuat AR..."}
             </p>
+          </div>
+        )}
+
+        {/* Timeout hint — show camera but guide user to scan a surface */}
+        {!modelPlaced && state === "ar" && arTimedOut && (
+          <div className="absolute bottom-24 left-0 right-0 flex justify-center px-6 pointer-events-none">
+            <div className="px-5 py-3 rounded-2xl text-center" style={{ background: "rgba(0,35,85,0.82)", backdropFilter: "blur(10px)" }}>
+              <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>
+                Putar kamera ke permukaan datar
+              </p>
+              <p className="text-xs mt-1" style={{ color: "rgba(253,253,253,0.65)" }}>
+                Arahkan ke meja atau lantai agar model 3D muncul
+              </p>
+            </div>
           </div>
         )}
 

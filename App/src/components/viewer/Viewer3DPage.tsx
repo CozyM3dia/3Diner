@@ -127,7 +127,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
   }, [initViewer]);
 
   return (
-    <div className="fixed inset-0 flex flex-col" style={{ background: "radial-gradient(120% 90% at 50% 35%, #0A3A78 0%, #022C60 45%, #002355 100%)" }}>
+    <div className="fixed inset-0 flex flex-col" style={{ background: "radial-gradient(120% 90% at 50% 35%, #0A3A78 0%, #022C60 45%, #002355 100%)", touchAction: "none", overscrollBehavior: "none" } as React.CSSProperties}>
       {/* Top bar */}
       <div
         className="flex items-center gap-3 px-4 shrink-0"
