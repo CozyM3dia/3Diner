@@ -199,12 +199,23 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       const hitScale = new THREE.Vector3();
       const hitMatrix = new THREE.Matrix4();
 
+      // Drag-on-plane: cast a ray from the FINGER position (not camera center) onto a
+      // horizontal plane at the model's base. Model follows the finger — camera stays still.
+      const raycaster = new THREE.Raycaster();
+      const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const dragTarget = new THREE.Vector3();
+      const ndc = new THREE.Vector2();
+
       // Gesture state
       let placed = false;
       let isDragging = false;
       let isDraggingPending = false;
       let dragStartX = 0;
       let dragStartY = 0;
+      let dragTouchX = 0;
+      let dragTouchY = 0;
+      let dragGrabOffsetX = 0;
+      let dragGrabOffsetZ = 0;
       let isRotatingRing = false;
       let rotateRingStartX = 0;
       let respawning = false;
@@ -215,6 +226,18 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       let modelScreenX = window.innerWidth / 2;
       let modelScreenY = window.innerHeight / 2;
       let modelScreenRadius = 120; // pixels to ring outer edge
+
+      // Project the current finger screen pos onto the drag plane → world point. Returns true on hit.
+      const fingerToPlane = () => {
+        const xrCam = renderer.xr.getCamera();
+        const cam = (xrCam as any).cameras?.length ? (xrCam as any).cameras[0] : xrCam;
+        // Keep the inverse projection in sync — WebXR sub-cameras don't always update it.
+        cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert();
+        ndc.x = (dragTouchX / window.innerWidth) * 2 - 1;
+        ndc.y = -(dragTouchY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(ndc, cam);
+        return raycaster.ray.intersectPlane(dragPlane, dragTarget) !== null;
+      };
 
       const overlay = overlayRef.current;
 
@@ -285,6 +308,8 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
         }
         if (e.touches.length === 1) {
           const t = e.touches[0];
+          dragTouchX = t.clientX;
+          dragTouchY = t.clientY;
           // Ring drag → rotate Y
           if (isRotatingRing && group.visible) {
             group.rotation.y += (t.clientX - rotateRingStartX) * 0.015;
@@ -297,6 +322,17 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
             if (Math.hypot(dx, dy) > 12) {
               isDragging = true;
               isDraggingPending = false;
+              // Lock the drag plane to the model's current base height, then compute the
+              // offset between where the finger grabbed and the model origin so the model
+              // doesn't jump under the finger — it slides relative to the grab point.
+              dragPlane.constant = -group.position.y;
+              if (fingerToPlane()) {
+                dragGrabOffsetX = group.position.x - dragTarget.x;
+                dragGrabOffsetZ = group.position.z - dragTarget.z;
+              } else {
+                dragGrabOffsetX = 0;
+                dragGrabOffsetZ = 0;
+              }
             }
           }
         }
@@ -316,7 +352,15 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       overlay?.addEventListener("touchend", onTouchEnd);
 
       renderer.setAnimationLoop((_: number, frame: any) => {
-        if (frame && hitTestSource && (!placed || isDragging || respawning)) {
+        // Finger-drag: move the model under the finger on its base plane. Camera stays put.
+        if (placed && isDragging && group.visible) {
+          if (fingerToPlane()) {
+            group.position.x = dragTarget.x + dragGrabOffsetX;
+            group.position.z = dragTarget.z + dragGrabOffsetZ;
+          }
+        }
+
+        if (frame && hitTestSource && (!placed || respawning)) {
           const hits = frame.getHitTestResults(hitTestSource);
           if (hits.length > 0) {
             const refSpace = renderer.xr.getReferenceSpace();
@@ -325,18 +369,13 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
               hitMatrix.fromArray(pose.transform.matrix);
               hitMatrix.decompose(hitPos, hitQuat, hitScale);
 
-              if (!placed) {
-                // Initial placement — only elevated surfaces (table)
-                if (hitPos.y > -1.2 || respawning) {
-                  group.position.copy(hitPos);
-                  group.visible = true;
-                  placed = true;
-                  respawning = false;
-                  setModelPlaced(true);
-                }
-              } else if (isDragging) {
-                // Drag — snaps to any surface (table or floor)
+              // Initial placement / respawn — only elevated surfaces (table)
+              if (hitPos.y > -1.2 || respawning) {
                 group.position.copy(hitPos);
+                group.visible = true;
+                placed = true;
+                respawning = false;
+                setModelPlaced(true);
               }
             }
           }
