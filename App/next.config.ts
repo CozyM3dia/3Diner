@@ -42,10 +42,10 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  // Transpile ESM-only packages
   transpilePackages: ["@mkkellogg/gaussian-splats-3d", "three"],
 
-  // Allow larger uploads (GLB/USDZ models) through server actions
+  turbopack: {},
+
   experimental: {
     serverActions: { bodySizeLimit: "30mb" },
   },
