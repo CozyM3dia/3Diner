@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -250,8 +251,8 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
         <span>{activeRangeLabel}</span>
       </button>
 
-      {/* Dropdown panel — fixed so it escapes overflow:auto scroll containers */}
-      {isOpen && dropPos && (
+      {/* Dropdown panel — portalled to body to escape all ancestor stacking contexts */}
+      {isOpen && dropPos && typeof document !== "undefined" && createPortal(
         <div
           ref={dropdownRef}
           className="rounded-2xl flex flex-col md:flex-row overflow-hidden shadow-2xl dash-reveal"
@@ -396,7 +397,8 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
