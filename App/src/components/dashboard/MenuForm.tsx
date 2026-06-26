@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Trash2, Save, AlertCircle } from "lucide-react";
+import { Loader2, Trash2, Save, AlertCircle, Clock, Flame, ScanLine, ShoppingBag, ImageOff } from "lucide-react";
 import type { Menu } from "@/types";
 import type { ActionResult } from "@/lib/dashboard-actions";
+import { formatRupiah } from "@/lib/format";
 import FileUpload from "./FileUpload";
+import PhoneMockup from "./PhoneMockup";
 
 interface MenuFormProps {
   menu?: Menu;
@@ -51,6 +53,20 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
   const [active, setActive] = useState(menu?.is_active !== false);
   const [modelScale, setModelScale] = useState(menu?.model_scale ?? 1.0);
 
+  // Controlled fields that drive the live preview.
+  const [nama, setNama] = useState(menu?.nama_menu ?? "");
+  const [harga, setHarga] = useState<number>(menu?.harga_menu ?? 0);
+  const [category, setCategory] = useState(menu?.category ?? "");
+  const [description, setDescription] = useState(menu?.description_menu ?? "");
+  const [prepTime, setPrepTime] = useState<string>(menu?.prep_time_minutes != null ? String(menu.prep_time_minutes) : "");
+  const [calories, setCalories] = useState<string>(menu?.calories != null ? String(menu.calories) : "");
+  const [ingredients, setIngredients] = useState(menu?.ingredients ?? "");
+  const [discount, setDiscount] = useState<number>(menu?.discount_pct ?? 0);
+  const [imageUrl, setImageUrl] = useState(menu?.image_url ?? "");
+
+  const promo = discount > 0 ? Math.round(harga * (1 - discount / 100)) : harga;
+  const ingList = ingredients.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 10);
+
   const inputCls = "dash-input w-full px-3.5 py-2.5 rounded-xl text-sm outline-none";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -93,7 +109,8 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="flex flex-col-reverse gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_350px] lg:gap-10 lg:items-start">
+      <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
         <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(239,68,68,0.1)", color: "#FCA5A5" }}>
           <AlertCircle size={16} />
@@ -104,29 +121,29 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
       {/* Basics */}
       <div className="rounded-2xl p-5 space-y-4" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
         <Field label="Nama Menu *">
-          <input name="nama_menu" defaultValue={menu?.nama_menu} required className={inputCls} style={inputStyle} placeholder="Pasta Meatball" />
+          <input name="nama_menu" value={nama} onChange={(e) => setNama(e.target.value)} required className={inputCls} style={inputStyle} placeholder="Pasta Meatball" />
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Harga (Rp) *">
-            <input name="harga_menu" type="number" min="0" defaultValue={menu?.harga_menu} required className={inputCls} style={inputStyle} placeholder="45000" />
+            <input name="harga_menu" type="number" min="0" value={harga || ""} onChange={(e) => setHarga(Number(e.target.value) || 0)} required className={inputCls} style={inputStyle} placeholder="45000" />
           </Field>
           <Field label="Kategori">
-            <input name="category" defaultValue={menu?.category ?? ""} className={inputCls} style={inputStyle} placeholder="Main Course" />
+            <input name="category" value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls} style={inputStyle} placeholder="Main Course" />
           </Field>
         </div>
         <Field label="Deskripsi">
-          <textarea name="description_menu" defaultValue={menu?.description_menu ?? ""} rows={3} className={inputCls} style={inputStyle} placeholder="Deskripsi singkat hidangan…" />
+          <textarea name="description_menu" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={inputCls} style={inputStyle} placeholder="Deskripsi singkat hidangan…" />
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Waktu Saji (menit)">
-            <input name="prep_time_minutes" type="number" min="0" defaultValue={menu?.prep_time_minutes ?? ""} className={inputCls} style={inputStyle} placeholder="15" />
+            <input name="prep_time_minutes" type="number" min="0" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} className={inputCls} style={inputStyle} placeholder="15" />
           </Field>
           <Field label="Kalori">
-            <input name="calories" type="number" min="0" defaultValue={menu?.calories ?? ""} className={inputCls} style={inputStyle} placeholder="650" />
+            <input name="calories" type="number" min="0" value={calories} onChange={(e) => setCalories(e.target.value)} className={inputCls} style={inputStyle} placeholder="650" />
           </Field>
         </div>
         <Field label="Bahan (pisahkan dengan koma)">
-          <input name="ingredients" defaultValue={menu?.ingredients ?? ""} className={inputCls} style={inputStyle} placeholder="Pasta, Daging Sapi, Saus Tomat" />
+          <input name="ingredients" value={ingredients} onChange={(e) => setIngredients(e.target.value)} className={inputCls} style={inputStyle} placeholder="Pasta, Daging Sapi, Saus Tomat" />
         </Field>
       </div>
 
@@ -141,6 +158,7 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
           accept="image/png,image/jpeg,image/webp,image/avif"
           hint="JPG, PNG, atau WebP · maks 30MB"
           defaultUrl={menu?.image_url}
+          onChange={setImageUrl}
         />
         <FileUpload
           name="model_3d_url"
@@ -200,7 +218,7 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
         </button>
 
         <Field label="Diskon (%)">
-          <input name="discount_pct" type="number" min="0" max="100" defaultValue={menu?.discount_pct ?? 0} className={inputCls} style={inputStyle} />
+          <input name="discount_pct" type="number" min="0" max="100" value={discount || ""} onChange={(e) => setDiscount(Number(e.target.value) || 0)} className={inputCls} style={inputStyle} />
         </Field>
 
         <div>
@@ -263,6 +281,91 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
           </button>
         )}
       </div>
-    </form>
+      </form>
+
+      {/* Live preview — dish detail as the customer sees it */}
+      <PhoneMockup>
+        {/* Dish image */}
+        <div className="relative w-full" style={{ height: 188, background: "#0A1F40" }}>
+          {imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imageUrl} alt="" className="w-full h-full object-cover transition-all duration-300" />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ color: "#3B557C" }}>
+              <ImageOff size={26} strokeWidth={1.4} />
+              <span className="text-[11px] font-medium">Belum ada gambar</span>
+            </div>
+          )}
+          {discount > 0 && (
+            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-[11px] font-bold text-white" style={{ background: "#FD5002" }}>
+              -{discount}%
+            </span>
+          )}
+        </div>
+
+        <div className="px-4 pt-4 pb-5">
+          {category && (
+            <span className="inline-block mb-2 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{ background: "rgba(253,80,2,0.14)", color: "#FF7A3D" }}>
+              {category}
+            </span>
+          )}
+          <h3 className="font-display text-[19px] font-extrabold leading-tight text-white transition-all duration-300">
+            {nama || "Nama Hidangan"}
+          </h3>
+
+          {/* Meta: prep time + calories */}
+          {(prepTime || calories) && (
+            <div className="flex items-center gap-3 mt-2.5">
+              {prepTime && (
+                <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: "#9FB6D1" }}>
+                  <Clock size={12} /> {prepTime} mnt
+                </span>
+              )}
+              {calories && (
+                <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: "#9FB6D1" }}>
+                  <Flame size={12} /> {calories} kkal
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Price */}
+          <div className="flex items-baseline gap-2 mt-3">
+            <span className="text-[20px] font-extrabold tabular-nums" style={{ color: "#FD5002" }}>
+              {formatRupiah(promo || 0)}
+            </span>
+            {discount > 0 && harga > 0 && (
+              <span className="text-[13px] line-through tabular-nums" style={{ color: "#5A7898" }}>
+                {formatRupiah(harga)}
+              </span>
+            )}
+          </div>
+
+          {description && (
+            <p className="text-[12px] leading-relaxed mt-3" style={{ color: "#A9BBD4" }}>
+              {description}
+            </p>
+          )}
+
+          {ingList.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {ingList.map((ing, i) => (
+                <span key={i} className="px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ background: "rgba(255,255,255,0.06)", color: "#9FB6D1" }}>
+                  {ing}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* CTAs */}
+          <button type="button" tabIndex={-1} className="w-full mt-4 h-11 rounded-xl flex items-center justify-center gap-2 text-[13px] font-bold text-white" style={{ background: "#FD5002", boxShadow: "0 6px 20px rgba(253,80,2,0.28)" }}>
+            <ScanLine size={16} /> Mulai AR (Tampilan 3D)
+          </button>
+          <button type="button" tabIndex={-1} className="w-full mt-2 h-11 rounded-xl flex items-center justify-center gap-2 text-[13px] font-semibold" style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.18)", color: "#E9EEF6" }}>
+            <ShoppingBag size={15} /> Tambah ke Keranjang
+          </button>
+        </div>
+      </PhoneMockup>
+    </div>
   );
 }

@@ -5,6 +5,7 @@ import { Loader2, Save, Check, AlertCircle, Plus, EyeOff, X } from "lucide-react
 import { saveAnnouncement } from "@/lib/dashboard-actions";
 import { ANNOUNCEMENT_TYPES, typeMeta, type AnnouncementType } from "@/lib/announcement-types";
 import { readableOn, readableSoftOn } from "@/lib/contrast";
+import PhoneMockup from "./PhoneMockup";
 import type { Announcement } from "@/types";
 
 const PRESETS = [
@@ -257,62 +258,50 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
       </div>
 
       {/* ── Live preview ───────────────────────────────────────── */}
-      <div className="lg:sticky lg:top-6">
-        <SectionLabel>Pratinjau langsung</SectionLabel>
-        {/* Phone frame */}
-        <div
-          className="mx-auto rounded-[28px] p-2.5 max-w-[300px] lg:max-w-none"
-          style={{ background: "#060C16", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 20px 50px rgba(0,0,0,0.45)" }}
-        >
-          <div className="rounded-[20px] overflow-hidden" style={{ background: "#F6F8FB" }}>
-            {/* faux cafe cover */}
-            <div className="relative h-[72px]" style={{ background: "linear-gradient(135deg,#0B2A52,#022C60)" }}>
-              <div className="absolute inset-0 grain opacity-40" />
-              <div className="absolute bottom-2.5 left-3">
-                <div className="h-2.5 w-24 rounded-full" style={{ background: "rgba(255,255,255,0.9)" }} />
-                <div className="h-1.5 w-16 rounded-full mt-1.5" style={{ background: "rgba(255,255,255,0.45)" }} />
-              </div>
-            </div>
-
-            {/* the real banner, rendered live */}
-            {active ? (
-              <div
-                className="flex items-center gap-2 px-3 py-2.5 text-[12px] font-medium"
-                style={{ background: color, color: fg }}
-              >
-                <PreviewIcon size={14} className="shrink-0" style={{ color: fg }} />
-                <span className="flex-1 leading-snug line-clamp-2">
-                  {message || "Pesan pengumuman akan tampil di sini"}
-                </span>
-                <X size={13} className="shrink-0" style={{ color: soft }} />
-              </div>
-            ) : (
-              <div
-                className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-medium"
-                style={{ background: "#E0E7EE", color: "#5A7898" }}
-              >
-                <EyeOff size={12} /> Banner nonaktif
-              </div>
-            )}
-
-            {/* faux menu grid */}
-            <div className="grid grid-cols-2 gap-2 p-3">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="rounded-xl overflow-hidden" style={{ background: "#FDFDFD", border: "1px solid #CFD9E4" }}>
-                  <div className="h-12" style={{ background: "#E0E7EE" }} />
-                  <div className="p-2 space-y-1.5">
-                    <div className="h-1.5 rounded-full" style={{ background: "#CFD9E4", width: i % 2 ? "70%" : "85%" }} />
-                    <div className="h-1.5 w-10 rounded-full" style={{ background: "#FDE8DC" }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+      <PhoneMockup>
+        {/* faux cafe cover */}
+        <div className="relative h-[84px]" style={{ background: "linear-gradient(135deg,#0B2A52,#022C60)" }}>
+          <div className="absolute inset-0 grain opacity-40" />
+          <div className="absolute bottom-3 left-4">
+            <div className="h-2.5 w-24 rounded-full" style={{ background: "rgba(255,255,255,0.9)" }} />
+            <div className="h-1.5 w-16 rounded-full mt-1.5" style={{ background: "rgba(255,255,255,0.45)" }} />
           </div>
         </div>
-        <p className="text-[11px] text-center mt-3 leading-relaxed" style={{ color: "#41557A" }}>
-          Persis seperti yang dilihat pelanggan di halaman menu.
-        </p>
-      </div>
+
+        {/* the real banner, rendered live */}
+        {active ? (
+          <div
+            className="flex items-center gap-2 px-3.5 py-3 text-[12px] font-medium transition-all duration-300"
+            style={{ background: color, color: fg }}
+          >
+            <PreviewIcon size={14} className="shrink-0" style={{ color: fg }} />
+            <span className="flex-1 leading-snug line-clamp-2">
+              {message || "Pesan pengumuman akan tampil di sini"}
+            </span>
+            <X size={13} className="shrink-0" style={{ color: soft }} />
+          </div>
+        ) : (
+          <div
+            className="flex items-center justify-center gap-1.5 px-3 py-3 text-[11px] font-medium"
+            style={{ background: "#E0E7EE", color: "#5A7898" }}
+          >
+            <EyeOff size={12} /> Banner nonaktif
+          </div>
+        )}
+
+        {/* faux menu grid */}
+        <div className="grid grid-cols-2 gap-2.5 p-3.5" style={{ background: "#F6F8FB" }}>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="rounded-xl overflow-hidden" style={{ background: "#FDFDFD", border: "1px solid #CFD9E4" }}>
+              <div className="h-14" style={{ background: "#E0E7EE" }} />
+              <div className="p-2 space-y-1.5">
+                <div className="h-1.5 rounded-full" style={{ background: "#CFD9E4", width: i % 2 ? "70%" : "85%" }} />
+                <div className="h-1.5 w-10 rounded-full" style={{ background: "#FDE8DC" }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </PhoneMockup>
     </form>
   );
 }
