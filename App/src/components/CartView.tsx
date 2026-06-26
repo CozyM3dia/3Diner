@@ -4,15 +4,17 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Minus, Plus, Plus as PlusIcon, Box, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Plus as PlusIcon, Box, ShoppingBag, WifiOff } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { createOrder } from "@/lib/orders";
 import { formatRupiah } from "@/lib/format";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import type { Cafe } from "@/types";
 
 export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
   const { items, count, total, table, notes, setQty, setTable, setNotes, clear } = useCart();
   const router = useRouter();
+  const isOnline = useOnlineStatus();
   const [touched, setTouched] = useState(false);
   const tableValid = table.trim().length > 0;
 
@@ -210,15 +212,34 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
             borderTop: "1px solid var(--border)",
           }}
         >
-          <button
-            onClick={submit}
-            className="btn-primary press w-full h-[52px] rounded-2xl font-semibold text-[15px] text-white max-w-xl mx-auto block"
-          >
-            Pesan Sekarang
-          </button>
-          <p className="text-[11px] text-center mt-2" style={{ color: "var(--navy-muted)" }}>
-            Pesananmu akan dikirim ke dapur {cafe.nama_cafe}
-          </p>
+          {isOnline ? (
+            <>
+              <button
+                onClick={submit}
+                className="btn-primary press w-full h-[52px] rounded-2xl font-semibold text-[15px] text-white max-w-xl mx-auto block"
+              >
+                Pesan Sekarang
+              </button>
+              <p className="text-[11px] text-center mt-2" style={{ color: "var(--navy-muted)" }}>
+                Pesananmu akan dikirim ke dapur {cafe.nama_cafe}
+              </p>
+            </>
+          ) : (
+            <>
+              <div
+                className="w-full h-[52px] rounded-2xl flex items-center justify-center gap-2 max-w-xl mx-auto"
+                style={{ background: "var(--surface)", border: "1.5px dashed var(--border)" }}
+              >
+                <WifiOff size={16} strokeWidth={1.8} style={{ color: "var(--navy-muted)" }} />
+                <span className="font-semibold text-sm" style={{ color: "var(--navy-muted)" }}>
+                  Pesan Sekarang
+                </span>
+              </div>
+              <p className="text-[11px] text-center mt-2 flex items-center justify-center gap-1" style={{ color: "var(--orange-ink)" }}>
+                Hubungkan ke Wi-Fi kafe untuk mengirim pesanan.
+              </p>
+            </>
+          )}
         </div>
       )}
     </main>

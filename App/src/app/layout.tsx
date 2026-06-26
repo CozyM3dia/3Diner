@@ -22,13 +22,22 @@ export const metadata: Metadata = {
   title: "3Diner — Lihat Sebelum Memesan",
   description:
     "Jelajahi menu dalam tampilan 3D & AR yang memukau. Lihat sebelum memesan.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "3Diner",
+  },
+  icons: {
+    apple: "/brand/logo-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#FDFDFD",
+  themeColor: "#022C60",
 };
 
 export default function RootLayout({
