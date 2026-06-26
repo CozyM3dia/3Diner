@@ -49,6 +49,7 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
     new Set((menu?.schedule_days ?? "").split(",").map((s) => s.trim()).filter(Boolean))
   );
   const [active, setActive] = useState(menu?.is_active !== false);
+  const [modelScale, setModelScale] = useState(menu?.model_scale ?? 1.0);
 
   const inputCls = "dash-input w-full px-3.5 py-2.5 rounded-xl text-sm outline-none";
 
@@ -157,6 +158,27 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
           hint="File .usdz untuk AR di iPhone · maks 30MB"
           defaultUrl={menu?.usdz_url}
         />
+        <Field label="Skala Default Model 3D">
+          <div className="flex items-center gap-4 mt-1">
+            <input
+              name="model_scale"
+              type="range"
+              min="0.2"
+              max="3.0"
+              step="0.1"
+              value={modelScale}
+              onChange={(e) => setModelScale(parseFloat(e.target.value))}
+              className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#FD5002]"
+              style={{ background: "#132136" }}
+            />
+            <span className="text-sm font-semibold tabular-nums min-w-[42px] text-center" style={{ color: "#E9EEF6" }}>
+              {modelScale.toFixed(1)}x
+            </span>
+          </div>
+          <p className="text-[11px] mt-1.5" style={{ color: "#5A7898" }}>
+            Ukuran dasar model 3D saat pertama dimuat di 3D & AR. Pelanggan tetap bisa cubit untuk zoom.
+          </p>
+        </Field>
         <Field label="Link Pesan (opsional)">
           <input name="redirect_link" defaultValue={menu?.redirect_link ?? ""} className={inputCls} style={inputStyle} placeholder="https://…" />
         </Field>

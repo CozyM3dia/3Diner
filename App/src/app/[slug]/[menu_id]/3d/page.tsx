@@ -33,6 +33,7 @@ export default async function Model3DPage({ params }: PageProps) {
       usdzUrl={menu.usdz_url ?? undefined}
       menuName={menu.nama_menu}
       backUrl={backUrl}
+      modelScale={menu.model_scale ?? 1.0}
     />
   );
 }

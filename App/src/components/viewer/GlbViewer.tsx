@@ -10,23 +10,27 @@ interface GlbViewerProps {
   onError?: (msg: string) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onGltfLoaded?: (gltf: any) => void;
+  /** Admin-set default scale; customer slider multiplies on top of this. */
+  modelScale?: number;
 }
 
-export default function GlbViewer({ url, onReady, onError, onGltfLoaded }: GlbViewerProps) {
+export default function GlbViewer({ url, onReady, onError, onGltfLoaded, modelScale = 1.0 }: GlbViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<any>(null);
   const modelRef = useRef<any>(null);
+  const baseScaleRef = useRef(modelScale);
   const frameRef = useRef<number>(0);
   const [progress, setProgress] = useState(0);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
   const [scalePercent, setScalePercent] = useState(100);
 
+  // Customer slider value is a multiplier (50–200%) on top of the admin base scale.
   // Mutates Three.js scale directly via ref — no re-render of the render loop.
   const updateScale = useCallback((newScale: number) => {
     const clamped = Math.max(0.5, Math.min(2.0, newScale));
     setScalePercent(Math.round(clamped * 100));
-    if (modelRef.current) modelRef.current.scale.setScalar(clamped);
+    if (modelRef.current) modelRef.current.scale.setScalar(baseScaleRef.current * clamped);
   }, []);
 
   const init = useCallback(async () => {
@@ -117,7 +121,10 @@ export default function GlbViewer({ url, onReady, onError, onGltfLoaded }: GlbVi
       pivot.add(model);
       scene.add(pivot);
       modelRef.current = pivot;
-      pivot.scale.setScalar(1);
+      // Admin default scale = base; customer multiplier starts at 1 (100%).
+      const base = baseScaleRef.current && baseScaleRef.current > 0 ? baseScaleRef.current : 1;
+      baseScaleRef.current = base;
+      pivot.scale.setScalar(base);
       setScalePercent(100);
 
       const maxDim = Math.max(size.x, size.y, size.z);
@@ -251,6 +258,8 @@ export default function GlbViewer({ url, onReady, onError, onGltfLoaded }: GlbVi
       onError?.(msg);
     }
   }, [url, onReady, onError]);
+
+  useEffect(() => { baseScaleRef.current = modelScale; }, [modelScale]);
 
   useEffect(() => {
     init();

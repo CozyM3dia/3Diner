@@ -27,22 +27,24 @@ interface ARSessionProps {
   onClose: () => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   preloadedGltf?: any;
+  /** Admin-set default scale; pinch/slider multiplies on top of this base. */
+  modelScale?: number;
 }
 
 type GlbState = "loading" | "ready" | "ar" | "unsupported" | "error";
 type PlyState = "loading" | "ready" | "unsupported" | "active" | "overlay_blocked" | "error";
 
-export default function ARSession({ url, usdzUrl, menuName, onClose, preloadedGltf }: ARSessionProps) {
+export default function ARSession({ url, usdzUrl, menuName, onClose, preloadedGltf, modelScale = 1.0 }: ARSessionProps) {
   const isGlb = url.toLowerCase().endsWith(".glb");
 
   return isGlb ? (
-    <GlbAR url={url} usdzUrl={usdzUrl} menuName={menuName} onClose={onClose} preloadedGltf={preloadedGltf} />
+    <GlbAR url={url} usdzUrl={usdzUrl} menuName={menuName} onClose={onClose} preloadedGltf={preloadedGltf} modelScale={modelScale} />
   ) : (
     <PlyAR url={url} menuName={menuName} onClose={onClose} />
   );
 }
 
-function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: ARSessionProps) {
+function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, modelScale = 1.0 }: ARSessionProps) {
   const [state, setState] = useState<GlbState>("loading");
   const [arStarted, setArStarted] = useState(false);
   const [modelPlaced, setModelPlaced] = useState(false);
@@ -108,7 +110,8 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       const size0 = box0.getSize(new THREE.Vector3());
       const center0 = box0.getCenter(new THREE.Vector3());
       const maxDim0 = Math.max(size0.x, size0.y, size0.z);
-      const s = maxDim0 > 0.001 ? 0.35 / maxDim0 : 0.35;
+      const baseScale = maxDim0 > 0.001 ? 0.35 / maxDim0 : 0.35;
+      const s = baseScale * (modelScale && modelScale > 0 ? modelScale : 1);
       model.scale.setScalar(s);
       model.position.set(-center0.x * s, -box0.min.y * s, -center0.z * s);
 

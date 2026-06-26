@@ -43,6 +43,8 @@ export interface Menu {
   schedule_end?: string | null    // "HH:MM"
   // ── Display order (dashboard drag-to-reorder) ──
   sort_order?: number | null
+  // ── Default 3D model scale set by admin (multiplier, base for viewer/AR) ──
+  model_scale?: number | null
 }
 
 export interface Announcement {

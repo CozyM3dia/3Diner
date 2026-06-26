@@ -59,6 +59,7 @@ function menuPayload(fd: FormData) {
     schedule_days: str(fd, "schedule_days"),
     schedule_start: str(fd, "schedule_start"),
     schedule_end: str(fd, "schedule_end"),
+    model_scale: num(fd, "model_scale") ?? 1.0,
   };
 }
 
