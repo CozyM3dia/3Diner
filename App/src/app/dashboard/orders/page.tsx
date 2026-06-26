@@ -15,7 +15,7 @@ export default async function OrdersPage() {
 
   const slug = await getOwnerCafeSlug(user.id);
   const { data: cafe } = slug
-    ? await supabaseAdmin.from("Cafes").select("id_cafe").eq("slug_url", slug).single()
+    ? await supabaseAdmin.from("Cafes").select("id_cafe, nama_cafe").eq("slug_url", slug).single()
     : { data: null };
 
   const { data: orders } = cafe
@@ -33,7 +33,7 @@ export default async function OrdersPage() {
         <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>Pesanan</h1>
         <p className="text-sm mt-1" style={{ color: "#5A7898" }}>Pesanan masuk diperbarui otomatis</p>
       </div>
-      <OrdersClient initial={(orders ?? []) as OrderRow[]} cafeId={cafe?.id_cafe ?? ""} />
+      <OrdersClient initial={(orders ?? []) as OrderRow[]} cafeId={cafe?.id_cafe ?? ""} cafeName={(cafe as { id_cafe: string; nama_cafe?: string } | null)?.nama_cafe ?? "3Diner"} />
     </div>
   );
 }
