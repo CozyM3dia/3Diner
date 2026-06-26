@@ -222,7 +222,11 @@ export interface RevenueData {
   recentOrders: { id: string; table: string; total: number; status: string; at: string }[];
 }
 
-export async function getRevenueData(slug: string): Promise<RevenueData | null> {
+export async function getRevenueData(
+  slug: string,
+  startDate?: string,
+  endDate?: string
+): Promise<RevenueData | null> {
   const { data: cafe } = await supabaseAdmin
     .from("Cafes")
     .select("id_cafe")
@@ -230,12 +234,26 @@ export async function getRevenueData(slug: string): Promise<RevenueData | null> 
     .single();
   if (!cafe) return null;
 
-  const { data: orders } = await supabaseAdmin
+  let query = supabaseAdmin
     .from("Orders")
     .select("id_order, table_number, items, total, status, created_at, payment_method, payment_status")
-    .eq("cafe_id", cafe.id_cafe)
-    .gte("created_at", sinceDays(DAYS));
+    .eq("cafe_id", cafe.id_cafe);
 
+  if (startDate) {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    query = query.gte("created_at", start.toISOString());
+  } else {
+    query = query.gte("created_at", sinceDays(DAYS));
+  }
+
+  if (endDate) {
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    query = query.lte("created_at", end.toISOString());
+  }
+
+  const { data: orders } = await query;
   const list = orders ?? [];
 
   let totalRevenue = 0;
@@ -246,10 +264,22 @@ export async function getRevenueData(slug: string): Promise<RevenueData | null> 
   const perItem = new Map<string, { qty: number; revenue: number }>();
 
   const today = new Date();
-  for (let i = DAYS - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    dayBuckets.set(d.toISOString().slice(0, 10), 0);
+  const startDay = startDate ? new Date(startDate) : new Date(today.getTime() - (DAYS - 1) * 24 * 60 * 60 * 1000);
+  let endDay = endDate ? new Date(endDate) : new Date(today);
+
+  startDay.setHours(0, 0, 0, 0);
+  endDay.setHours(0, 0, 0, 0);
+
+  if (startDay > endDay) {
+    endDay = new Date(startDay);
+  }
+
+  const cur = new Date(startDay);
+  let count = 0;
+  while (cur <= endDay && count < 366) {
+    dayBuckets.set(cur.toISOString().slice(0, 10), 0);
+    cur.setDate(cur.getDate() + 1);
+    count++;
   }
 
   const now = Date.now();
