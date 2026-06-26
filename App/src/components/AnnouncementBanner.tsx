@@ -1,30 +1,43 @@
 "use client";
 
 import { useState } from "react";
-import { Megaphone, X } from "lucide-react";
+import { X } from "lucide-react";
+import { typeMeta } from "@/lib/announcement-types";
+import { readableOn, readableSoftOn } from "@/lib/contrast";
 
 interface AnnouncementBannerProps {
   message: string;
   bgColor: string;
+  type?: string;
 }
 
-export default function AnnouncementBanner({ message, bgColor }: AnnouncementBannerProps) {
+export default function AnnouncementBanner({ message, bgColor, type }: AnnouncementBannerProps) {
   const [show, setShow] = useState(true);
   if (!show) return null;
+
+  const meta = typeMeta(type);
+  const Icon = meta.icon;
+  const fg = readableOn(bgColor);
+  const soft = readableSoftOn(bgColor);
 
   return (
     <div
       className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium"
       style={{
         background: bgColor,
-        color: "#FFFFFF",
+        color: fg,
         animation: "ann-slide 360ms cubic-bezier(0.22,1,0.36,1)",
       }}
       role="status"
     >
-      <Megaphone size={15} className="shrink-0" />
+      <Icon size={15} className="shrink-0" style={{ color: fg }} />
       <span className="flex-1 leading-snug">{message}</span>
-      <button onClick={() => setShow(false)} aria-label="Tutup" className="shrink-0 opacity-80 hover:opacity-100">
+      <button
+        onClick={() => setShow(false)}
+        aria-label="Tutup"
+        className="shrink-0 transition-opacity hover:opacity-100"
+        style={{ color: soft }}
+      >
         <X size={15} />
       </button>
       <style>{`@keyframes ann-slide { from { transform: translateY(-100%); opacity: 0 } to { transform: translateY(0); opacity: 1 } }`}</style>

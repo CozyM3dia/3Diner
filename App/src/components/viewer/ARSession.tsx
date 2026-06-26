@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { X, Loader2, Scan, AlertTriangle, RotateCcw } from "lucide-react";
 import { fitCameraToModel } from "@/lib/fit-camera";
 import GlbViewer from "./GlbViewer";
-
 // model-viewer v3.4.0 — same version as tgo.4d-menu.com
 const MV_CDN = "https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js";
 const ModelViewerEl = "model-viewer" as any;
@@ -26,22 +25,24 @@ interface ARSessionProps {
   onClose: () => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   preloadedGltf?: any;
+  /** Admin-set default scale; pinch/slider multiplies on top of this base. */
+  modelScale?: number;
 }
 
 type GlbState = "loading" | "ready" | "ar" | "unsupported" | "error";
 type PlyState = "loading" | "ready" | "unsupported" | "active" | "overlay_blocked" | "error";
 
-export default function ARSession({ url, usdzUrl, menuName, onClose, preloadedGltf }: ARSessionProps) {
+export default function ARSession({ url, usdzUrl, menuName, onClose, preloadedGltf, modelScale = 1.0 }: ARSessionProps) {
   const isGlb = url.toLowerCase().endsWith(".glb");
 
   return isGlb ? (
-    <GlbAR url={url} usdzUrl={usdzUrl} menuName={menuName} onClose={onClose} preloadedGltf={preloadedGltf} />
+    <GlbAR url={url} usdzUrl={usdzUrl} menuName={menuName} onClose={onClose} preloadedGltf={preloadedGltf} modelScale={modelScale} />
   ) : (
     <PlyAR url={url} menuName={menuName} onClose={onClose} />
   );
 }
 
-function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: ARSessionProps) {
+function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, modelScale = 1.0 }: ARSessionProps) {
   const [state, setState] = useState<GlbState>("loading");
   const [arStarted, setArStarted] = useState(false);
   const [modelPlaced, setModelPlaced] = useState(false);
@@ -49,6 +50,8 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
   const sessionEndRef = useRef<(() => void) | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const canvasSlotRef = useRef<HTMLDivElement>(null);
+  const groupRef = useRef<any>(null);
+  const userScaleRef = useRef(1);
 
   // After 6s in AR without model placed, hide loading screen and show camera with hint
   useEffect(() => {
@@ -106,13 +109,16 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       const size0 = box0.getSize(new THREE.Vector3());
       const center0 = box0.getCenter(new THREE.Vector3());
       const maxDim0 = Math.max(size0.x, size0.y, size0.z);
-      const s = maxDim0 > 0.001 ? 0.35 / maxDim0 : 0.35;
+      const baseScale = maxDim0 > 0.001 ? 0.35 / maxDim0 : 0.35;
+      const s = baseScale * (modelScale && modelScale > 0 ? modelScale : 1);
       model.scale.setScalar(s);
       model.position.set(-center0.x * s, -box0.min.y * s, -center0.z * s);
 
       const group = new THREE.Group();
       group.add(model);
       group.visible = false;
+      groupRef.current = group;
+      userScaleRef.current = 1;
 
       // Rotation ring — flat circle at model base, dragging it rotates the model
       const RING_OUTER_R = 0.30;
@@ -202,7 +208,6 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       let isRotatingRing = false;
       let rotateRingStartX = 0;
       let respawning = false;
-      let userScale = 1;
       let lastPinchDist = 0;
       let lastPinchAngle = 0;
       let lastTapTime = 0;
@@ -231,7 +236,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
             if (now - lastTapTime < 300) {
               // Double-tap: reset scale and respawn
               lastTapTime = 0;
-              userScale = 1;
+              userScaleRef.current = 1;
               group.scale.setScalar(1);
               group.visible = false;
               placed = false;
@@ -268,9 +273,10 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
           const dist = Math.hypot(dx, dy);
           const angle = Math.atan2(dy, dx);
           if (lastPinchDist > 0) {
-            userScale *= dist / lastPinchDist;
-            userScale = Math.max(0.2, Math.min(5, userScale));
-            group.scale.setScalar(userScale);
+            let next = userScaleRef.current * (dist / lastPinchDist);
+            next = Math.max(0.2, Math.min(5, next));
+            userScaleRef.current = next;
+            group.scale.setScalar(next);
             group.rotation.y += angle - lastPinchAngle;
           }
           lastPinchDist = dist;

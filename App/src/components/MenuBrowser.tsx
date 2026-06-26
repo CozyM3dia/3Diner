@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, SearchX } from "lucide-react";
+import { Search, SearchX, WifiOff } from "lucide-react";
 import MenuCard from "./MenuCard";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import type { Menu } from "@/types";
 
 interface MenuBrowserProps {
@@ -16,6 +17,7 @@ const ALL = "Semua";
 export default function MenuBrowser({ menus, cafeId, slug }: MenuBrowserProps) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState(ALL);
+  const isOnline = useOnlineStatus();
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -100,6 +102,25 @@ export default function MenuBrowser({ menus, cafeId, slug }: MenuBrowserProps) {
           {filtered.map((m, i) => (
             <MenuCard key={m.id_menu} menu={m} cafeId={cafeId} slug={slug} index={i} />
           ))}
+        </div>
+      )}
+
+      {/* Offline banner */}
+      {!isOnline && (
+        <div
+          className="fixed bottom-4 left-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl"
+          style={{
+            background: "rgba(2,44,96,0.92)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+          }}
+        >
+          <WifiOff size={16} style={{ color: "#FD5002", flexShrink: 0 }} strokeWidth={2} />
+          <p className="text-sm font-medium text-white leading-snug">
+            Anda sedang offline. Menampilkan menu dari memori lokal.
+          </p>
         </div>
       )}
     </>

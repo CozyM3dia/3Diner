@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default function NewMenuPage() {
   return (
-    <div className="p-5 lg:p-8 max-w-2xl mx-auto">
+    <div className="p-5 lg:p-8 max-w-5xl mx-auto">
       <Link href="/dashboard/menu" className="inline-flex items-center gap-1 text-sm mb-5" style={{ color: "#5A7898" }}>
         <ChevronLeft size={15} /> Menu
       </Link>

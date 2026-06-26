@@ -41,6 +41,10 @@ export interface Menu {
   schedule_days?: string | null   // comma ISO weekday nums "1,2,3" (1=Mon..7=Sun)
   schedule_start?: string | null  // "HH:MM"
   schedule_end?: string | null    // "HH:MM"
+  // ── Display order (dashboard drag-to-reorder) ──
+  sort_order?: number | null
+  // ── Default 3D model scale set by admin (multiplier, base for viewer/AR) ──
+  model_scale?: number | null
 }
 
 export interface Announcement {
@@ -48,6 +52,7 @@ export interface Announcement {
   cafe_id: string
   message: string
   bg_color: string
+  type?: "info" | "promo" | "event" | "warning"
   is_active: boolean
   created_at: string
   updated_at?: string

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Loader2, RotateCcw } from "lucide-react";
+import ScaleControl from "./ScaleControl";
 
 interface GlbViewerProps {
   url: string;
@@ -9,15 +10,28 @@ interface GlbViewerProps {
   onError?: (msg: string) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onGltfLoaded?: (gltf: any) => void;
+  /** Admin-set default scale; customer slider multiplies on top of this. */
+  modelScale?: number;
 }
 
-export default function GlbViewer({ url, onReady, onError, onGltfLoaded }: GlbViewerProps) {
+export default function GlbViewer({ url, onReady, onError, onGltfLoaded, modelScale = 1.0 }: GlbViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<any>(null);
+  const modelRef = useRef<any>(null);
+  const baseScaleRef = useRef(modelScale);
   const frameRef = useRef<number>(0);
   const [progress, setProgress] = useState(0);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
+  const [scalePercent, setScalePercent] = useState(100);
+
+  // Customer slider value is a multiplier (50–200%) on top of the admin base scale.
+  // Mutates Three.js scale directly via ref — no re-render of the render loop.
+  const updateScale = useCallback((newScale: number) => {
+    const clamped = Math.max(0.5, Math.min(2.0, newScale));
+    setScalePercent(Math.round(clamped * 100));
+    if (modelRef.current) modelRef.current.scale.setScalar(baseScaleRef.current * clamped);
+  }, []);
 
   const init = useCallback(async () => {
     if (!containerRef.current) return;
@@ -95,13 +109,23 @@ export default function GlbViewer({ url, onReady, onError, onGltfLoaded }: GlbVi
       setProgress(95);
 
       const model = gltf.scene;
-      scene.add(model);
 
       // Fit camera to model bounding box
       const box = new THREE.Box3().setFromObject(model);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
       model.position.sub(center);
+
+      // Wrap in a pivot so user scaling happens around the visual center.
+      const pivot = new THREE.Group();
+      pivot.add(model);
+      scene.add(pivot);
+      modelRef.current = pivot;
+      // Admin default scale = base; customer multiplier starts at 1 (100%).
+      const base = baseScaleRef.current && baseScaleRef.current > 0 ? baseScaleRef.current : 1;
+      baseScaleRef.current = base;
+      pivot.scale.setScalar(base);
+      setScalePercent(100);
 
       const maxDim = Math.max(size.x, size.y, size.z);
       let dist = maxDim * 2.2;
@@ -235,6 +259,8 @@ export default function GlbViewer({ url, onReady, onError, onGltfLoaded }: GlbVi
     }
   }, [url, onReady, onError]);
 
+  useEffect(() => { baseScaleRef.current = modelScale; }, [modelScale]);
+
   useEffect(() => {
     init();
     return () => {
@@ -250,6 +276,14 @@ export default function GlbViewer({ url, onReady, onError, onGltfLoaded }: GlbVi
   return (
     <div className="absolute inset-0">
       <div ref={containerRef} className="absolute inset-0" />
+
+      {state === "ready" && (
+        <ScaleControl
+          percent={scalePercent}
+          onScale={updateScale}
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[88%] max-w-sm z-10"
+        />
+      )}
 
       {state === "loading" && (
         <div

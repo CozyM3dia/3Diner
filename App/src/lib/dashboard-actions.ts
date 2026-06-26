@@ -59,6 +59,7 @@ function menuPayload(fd: FormData) {
     schedule_days: str(fd, "schedule_days"),
     schedule_start: str(fd, "schedule_start"),
     schedule_end: str(fd, "schedule_end"),
+    model_scale: num(fd, "model_scale") ?? 1.0,
   };
 }
 
@@ -119,6 +120,23 @@ export async function setMenuAvailability(
   return {};
 }
 
+/** Persist a new display order. `orderedIds` is the full list of menu ids in
+ *  the desired order; each gets sort_order = its index. Scoped to the cafe. */
+export async function reorderMenus(orderedIds: string[]): Promise<ActionResult> {
+  const cafeId = await getAuthCafeId();
+  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) return {};
+  const updates = orderedIds.map((id, i) =>
+    supabaseAdmin.from("Menus").update({ sort_order: i }).eq("id_menu", id).eq("cafe_id", cafeId)
+  );
+  const results = await Promise.all(updates);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { error: failed.error.message };
+  revalidatePath("/dashboard/menu");
+  revalidatePath("/[slug]", "page");
+  return {};
+}
+
 // ── Cafe settings ────────────────────────────────────────────────────────
 
 export async function updateCafeSettings(fd: FormData): Promise<ActionResult> {
@@ -147,10 +165,13 @@ export async function saveAnnouncement(fd: FormData): Promise<ActionResult> {
   const id = str(fd, "id");
   const message = str(fd, "message");
   if (!message) return { error: "Pesan pengumuman wajib diisi." };
+  const allowedTypes = ["info", "promo", "event", "warning"];
+  const rawType = str(fd, "type") ?? "info";
   const payload = {
     cafe_id: cafeId,
     message,
     bg_color: str(fd, "bg_color") ?? "#FD5002",
+    type: allowedTypes.includes(rawType) ? rawType : "info",
     is_active: fd.get("is_active") === "true",
     updated_at: new Date().toISOString(),
   };

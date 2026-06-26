@@ -34,6 +34,7 @@ export async function getMenusByCafeId(cafeId: string): Promise<Menu[]> {
     .from("Menus")
     .select("*")
     .eq("cafe_id", cafeId)
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
 
   if (error) return [];

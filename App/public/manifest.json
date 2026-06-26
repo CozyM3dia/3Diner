@@ -1,0 +1,24 @@
+{
+  "name": "3Diner - Smart 3D Menu",
+  "short_name": "3Diner",
+  "description": "Jelajahi menu dalam tampilan 3D & AR. Lihat sebelum memesan.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#022C60",
+  "theme_color": "#022C60",
+  "icons": [
+    {
+      "src": "/brand/logo-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brand/logo-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

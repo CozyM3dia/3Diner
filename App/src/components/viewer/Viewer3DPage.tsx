@@ -13,11 +13,12 @@ interface Viewer3DPageProps {
   usdzUrl?: string;
   menuName: string;
   backUrl: string;
+  modelScale?: number;
 }
 
 type ViewerState = "loading" | "ready" | "error";
 
-export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer3DPageProps) {
+export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelScale = 1.0 }: Viewer3DPageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const viewerRef = useRef<any>(null);
@@ -154,6 +155,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
             onReady={() => setState("ready")}
             onError={(msg) => { setErrorMsg(msg); setState("error"); }}
             onGltfLoaded={(g) => { gltfCacheRef.current = g; }}
+            modelScale={modelScale}
           />
         ) : (
           <div ref={containerRef} className="absolute inset-0" />
@@ -222,6 +224,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl }: Viewer
           menuName={menuName}
           onClose={() => setShowAR(false)}
           preloadedGltf={gltfCacheRef.current}
+          modelScale={modelScale}
         />
       )}
     </div>
