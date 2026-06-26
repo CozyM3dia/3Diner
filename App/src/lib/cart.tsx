@@ -13,12 +13,14 @@ import type { CartItem, Menu } from "@/types";
 interface CartState {
   items: CartItem[];
   table: string;
+  notes: string;
   count: number;
   total: number;
   add: (menu: Menu, qty?: number) => void;
   setQty: (id: string, qty: number) => void;
   remove: (id: string) => void;
   setTable: (t: string) => void;
+  setNotes: (n: string) => void;
   clear: () => void;
 }
 
@@ -37,6 +39,7 @@ export function CartProvider({
 }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [table, setTableState] = useState("");
+  const [notes, setNotesState] = useState("");
   const [hydrated, setHydrated] = useState(false);
 
   // Load persisted cart on mount
@@ -44,9 +47,10 @@ export function CartProvider({
     try {
       const raw = localStorage.getItem(storageKey(slug));
       if (raw) {
-        const parsed = JSON.parse(raw) as { items?: CartItem[]; table?: string };
+        const parsed = JSON.parse(raw) as { items?: CartItem[]; table?: string; notes?: string };
         setItems(parsed.items ?? []);
         setTableState(parsed.table ?? "");
+        setNotesState(parsed.notes ?? "");
       }
     } catch {
       /* ignore corrupt storage */
@@ -58,11 +62,11 @@ export function CartProvider({
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(storageKey(slug), JSON.stringify({ items, table }));
+      localStorage.setItem(storageKey(slug), JSON.stringify({ items, table, notes }));
     } catch {
       /* storage full / unavailable */
     }
-  }, [items, table, slug, hydrated]);
+  }, [items, table, notes, slug, hydrated]);
 
   function add(menu: Menu, qty = 1) {
     setItems((prev) => {
@@ -101,9 +105,14 @@ export function CartProvider({
     setTableState(t);
   }
 
+  function setNotes(n: string) {
+    setNotesState(n);
+  }
+
   function clear() {
     setItems([]);
     setTableState("");
+    setNotesState("");
   }
 
   const { count, total } = useMemo(() => {
@@ -119,12 +128,14 @@ export function CartProvider({
   const value: CartState = {
     items,
     table,
+    notes,
     count,
     total,
     add,
     setQty,
     remove,
     setTable,
+    setNotes,
     clear,
   };
 

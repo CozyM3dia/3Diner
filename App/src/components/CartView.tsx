@@ -11,7 +11,7 @@ import { formatRupiah } from "@/lib/format";
 import type { Cafe } from "@/types";
 
 export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
-  const { items, count, total, table, setQty, setTable, clear } = useCart();
+  const { items, count, total, table, notes, setQty, setTable, setNotes, clear } = useCart();
   const router = useRouter();
   const [touched, setTouched] = useState(false);
   const tableValid = table.trim().length > 0;
@@ -28,6 +28,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
       table: table.trim(),
       items,
       total,
+      notes: notes.trim(),
     });
     clear();
     router.push(`/${slug}/pesanan/${order.id_order}`);
@@ -130,28 +131,52 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
             <PlusIcon size={16} strokeWidth={2.5} /> Tambah item lain
           </Link>
 
-          {/* Table number */}
-          <div className="card p-4 mt-4">
-            <label htmlFor="meja" className="block text-sm font-semibold mb-2" style={{ color: "var(--navy)" }}>
-              Nomor Meja
-            </label>
-            <input
-              id="meja"
-              value={table}
-              onChange={(e) => setTable(e.target.value)}
-              onBlur={() => setTouched(true)}
-              inputMode="numeric"
-              placeholder="Contoh: 12"
-              className="w-full h-12 px-4 rounded-xl text-sm transition-shadow"
-              style={{
-                background: "var(--surface)",
-                color: "var(--navy)",
-                boxShadow: touched && !tableValid ? "0 0 0 2px var(--orange)" : undefined,
-              }}
-            />
-            <p className="text-[11px] mt-1.5" style={{ color: touched && !tableValid ? "var(--orange-ink)" : "var(--navy-muted)" }}>
-              {touched && !tableValid ? "Wajib diisi sebelum memesan" : "Wajib diisi"}
-            </p>
+          {/* Table number & Notes */}
+          <div className="card p-4 mt-4 space-y-4">
+            <div>
+              <label htmlFor="meja" className="block text-sm font-semibold mb-2" style={{ color: "var(--navy)" }}>
+                Nomor Meja
+              </label>
+              <input
+                id="meja"
+                value={table}
+                onChange={(e) => setTable(e.target.value)}
+                onBlur={() => setTouched(true)}
+                inputMode="numeric"
+                placeholder="Contoh: 12"
+                className="w-full h-12 px-4 rounded-xl text-sm transition-shadow"
+                style={{
+                  background: "var(--surface)",
+                  color: "var(--navy)",
+                  boxShadow: touched && !tableValid ? "0 0 0 2px var(--orange)" : undefined,
+                }}
+              />
+              <p className="text-[11px] mt-1.5" style={{ color: touched && !tableValid ? "var(--orange-ink)" : "var(--navy-muted)" }}>
+                {touched && !tableValid ? "Wajib diisi sebelum memesan" : "Wajib diisi"}
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="catatan" className="block text-sm font-semibold mb-2" style={{ color: "var(--navy)" }}>
+                Catatan Tambahan <span className="text-[11px] font-normal" style={{ color: "var(--navy-muted)" }}>(Opsional)</span>
+              </label>
+              <textarea
+                id="catatan"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Contoh: Sambal dipisah, tanpa es batu, sendok plastik..."
+                rows={2}
+                className="w-full p-3 rounded-xl text-sm transition-shadow resize-none"
+                style={{
+                  background: "var(--surface)",
+                  color: "var(--navy)",
+                  minHeight: "72px",
+                  lineHeight: "1.5",
+                  border: "none",
+                  outline: "none",
+                }}
+              />
+            </div>
           </div>
 
           {/* Summary */}

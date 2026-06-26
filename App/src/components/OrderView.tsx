@@ -350,6 +350,16 @@ function StatusView({ order, slug }: { order: Order; slug: string }) {
             </span>
           </div>
         </div>
+
+        {/* Catatan Tambahan */}
+        {order.notes && (
+          <div className="card p-4 mt-3">
+            <h2 className="font-display text-sm font-bold mb-2" style={{ color: "var(--navy)" }}>Catatan Tambahan</h2>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--navy-muted)", whiteSpace: "pre-wrap" }}>
+              {order.notes}
+            </p>
+          </div>
+        )}
       </div>
 
       <div

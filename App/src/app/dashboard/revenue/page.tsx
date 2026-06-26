@@ -6,6 +6,7 @@ import { formatRupiah } from "@/lib/format";
 import StatCard from "@/components/dashboard/StatCard";
 import RevenueChart from "@/components/dashboard/RevenueChart";
 import DonutChart from "@/components/dashboard/DonutChart";
+import DateRangePicker from "@/components/dashboard/DateRangePicker";
 
 export const metadata: Metadata = { title: "Penjualan · Dashboard | 3Diner" };
 export const dynamic = "force-dynamic";
@@ -35,18 +36,34 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 const PANEL = { background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" } as const;
 
-export default async function RevenuePage() {
+interface PageProps {
+  searchParams: Promise<{ start?: string; end?: string }>;
+}
+
+export default async function RevenuePage({ searchParams }: PageProps) {
+  const { start, end } = await searchParams;
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
 
   const slug = await getOwnerCafeSlug(userId);
-  const data = slug ? await getRevenueData(slug) : null;
+  const data = slug ? await getRevenueData(slug, start, end) : null;
 
   if (!data) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-2 text-center px-6">
-        <p className="font-semibold" style={{ color: "#E9EEF6" }}>Belum ada data penjualan</p>
-        <p className="text-sm" style={{ color: "#5A7898" }}>Pesanan yang masuk akan muncul di sini.</p>
+      <div className="p-5 lg:p-8 max-w-[1400px] mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-7">
+          <div>
+            <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>Penjualan</h1>
+            <p className="text-sm mt-1" style={{ color: "#5A7898" }}>Belum ada data penjualan pada rentang terpilih.</p>
+          </div>
+          <div className="shrink-0">
+            <DateRangePicker initialStart={start} initialEnd={end} />
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center min-h-[40vh] gap-2 text-center px-6" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "16px" }}>
+          <p className="font-semibold" style={{ color: "#E9EEF6" }}>Belum ada data penjualan</p>
+          <p className="text-sm" style={{ color: "#5A7898" }}>Pesanan yang masuk akan muncul di sini.</p>
+        </div>
       </div>
     );
   }
@@ -54,18 +71,41 @@ export default async function RevenuePage() {
   const { totalRevenue, orderCount, avgOrder, itemsSold, revenueDelta, dailyRevenue, statusCounts, paymentCounts, topByRevenue, recentOrders } = data;
   const maxItemRev = Math.max(1, ...topByRevenue.map((d) => d.revenue));
 
+  // Dynamically generate subtitle text based on active range
+  const subtitleLabel = (() => {
+    if (start && end) {
+      const s = new Date(start).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+      const e = new Date(end).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+      return `Ringkasan pendapatan ${s} - ${e} · ${orderCount.toLocaleString("id-ID")} pesanan`;
+    }
+    if (start) {
+      const s = new Date(start).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+      return `Ringkasan pendapatan sejak ${s} · ${orderCount.toLocaleString("id-ID")} pesanan`;
+    }
+    if (end) {
+      const e = new Date(end).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+      return `Ringkasan pendapatan hingga ${e} · ${orderCount.toLocaleString("id-ID")} pesanan`;
+    }
+    return `Ringkasan pendapatan 14 hari terakhir · ${orderCount.toLocaleString("id-ID")} pesanan`;
+  })();
+
   return (
     <div className="p-5 lg:p-8 max-w-[1400px] mx-auto">
-      <div className="mb-7 dash-reveal">
-        <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>Penjualan</h1>
-        <p className="text-sm mt-1" style={{ color: "#5A7898" }}>
-          Ringkasan pendapatan 14 hari terakhir · {orderCount.toLocaleString("id-ID")} pesanan
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-7 dash-reveal">
+        <div>
+          <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>Penjualan</h1>
+          <p className="text-sm mt-1" style={{ color: "#5A7898" }}>
+            {subtitleLabel}
+          </p>
+        </div>
+        <div className="shrink-0">
+          <DateRangePicker initialStart={start} initialEnd={end} />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5 dash-reveal dash-d1">
-        <StatCard value={totalRevenue} prefix="Rp " label="Total Pendapatan" icon={<Wallet size={17} strokeWidth={2} />} accent="#22D3A6" accentBg="rgba(34,211,166,0.12)" delta={revenueDelta} />
-        <StatCard value={orderCount} label="Jumlah Pesanan" icon={<Receipt size={17} strokeWidth={2} />} accent="#9FB6D1" accentBg="rgba(159,182,209,0.12)" sub="14 hari terakhir" />
+        <StatCard value={totalRevenue} prefix="Rp " label="Total Pendapatan" icon={<Wallet size={17} strokeWidth={2} />} accent="#22D3A6" accentBg="rgba(34,211,166,0.12)" delta={start || end ? undefined : revenueDelta} />
+        <StatCard value={orderCount} label="Jumlah Pesanan" icon={<Receipt size={17} strokeWidth={2} />} accent="#9FB6D1" accentBg="rgba(159,182,209,0.12)" sub={start || end ? "Rentang terpilih" : "14 hari terakhir"} />
         <StatCard value={avgOrder} prefix="Rp " label="Rata-rata / Pesanan" icon={<TrendingUp size={17} strokeWidth={2} />} accent="#FD5002" accentBg="rgba(253,80,2,0.12)" sub="nilai per transaksi" />
         <StatCard value={itemsSold} label="Item Terjual" icon={<Package size={17} strokeWidth={2} />} accent="#00C2A8" accentBg="rgba(0,194,168,0.12)" sub="total porsi" />
       </div>

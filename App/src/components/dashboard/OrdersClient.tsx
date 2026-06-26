@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ShoppingBag, Clock, ChefHat, CheckCircle2, Loader2, Copy, Check } from "lucide-react";
+import { ShoppingBag, Clock, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { updateOrderStatus } from "@/lib/dashboard-actions";
 import { formatRupiah } from "@/lib/format";
@@ -17,6 +17,7 @@ export interface OrderRow {
   payment_method: string | null;
   payment_status: string;
   created_at: string;
+  notes?: string | null;
 }
 
 type Filter = "all" | "received" | "preparing" | "ready";
@@ -34,6 +35,125 @@ const TABS: { v: Filter; l: string }[] = [
   { v: "ready", l: "Siap" },
 ];
 
+function printReceipt(order: OrderRow, cafeName: string): void {
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText =
+    "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;opacity:0;pointer-events:none;";
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+  if (!doc) { document.body.removeChild(iframe); return; }
+
+  const date = new Date(order.created_at);
+  const dateStr = date.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const timeStr = date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  const items = Array.isArray(order.items) ? order.items : [];
+
+  const payLabel =
+    order.payment_method === "qris" ? "QRIS"
+    : order.payment_method === "cash" ? "Tunai"
+    : "Belum Dibayar";
+
+  const SEP32 = "--------------------------------";
+  const SEP32D = "================================";
+
+  const itemRows = items.map((it) => {
+    const subtotal = (it.harga_menu * it.qty).toLocaleString("id-ID");
+    return `
+      <tr>
+        <td style="vertical-align:top;padding-right:6px;white-space:nowrap;">${it.qty}x</td>
+        <td style="vertical-align:top;width:100%;word-break:break-word;">${it.nama_menu}</td>
+        <td style="vertical-align:top;text-align:right;white-space:nowrap;padding-left:4px;">Rp ${subtotal}</td>
+      </tr>`;
+  }).join("");
+
+  const notesBlock = order.notes
+    ? `<div class="notes-box">** CATATAN **<br>${order.notes}</div>`
+    : "";
+
+  const totalStr = order.total.toLocaleString("id-ID");
+  const orderId = order.id_order.slice(-8).toUpperCase();
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Struk #${orderId}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:'Courier New',Consolas,'Lucida Console',monospace;
+    font-size:11.5px;
+    line-height:1.45;
+    width:76mm;
+    max-width:76mm;
+    padding:4mm 3mm 8mm;
+    color:#000;
+    background:#fff;
+  }
+  .c{text-align:center;}
+  .r{text-align:right;}
+  .b{font-weight:bold;}
+  .cafe-name{font-size:15px;font-weight:bold;text-align:center;letter-spacing:1.5px;margin-bottom:1px;}
+  .pos-sub{font-size:9.5px;text-align:center;margin-bottom:3px;}
+  .sep{font-size:11px;letter-spacing:0px;margin:3px 0;}
+  .meja{font-size:22px;font-weight:bold;text-align:center;margin:3px 0 2px;}
+  .meta{font-size:10.5px;margin:1px 0;}
+  table{width:100%;border-collapse:collapse;}
+  td{padding:1px 0;font-size:11px;}
+  .total-line{margin-top:5px;padding-top:4px;border-top:1px dashed #000;}
+  .total-lbl{font-size:12px;font-weight:bold;}
+  .total-val{font-size:13px;font-weight:bold;text-align:right;}
+  .notes-box{border:1px dashed #000;padding:4px 5px;margin:5px 0;font-weight:bold;font-size:11px;word-break:break-word;}
+  .footer{text-align:center;font-size:10px;margin-top:3px;}
+  @media print{
+    body{margin:0;padding:2mm 2mm 6mm;}
+    @page{margin:0;size:80mm auto;}
+  }
+</style>
+</head>
+<body>
+  <div class="cafe-name">${cafeName}</div>
+  <div class="pos-sub">POS 3Diner</div>
+  <div class="sep c">${SEP32D}</div>
+  <div class="c b" style="font-size:12px;">STRUK PESANAN</div>
+  <div class="sep c">${SEP32}</div>
+  <div class="meja">MEJA ${order.table_number}</div>
+  <div class="sep c">${SEP32}</div>
+  <div class="meta"><span class="b">ID    :</span> #${orderId}</div>
+  <div class="meta"><span class="b">Tgl   :</span> ${dateStr}  ${timeStr}</div>
+  <div class="meta"><span class="b">Bayar :</span> ${payLabel}</div>
+  <div class="sep c">${SEP32}</div>
+  <table><tbody>${itemRows}</tbody></table>
+  <div class="sep c">${SEP32}</div>
+  <table>
+    <tr>
+      <td class="total-lbl">TOTAL</td>
+      <td class="total-val">Rp ${totalStr}</td>
+    </tr>
+  </table>
+  ${notesBlock}
+  <div class="sep c">${SEP32D}</div>
+  <div class="footer">Terima kasih telah berkunjung!</div>
+  <div class="footer">Dicetak via POS 3Diner</div>
+  <div style="height:6mm;"></div>
+</body>
+</html>`;
+
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  // Give browser time to parse & layout before triggering print
+  setTimeout(() => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    setTimeout(() => {
+      if (document.body.contains(iframe)) document.body.removeChild(iframe);
+    }, 1000);
+  }, 300);
+}
+
 function relTime(iso: string): string {
   const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (m < 1) return "baru saja";
@@ -43,7 +163,7 @@ function relTime(iso: string): string {
   return `${Math.round(h / 24)} hari lalu`;
 }
 
-export default function OrdersClient({ initial, cafeId }: { initial: OrderRow[]; cafeId: string }) {
+export default function OrdersClient({ initial, cafeId, cafeName }: { initial: OrderRow[]; cafeId: string; cafeName: string }) {
   const [orders, setOrders] = useState<OrderRow[]>(initial);
   const [filter, setFilter] = useState<Filter>("all");
   const [pending, startTransition] = useTransition();
@@ -163,9 +283,20 @@ export default function OrdersClient({ initial, cafeId }: { initial: OrderRow[];
                     </div>
                     <p className="text-[11px] mt-0.5" style={{ color: "#5A7898" }}>{relTime(o.created_at)}</p>
                   </div>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: meta.bg, color: meta.color }}>
-                    <Icon size={12} /> {meta.label}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => printReceipt(o, cafeName)}
+                      className="dash-press p-1.5 rounded-lg transition-colors duration-150"
+                      style={{ color: "#5A7898", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+                      title="Cetak Struk"
+                      aria-label="Cetak Struk"
+                    >
+                      <Printer size={14} strokeWidth={1.8} />
+                    </button>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: meta.bg, color: meta.color }}>
+                      <Icon size={12} /> {meta.label}
+                    </span>
+                  </div>
                 </div>
 
                 <ul className="space-y-1.5 mb-3">
@@ -178,6 +309,13 @@ export default function OrdersClient({ initial, cafeId }: { initial: OrderRow[];
                     </li>
                   ))}
                 </ul>
+
+                {o.notes && (
+                  <div className="mb-3 p-3 rounded-xl text-xs" style={{ background: "rgba(253,80,2,0.06)", border: "1px solid rgba(253,80,2,0.15)" }}>
+                    <p style={{ color: "#FD5002", fontWeight: 600, marginBottom: "3px" }}>Catatan:</p>
+                    <p style={{ color: "#E9EEF6", whiteSpace: "pre-wrap" }}>{o.notes}</p>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
                   <span className="text-sm font-bold tabular-nums" style={{ color: "#E9EEF6" }}>{formatRupiah(o.total)}</span>

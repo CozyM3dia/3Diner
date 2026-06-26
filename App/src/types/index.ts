@@ -87,4 +87,5 @@ export interface Order {
   payment_method: PaymentMethod | null
   payment_status: PaymentStatus
   created_at: string
+  notes?: string | null
 }

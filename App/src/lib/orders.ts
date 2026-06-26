@@ -37,6 +37,7 @@ interface CreateOrderInput {
   table: string;
   items: CartItem[];
   total: number;
+  notes?: string;
 }
 
 export function createOrder(input: CreateOrderInput): Order {
@@ -53,6 +54,7 @@ export function createOrder(input: CreateOrderInput): Order {
     payment_method: null,
     payment_status: "unpaid",
     created_at: new Date().toISOString(),
+    notes: input.notes || null,
   };
 
   try {
@@ -110,6 +112,7 @@ function syncToSupabase(order: Order) {
             payment_method: order.payment_method,
             payment_status: order.payment_status,
             created_at: order.created_at,
+            notes: order.notes,
           },
           { onConflict: "id_order" }
         )
