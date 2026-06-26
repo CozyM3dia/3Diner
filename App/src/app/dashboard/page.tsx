@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { MousePointerClick, Box, ShoppingBag, Target, Clock, Flame, Sparkles, CalendarDays } from "lucide-react";
 import { getDashboardData, getOwnerCafeSlug, getSessionUserId, type EventType } from "@/lib/analytics";
+import DateRangePicker from "@/components/dashboard/DateRangePicker";
 import StatCard from "@/components/dashboard/StatCard";
 import LineChart from "@/components/dashboard/LineChart";
 import FunnelBars from "@/components/dashboard/FunnelBars";
@@ -44,12 +45,17 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 const PANEL = { background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" } as const;
 
-export default async function AnalyticsPage() {
+interface PageProps {
+  searchParams: Promise<{ start?: string; end?: string }>;
+}
+
+export default async function AnalyticsPage({ searchParams }: PageProps) {
+  const { start, end } = await searchParams;
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
 
   const slug = await getOwnerCafeSlug(userId);
-  const data = slug ? await getDashboardData(slug) : null;
+  const data = slug ? await getDashboardData(slug, start, end) : null;
 
   if (!data) {
     return (
@@ -102,24 +108,36 @@ export default async function AnalyticsPage() {
     },
   ].filter(Boolean) as { icon: typeof Clock; accent: string; bg: string; label: string; value: string }[];
 
+  const fmt = (iso: string) => new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  const rangeLabel = start && end
+    ? `${fmt(start)} – ${fmt(end)}`
+    : start ? `Sejak ${fmt(start)}`
+    : end ? `Hingga ${fmt(end)}`
+    : "14 hari terakhir";
+
   return (
     <div className="p-5 lg:p-8 max-w-[1400px] mx-auto">
       {/* Hero header */}
-      <div className="mb-6 dash-reveal">
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles size={15} style={{ color: "#FD5002" }} />
-          <span className="text-xs font-medium" style={{ color: "#5A7898" }}>Ringkasan 14 hari · {cafe.nama_cafe}</span>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 dash-reveal">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles size={15} style={{ color: "#FD5002" }} />
+            <span className="text-xs font-medium" style={{ color: "#5A7898" }}>Ringkasan {rangeLabel} · {cafe.nama_cafe}</span>
+          </div>
+          <h1 className="font-display text-[28px] font-bold leading-tight" style={{ color: "#E9EEF6" }}>
+            Analitik
+          </h1>
+          <p className="text-sm mt-1.5" style={{ color: "#9FB6D1" }}>
+            <span style={{ color: "#E9EEF6", fontWeight: 600 }}>{totalEvents.toLocaleString("id-ID")}</span> total interaksi ·
+            rata-rata <span style={{ color: "#E9EEF6", fontWeight: 600 }}>{insights.avgPerDay}</span>/hari
+            {insights.quietHint && (
+              <span className="block mt-1 text-[13px]" style={{ color: "#5A7898" }}>{insights.quietHint}</span>
+            )}
+          </p>
         </div>
-        <h1 className="font-display text-[28px] font-bold leading-tight" style={{ color: "#E9EEF6" }}>
-          Analitik
-        </h1>
-        <p className="text-sm mt-1.5" style={{ color: "#9FB6D1" }}>
-          <span style={{ color: "#E9EEF6", fontWeight: 600 }}>{totalEvents.toLocaleString("id-ID")}</span> total interaksi ·
-          rata-rata <span style={{ color: "#E9EEF6", fontWeight: 600 }}>{insights.avgPerDay}</span>/hari
-          {insights.quietHint && (
-            <span className="block mt-1 text-[13px]" style={{ color: "#5A7898" }}>{insights.quietHint}</span>
-          )}
-        </p>
+        <div className="shrink-0">
+          <DateRangePicker initialStart={start} initialEnd={end} />
+        </div>
       </div>
 
       {/* Insight strip */}

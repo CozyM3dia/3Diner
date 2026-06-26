@@ -57,7 +57,11 @@ export const getOwnerCafeSlug = cache(async (ownerId: string): Promise<string | 
   return (data?.slug_url as string) ?? null;
 });
 
-export async function getDashboardData(slug: string): Promise<DashboardData | null> {
+export async function getDashboardData(
+  slug: string,
+  startDate?: string,
+  endDate?: string
+): Promise<DashboardData | null> {
   const { data: cafe } = await supabaseAdmin
     .from("Cafes")
     .select("id_cafe, nama_cafe, slug_url")
@@ -66,13 +70,27 @@ export async function getDashboardData(slug: string): Promise<DashboardData | nu
 
   if (!cafe) return null;
 
+  // Compute effective query window
+  const today = new Date();
+  const queryStart = startDate
+    ? (() => { const d = new Date(startDate); d.setHours(0, 0, 0, 0); return d; })()
+    : (() => { const d = new Date(today.getTime() - (DAYS - 1) * 24 * 60 * 60 * 1000); d.setHours(0, 0, 0, 0); return d; })();
+  const queryEnd = endDate
+    ? (() => { const d = new Date(endDate); d.setHours(23, 59, 59, 999); return d; })()
+    : (() => { const d = new Date(today); d.setHours(23, 59, 59, 999); return d; })();
+
+  const startDay = new Date(queryStart); startDay.setHours(0, 0, 0, 0);
+  const endDay = new Date(queryEnd); endDay.setHours(0, 0, 0, 0);
+  const rangeDays = Math.max(1, Math.round((endDay.getTime() - startDay.getTime()) / 86400000) + 1);
+
   const [{ data: menus }, { data: logs }] = await Promise.all([
     supabaseAdmin.from("Menus").select("id_menu, nama_menu").eq("cafe_id", cafe.id_cafe),
     supabaseAdmin
       .from("Analytics_Logs")
       .select("menu_id, event_type, created_at")
       .eq("cafe_id", cafe.id_cafe)
-      .gte("created_at", sinceDays(DAYS)),
+      .gte("created_at", queryStart.toISOString())
+      .lte("created_at", queryEnd.toISOString()),
   ]);
 
   const menuName = new Map<string, string>(
@@ -87,12 +105,13 @@ export async function getDashboardData(slug: string): Promise<DashboardData | nu
   const hourly = new Array<number>(24).fill(0);
   const weekday = new Array<number>(7).fill(0); // 0=Mon..6=Sun
 
-  // Build 14-day skeleton (oldest → newest)
-  const today = new Date();
-  for (let i = DAYS - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    dayBuckets.set(d.toISOString().slice(0, 10), 0);
+  // Build day skeleton from queryStart → queryEnd
+  const cur = new Date(startDay);
+  let dCount = 0;
+  while (cur <= endDay && dCount < 366) {
+    dayBuckets.set(cur.toISOString().slice(0, 10), 0);
+    cur.setDate(cur.getDate() + 1);
+    dCount++;
   }
 
   const now = Date.now();
@@ -166,7 +185,7 @@ export async function getDashboardData(slug: string): Promise<DashboardData | nu
   const peakHour = hourMax > 0 ? hourly.indexOf(hourMax) : null;
   const wdMax = Math.max(...weekday);
   const busiestWeekday = wdMax > 0 ? weekday.indexOf(wdMax) : null;
-  const avgPerDay = Math.round(totalEvents / DAYS);
+  const avgPerDay = Math.round(totalEvents / rangeDays);
 
   const dishArr = [...perDish.entries()].map(([id, v]) => ({ name: menuName.get(id) ?? "—", ...v }));
   const bestDish = dishArr.length ? [...dishArr].sort((a, b) => b.views - a.views)[0].name : null;
