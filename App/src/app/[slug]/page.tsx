@@ -34,7 +34,7 @@ export default async function CafeMenuPage({ params }: PageProps) {
   return (
     <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "96px" }}>
       {announcement && (
-        <AnnouncementBanner message={announcement.message} bgColor={announcement.bg_color} />
+        <AnnouncementBanner message={announcement.message} bgColor={announcement.bg_color} type={announcement.type} />
       )}
       {/* Immersive hero — cafe identity over cover photo */}
       <header className="relative w-full overflow-hidden grain" style={{ height: "280px" }}>

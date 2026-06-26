@@ -48,6 +48,7 @@ export interface Announcement {
   cafe_id: string
   message: string
   bg_color: string
+  type?: "info" | "promo" | "event" | "warning"
   is_active: boolean
   created_at: string
   updated_at?: string

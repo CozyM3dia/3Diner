@@ -147,10 +147,13 @@ export async function saveAnnouncement(fd: FormData): Promise<ActionResult> {
   const id = str(fd, "id");
   const message = str(fd, "message");
   if (!message) return { error: "Pesan pengumuman wajib diisi." };
+  const allowedTypes = ["info", "promo", "event", "warning"];
+  const rawType = str(fd, "type") ?? "info";
   const payload = {
     cafe_id: cafeId,
     message,
     bg_color: str(fd, "bg_color") ?? "#FD5002",
+    type: allowedTypes.includes(rawType) ? rawType : "info",
     is_active: fd.get("is_active") === "true",
     updated_at: new Date().toISOString(),
   };
