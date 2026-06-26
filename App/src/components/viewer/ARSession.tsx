@@ -104,6 +104,18 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       group.add(model);
       group.visible = false;
 
+      // Rotation ring — flat circle at model base, dragging it rotates the model
+      const RING_OUTER_R = 0.30;
+      const ringGeo = new THREE.RingGeometry(0.20, RING_OUTER_R, 64);
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xFFFFFF, transparent: true, opacity: 0.80,
+        side: THREE.DoubleSide, depthWrite: false,
+      });
+      const rotationRing = new THREE.Mesh(ringGeo, ringMat);
+      rotationRing.position.y = 0.005;
+      group.add(rotationRing);
+
       const scene = new THREE.Scene();
       scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 1.5));
       const sun = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -174,43 +186,73 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       // Gesture state
       let placed = false;
       let isDragging = false;
+      let isDraggingPending = false;
+      let dragStartX = 0;
+      let dragStartY = 0;
+      let isRotatingRing = false;
+      let rotateRingStartX = 0;
       let respawning = false;
       let userScale = 1;
       let lastPinchDist = 0;
       let lastPinchAngle = 0;
       let lastTapTime = 0;
+      // Model projected screen position — updated each frame so touchStart can classify touch zone
+      let modelScreenX = window.innerWidth / 2;
+      let modelScreenY = window.innerHeight / 2;
+      let modelScreenRadius = 120; // pixels to ring outer edge
 
       const overlay = overlayRef.current;
 
       const onTouchStart = (e: TouchEvent) => {
         if (e.touches.length === 2) {
           isDragging = false;
+          isDraggingPending = false;
+          isRotatingRing = false;
           const dx = e.touches[1].clientX - e.touches[0].clientX;
           const dy = e.touches[1].clientY - e.touches[0].clientY;
           lastPinchDist = Math.hypot(dx, dy);
           lastPinchAngle = Math.atan2(dy, dx);
           return;
         }
-        if (e.touches.length === 1 && group.visible) {
+        if (e.touches.length === 1) {
+          const t = e.touches[0];
           const now = Date.now();
-          if (now - lastTapTime < 300) {
-            // Double-tap: reset scale and respawn
-            lastTapTime = 0;
-            userScale = 1;
-            group.scale.setScalar(1);
-            group.visible = false;
-            placed = false;
-            respawning = true;
-            setModelPlaced(false);
-            return;
+          if (group.visible) {
+            if (now - lastTapTime < 300) {
+              // Double-tap: reset scale and respawn
+              lastTapTime = 0;
+              userScale = 1;
+              group.scale.setScalar(1);
+              group.visible = false;
+              placed = false;
+              respawning = true;
+              setModelPlaced(false);
+              return;
+            }
+            lastTapTime = now;
+            // Classify touch zone: ring band → rotation, inside → drag
+            const touchDist = Math.hypot(t.clientX - modelScreenX, t.clientY - modelScreenY);
+            const ringInnerPx = modelScreenRadius * 0.65;
+            const ringOuterPx = modelScreenRadius * 1.55;
+            if (touchDist >= ringInnerPx && touchDist <= ringOuterPx) {
+              isRotatingRing = true;
+              rotateRingStartX = t.clientX;
+            } else {
+              // Start drag only after finger actually moves (prevents tap-to-teleport)
+              isDraggingPending = true;
+              dragStartX = t.clientX;
+              dragStartY = t.clientY;
+            }
+          } else {
+            lastTapTime = now;
           }
-          lastTapTime = now;
-          isDragging = true;
         }
       };
 
       const onTouchMove = (e: TouchEvent) => {
         if (e.touches.length === 2 && group.visible) {
+          isDragging = false;
+          isDraggingPending = false;
           const dx = e.touches[1].clientX - e.touches[0].clientX;
           const dy = e.touches[1].clientY - e.touches[0].clientY;
           const dist = Math.hypot(dx, dy);
@@ -223,11 +265,33 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
           }
           lastPinchDist = dist;
           lastPinchAngle = angle;
+          return;
+        }
+        if (e.touches.length === 1) {
+          const t = e.touches[0];
+          // Ring drag → rotate Y
+          if (isRotatingRing && group.visible) {
+            group.rotation.y += (t.clientX - rotateRingStartX) * 0.015;
+            rotateRingStartX = t.clientX;
+          }
+          // Activate drag only after real finger movement (>12px threshold)
+          if (isDraggingPending) {
+            const dx = t.clientX - dragStartX;
+            const dy = t.clientY - dragStartY;
+            if (Math.hypot(dx, dy) > 12) {
+              isDragging = true;
+              isDraggingPending = false;
+            }
+          }
         }
       };
 
       const onTouchEnd = (e: TouchEvent) => {
-        if (e.touches.length < 1) isDragging = false;
+        if (e.touches.length < 1) {
+          isDragging = false;
+          isDraggingPending = false;
+          isRotatingRing = false;
+        }
         if (e.touches.length < 2) { lastPinchDist = 0; lastPinchAngle = 0; }
       };
 
@@ -273,6 +337,24 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
           setModelPlaced(true);
         }
         renderer.render(scene, camera);
+
+        // Update projected model screen position every frame for accurate touch zone detection
+        if (placed && group.visible) {
+          const xrCam = renderer.xr.getCamera();
+          const wPos = new THREE.Vector3();
+          group.getWorldPosition(wPos);
+          const proj = wPos.clone().project(xrCam);
+          modelScreenX = (proj.x + 1) / 2 * window.innerWidth;
+          modelScreenY = (-proj.y + 1) / 2 * window.innerHeight;
+          // Project ring outer edge to screen to get a scale-aware pixel radius
+          const edgeProj = wPos.clone()
+            .add(new THREE.Vector3(RING_OUTER_R * group.scale.x, 0, 0))
+            .project(xrCam);
+          modelScreenRadius = Math.hypot(
+            (edgeProj.x + 1) / 2 * window.innerWidth - modelScreenX,
+            (-edgeProj.y + 1) / 2 * window.innerHeight - modelScreenY,
+          );
+        }
       });
 
       let cleaned = false;
@@ -286,6 +368,8 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
         renderer.setAnimationLoop(null);
         renderer.domElement.remove();
         renderer.dispose();
+        ringGeo.dispose();
+        ringMat.dispose();
         sessionEndRef.current = null;
         setArStarted(false);
         onClose();
