@@ -236,7 +236,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       overlay?.addEventListener("touchend", onTouchEnd);
 
       renderer.setAnimationLoop((_: number, frame: any) => {
-        if (frame && hitTestSource) {
+        if (frame && hitTestSource && (!placed || isDragging || respawning)) {
           const hits = frame.getHitTestResults(hitTestSource);
           if (hits.length > 0) {
             const refSpace = renderer.xr.getReferenceSpace();
@@ -310,7 +310,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       <div ref={canvasSlotRef} className="absolute inset-0" />
 
       {/* DOM overlay root — always mounted for WebXR registration */}
-      <div ref={overlayRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
+      <div ref={overlayRef} className="absolute inset-0" style={{ zIndex: 20 }}>
         {/* Loading overlay inside domOverlay so it stays visible over the XR camera feed */}
         {!modelPlaced && state !== "unsupported" && state !== "error" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: "#002355" }}>
