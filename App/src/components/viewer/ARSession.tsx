@@ -175,18 +175,10 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       let placed = false;
       let isDragging = false;
       let respawning = false;
-      let dragHitTestSource: any = null;
       let userScale = 1;
       let lastPinchDist = 0;
       let lastPinchAngle = 0;
       let lastTapTime = 0;
-
-      const requestHitSource = async () => {
-        try {
-          const vs = await (session as any).requestReferenceSpace("viewer");
-          return await (session as any).requestHitTestSource({ space: vs });
-        } catch { return null; }
-      };
 
       const overlay = overlayRef.current;
 
@@ -202,7 +194,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
         if (e.touches.length === 1 && group.visible) {
           const now = Date.now();
           if (now - lastTapTime < 300) {
-            // Double-tap: reset scale and respawn on current surface
+            // Double-tap: reset scale and respawn
             lastTapTime = 0;
             userScale = 1;
             group.scale.setScalar(1);
@@ -210,12 +202,10 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
             placed = false;
             respawning = true;
             setModelPlaced(false);
-            requestHitSource().then(src => { dragHitTestSource = src; });
             return;
           }
           lastTapTime = now;
           isDragging = true;
-          requestHitSource().then(src => { dragHitTestSource = src; });
         }
       };
 
@@ -237,15 +227,8 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       };
 
       const onTouchEnd = (e: TouchEvent) => {
-        if (e.touches.length < 1) {
-          isDragging = false;
-          dragHitTestSource?.cancel();
-          dragHitTestSource = null;
-        }
-        if (e.touches.length < 2) {
-          lastPinchDist = 0;
-          lastPinchAngle = 0;
-        }
+        if (e.touches.length < 1) isDragging = false;
+        if (e.touches.length < 2) { lastPinchDist = 0; lastPinchAngle = 0; }
       };
 
       overlay?.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -253,73 +236,41 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       overlay?.addEventListener("touchend", onTouchEnd);
 
       renderer.setAnimationLoop((_: number, frame: any) => {
-        if (frame) {
-          const refSpace = renderer.xr.getReferenceSpace();
+        if (frame && hitTestSource) {
+          const hits = frame.getHitTestResults(hitTestSource);
+          if (hits.length > 0) {
+            const refSpace = renderer.xr.getReferenceSpace();
+            const pose = hits[0].getPose(refSpace);
+            if (pose) {
+              hitMatrix.fromArray(pose.transform.matrix);
+              hitMatrix.decompose(hitPos, hitQuat, hitScale);
 
-          // Initial placement — only elevated surfaces (table)
-          if (!placed && !respawning && hitTestSource) {
-            const hits = frame.getHitTestResults(hitTestSource);
-            if (hits.length > 0) {
-              const pose = hits[0].getPose(refSpace);
-              if (pose) {
-                hitMatrix.fromArray(pose.transform.matrix);
-                hitMatrix.decompose(hitPos, hitQuat, hitScale);
-                if (hitPos.y > -1.2) {
+              if (!placed) {
+                // Initial placement — only elevated surfaces (table)
+                if (hitPos.y > -1.2 || respawning) {
                   group.position.copy(hitPos);
                   group.visible = true;
                   placed = true;
-                  hitTestSource.cancel();
-                  hitTestSource = null;
+                  respawning = false;
                   setModelPlaced(true);
                 }
-              }
-            }
-          }
-
-          // Respawn after double-tap — any surface
-          if (!placed && respawning && dragHitTestSource) {
-            const hits = frame.getHitTestResults(dragHitTestSource);
-            if (hits.length > 0) {
-              const pose = hits[0].getPose(refSpace);
-              if (pose) {
-                hitMatrix.fromArray(pose.transform.matrix);
-                hitMatrix.decompose(hitPos, hitQuat, hitScale);
-                group.position.copy(hitPos);
-                group.visible = true;
-                placed = true;
-                respawning = false;
-                dragHitTestSource.cancel();
-                dragHitTestSource = null;
-                setModelPlaced(true);
-              }
-            }
-          }
-
-          // Drag — snaps to any surface (table or floor)
-          if (placed && isDragging && dragHitTestSource) {
-            const hits = frame.getHitTestResults(dragHitTestSource);
-            if (hits.length > 0) {
-              const pose = hits[0].getPose(refSpace);
-              if (pose) {
-                hitMatrix.fromArray(pose.transform.matrix);
-                hitMatrix.decompose(hitPos, hitQuat, hitScale);
+              } else if (isDragging) {
+                // Drag — snaps to any surface (table or floor)
                 group.position.copy(hitPos);
               }
             }
           }
-
+        } else if (frame && !placed && !hitTestSource) {
           // Fallback: no hit-test support — place in front of camera
-          if (!placed && !respawning && !hitTestSource && !dragHitTestSource) {
-            const xrCam = renderer.xr.getCamera();
-            const p = new THREE.Vector3();
-            const d = new THREE.Vector3();
-            xrCam.getWorldPosition(p);
-            xrCam.getWorldDirection(d);
-            group.position.set(p.x + d.x * 0.6, p.y - 0.8, p.z + d.z * 0.6);
-            group.visible = true;
-            placed = true;
-            setModelPlaced(true);
-          }
+          const xrCam = renderer.xr.getCamera();
+          const p = new THREE.Vector3();
+          const d = new THREE.Vector3();
+          xrCam.getWorldPosition(p);
+          xrCam.getWorldDirection(d);
+          group.position.set(p.x + d.x * 0.6, p.y - 0.8, p.z + d.z * 0.6);
+          group.visible = true;
+          placed = true;
+          setModelPlaced(true);
         }
         renderer.render(scene, camera);
       });
@@ -332,7 +283,6 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
         overlay?.removeEventListener("touchmove", onTouchMove);
         overlay?.removeEventListener("touchend", onTouchEnd);
         hitTestSource?.cancel();
-        dragHitTestSource?.cancel();
         renderer.setAnimationLoop(null);
         renderer.domElement.remove();
         renderer.dispose();
