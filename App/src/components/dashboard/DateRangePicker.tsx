@@ -23,6 +23,18 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
 
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Fixed-position coords so the dropdown escapes overflow:auto scroll containers
+  const [dropPos, setDropPos] = useState<{ top: number; right: number } | null>(null);
+
+  function openWithPos() {
+    if (triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect();
+      setDropPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+    }
+    setIsOpen((v) => !v);
+  }
 
   // Temporary selection state for custom calendar selection
   const [tempStart, setTempStart] = useState<Date | null>(
@@ -45,11 +57,14 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
   }, [initialStart, initialEnd]);
 
   // Handle outside click to close dropdown
+  // The dropdown is fixed-positioned (outside containerRef), so we track it separately.
+  const dropdownRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+      const t = event.target as Node;
+      const insideTrigger = containerRef.current?.contains(t);
+      const insideDropdown = dropdownRef.current?.contains(t);
+      if (!insideTrigger && !insideDropdown) setIsOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -221,7 +236,8 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
     <div ref={containerRef} className="relative z-30">
       {/* Date trigger button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={triggerRef}
+        onClick={openWithPos}
         className="press flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer"
         style={{
           background: "#0D1829",
@@ -234,18 +250,23 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
         <span>{activeRangeLabel}</span>
       </button>
 
-      {/* Dropdown panel */}
-      {isOpen && (
+      {/* Dropdown panel — fixed so it escapes overflow:auto scroll containers */}
+      {isOpen && dropPos && (
         <div
-          className="absolute right-0 mt-2 rounded-2xl flex flex-col md:flex-row overflow-hidden shadow-2xl dash-reveal"
+          ref={dropdownRef}
+          className="rounded-2xl flex flex-col md:flex-row overflow-hidden shadow-2xl dash-reveal"
           style={{
-            background: "rgba(13, 24, 41, 0.95)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            position: "fixed",
+            top: dropPos.top,
+            right: dropPos.right,
+            zIndex: 9999,
+            background: "rgba(13, 24, 41, 0.98)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            border: "1px solid rgba(255, 255, 255, 0.10)",
             width: "max-content",
-            maxWidth: "calc(100vw - 32px)",
-            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.4)"
+            maxWidth: "calc(100vw - 16px)",
+            boxShadow: "0 24px 48px rgba(0, 0, 0, 0.5)",
           }}
         >
           {/* Left panel: Presets */}
