@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { X, Loader2, Scan, AlertTriangle, RotateCcw } from "lucide-react";
 import { fitCameraToModel } from "@/lib/fit-camera";
 import GlbViewer from "./GlbViewer";
+import ScaleControl from "./ScaleControl";
 
 // model-viewer v3.4.0 — same version as tgo.4d-menu.com
 const MV_CDN = "https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js";
@@ -45,9 +46,20 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
   const [state, setState] = useState<GlbState>("loading");
   const [arStarted, setArStarted] = useState(false);
   const [modelPlaced, setModelPlaced] = useState(false);
+  const [scalePercent, setScalePercent] = useState(100);
   const sessionEndRef = useRef<(() => void) | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const canvasSlotRef = useRef<HTMLDivElement>(null);
+  const groupRef = useRef<any>(null);
+  const userScaleRef = useRef(1);
+
+  // Slider/buttons → mutate the AR group scale directly, keep state in sync.
+  const updateARScale = useCallback((newScale: number) => {
+    const clamped = Math.max(0.5, Math.min(2.0, newScale));
+    userScaleRef.current = clamped;
+    setScalePercent(Math.round(clamped * 100));
+    if (groupRef.current) groupRef.current.scale.setScalar(clamped);
+  }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -103,6 +115,9 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       const group = new THREE.Group();
       group.add(model);
       group.visible = false;
+      groupRef.current = group;
+      userScaleRef.current = 1;
+      setScalePercent(100);
 
       // Rotation ring — flat circle at model base, dragging it rotates the model
       const RING_OUTER_R = 0.30;
@@ -192,7 +207,6 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
       let isRotatingRing = false;
       let rotateRingStartX = 0;
       let respawning = false;
-      let userScale = 1;
       let lastPinchDist = 0;
       let lastPinchAngle = 0;
       let lastTapTime = 0;
@@ -221,8 +235,9 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
             if (now - lastTapTime < 300) {
               // Double-tap: reset scale and respawn
               lastTapTime = 0;
-              userScale = 1;
+              userScaleRef.current = 1;
               group.scale.setScalar(1);
+              setScalePercent(100);
               group.visible = false;
               placed = false;
               respawning = true;
@@ -258,10 +273,12 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
           const dist = Math.hypot(dx, dy);
           const angle = Math.atan2(dy, dx);
           if (lastPinchDist > 0) {
-            userScale *= dist / lastPinchDist;
-            userScale = Math.max(0.2, Math.min(5, userScale));
-            group.scale.setScalar(userScale);
+            let next = userScaleRef.current * (dist / lastPinchDist);
+            next = Math.max(0.5, Math.min(2.0, next));
+            userScaleRef.current = next;
+            group.scale.setScalar(next);
             group.rotation.y += angle - lastPinchAngle;
+            setScalePercent(Math.round(next * 100));
           }
           lastPinchDist = dist;
           lastPinchAngle = angle;
@@ -406,13 +423,20 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf }: AR
         )}
 
         {state === "ar" && modelPlaced && (
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto">
-            <button onClick={exitAR}
-              className="px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2"
-              style={{ background: "rgba(0,35,85,0.8)", color: "#FDFDFD", backdropFilter: "blur(8px)" }}>
-              <X size={16} /> Keluar AR
-            </button>
-          </div>
+          <>
+            <ScaleControl
+              percent={scalePercent}
+              onScale={updateARScale}
+              className="absolute bottom-[100px] left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-50"
+            />
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto">
+              <button onClick={exitAR}
+                className="px-6 py-3 rounded-full font-semibold text-sm flex items-center gap-2"
+                style={{ background: "rgba(0,35,85,0.8)", color: "#FDFDFD", backdropFilter: "blur(8px)" }}>
+                <X size={16} /> Keluar AR
+              </button>
+            </div>
+          </>
         )}
       </div>
 
