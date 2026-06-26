@@ -15,8 +15,6 @@ import {
   Menu as MenuIcon,
   X,
   ExternalLink,
-  Bell,
-  HelpCircle,
   type LucideIcon,
 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
@@ -184,25 +182,6 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
             </h1>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button className="dash-icon-btn p-2 rounded-full" style={{ color: "#5A7898" }} aria-label="Notifikasi">
-              <Bell size={17} strokeWidth={1.9} />
-            </button>
-            <button className="dash-icon-btn p-2 rounded-full" style={{ color: "#5A7898" }} aria-label="Bantuan">
-              <HelpCircle size={17} strokeWidth={1.9} />
-            </button>
-            <span
-              className="ml-1 w-8 h-8 rounded-full overflow-hidden inline-flex items-center justify-center text-xs font-bold"
-              style={{ background: "rgba(253,80,2,0.14)", color: "#FD5002", border: "1px solid rgba(255,255,255,0.08)" }}
-              title={cafe?.nama_cafe ?? "3Diner"}
-            >
-              {cafe?.logo_url ? (
-                <Image src={cafe.logo_url} alt="" width={32} height={32} className="object-cover w-full h-full" />
-              ) : (
-                (cafe?.nama_cafe ?? "3D").slice(0, 2).toUpperCase()
-              )}
-            </span>
-          </div>
         </header>
 
         <main className="flex-1 overflow-auto">{children}</main>
