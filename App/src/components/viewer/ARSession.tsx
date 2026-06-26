@@ -47,11 +47,14 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
   const [arStarted, setArStarted] = useState(false);
   const [modelPlaced, setModelPlaced] = useState(false);
   const [arTimedOut, setArTimedOut] = useState(false);
+  const [showRotateHint, setShowRotateHint] = useState(false);
   const sessionEndRef = useRef<(() => void) | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const canvasSlotRef = useRef<HTMLDivElement>(null);
   const groupRef = useRef<any>(null);
   const userScaleRef = useRef(1);
+  const rotateHintElRef = useRef<HTMLDivElement>(null);
+  const hideRotateHintRef = useRef<() => void>(() => {});
 
   // After 6s in AR without model placed, hide loading screen and show camera with hint
   useEffect(() => {
@@ -61,6 +64,19 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
     }
     if (modelPlaced) setArTimedOut(false);
   }, [state, modelPlaced]);
+
+  // Rotation hint — show under the ring when model lands, auto-dismiss after 5s
+  useEffect(() => {
+    hideRotateHintRef.current = () => setShowRotateHint(false);
+  }, []);
+  useEffect(() => {
+    if (modelPlaced) {
+      setShowRotateHint(true);
+      const t = setTimeout(() => setShowRotateHint(false), 5000);
+      return () => clearTimeout(t);
+    }
+    setShowRotateHint(false);
+  }, [modelPlaced]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -120,12 +136,13 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       groupRef.current = group;
       userScaleRef.current = 1;
 
-      // Rotation ring — flat circle at model base, dragging it rotates the model
+      // Rotation ring — thin blue circle at model base, dragging it rotates the model.
+      // RING_OUTER_R stays 0.30 so the touch zone is unchanged; only the visual band is thinner.
       const RING_OUTER_R = 0.30;
-      const ringGeo = new THREE.RingGeometry(0.20, RING_OUTER_R, 64);
+      const ringGeo = new THREE.RingGeometry(0.265, RING_OUTER_R, 72);
       ringGeo.rotateX(-Math.PI / 2);
       const ringMat = new THREE.MeshBasicMaterial({
-        color: 0xFFFFFF, transparent: true, opacity: 0.80,
+        color: 0x2F80FF, transparent: true, opacity: 0.90,
         side: THREE.DoubleSide, depthWrite: false,
       });
       const rotationRing = new THREE.Mesh(ringGeo, ringMat);
@@ -193,6 +210,16 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
         const viewerSpace = await (session as any).requestReferenceSpace("viewer");
         hitTestSource = await (session as any).requestHitTestSource({ space: viewerSpace });
       } catch { /* fallback: fixed placement */ }
+
+      // Transient-input hit test — casts a ray from the FINGER touch point each frame. Lets a
+      // dragged model fall onto whatever real surface is under the finger (table edge → floor).
+      let transientHitSource: any = null;
+      try {
+        transientHitSource = await (session as any).requestHitTestSourceForTransientInput({
+          profile: "generic-touchscreen",
+          offsetRay: new (window as any).XRRay(),
+        });
+      } catch { /* not supported — drag falls back to fixed-height plane */ }
 
       const hitPos = new THREE.Vector3();
       const hitQuat = new THREE.Quaternion();
@@ -314,6 +341,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
           if (isRotatingRing && group.visible) {
             group.rotation.y += (t.clientX - rotateRingStartX) * 0.015;
             rotateRingStartX = t.clientX;
+            hideRotateHintRef.current(); // dismiss hint the moment user rotates
           }
           // Activate drag only after real finger movement (>12px threshold)
           if (isDraggingPending) {
@@ -352,9 +380,26 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       overlay?.addEventListener("touchend", onTouchEnd);
 
       renderer.setAnimationLoop((_: number, frame: any) => {
-        // Finger-drag: move the model under the finger on its base plane. Camera stays put.
+        // Finger-drag: move the model under the finger. Camera stays put.
         if (placed && isDragging && group.visible) {
-          if (fingerToPlane()) {
+          let droppedOnSurface = false;
+          // Prefer the real surface under the finger so the model falls table → floor.
+          if (frame && transientHitSource) {
+            const refSpace = renderer.xr.getReferenceSpace();
+            const tResults = frame.getHitTestResultsForTransientInput(transientHitSource);
+            if (tResults.length > 0 && tResults[0].results.length > 0) {
+              const pose = tResults[0].results[0].getPose(refSpace);
+              if (pose) {
+                const p = pose.transform.position;
+                group.position.x = p.x + dragGrabOffsetX;
+                group.position.z = p.z + dragGrabOffsetZ;
+                group.position.y = p.y; // sit on whatever surface is under the finger
+                droppedOnSurface = true;
+              }
+            }
+          }
+          // Fallback: no transient hit — slide along the locked base plane.
+          if (!droppedOnSurface && fingerToPlane()) {
             group.position.x = dragTarget.x + dragGrabOffsetX;
             group.position.z = dragTarget.z + dragGrabOffsetZ;
           }
@@ -409,6 +454,13 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
             (edgeProj.x + 1) / 2 * window.innerWidth - modelScreenX,
             (-edgeProj.y + 1) / 2 * window.innerHeight - modelScreenY,
           );
+
+          // Park the rotate hint just below the projected ring (front-facing, screen down = +Y)
+          const hintEl = rotateHintElRef.current;
+          if (hintEl) {
+            hintEl.style.left = `${modelScreenX}px`;
+            hintEl.style.top = `${modelScreenY + modelScreenRadius + 14}px`;
+          }
         }
       });
 
@@ -420,6 +472,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
         overlay?.removeEventListener("touchmove", onTouchMove);
         overlay?.removeEventListener("touchend", onTouchEnd);
         hitTestSource?.cancel();
+        transientHitSource?.cancel?.();
         renderer.setAnimationLoop(null);
         renderer.domElement.remove();
         renderer.dispose();
@@ -471,6 +524,22 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
                 Arahkan ke meja atau lantai agar model 3D muncul
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Rotate hint — parked under the blue ring; auto-positioned each frame */}
+        {state === "ar" && modelPlaced && showRotateHint && (
+          <div
+            ref={rotateHintElRef}
+            className="absolute -translate-x-1/2 pointer-events-none"
+            style={{ left: -9999, top: 0, zIndex: 30 }}
+          >
+            <span
+              className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
+              style={{ background: "rgba(47,128,255,0.92)", color: "#FDFDFD", backdropFilter: "blur(6px)" }}
+            >
+              Geser garis biru untuk memutar
+            </span>
           </div>
         )}
 
