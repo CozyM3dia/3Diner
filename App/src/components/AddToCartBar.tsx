@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
@@ -42,9 +42,14 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
       <div className="fixed bottom-0 inset-x-0 z-40 px-4 pt-3" style={barStyle}>
         <div className="max-w-xl mx-auto">
           <div
-            className="w-full h-[52px] rounded-2xl flex items-center justify-center"
-            style={{ background: "var(--surface)", color: "var(--navy-muted)" }}
+            className="w-full h-[52px] rounded-2xl flex items-center justify-center gap-2"
+            style={{
+              background: "var(--surface)",
+              border: "1.5px dashed var(--border)",
+              color: "var(--navy-muted)",
+            }}
           >
+            <ShoppingBag size={16} strokeWidth={1.5} />
             <span className="font-semibold text-sm">Stok Habis</span>
           </div>
         </div>

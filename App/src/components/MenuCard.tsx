@@ -47,8 +47,25 @@ export default function MenuCard({ menu, cafeId, slug, index }: MenuCardProps) {
       )}
 
       {!isActive && (
-        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.42)" }}>
-          <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-white tracking-wide" style={{ background: "rgba(30,50,75,0.85)" }}>
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ background: "rgba(2,44,96,0.52)" }}
+        >
+          <span
+            style={{
+              padding: "5px 11px",
+              borderRadius: 8,
+              background: "rgba(255,255,255,0.11)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              border: "1px solid rgba(255,255,255,0.22)",
+              color: "#fff",
+              fontSize: "10px",
+              fontWeight: 700,
+              letterSpacing: "0.07em",
+              textTransform: "uppercase",
+            }}
+          >
             Stok Habis
           </span>
         </div>
