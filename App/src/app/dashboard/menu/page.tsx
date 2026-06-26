@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOwnerCafeSlug } from "@/lib/analytics";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { formatRupiah } from "@/lib/format";
+import MenuActiveToggle from "@/components/dashboard/MenuActiveToggle";
 import type { Menu } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -109,12 +110,7 @@ export default async function MenuListPage() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium">
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: menu.is_active !== false ? "#22D3A6" : "#5A7898" }} />
-                      <span style={{ color: menu.is_active !== false ? "#22D3A6" : "#5A7898" }}>
-                        {menu.is_active !== false ? "Aktif" : "Nonaktif"}
-                      </span>
-                    </span>
+                    <MenuActiveToggle menuId={menu.id_menu} initialActive={menu.is_active !== false} />
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150">

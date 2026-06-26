@@ -13,10 +13,12 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
   const item = items.find((i) => i.id_menu === menu.id_menu);
   const qty = item?.qty ?? 0;
   const price = effectivePrice(menu);
+  const isActive = menu.is_active !== false;
   // Cart stores the post-discount price the customer actually pays.
   const cartMenu: Menu = { ...menu, harga_menu: price };
 
   function inc() {
+    if (!isActive) return;
     if (qty === 0) {
       add(cartMenu, 1);
       logEvent({ cafe_id: menu.cafe_id, menu_id: menu.id_menu, event_type: "click_order", duration: 0 });
@@ -29,15 +31,29 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
     setQty(menu.id_menu, qty - 1);
   }
 
+  const barStyle = {
+    paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+    background: "var(--white)",
+    borderTop: "1px solid var(--border)",
+  };
+
+  if (!isActive) {
+    return (
+      <div className="fixed bottom-0 inset-x-0 z-40 px-4 pt-3" style={barStyle}>
+        <div className="max-w-xl mx-auto">
+          <div
+            className="w-full h-[52px] rounded-2xl flex items-center justify-center"
+            style={{ background: "var(--surface)", color: "var(--navy-muted)" }}
+          >
+            <span className="font-semibold text-sm">Stok Habis</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="fixed bottom-0 inset-x-0 z-40 px-4 pt-3"
-      style={{
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-        background: "var(--white)",
-        borderTop: "1px solid var(--border)",
-      }}
-    >
+    <div className="fixed bottom-0 inset-x-0 z-40 px-4 pt-3" style={barStyle}>
       <div className="flex items-center gap-2 max-w-xl mx-auto">
         {qty === 0 ? (
           <button
