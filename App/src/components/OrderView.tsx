@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -11,9 +11,11 @@ import {
   Clock,
   ArrowLeft,
   Bell,
+  Loader2,
 } from "lucide-react";
 import { getOrder, updateOrder } from "@/lib/orders";
 import { formatRupiah } from "@/lib/format";
+import { supabase } from "@/lib/supabase";
 import type { Order } from "@/types";
 
 type View = "loading" | "missing" | "choose" | "qris" | "status";
@@ -21,6 +23,10 @@ type View = "loading" | "missing" | "choose" | "qris" | "status";
 export default function OrderView({ slug, orderId }: { slug: string; orderId: string }) {
   const [order, setOrder] = useState<Order | null>(null);
   const [view, setView] = useState<View>("loading");
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const realtimeRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     const o = getOrder(orderId);
@@ -34,16 +40,72 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
     else setView("choose");
   }, [orderId]);
 
+  // Supabase Realtime: watch for payment_status=paid while on QRIS screen
+  useEffect(() => {
+    if (view !== "qris") {
+      if (realtimeRef.current) {
+        supabase.removeChannel(realtimeRef.current);
+        realtimeRef.current = null;
+      }
+      return;
+    }
+
+    const channel = supabase
+      .channel(`order-pay-${orderId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "Orders", filter: `id_order=eq.${orderId}` },
+        (payload) => {
+          const updated = payload.new as Order;
+          if (updated.payment_status === "paid") {
+            updateOrder(orderId, { payment_status: "paid", status: "preparing" });
+            setOrder((prev) => (prev ? { ...prev, payment_status: "paid", status: "preparing" } : prev));
+            setView("status");
+          }
+        }
+      )
+      .subscribe();
+
+    realtimeRef.current = channel;
+    return () => {
+      supabase.removeChannel(channel);
+      realtimeRef.current = null;
+    };
+  }, [view, orderId]);
+
   function chooseCash() {
     const next = updateOrder(orderId, { payment_method: "cash", payment_status: "pending", status: "preparing" });
     if (next) setOrder(next);
     setView("status");
   }
 
-  function chooseQris() {
-    const next = updateOrder(orderId, { payment_method: "qris", payment_status: "pending" });
-    if (next) setOrder(next);
-    setView("qris");
+  async function chooseQris() {
+    if (!order) return;
+    // Already charged — just show the screen
+    if (qrUrl) { setView("qris"); return; }
+
+    setQrLoading(true);
+    setQrError(null);
+    try {
+      const res = await fetch("/api/payment/charge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id_order, amount: order.total, items: order.items }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal membuat QRIS");
+      // Midtrans QRIS returns actions[0].url for QR image
+      const url: string = data.actions?.[0]?.url ?? null;
+      if (!url) throw new Error("QR URL tidak ditemukan dari Midtrans");
+      setQrUrl(url);
+      const next = updateOrder(orderId, { payment_method: "qris", payment_status: "pending" });
+      if (next) setOrder(next);
+      setView("qris");
+    } catch (e: unknown) {
+      setQrError(e instanceof Error ? e.message : "Terjadi kesalahan");
+    } finally {
+      setQrLoading(false);
+    }
   }
 
   function confirmQrisPaid() {
@@ -76,8 +138,18 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
     );
   }
 
-  if (view === "choose") return <PaymentChoice order={order} onCash={chooseCash} onQris={chooseQris} />;
-  if (view === "qris") return <QrisView order={order} onPaid={confirmQrisPaid} onBack={() => setView("choose")} />;
+  if (view === "choose") {
+    return (
+      <PaymentChoice
+        order={order}
+        onCash={chooseCash}
+        onQris={chooseQris}
+        qrLoading={qrLoading}
+        qrError={qrError}
+      />
+    );
+  }
+  if (view === "qris") return <QrisView order={order} qrUrl={qrUrl} onPaid={confirmQrisPaid} onBack={() => setView("choose")} />;
   return <StatusView order={order} slug={slug} />;
 }
 
@@ -112,7 +184,19 @@ function Chip({ children }: { children: React.ReactNode }) {
 }
 
 /* ── 1. Payment choice ── */
-function PaymentChoice({ order, onCash, onQris }: { order: Order; onCash: () => void; onQris: () => void }) {
+function PaymentChoice({
+  order,
+  onCash,
+  onQris,
+  qrLoading,
+  qrError,
+}: {
+  order: Order;
+  onCash: () => void;
+  onQris: () => void;
+  qrLoading: boolean;
+  qrError: string | null;
+}) {
   return (
     <main className="min-h-dvh" style={{ background: "var(--paper)" }}>
       <ConfirmBanner order={order} />
@@ -150,23 +234,36 @@ function PaymentChoice({ order, onCash, onQris }: { order: Order; onCash: () => 
 
           <button
             onClick={onQris}
-            className="press w-full flex items-center gap-3 p-4 text-left rounded-2xl"
+            disabled={qrLoading}
+            className="press w-full flex items-center gap-3 p-4 text-left rounded-2xl disabled:opacity-60"
             style={{ background: "var(--white)", border: "1.5px solid var(--orange)", boxShadow: "var(--shadow-md)" }}
           >
             <span className="w-11 h-11 rounded-full inline-flex items-center justify-center shrink-0" style={{ background: "var(--orange-blush)" }}>
-              <QrCode size={20} style={{ color: "var(--orange)" }} />
+              {qrLoading ? (
+                <Loader2 size={20} className="animate-spin" style={{ color: "var(--orange)" }} />
+              ) : (
+                <QrCode size={20} style={{ color: "var(--orange)" }} />
+              )}
             </span>
             <span className="flex-1 min-w-0">
               <span className="block font-semibold text-[15px]" style={{ color: "var(--navy)" }}>Bayar dengan QRIS</span>
               <span className="block text-xs mt-0.5" style={{ color: "var(--navy-muted)" }}>
-                Scan &amp; bayar langsung, semua e-wallet &amp; bank
+                {qrLoading ? "Membuat kode QRIS…" : "Scan & bayar langsung, semua e-wallet & bank"}
               </span>
             </span>
-            <span className="flex items-center gap-1.5 shrink-0">
-              <span className="badge-3d">Cepat</span>
-              <ChevronRight size={20} style={{ color: "var(--navy-muted)" }} />
-            </span>
+            {!qrLoading && (
+              <span className="flex items-center gap-1.5 shrink-0">
+                <span className="badge-3d">Cepat</span>
+                <ChevronRight size={20} style={{ color: "var(--navy-muted)" }} />
+              </span>
+            )}
           </button>
+
+          {qrError && (
+            <p className="text-xs text-center px-2" style={{ color: "var(--orange-ink)" }}>
+              {qrError}
+            </p>
+          )}
         </div>
 
         <p className="flex items-center justify-center gap-1.5 text-[11px] mt-5 pb-8" style={{ color: "var(--navy-muted)" }}>
@@ -178,14 +275,17 @@ function PaymentChoice({ order, onCash, onQris }: { order: Order; onCash: () => 
 }
 
 /* ── 2. QRIS ── */
-function QrisView({ order, onPaid, onBack }: { order: Order; onPaid: () => void; onBack: () => void }) {
-  // Real, scannable QR encoding the order tracking URL (payment-gateway integration is a later phase).
-  const trackUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/${order.cafe_slug}/pesanan/${order.id_order}`
-      : "";
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=0&data=${encodeURIComponent(trackUrl)}`;
-
+function QrisView({
+  order,
+  qrUrl,
+  onPaid,
+  onBack,
+}: {
+  order: Order;
+  qrUrl: string | null;
+  onPaid: () => void;
+  onBack: () => void;
+}) {
   return (
     <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "104px" }}>
       <header className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
@@ -209,8 +309,12 @@ function QrisView({ order, onPaid, onBack }: { order: Order; onPaid: () => void;
             <span className="font-bold text-sm" style={{ color: "var(--navy)" }}>QRIS</span>
             <span className="text-[11px]" style={{ color: "var(--navy-muted)" }}>{order.cafe_name}</span>
           </div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={qrSrc} alt="Kode QR pembayaran" width={220} height={220} className="w-full h-auto rounded-lg" />
+          {qrUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={qrUrl} alt="Kode QRIS pembayaran" width={220} height={220} className="w-full h-auto rounded-lg" />
+          ) : (
+            <div className="w-full aspect-square rounded-lg skeleton" style={{ maxWidth: 220, margin: "0 auto" }} />
+          )}
           <p className="text-[11px] mt-3 leading-relaxed" style={{ color: "var(--navy-muted)" }}>
             Scan pakai GoPay, OVO, DANA, ShopeePay, atau m-banking
           </p>
@@ -225,7 +329,7 @@ function QrisView({ order, onPaid, onBack }: { order: Order; onPaid: () => void;
 
         <p className="flex items-center justify-center gap-2 text-xs mt-4" style={{ color: "var(--navy-muted)" }}>
           <span className="w-2 h-2 rounded-full pulse-dot" style={{ background: "var(--navy-muted)" }} />
-          Menunggu pembayaran...
+          Menunggu konfirmasi pembayaran secara otomatis…
         </p>
       </div>
 
@@ -242,10 +346,10 @@ function QrisView({ order, onPaid, onBack }: { order: Order; onPaid: () => void;
           className="press w-full h-[52px] rounded-2xl font-semibold text-[15px] max-w-xl mx-auto block"
           style={{ border: "1.5px solid var(--navy)", color: "var(--navy)" }}
         >
-          Sudah Bayar? Cek Status
+          Sudah Bayar? Cek Status Manual
         </button>
         <p className="text-[11px] text-center mt-2" style={{ color: "var(--navy-muted)" }}>
-          Status otomatis terupdate setelah pembayaran
+          Status otomatis terupdate setelah pembayaran berhasil
         </p>
       </div>
     </main>
