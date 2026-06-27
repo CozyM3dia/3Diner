@@ -287,53 +287,120 @@ function QrisView({
   onBack: () => void;
 }) {
   return (
-    <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "104px" }}>
-      <header className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
-        <button onClick={onBack} aria-label="Kembali" className="press w-11 h-11 -ml-2 inline-flex items-center justify-center rounded-full">
-          <ArrowLeft size={22} style={{ color: "var(--navy)" }} />
-        </button>
-        <h1 className="font-display text-lg font-bold" style={{ color: "var(--navy)" }}>Pembayaran QRIS</h1>
-      </header>
+    <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "120px" }}>
+      <style>{`
+        @keyframes qr-scan {
+          0%   { top: 8px; opacity: 1; }
+          48%  { top: calc(100% - 8px); opacity: 1; }
+          50%  { opacity: 0; }
+          52%  { top: 8px; opacity: 0; }
+          54%  { opacity: 1; }
+          100% { top: calc(100% - 8px); opacity: 1; }
+        }
+        @keyframes qr-glow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(255,111,32,0); }
+          50%       { box-shadow: 0 0 24px 4px rgba(255,111,32,0.18); }
+        }
+        @keyframes dot-bounce {
+          0%,80%,100% { transform: translateY(0); opacity: .4; }
+          40%          { transform: translateY(-5px); opacity: 1; }
+        }
+        .qr-scan-line {
+          position: absolute; left: 8px; right: 8px; height: 2px;
+          background: linear-gradient(90deg, transparent, var(--orange), transparent);
+          border-radius: 2px;
+          animation: qr-scan 2.4s ease-in-out infinite;
+          pointer-events: none;
+        }
+        .qr-glow { animation: qr-glow 2.4s ease-in-out infinite; }
+        .dot-1 { animation: dot-bounce 1.2s ease-in-out infinite 0s; }
+        .dot-2 { animation: dot-bounce 1.2s ease-in-out infinite .2s; }
+        .dot-3 { animation: dot-bounce 1.2s ease-in-out infinite .4s; }
+      `}</style>
 
-      <div className="px-4 pt-6 text-center">
-        <p className="text-[13px]" style={{ color: "var(--navy-muted)" }}>Total Pembayaran</p>
-        <p className="font-display text-3xl font-extrabold mt-1" style={{ color: "var(--navy)" }}>
+      {/* Header */}
+      <header
+        className="relative px-5 pt-12 pb-8 text-center text-white"
+        style={{ background: "var(--navy)", borderRadius: "0 0 32px 32px" }}
+      >
+        <button
+          onClick={onBack}
+          aria-label="Kembali"
+          className="press absolute left-4 top-12 w-10 h-10 inline-flex items-center justify-center rounded-full"
+          style={{ background: "rgba(255,255,255,0.1)" }}
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.55)" }}>
+          Total Pembayaran
+        </p>
+        <p className="font-display text-4xl font-extrabold mt-2">
           {formatRupiah(order.total)}
         </p>
-        <p className="text-xs mt-1" style={{ color: "var(--navy-muted)" }}>
-          No. {order.id_order} · Meja {order.table_number}
-        </p>
+        <div className="flex flex-wrap justify-center gap-2 mt-3">
+          <Chip>No. {order.id_order}</Chip>
+          <Chip>Meja {order.table_number}</Chip>
+        </div>
+      </header>
 
-        <div className="card mx-auto mt-6 p-5" style={{ maxWidth: "300px" }}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-bold text-sm" style={{ color: "var(--navy)" }}>QRIS</span>
-            <span className="text-[11px]" style={{ color: "var(--navy-muted)" }}>{order.cafe_name}</span>
+      {/* QR Card */}
+      <div className="px-4 -mt-4">
+        <div
+          className="card qr-glow mx-auto p-5 fade-up"
+          style={{ maxWidth: "300px", position: "relative" }}
+        >
+          {/* QRIS header */}
+          <div className="flex items-center justify-between mb-4">
+            <span className="font-extrabold text-base tracking-tight" style={{ color: "var(--navy)" }}>QRIS</span>
+            <span className="text-[11px] font-medium" style={{ color: "var(--navy-muted)" }}>{order.cafe_name}</span>
           </div>
-          {qrUrl ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={qrUrl} alt="Kode QRIS pembayaran" width={220} height={220} className="w-full h-auto rounded-lg" />
-          ) : (
-            <div className="w-full aspect-square rounded-lg skeleton" style={{ maxWidth: 220, margin: "0 auto" }} />
-          )}
-          <p className="text-[11px] mt-3 leading-relaxed" style={{ color: "var(--navy-muted)" }}>
+
+          {/* QR image with scan animation */}
+          <div className="relative rounded-xl overflow-hidden" style={{ background: "#fff", padding: "8px" }}>
+            {qrUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={qrUrl} alt="Kode QRIS pembayaran" width={240} height={240} className="w-full h-auto block" />
+            ) : (
+              <div className="w-full aspect-square skeleton rounded-lg" />
+            )}
+            {qrUrl && <div className="qr-scan-line" />}
+
+            {/* Corner brackets */}
+            {[["top-0 left-0","border-t-2 border-l-2 rounded-tl-lg"],
+              ["top-0 right-0","border-t-2 border-r-2 rounded-tr-lg"],
+              ["bottom-0 left-0","border-b-2 border-l-2 rounded-bl-lg"],
+              ["bottom-0 right-0","border-b-2 border-r-2 rounded-br-lg"],
+            ].map(([pos, cls], i) => (
+              <span key={i} className={`absolute ${pos} ${cls} w-5 h-5 pointer-events-none`}
+                style={{ borderColor: "var(--orange)" }} />
+            ))}
+          </div>
+
+          <p className="text-[11px] text-center mt-3 leading-relaxed" style={{ color: "var(--navy-muted)" }}>
             Scan pakai GoPay, OVO, DANA, ShopeePay, atau m-banking
           </p>
+
           {qrUrl && <DownloadQris qrUrl={qrUrl} orderId={order.id_order} />}
         </div>
+      </div>
 
-        <span
-          className="inline-flex items-center gap-1.5 mt-5 px-3.5 py-1.5 rounded-full text-[13px] font-semibold"
-          style={{ background: "var(--orange-blush)", color: "var(--orange-ink)" }}
-        >
-          <Clock size={14} /> Selesaikan pembayaran sebelum 5 menit
-        </span>
-
-        <p className="flex items-center justify-center gap-2 text-xs mt-4" style={{ color: "var(--navy-muted)" }}>
-          <span className="w-2 h-2 rounded-full pulse-dot" style={{ background: "var(--navy-muted)" }} />
-          Menunggu konfirmasi pembayaran secara otomatis…
+      {/* Waiting indicator */}
+      <div className="text-center mt-5 px-4">
+        <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full"
+          style={{ background: "var(--orange-blush)" }}>
+          <span className="dot-1 w-1.5 h-1.5 rounded-full inline-block" style={{ background: "var(--orange)" }} />
+          <span className="dot-2 w-1.5 h-1.5 rounded-full inline-block" style={{ background: "var(--orange)" }} />
+          <span className="dot-3 w-1.5 h-1.5 rounded-full inline-block" style={{ background: "var(--orange)" }} />
+          <span className="text-[13px] font-semibold ml-1" style={{ color: "var(--orange-ink)" }}>
+            Menunggu pembayaran…
+          </span>
+        </div>
+        <p className="text-xs mt-2" style={{ color: "var(--navy-muted)" }}>
+          Layar otomatis update setelah transaksi berhasil
         </p>
       </div>
 
+      {/* Bottom bar */}
       <div
         className="fixed bottom-0 inset-x-0 z-40 px-4 pt-3"
         style={{
@@ -344,14 +411,11 @@ function QrisView({
       >
         <button
           onClick={onPaid}
-          className="press w-full h-[52px] rounded-2xl font-semibold text-[15px] max-w-xl mx-auto block"
-          style={{ border: "1.5px solid var(--navy)", color: "var(--navy)" }}
+          className="press w-full h-[52px] rounded-2xl font-semibold text-[15px] max-w-xl mx-auto flex items-center justify-center gap-2"
+          style={{ border: "1.5px solid var(--border)", color: "var(--navy-muted)" }}
         >
-          Sudah Bayar? Cek Status Manual
+          <Clock size={16} /> Sudah Bayar? Cek Status Manual
         </button>
-        <p className="text-[11px] text-center mt-2" style={{ color: "var(--navy-muted)" }}>
-          Status otomatis terupdate setelah pembayaran berhasil
-        </p>
       </div>
     </main>
   );
@@ -490,37 +554,16 @@ function StatusView({ order, slug }: { order: Order; slug: string }) {
 }
 
 function DownloadQris({ qrUrl, orderId }: { qrUrl: string; orderId: string }) {
-  const [loading, setLoading] = useState(false);
-
-  async function handleDownload() {
-    setLoading(true);
-    try {
-      const res = await fetch(qrUrl);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `QRIS-${orderId}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      // fallback: open in new tab
-      window.open(qrUrl, "_blank");
-    } finally {
-      setLoading(false);
-    }
-  }
-
+  const proxyUrl = `/api/payment/qr-proxy?url=${encodeURIComponent(qrUrl)}&orderId=${encodeURIComponent(orderId)}`;
   return (
-    <button
-      onClick={handleDownload}
-      disabled={loading}
-      className="press mt-3 w-full h-9 rounded-xl text-xs font-semibold disabled:opacity-60 flex items-center justify-center gap-1.5"
-      style={{ background: "var(--surface)", color: "var(--navy)" }}
+    <a
+      href={proxyUrl}
+      download={`QRIS-${orderId}.png`}
+      className="press mt-3 w-full h-10 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+      style={{ background: "var(--orange)", color: "#fff" }}
     >
-      {loading ? <Loader2 size={13} className="animate-spin" /> : null}
-      {loading ? "Mengunduh…" : "⬇ Unduh Kode QRIS"}
-    </button>
+      ⬇ Unduh Kode QRIS
+    </a>
   );
 }
 
