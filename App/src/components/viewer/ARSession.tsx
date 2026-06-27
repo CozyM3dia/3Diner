@@ -45,8 +45,9 @@ export default function ARSession({ url, usdzUrl, menuName, onClose, preloadedGl
 function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, modelScale = 1.0 }: ARSessionProps) {
   const [state, setState] = useState<GlbState>("loading");
   const [arStarted, setArStarted] = useState(false);
-  const [modelPlaced, setModelPlaced] = useState(false);
-  const [arTimedOut, setArTimedOut] = useState(false);
+  const [modelPlaced, setModelPlaced] = useState(false);     // provisional model is visible
+  const [modelAnchored, setModelAnchored] = useState(false); // settled onto a real surface
+  const [searchingSurface, setSearchingSurface] = useState(false); // show "move phone" hint
   const [showRotateHint, setShowRotateHint] = useState(false);
   const sessionEndRef = useRef<(() => void) | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -56,27 +57,18 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
   const rotateHintElRef = useRef<HTMLDivElement>(null);
   const hideRotateHintRef = useRef<() => void>(() => {});
 
-  // After 6s in AR without model placed, hide loading screen and show camera with hint
-  useEffect(() => {
-    if (state === "ar" && !modelPlaced) {
-      const t = setTimeout(() => setArTimedOut(true), 6000);
-      return () => clearTimeout(t);
-    }
-    if (modelPlaced) setArTimedOut(false);
-  }, [state, modelPlaced]);
-
-  // Rotation hint — show under the ring when model lands, auto-dismiss after 5s
+  // Rotation hint — show under the ring once the model settles on a surface, auto-dismiss after 5s
   useEffect(() => {
     hideRotateHintRef.current = () => setShowRotateHint(false);
   }, []);
   useEffect(() => {
-    if (modelPlaced) {
+    if (modelAnchored) {
       setShowRotateHint(true);
       const t = setTimeout(() => setShowRotateHint(false), 5000);
       return () => clearTimeout(t);
     }
     setShowRotateHint(false);
-  }, [modelPlaced]);
+  }, [modelAnchored]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -234,7 +226,13 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       const ndc = new THREE.Vector2();
 
       // Gesture state
-      let placed = false;
+      let placed = false;       // true once the model is anchored & interactive
+      let anchored = false;     // settled onto a real surface
+      let provisional = false;  // shown floating in front of camera, not yet anchored
+      let hasSnapTarget = false;
+      const snapTarget = new THREE.Vector3();
+      const camPos = new THREE.Vector3();
+      const camDir = new THREE.Vector3();
       let isDragging = false;
       let isDraggingPending = false;
       let dragStartX = 0;
@@ -245,7 +243,6 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       let dragGrabOffsetZ = 0;
       let isRotatingRing = false;
       let rotateRingStartX = 0;
-      let respawning = false;
       let lastPinchDist = 0;
       let lastPinchAngle = 0;
       let lastTapTime = 0;
@@ -282,16 +279,18 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
         if (e.touches.length === 1) {
           const t = e.touches[0];
           const now = Date.now();
-          if (group.visible) {
+          if (group.visible && anchored) {
             if (now - lastTapTime < 300) {
-              // Double-tap: reset scale and respawn
+              // Double-tap: reset scale and re-run the appear → settle flow
               lastTapTime = 0;
               userScaleRef.current = 1;
               group.scale.setScalar(1);
-              group.visible = false;
               placed = false;
-              respawning = true;
-              setModelPlaced(false);
+              anchored = false;
+              provisional = false;
+              hasSnapTarget = false;
+              setModelAnchored(false);
+              setSearchingSurface(true);
               return;
             }
             lastTapTime = now;
@@ -315,6 +314,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       };
 
       const onTouchMove = (e: TouchEvent) => {
+        if (!anchored) return;
         if (e.touches.length === 2 && group.visible) {
           isDragging = false;
           isDraggingPending = false;
@@ -405,36 +405,65 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
           }
         }
 
-        if (frame && hitTestSource && (!placed || respawning)) {
-          const hits = frame.getHitTestResults(hitTestSource);
-          if (hits.length > 0) {
-            const refSpace = renderer.xr.getReferenceSpace();
-            const pose = hits[0].getPose(refSpace);
-            if (pose) {
-              hitMatrix.fromArray(pose.transform.matrix);
-              hitMatrix.decompose(hitPos, hitQuat, hitScale);
+        // v3: show the model instantly in front of the camera, then glide it onto the first
+        // table-height surface ARCore finds — no "Menyiapkan AR" wait while it scans.
+        if (frame && !anchored) {
+          const xrCam = renderer.xr.getCamera();
 
-              // Initial placement / respawn — only elevated surfaces (table)
-              if (hitPos.y > -1.2 || respawning) {
-                group.position.copy(hitPos);
-                group.visible = true;
-                placed = true;
-                respawning = false;
-                setModelPlaced(true);
+          if (!hitTestSource) {
+            // No hit-test support — just anchor in front of the camera.
+            xrCam.getWorldPosition(camPos);
+            xrCam.getWorldDirection(camDir);
+            group.position.set(camPos.x + camDir.x * 0.6, camPos.y - 0.5, camPos.z + camDir.z * 0.6);
+            group.visible = true;
+            provisional = true;
+            anchored = true;
+            placed = true;
+            setModelPlaced(true);
+            setModelAnchored(true);
+            setSearchingSurface(false);
+          } else {
+            // Look for a real surface (table height) to settle onto.
+            const hits = frame.getHitTestResults(hitTestSource);
+            if (hits.length > 0) {
+              const refSpace = renderer.xr.getReferenceSpace();
+              const pose = hits[0].getPose(refSpace);
+              if (pose) {
+                hitMatrix.fromArray(pose.transform.matrix);
+                hitMatrix.decompose(hitPos, hitQuat, hitScale);
+                if (hitPos.y > -1.2) { snapTarget.copy(hitPos); hasSnapTarget = true; }
               }
             }
+
+            if (!provisional) {
+              // First appearance — show immediately, no waiting.
+              provisional = true;
+              group.visible = true;
+              setModelPlaced(true);
+              setSearchingSurface(true);
+            }
+
+            if (hasSnapTarget) {
+              // Glide onto the detected surface, then lock it in.
+              group.position.lerp(snapTarget, 0.28);
+              if (group.position.distanceTo(snapTarget) < 0.02) {
+                group.position.copy(snapTarget);
+                anchored = true;
+                placed = true;
+                setModelAnchored(true);
+                setSearchingSurface(false);
+              }
+            } else {
+              // Float ~0.5 m in front of the camera while scanning.
+              xrCam.getWorldPosition(camPos);
+              xrCam.getWorldDirection(camDir);
+              group.position.set(
+                camPos.x + camDir.x * 0.5,
+                camPos.y + camDir.y * 0.5,
+                camPos.z + camDir.z * 0.5,
+              );
+            }
           }
-        } else if (frame && !placed && !hitTestSource) {
-          // Fallback: no hit-test support — place in front of camera
-          const xrCam = renderer.xr.getCamera();
-          const p = new THREE.Vector3();
-          const d = new THREE.Vector3();
-          xrCam.getWorldPosition(p);
-          xrCam.getWorldDirection(d);
-          group.position.set(p.x + d.x * 0.6, p.y - 0.8, p.z + d.z * 0.6);
-          group.visible = true;
-          placed = true;
-          setModelPlaced(true);
         }
         renderer.render(scene, camera);
 
@@ -503,32 +532,32 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
 
       {/* DOM overlay root — always mounted for WebXR registration */}
       <div ref={overlayRef} className="absolute inset-0" style={{ zIndex: 20, touchAction: "none" }}>
-        {/* Loading overlay inside domOverlay so it stays visible over the XR camera feed */}
-        {!modelPlaced && state !== "unsupported" && state !== "error" && !arTimedOut && (
+        {/* Loading cover — only while the camera session is starting up (not while scanning) */}
+        {state !== "ar" && state !== "unsupported" && state !== "error" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: "#002355" }}>
             <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
             <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>
-              {"Memuat AR..."}
+              {"Membuka kamera..."}
             </p>
           </div>
         )}
 
-        {/* Timeout hint — show camera but guide user to scan a surface */}
-        {!modelPlaced && state === "ar" && arTimedOut && (
+        {/* Surface-search hint — model is already visible; guide the user to settle it on a table */}
+        {state === "ar" && searchingSurface && (
           <div className="absolute bottom-24 left-0 right-0 flex justify-center px-6 pointer-events-none">
             <div className="px-5 py-3 rounded-2xl text-center" style={{ background: "rgba(0,35,85,0.82)", backdropFilter: "blur(10px)" }}>
               <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>
-                Putar kamera ke permukaan datar
+                Gerakkan ponsel perlahan ke meja
               </p>
               <p className="text-xs mt-1" style={{ color: "rgba(253,253,253,0.65)" }}>
-                Arahkan ke meja atau lantai agar model 3D muncul
+                Model akan menempel begitu permukaan terdeteksi
               </p>
             </div>
           </div>
         )}
 
         {/* Rotate hint — parked under the blue ring; auto-positioned each frame */}
-        {state === "ar" && modelPlaced && showRotateHint && (
+        {state === "ar" && modelAnchored && showRotateHint && (
           <div
             ref={rotateHintElRef}
             className="absolute -translate-x-1/2 pointer-events-none"
