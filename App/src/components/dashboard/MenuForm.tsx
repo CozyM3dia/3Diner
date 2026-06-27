@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Trash2, Save, AlertCircle, Clock, Flame, ScanLine, ShoppingBag, ImageOff } from "lucide-react";
+import { Loader2, Trash2, Save, AlertCircle, Clock, Flame, ScanLine, ShoppingBag, ImageOff, Sparkles } from "lucide-react";
 import type { Menu } from "@/types";
 import type { ActionResult } from "@/lib/dashboard-actions";
 import { formatRupiah } from "@/lib/format";
@@ -69,6 +69,44 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
 
   const inputCls = "dash-input w-full px-3.5 py-2.5 rounded-xl text-sm outline-none";
 
+  // ── AI auto-fill ──────────────────────────────────────────────────────────
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [flash, setFlash] = useState<Set<string>>(new Set());
+
+  function pulse(keys: string[]) {
+    setFlash(new Set(keys));
+    setTimeout(() => setFlash(new Set()), 1100);
+  }
+  const flashStyle = (k: string): React.CSSProperties =>
+    flash.has(k) ? { boxShadow: "0 0 0 2px rgba(253,80,2,0.55)", transition: "box-shadow 200ms ease-out" } : {};
+
+  async function autoFill() {
+    const name = nama.trim();
+    if (!name) return;
+    setAiError("");
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/menu/generate-details", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal membuat detail");
+      const filled: string[] = [];
+      if (data.description_menu) { setDescription(data.description_menu); filled.push("description"); }
+      if (data.ingredients) { setIngredients(data.ingredients); filled.push("ingredients"); }
+      if (data.prep_time_minutes) { setPrepTime(String(data.prep_time_minutes)); filled.push("prepTime"); }
+      if (data.calories) { setCalories(String(data.calories)); filled.push("calories"); }
+      pulse(filled);
+    } catch (e: unknown) {
+      setAiError(e instanceof Error ? e.message : "Terjadi kesalahan");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
@@ -121,7 +159,29 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
       {/* Basics */}
       <div className="rounded-2xl p-5 space-y-4" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
         <Field label="Nama Menu *">
-          <input name="nama_menu" value={nama} onChange={(e) => setNama(e.target.value)} required className={inputCls} style={inputStyle} placeholder="Pasta Meatball" />
+          <div className="flex gap-2">
+            <input name="nama_menu" value={nama} onChange={(e) => setNama(e.target.value)} required className={`${inputCls} flex-1 min-w-0`} style={inputStyle} placeholder="Pasta Meatball" />
+            <button
+              type="button"
+              onClick={autoFill}
+              disabled={!nama.trim() || aiLoading}
+              title={nama.trim() ? "AI isi deskripsi, bahan, waktu saji & kalori" : "Isi nama menu dulu"}
+              className="dash-press shrink-0 inline-flex items-center gap-1.5 px-3.5 rounded-xl text-sm font-semibold whitespace-nowrap disabled:opacity-45 disabled:cursor-not-allowed transition-opacity"
+              style={{ background: "rgba(253,80,2,0.12)", color: "#FF7A3D", border: "1px solid rgba(253,80,2,0.35)" }}
+            >
+              {aiLoading ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+              {aiLoading ? "Menganalisis…" : "Auto-Isi Detail"}
+            </button>
+          </div>
+          {aiError ? (
+            <p className="flex items-center gap-1.5 text-[11px] mt-1.5" style={{ color: "#FCA5A5" }}>
+              <AlertCircle size={12} /> {aiError}
+            </p>
+          ) : (
+            <p className="text-[11px] mt-1.5" style={{ color: "#5A7898" }}>
+              Ketik nama menu, lalu biarkan AI mengisi detail di bawah otomatis.
+            </p>
+          )}
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Harga (Rp) *">
@@ -132,18 +192,18 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
           </Field>
         </div>
         <Field label="Deskripsi">
-          <textarea name="description_menu" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={inputCls} style={inputStyle} placeholder="Deskripsi singkat hidangan…" />
+          <textarea name="description_menu" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={inputCls} style={{ ...inputStyle, ...flashStyle("description") }} placeholder="Deskripsi singkat hidangan…" />
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Waktu Saji (menit)">
-            <input name="prep_time_minutes" type="number" min="0" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} className={inputCls} style={inputStyle} placeholder="15" />
+            <input name="prep_time_minutes" type="number" min="0" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} className={inputCls} style={{ ...inputStyle, ...flashStyle("prepTime") }} placeholder="15" />
           </Field>
           <Field label="Kalori">
-            <input name="calories" type="number" min="0" value={calories} onChange={(e) => setCalories(e.target.value)} className={inputCls} style={inputStyle} placeholder="650" />
+            <input name="calories" type="number" min="0" value={calories} onChange={(e) => setCalories(e.target.value)} className={inputCls} style={{ ...inputStyle, ...flashStyle("calories") }} placeholder="650" />
           </Field>
         </div>
         <Field label="Bahan (pisahkan dengan koma)">
-          <input name="ingredients" value={ingredients} onChange={(e) => setIngredients(e.target.value)} className={inputCls} style={inputStyle} placeholder="Pasta, Daging Sapi, Saus Tomat" />
+          <input name="ingredients" value={ingredients} onChange={(e) => setIngredients(e.target.value)} className={inputCls} style={{ ...inputStyle, ...flashStyle("ingredients") }} placeholder="Pasta, Daging Sapi, Saus Tomat" />
         </Field>
       </div>
 

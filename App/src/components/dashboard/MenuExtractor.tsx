@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useTransition, useCallback } from "react";
+import { useRef, useState, useTransition, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Sparkles,
   UploadCloud,
@@ -46,8 +47,19 @@ export default function MenuExtractor() {
   const [insertedCount, setInsertedCount] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [mounted, setMounted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => setMounted(true), []);
+
+  // Lock body scroll while the overlay is open.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
 
   const reset = useCallback(() => {
     setStage("idle");
@@ -161,15 +173,21 @@ export default function MenuExtractor() {
         <Sparkles size={16} style={{ color: C.orange }} /> Ekstrak Menu via AI
       </button>
 
-      {!open ? null : (
+      {!open || !mounted ? null : createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 me-overlay"
+          style={{ background: "rgba(5,10,20,0.72)", backdropFilter: "blur(6px)" }}
           onClick={closeModal}
         >
+          <style>{`
+            @keyframes me-fade { from { opacity: 0 } to { opacity: 1 } }
+            @keyframes me-pop { from { opacity: 0; transform: translateY(12px) scale(0.98) } to { opacity: 1; transform: none } }
+            .me-overlay { animation: me-fade .18s ease-out }
+            .me-dialog { animation: me-pop .26s cubic-bezier(0.22,1,0.36,1) }
+          `}</style>
           <div
-            className="relative flex flex-col rounded-2xl overflow-hidden w-full"
-            style={{ maxWidth: 720, maxHeight: "90vh", background: C.bg, border: `1px solid ${C.border}` }}
+            className="me-dialog relative flex flex-col rounded-2xl overflow-hidden w-full"
+            style={{ maxWidth: 720, maxHeight: "90vh", background: C.bg, border: `1px solid ${C.border}`, boxShadow: "0 24px 70px rgba(0,0,0,0.55)" }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -345,7 +363,8 @@ export default function MenuExtractor() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
