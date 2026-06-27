@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { ShoppingBag, Clock, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer } from "lucide-react";
+import { useEffect, useState, useTransition, useRef } from "react";
+import { ShoppingBag, Clock, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { updateOrderStatus } from "@/lib/dashboard-actions";
 import { formatRupiah } from "@/lib/format";
@@ -35,123 +35,193 @@ const TABS: { v: Filter; l: string }[] = [
   { v: "ready", l: "Siap" },
 ];
 
-function printReceipt(order: OrderRow, cafeName: string): void {
-  const iframe = document.createElement("iframe");
-  iframe.style.cssText =
-    "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;opacity:0;pointer-events:none;";
-  document.body.appendChild(iframe);
-
-  const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
-  if (!doc) { document.body.removeChild(iframe); return; }
-
+function buildReceiptHtml(order: OrderRow, cafeName: string): string {
   const date = new Date(order.created_at);
   const dateStr = date.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
   const timeStr = date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
   const items = Array.isArray(order.items) ? order.items : [];
-
   const payLabel =
     order.payment_method === "qris" ? "QRIS"
     : order.payment_method === "cash" ? "Tunai"
-    : "Belum Dibayar";
+    : "-";
+  const statusLabel =
+    order.payment_status === "paid" ? "LUNAS"
+    : "BELUM BAYAR";
 
-  const SEP32 = "--------------------------------";
-  const SEP32D = "================================";
+  // 32 chars = safe for 80mm thermal @ 11px monospace
+  const D = "================================";
+  const S = "--------------------------------";
 
   const itemRows = items.map((it) => {
-    const subtotal = (it.harga_menu * it.qty).toLocaleString("id-ID");
+    const price = it.harga_menu.toLocaleString("id-ID");
+    const sub   = (it.harga_menu * it.qty).toLocaleString("id-ID");
+    // name row + indent price row
     return `
+      <tr><td colspan="2" style="font-weight:600;padding-top:3px;">${it.qty}x ${it.nama_menu}</td></tr>
       <tr>
-        <td style="vertical-align:top;padding-right:6px;white-space:nowrap;">${it.qty}x</td>
-        <td style="vertical-align:top;width:100%;word-break:break-word;">${it.nama_menu}</td>
-        <td style="vertical-align:top;text-align:right;white-space:nowrap;padding-left:4px;">Rp ${subtotal}</td>
+        <td style="padding-left:12px;font-size:10.5px;color:#333;">${it.qty} x Rp ${price}</td>
+        <td style="text-align:right;font-weight:600;white-space:nowrap;">Rp ${sub}</td>
       </tr>`;
   }).join("");
 
   const notesBlock = order.notes
-    ? `<div class="notes-box">** CATATAN **<br>${order.notes}</div>`
+    ? `<div style="border:1px dashed #000;padding:4px 5px;margin:5px 0;font-size:10.5px;word-break:break-word;"><b>** CATATAN **</b><br>${order.notes}</div>`
     : "";
 
   const totalStr = order.total.toLocaleString("id-ID");
-  const orderId = order.id_order.slice(-8).toUpperCase();
+  const orderId  = order.id_order.slice(-8).toUpperCase();
 
-  const html = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <title>Struk #${orderId}</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{
-    font-family:'Courier New',Consolas,'Lucida Console',monospace;
+  html,body{
+    font-family:'Courier New',Courier,'Lucida Console',monospace;
     font-size:11.5px;
-    line-height:1.45;
-    width:76mm;
-    max-width:76mm;
-    padding:4mm 3mm 8mm;
+    line-height:1.5;
     color:#000;
     background:#fff;
+    /* 80mm paper, 0 margin — printer driver trims edges */
+    width:80mm;
+    max-width:80mm;
   }
+  body{ padding:4mm 4mm 12mm; }
   .c{text-align:center;}
-  .r{text-align:right;}
   .b{font-weight:bold;}
-  .cafe-name{font-size:15px;font-weight:bold;text-align:center;letter-spacing:1.5px;margin-bottom:1px;}
-  .pos-sub{font-size:9.5px;text-align:center;margin-bottom:3px;}
-  .sep{font-size:11px;letter-spacing:0px;margin:3px 0;}
-  .meja{font-size:22px;font-weight:bold;text-align:center;margin:3px 0 2px;}
-  .meta{font-size:10.5px;margin:1px 0;}
+  .sep{font-size:11px;margin:3px 0;letter-spacing:0;}
+  .cafe{font-size:15px;font-weight:bold;text-align:center;letter-spacing:2px;text-transform:uppercase;}
+  .sub{font-size:9.5px;text-align:center;color:#444;margin-bottom:2px;}
+  .meja{font-size:24px;font-weight:900;text-align:center;margin:4px 0 3px;letter-spacing:1px;}
+  .meta{font-size:10.5px;margin:1.5px 0;display:flex;justify-content:space-between;}
+  .meta b{min-width:56px;display:inline-block;}
   table{width:100%;border-collapse:collapse;}
-  td{padding:1px 0;font-size:11px;}
-  .total-line{margin-top:5px;padding-top:4px;border-top:1px dashed #000;}
-  .total-lbl{font-size:12px;font-weight:bold;}
-  .total-val{font-size:13px;font-weight:bold;text-align:right;}
-  .notes-box{border:1px dashed #000;padding:4px 5px;margin:5px 0;font-weight:bold;font-size:11px;word-break:break-word;}
-  .footer{text-align:center;font-size:10px;margin-top:3px;}
+  td{padding:0;font-size:11px;vertical-align:top;}
+  .total-row td{font-size:13px;font-weight:900;padding-top:5px;}
+  .status-paid{font-weight:900;font-size:12px;text-align:center;
+    border:2px solid #000;padding:2px 6px;display:inline-block;letter-spacing:2px;}
+  .footer{text-align:center;font-size:10px;margin-top:2px;color:#333;}
   @media print{
-    body{margin:0;padding:2mm 2mm 6mm;}
-    @page{margin:0;size:80mm auto;}
+    html,body{width:80mm;max-width:80mm;padding:0 3mm 14mm;}
+    @page{size:80mm auto;margin:0;}
   }
 </style>
 </head>
 <body>
-  <div class="cafe-name">${cafeName}</div>
-  <div class="pos-sub">POS 3Diner</div>
-  <div class="sep c">${SEP32D}</div>
-  <div class="c b" style="font-size:12px;">STRUK PESANAN</div>
-  <div class="sep c">${SEP32}</div>
+  <div class="cafe">${cafeName}</div>
+  <div class="sub">Powered by 3Diner POS</div>
+  <div class="sep c">${D}</div>
   <div class="meja">MEJA ${order.table_number}</div>
-  <div class="sep c">${SEP32}</div>
-  <div class="meta"><span class="b">ID    :</span> #${orderId}</div>
-  <div class="meta"><span class="b">Tgl   :</span> ${dateStr}  ${timeStr}</div>
-  <div class="meta"><span class="b">Bayar :</span> ${payLabel}</div>
-  <div class="sep c">${SEP32}</div>
+  <div class="sep c">${S}</div>
+  <div class="meta"><b>No.</b> <span>#${orderId}</span></div>
+  <div class="meta"><b>Tgl</b> <span>${dateStr} ${timeStr}</span></div>
+  <div class="meta"><b>Bayar</b> <span>${payLabel}</span></div>
+  <div class="meta"><b>Status</b> <span class="status-paid">${statusLabel}</span></div>
+  <div class="sep c">${D}</div>
   <table><tbody>${itemRows}</tbody></table>
-  <div class="sep c">${SEP32}</div>
+  <div class="sep c">${S}</div>
   <table>
-    <tr>
-      <td class="total-lbl">TOTAL</td>
-      <td class="total-val">Rp ${totalStr}</td>
+    <tr class="total-row">
+      <td>TOTAL</td>
+      <td style="text-align:right;">Rp ${totalStr}</td>
     </tr>
   </table>
   ${notesBlock}
-  <div class="sep c">${SEP32D}</div>
-  <div class="footer">Terima kasih telah berkunjung!</div>
-  <div class="footer">Dicetak via POS 3Diner</div>
-  <div style="height:6mm;"></div>
+  <div class="sep c">${D}</div>
+  <div class="footer">Terima kasih sudah mampir!</div>
+  <div class="footer">Pesanan ini dicetak via 3Diner</div>
+  <div style="height:10mm;"></div>
 </body>
 </html>`;
+}
 
-  doc.open();
-  doc.write(html);
-  doc.close();
-
-  // Give browser time to parse & layout before triggering print
+function triggerPrint(html: string) {
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;opacity:0;pointer-events:none;";
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+  if (!doc) { document.body.removeChild(iframe); return; }
+  doc.open(); doc.write(html); doc.close();
   setTimeout(() => {
     iframe.contentWindow?.focus();
     iframe.contentWindow?.print();
-    setTimeout(() => {
-      if (document.body.contains(iframe)) document.body.removeChild(iframe);
-    }, 1000);
-  }, 300);
+    setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1500);
+  }, 350);
+}
+
+function ReceiptModal({ order, cafeName, onClose }: { order: OrderRow; cafeName: string; onClose: () => void }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const html = buildReceiptHtml(order, cafeName);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+    if (!doc) return;
+    doc.open(); doc.write(html); doc.close();
+  }, [html]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="relative flex flex-col"
+        style={{ maxHeight: "90vh", width: "min(360px, 95vw)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none" }}>
+          <span className="font-semibold text-sm" style={{ color: "#E9EEF6" }}>Preview Struk · Meja {order.table_number}</span>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 transition-colors">
+            <X size={16} style={{ color: "#5A7898" }} />
+          </button>
+        </div>
+
+        {/* Receipt preview — looks like paper */}
+        <div className="overflow-y-auto flex-1" style={{ background: "#f5f0e8", borderLeft: "1px solid rgba(255,255,255,0.1)", borderRight: "1px solid rgba(255,255,255,0.1)" }}>
+          {/* Paper top perforation */}
+          <div style={{ height: "6px", background: "repeating-linear-gradient(90deg,#d4ccbb 0,#d4ccbb 6px,#f5f0e8 6px,#f5f0e8 10px)" }} />
+          <iframe
+            ref={iframeRef}
+            title="Receipt Preview"
+            style={{ width: "100%", border: "none", display: "block", minHeight: "420px" }}
+            scrolling="no"
+            onLoad={() => {
+              const iframe = iframeRef.current;
+              if (!iframe) return;
+              const h = iframe.contentDocument?.body?.scrollHeight;
+              if (h) iframe.style.height = h + 8 + "px";
+            }}
+          />
+          {/* Paper bottom perforation */}
+          <div style={{ height: "6px", background: "repeating-linear-gradient(90deg,#d4ccbb 0,#d4ccbb 6px,#f5f0e8 6px,#f5f0e8 10px)" }} />
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 px-4 py-3 rounded-b-2xl" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.1)", borderTop: "none" }}>
+          <button
+            onClick={onClose}
+            className="flex-1 h-10 rounded-xl text-sm font-semibold"
+            style={{ border: "1px solid rgba(255,255,255,0.12)", color: "#5A7898" }}
+          >
+            Tutup
+          </button>
+          <button
+            onClick={() => { triggerPrint(html); onClose(); }}
+            className="flex-1 h-10 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2"
+            style={{ background: "#FD5002" }}
+          >
+            <Printer size={14} /> Cetak Sekarang
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function relTime(iso: string): string {
@@ -169,6 +239,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [previewOrder, setPreviewOrder] = useState<OrderRow | null>(null);
 
   function handleCopy(id: string) {
     navigator.clipboard.writeText(id);
@@ -223,6 +294,9 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
 
   return (
     <>
+      {previewOrder && (
+        <ReceiptModal order={previewOrder} cafeName={cafeName} onClose={() => setPreviewOrder(null)} />
+      )}
       {/* Filter tabs */}
       <div className="flex gap-2 mb-5 overflow-x-auto no-scrollbar">
         {TABS.map((t) => {
@@ -285,11 +359,11 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() => printReceipt(o, cafeName)}
+                      onClick={() => setPreviewOrder(o)}
                       className="dash-press p-1.5 rounded-lg transition-colors duration-150"
                       style={{ color: "#5A7898", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
-                      title="Cetak Struk"
-                      aria-label="Cetak Struk"
+                      title="Preview & Cetak Struk"
+                      aria-label="Preview & Cetak Struk"
                     >
                       <Printer size={14} strokeWidth={1.8} />
                     </button>
