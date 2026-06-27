@@ -294,19 +294,19 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
     setTimeout(() => dismissToast(key), 6500);
   }, [playChime, dismissToast]);
 
-  async function toggleAlerts() {
+  function toggleAlerts() {
     if (alertsOn) {
       setAlertsOn(false);
       localStorage.setItem("3diner.orderAlerts", "off");
       return;
     }
-    // Turning on: prime audio (user gesture) + request notification permission.
-    playChime();
-    if (typeof Notification !== "undefined" && Notification.permission === "default") {
-      try { await Notification.requestPermission(); } catch { /* ignore */ }
-    }
+    // Flip state immediately (the permission prompt below must not block the UI).
     setAlertsOn(true);
     localStorage.setItem("3diner.orderAlerts", "on");
+    playChime(); // prime audio within the user gesture
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
   }
 
   function handleCopy(id: string) {
