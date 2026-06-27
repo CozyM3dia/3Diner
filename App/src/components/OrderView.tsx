@@ -318,6 +318,7 @@ function QrisView({
           <p className="text-[11px] mt-3 leading-relaxed" style={{ color: "var(--navy-muted)" }}>
             Scan pakai GoPay, OVO, DANA, ShopeePay, atau m-banking
           </p>
+          {qrUrl && <DownloadQris qrUrl={qrUrl} orderId={order.id_order} />}
         </div>
 
         <span
@@ -485,6 +486,41 @@ function StatusView({ order, slug }: { order: Order; slug: string }) {
         </p>
       </div>
     </main>
+  );
+}
+
+function DownloadQris({ qrUrl, orderId }: { qrUrl: string; orderId: string }) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleDownload() {
+    setLoading(true);
+    try {
+      const res = await fetch(qrUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `QRIS-${orderId}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // fallback: open in new tab
+      window.open(qrUrl, "_blank");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={loading}
+      className="press mt-3 w-full h-9 rounded-xl text-xs font-semibold disabled:opacity-60 flex items-center justify-center gap-1.5"
+      style={{ background: "var(--surface)", color: "var(--navy)" }}
+    >
+      {loading ? <Loader2 size={13} className="animate-spin" /> : null}
+      {loading ? "Mengunduh…" : "⬇ Unduh Kode QRIS"}
+    </button>
   );
 }
 
