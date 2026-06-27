@@ -128,6 +128,33 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       groupRef.current = group;
       userScaleRef.current = 1;
 
+      // Collect the model's materials so we can fade it while it's still floating
+      // (provisional ~50%) and pop to full opacity once it settles on the surface.
+      const modelMats: any[] = [];
+      model.traverse((o: any) => {
+        if (!o.isMesh) return;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach((m: any) => {
+          if (m && !modelMats.includes(m)) {
+            m.userData._origTransparent = m.transparent;
+            m.userData._origOpacity = m.opacity ?? 1;
+            modelMats.push(m);
+          }
+        });
+      });
+      const setModelOpacity = (factor: number) => {
+        modelMats.forEach((m) => {
+          if (factor < 1) {
+            m.transparent = true;
+            m.opacity = (m.userData._origOpacity ?? 1) * factor;
+          } else {
+            m.transparent = m.userData._origTransparent ?? false;
+            m.opacity = m.userData._origOpacity ?? 1;
+          }
+          m.needsUpdate = true;
+        });
+      };
+
       // Rotation ring — thin blue circle at model base, dragging it rotates the model.
       // RING_OUTER_R stays 0.30 so the touch zone is unchanged; only the visual band is thinner.
       const RING_OUTER_R = 0.30;
@@ -139,6 +166,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       });
       const rotationRing = new THREE.Mesh(ringGeo, ringMat);
       rotationRing.position.y = 0.005;
+      rotationRing.visible = false; // hidden while floating; shown once anchored
       group.add(rotationRing);
 
       const scene = new THREE.Scene();
@@ -289,6 +317,8 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
               anchored = false;
               provisional = false;
               hasSnapTarget = false;
+              rotationRing.visible = false;
+              setModelOpacity(0.5);
               setModelAnchored(false);
               setSearchingSurface(true);
               return;
@@ -419,6 +449,8 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
             provisional = true;
             anchored = true;
             placed = true;
+            setModelOpacity(1);
+            rotationRing.visible = true;
             setModelPlaced(true);
             setModelAnchored(true);
             setSearchingSurface(false);
@@ -436,20 +468,23 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
             }
 
             if (!provisional) {
-              // First appearance — show immediately, no waiting.
+              // First appearance — show immediately at half opacity (still floating).
               provisional = true;
               group.visible = true;
+              setModelOpacity(0.5);
               setModelPlaced(true);
               setSearchingSurface(true);
             }
 
             if (hasSnapTarget) {
-              // Glide onto the detected surface, then lock it in.
+              // Glide onto the detected surface, then lock it in at full opacity.
               group.position.lerp(snapTarget, 0.28);
               if (group.position.distanceTo(snapTarget) < 0.02) {
                 group.position.copy(snapTarget);
                 anchored = true;
                 placed = true;
+                setModelOpacity(1);
+                rotationRing.visible = true;
                 setModelAnchored(true);
                 setSearchingSurface(false);
               }
