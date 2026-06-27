@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useTransition, useRef } from "react";
-import { ShoppingBag, Clock, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer, X } from "lucide-react";
+import { useEffect, useState, useTransition, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { ShoppingBag, Clock, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer, X, BellRing, BellOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { updateOrderStatus } from "@/lib/dashboard-actions";
 import { formatRupiah } from "@/lib/format";
@@ -241,11 +242,83 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [previewOrder, setPreviewOrder] = useState<OrderRow | null>(null);
 
+  // ── New-order alerts (sound + browser notification + in-app toast) ──
+  const [alertsOn, setAlertsOn] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [toasts, setToasts] = useState<{ key: string; table: string; total: number; items: number }[]>([]);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    setAlertsOn(localStorage.getItem("3diner.orderAlerts") === "on");
+  }, []);
+
+  const playChime = useCallback(() => {
+    try {
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      audioCtxRef.current ??= new Ctx();
+      const ctx = audioCtxRef.current;
+      if (ctx.state === "suspended") ctx.resume();
+      // Two-note rising chime (G5 -> C6), soft bell envelope.
+      [784, 1047].forEach((freq, i) => {
+        const t = ctx.currentTime + i * 0.13;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.22, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.5);
+      });
+    } catch { /* audio unavailable */ }
+  }, []);
+
+  const dismissToast = useCallback((key: string) => {
+    setToasts((prev) => prev.filter((t) => t.key !== key));
+  }, []);
+
+  const fireAlert = useCallback((row: OrderRow) => {
+    const itemCount = (Array.isArray(row.items) ? row.items : []).reduce((n, i) => n + i.qty, 0);
+    playChime();
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      new Notification("Pesanan baru masuk", {
+        body: `Meja ${row.table_number} · ${itemCount} item · ${formatRupiah(row.total)}`,
+        tag: row.id_order,
+      });
+    }
+    const key = row.id_order + ":" + Date.now();
+    setToasts((prev) => [{ key, table: row.table_number, total: row.total, items: itemCount }, ...prev].slice(0, 4));
+    setTimeout(() => dismissToast(key), 6500);
+  }, [playChime, dismissToast]);
+
+  async function toggleAlerts() {
+    if (alertsOn) {
+      setAlertsOn(false);
+      localStorage.setItem("3diner.orderAlerts", "off");
+      return;
+    }
+    // Turning on: prime audio (user gesture) + request notification permission.
+    playChime();
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      try { await Notification.requestPermission(); } catch { /* ignore */ }
+    }
+    setAlertsOn(true);
+    localStorage.setItem("3diner.orderAlerts", "on");
+  }
+
   function handleCopy(id: string) {
     navigator.clipboard.writeText(id);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 1500);
   }
+
+  // Keep the latest alert handler reachable from the one-time subscription closure.
+  const fireAlertRef = useRef(fireAlert);
+  const alertsOnRef = useRef(alertsOn);
+  useEffect(() => { fireAlertRef.current = fireAlert; alertsOnRef.current = alertsOn; }, [fireAlert, alertsOn]);
 
   useEffect(() => {
     if (!cafeId) return;
@@ -258,7 +331,11 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
         (payload) => {
           const row = payload.new as OrderRow;
           if (payload.eventType === "INSERT") {
-            setOrders((prev) => (prev.some((o) => o.id_order === row.id_order) ? prev : [row, ...prev]));
+            setOrders((prev) => {
+              if (prev.some((o) => o.id_order === row.id_order)) return prev;
+              if (alertsOnRef.current) fireAlertRef.current(row);
+              return [row, ...prev];
+            });
           } else if (payload.eventType === "UPDATE") {
             setOrders((prev) => prev.map((o) => (o.id_order === row.id_order ? { ...o, ...row } : o)));
           } else if (payload.eventType === "DELETE") {
@@ -297,28 +374,69 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
       {previewOrder && (
         <ReceiptModal order={previewOrder} cafeName={cafeName} onClose={() => setPreviewOrder(null)} />
       )}
-      {/* Filter tabs */}
-      <div className="flex gap-2 mb-5 overflow-x-auto no-scrollbar">
-        {TABS.map((t) => {
-          const on = filter === t.v;
-          return (
-            <button
-              key={t.v}
-              onClick={() => setFilter(t.v)}
-              className="dash-chip shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium"
-              style={{
-                background: on ? "rgba(253,80,2,0.12)" : "#0D1829",
-                color: on ? "#FD5002" : "#5A7898",
-                border: `1px solid ${on ? "rgba(253,80,2,0.3)" : "rgba(255,255,255,0.07)"}`,
-              }}
-            >
-              {t.l}
-              <span className="text-xs tabular-nums" style={{ color: on ? "#FD5002" : "#5A7898" }}>
-                {counts[t.v]}
+
+      {/* New-order toasts */}
+      {mounted && toasts.length > 0 && createPortal(
+        <div className="fixed z-[120] flex flex-col gap-2.5 pointer-events-none"
+          style={{ top: "calc(env(safe-area-inset-top,0px) + 16px)", right: 16, width: "min(320px, calc(100vw - 32px))" }}>
+          <style>{`@keyframes ord-toast-in { from { opacity:0; transform: translateX(16px) } to { opacity:1; transform:none } }`}</style>
+          {toasts.map((t) => (
+            <div key={t.key}
+              className="pointer-events-auto flex items-center gap-3 p-3.5 rounded-2xl"
+              style={{ background: "#0D1829", border: "1px solid rgba(34,211,166,0.35)", boxShadow: "0 16px 40px rgba(0,0,0,0.5)", animation: "ord-toast-in .32s cubic-bezier(0.22,1,0.36,1)" }}>
+              <span className="w-10 h-10 rounded-xl inline-flex items-center justify-center shrink-0" style={{ background: "rgba(34,211,166,0.14)" }}>
+                <ShoppingBag size={18} style={{ color: "#22D3A6" }} />
               </span>
-            </button>
-          );
-        })}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold leading-tight" style={{ color: "#E9EEF6" }}>Pesanan baru · Meja {t.table}</p>
+                <p className="text-xs mt-0.5 tabular-nums" style={{ color: "#9FB6D1" }}>{t.items} item · {formatRupiah(t.total)}</p>
+              </div>
+              <button onClick={() => dismissToast(t.key)} className="shrink-0 p-1 rounded-lg hover:bg-white/10 transition-colors" aria-label="Tutup">
+                <X size={15} style={{ color: "#5A7898" }} />
+              </button>
+            </div>
+          ))}
+        </div>,
+        document.body
+      )}
+
+      {/* Filter tabs + alert toggle */}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar flex-1">
+          {TABS.map((t) => {
+            const on = filter === t.v;
+            return (
+              <button
+                key={t.v}
+                onClick={() => setFilter(t.v)}
+                className="dash-chip shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium"
+                style={{
+                  background: on ? "rgba(253,80,2,0.12)" : "#0D1829",
+                  color: on ? "#FD5002" : "#5A7898",
+                  border: `1px solid ${on ? "rgba(253,80,2,0.3)" : "rgba(255,255,255,0.07)"}`,
+                }}
+              >
+                {t.l}
+                <span className="text-xs tabular-nums" style={{ color: on ? "#FD5002" : "#5A7898" }}>
+                  {counts[t.v]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={toggleAlerts}
+          className="dash-press shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors"
+          style={{
+            background: alertsOn ? "rgba(34,211,166,0.12)" : "#0D1829",
+            color: alertsOn ? "#22D3A6" : "#5A7898",
+            border: `1px solid ${alertsOn ? "rgba(34,211,166,0.3)" : "rgba(255,255,255,0.07)"}`,
+          }}
+          title={alertsOn ? "Alarm pesanan aktif (suara + notifikasi)" : "Aktifkan alarm pesanan baru"}
+        >
+          {alertsOn ? <BellRing size={15} /> : <BellOff size={15} />}
+          <span className="hidden sm:inline">{alertsOn ? "Alarm Aktif" : "Alarm Mati"}</span>
+        </button>
       </div>
 
       {shown.length === 0 ? (

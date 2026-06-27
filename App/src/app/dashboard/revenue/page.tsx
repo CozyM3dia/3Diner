@@ -7,6 +7,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import RevenueChart from "@/components/dashboard/RevenueChart";
 import DonutChart from "@/components/dashboard/DonutChart";
 import DateRangePicker from "@/components/dashboard/DateRangePicker";
+import ExportReport from "@/components/dashboard/ExportReport";
 
 export const metadata: Metadata = { title: "Penjualan · Dashboard | 3Diner" };
 export const dynamic = "force-dynamic";
@@ -56,7 +57,8 @@ export default async function RevenuePage({ searchParams }: PageProps) {
             <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>Penjualan</h1>
             <p className="text-sm mt-1" style={{ color: "#5A7898" }}>Belum ada data penjualan pada rentang terpilih.</p>
           </div>
-          <div className="shrink-0">
+          <div className="shrink-0 flex items-center gap-2.5">
+            <ExportReport start={start} end={end} />
             <DateRangePicker initialStart={start} initialEnd={end} />
           </div>
         </div>
@@ -98,7 +100,8 @@ export default async function RevenuePage({ searchParams }: PageProps) {
             {subtitleLabel}
           </p>
         </div>
-        <div className="shrink-0">
+        <div className="shrink-0 flex items-center gap-2.5">
+          <ExportReport start={start} end={end} />
           <DateRangePicker initialStart={start} initialEnd={end} />
         </div>
       </div>

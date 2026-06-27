@@ -175,6 +175,68 @@ export async function reorderMenus(orderedIds: string[]): Promise<ActionResult> 
   return {};
 }
 
+// ── Sales export ───────────────────────────────────────────────────────────
+
+export interface SalesExportRow {
+  id_order: string;
+  created_at: string;
+  table_number: string;
+  items_summary: string;
+  item_count: number;
+  total: number;
+  payment_method: string;
+  payment_status: string;
+  status: string;
+}
+
+/** Fetch orders in a date range (scoped to the owner's cafe) for CSV/PDF export. */
+export async function getSalesExport(
+  start?: string,
+  end?: string
+): Promise<{ rows?: SalesExportRow[]; cafeName?: string; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesi tidak valid. Masuk ulang." };
+  const slug = await getOwnerCafeSlug(user.id);
+  if (!slug) return { error: "Kafe tidak ditemukan." };
+
+  const { data: cafe } = await supabaseAdmin
+    .from("Cafes").select("id_cafe, nama_cafe").eq("slug_url", slug).single();
+  if (!cafe) return { error: "Kafe tidak ditemukan." };
+
+  let q = supabaseAdmin
+    .from("Orders")
+    .select("id_order, created_at, table_number, items, total, payment_method, payment_status, status")
+    .eq("cafe_id", cafe.id_cafe)
+    .order("created_at", { ascending: false });
+  if (start) q = q.gte("created_at", new Date(start).toISOString());
+  if (end) {
+    const e = new Date(end);
+    e.setHours(23, 59, 59, 999);
+    q = q.lte("created_at", e.toISOString());
+  }
+
+  const { data, error } = await q.limit(2000);
+  if (error) return { error: error.message };
+
+  const rows: SalesExportRow[] = (data ?? []).map((o) => {
+    const items = Array.isArray(o.items) ? (o.items as { nama_menu: string; qty: number }[]) : [];
+    return {
+      id_order: o.id_order as string,
+      created_at: o.created_at as string,
+      table_number: String(o.table_number ?? ""),
+      items_summary: items.map((it) => `${it.qty}x ${it.nama_menu}`).join("; "),
+      item_count: items.reduce((n, it) => n + (it.qty ?? 0), 0),
+      total: Number(o.total) || 0,
+      payment_method: (o.payment_method as string) ?? "-",
+      payment_status: (o.payment_status as string) ?? "-",
+      status: (o.status as string) ?? "-",
+    };
+  });
+
+  return { rows, cafeName: (cafe.nama_cafe as string) ?? "3Diner" };
+}
+
 // ── Cafe settings ────────────────────────────────────────────────────────
 
 export async function updateCafeSettings(fd: FormData): Promise<ActionResult> {
