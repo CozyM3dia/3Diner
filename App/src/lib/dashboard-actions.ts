@@ -74,6 +74,44 @@ export async function createMenu(fd: FormData): Promise<ActionResult> {
   return {};
 }
 
+export interface DraftMenuInput {
+  nama_menu: string;
+  harga_menu: number;
+  description_menu?: string | null;
+  category?: string | null;
+}
+
+/** Bulk-insert AI-extracted draft menus the admin approved. */
+export async function bulkCreateMenus(
+  menus: DraftMenuInput[]
+): Promise<{ inserted?: number; error?: string }> {
+  const cafeId = await getAuthCafeId();
+  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
+  if (!Array.isArray(menus) || menus.length === 0) return { error: "Tidak ada menu untuk disimpan." };
+  if (menus.length > 100) return { error: "Maksimal 100 menu sekali simpan." };
+
+  const rows = menus
+    .map((m) => ({
+      cafe_id: cafeId,
+      nama_menu: String(m.nama_menu ?? "").trim().slice(0, 120),
+      harga_menu: Number.isFinite(m.harga_menu) ? Math.max(0, Math.round(m.harga_menu)) : 0,
+      description_menu: m.description_menu ? String(m.description_menu).trim().slice(0, 400) : null,
+      category: m.category ? String(m.category).trim().slice(0, 60) : null,
+      model_3d_url: "",
+      redirect_link: "",
+      is_active: true,
+      discount_pct: 0,
+    }))
+    .filter((r) => r.nama_menu.length > 0);
+
+  if (rows.length === 0) return { error: "Semua item kosong / tidak valid." };
+
+  const { error } = await supabaseAdmin.from("Menus").insert(rows);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/menu");
+  return { inserted: rows.length };
+}
+
 export async function updateMenu(menuId: string, fd: FormData): Promise<ActionResult> {
   const cafeId = await getAuthCafeId();
   if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };

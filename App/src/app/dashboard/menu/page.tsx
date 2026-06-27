@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOwnerCafeSlug } from "@/lib/analytics";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import MenuTable from "@/components/dashboard/MenuTable";
+import MenuExtractor from "@/components/dashboard/MenuExtractor";
 import type { Menu } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -39,13 +40,16 @@ export default async function MenuListPage() {
           <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>Menu</h1>
           <p className="text-sm mt-1" style={{ color: "#5A7898" }}>{list.length} item terdaftar</p>
         </div>
-        <Link
-          href="/dashboard/menu/new"
-          className="dash-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
-          style={{ background: "#FD5002" }}
-        >
-          <Plus size={16} /> Tambah Menu
-        </Link>
+        <div className="flex items-center gap-2.5">
+          <MenuExtractor />
+          <Link
+            href="/dashboard/menu/new"
+            className="dash-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
+            style={{ background: "#FD5002" }}
+          >
+            <Plus size={16} /> Tambah Menu
+          </Link>
+        </div>
       </div>
 
       {list.length === 0 ? (
