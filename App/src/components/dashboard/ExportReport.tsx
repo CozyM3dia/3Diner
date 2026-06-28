@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Download, FileSpreadsheet, FileText, Loader2, ChevronDown } from "lucide-react";
 import { getSalesExport, type SalesExportRow } from "@/lib/dashboard-actions";
 import { formatRupiah } from "@/lib/format";
@@ -118,16 +119,36 @@ export default function ExportReport({ start, end }: { start?: string; end?: str
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState<"csv" | "pdf" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [pos, setPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
   const wrapRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setMounted(true), []);
+
+  // Anchor the portal menu just below the button, aligned to its right edge.
+  const place = useCallback(() => {
+    const r = wrapRef.current?.getBoundingClientRect();
+    if (r) setPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+  }, []);
 
   useEffect(() => {
     if (!open) return;
+    place();
     const onDoc = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (!wrapRef.current?.contains(t) && !menuRef.current?.contains(t)) setOpen(false);
     };
+    const onMove = () => place();
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [open]);
+    window.addEventListener("resize", onMove);
+    window.addEventListener("scroll", onMove, true);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      window.removeEventListener("resize", onMove);
+      window.removeEventListener("scroll", onMove, true);
+    };
+  }, [open, place]);
 
   async function run(kind: "csv" | "pdf") {
     setError(null);
@@ -159,10 +180,11 @@ export default function ExportReport({ start, end }: { start?: string; end?: str
         <ChevronDown size={14} style={{ color: "#5A7898", transform: open ? "rotate(180deg)" : "none", transition: "transform 160ms ease-out" }} />
       </button>
 
-      {open && (
+      {open && mounted && createPortal(
         <div
-          className="absolute right-0 mt-2 w-60 rounded-2xl p-1.5 z-30"
-          style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 18px 50px rgba(0,0,0,0.5)", animation: "ord-toast-in .2s cubic-bezier(0.22,1,0.36,1)" }}
+          ref={menuRef}
+          className="fixed w-60 rounded-2xl p-1.5 z-[100]"
+          style={{ top: pos.top, right: pos.right, background: "#0D1829", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 18px 50px rgba(0,0,0,0.5)", animation: "ord-toast-in .2s cubic-bezier(0.22,1,0.36,1)" }}
         >
           <style>{`@keyframes ord-toast-in { from { opacity:0; transform: translateY(-6px) } to { opacity:1; transform:none } }`}</style>
           <MenuRow
@@ -184,7 +206,8 @@ export default function ExportReport({ start, end }: { start?: string; end?: str
               {error}
             </p>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
