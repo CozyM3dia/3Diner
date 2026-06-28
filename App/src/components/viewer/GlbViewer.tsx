@@ -37,6 +37,7 @@ export default function GlbViewer({ url, onReady, onError, onGltfLoaded, modelSc
     try {
       const THREE = await import("three");
       const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
+      const { DRACOLoader } = await import("three/examples/jsm/loaders/DRACOLoader.js");
 
       setProgress(20);
 
@@ -80,8 +81,11 @@ export default function GlbViewer({ url, onReady, onError, onGltfLoaded, modelSc
 
       setProgress(40);
 
-      // Load GLB
+      // Load GLB (with Draco support for compressed models)
       const loader = new GLTFLoader();
+      const draco = new DRACOLoader();
+      draco.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
+      loader.setDRACOLoader(draco);
       const gltf = await new Promise<any>((resolve, reject) => {
         loader.load(
           url,

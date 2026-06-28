@@ -104,8 +104,13 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       let gltf: any = preloadedGltf;
       if (!gltf) {
         const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
+        const { DRACOLoader } = await import("three/examples/jsm/loaders/DRACOLoader.js");
+        const loader = new GLTFLoader();
+        const draco = new DRACOLoader();
+        draco.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
+        loader.setDRACOLoader(draco);
         gltf = await new Promise<any>((res, rej) =>
-          new GLTFLoader().load(url, res, undefined, rej)
+          loader.load(url, res, undefined, rej)
         );
       }
 
