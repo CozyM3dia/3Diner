@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Box, Flame } from "lucide-react";
+import { Box, Clock, Flame } from "lucide-react";
 import { logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
 import { effectivePrice, hasDiscount } from "@/lib/menu-availability";
@@ -72,18 +72,30 @@ export default function MenuCard({ menu, cafeId, slug, index }: MenuCardProps) {
       )}
 
       {has3d && isActive && (
-        <span className="badge-3d absolute bottom-2 left-2 inline-flex items-center gap-1">
-          <Box size={10} strokeWidth={2.5} /> Lihat 3D
+        <span
+          className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide"
+          style={{
+            background: "rgba(2,44,96,0.55)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            border: "1px solid rgba(255,255,255,0.22)",
+            color: "#fff",
+          }}
+        >
+          <Box size={10} strokeWidth={2.5} /> 3D
         </span>
       )}
 
+      {/* Swiggy-style offer strip — bold white on dark gradient */}
       {discounted && isActive && (
-        <span
-          className="absolute top-2 right-2 inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold text-white"
-          style={{ background: "var(--orange)" }}
+        <div
+          className="absolute inset-x-0 bottom-0 px-3 pt-7 pb-1.5 pointer-events-none"
+          style={{ background: "linear-gradient(to top, rgba(2,20,50,0.85), transparent)" }}
         >
-          -{menu.discount_pct}%
-        </span>
+          <p className="text-white font-display font-extrabold text-base leading-none tracking-tight">
+            {menu.discount_pct}% OFF
+          </p>
+        </div>
       )}
     </div>
   );
@@ -101,24 +113,34 @@ export default function MenuCard({ menu, cafeId, slug, index }: MenuCardProps) {
           {menu.description_menu}
         </p>
       )}
-      <div className="flex items-center justify-between gap-1 mt-1.5">
-        <div className="flex items-baseline gap-1.5 min-w-0">
-          <p className="text-sm font-bold" style={{ color: isActive ? "var(--orange-ink)" : "var(--navy-muted)" }}>
-            {formatRupiah(price)}
+      <div className="flex items-baseline gap-1.5 mt-1.5 min-w-0">
+        <p className="text-sm font-bold" style={{ color: isActive ? "var(--orange-ink)" : "var(--navy-muted)" }}>
+          {formatRupiah(price)}
+        </p>
+        {discounted && isActive && (
+          <p className="text-[11px] line-through" style={{ color: "var(--navy-muted)" }}>
+            {formatRupiah(menu.harga_menu)}
           </p>
-          {discounted && isActive && (
-            <p className="text-[11px] line-through" style={{ color: "var(--navy-muted)" }}>
-              {formatRupiah(menu.harga_menu)}
-            </p>
-          )}
-        </div>
-        {menu.calories && isActive && (
-          <span className="inline-flex items-center gap-0.5 text-[10px] shrink-0" style={{ color: "var(--navy-muted)" }}>
-            <Flame size={10} style={{ color: "var(--orange)" }} />
-            {menu.calories}
-          </span>
         )}
       </div>
+
+      {/* Meta row — Swiggy-style time + calories */}
+      {isActive && (menu.prep_time_minutes || menu.calories) && (
+        <div className="flex items-center gap-2.5 mt-1.5">
+          {menu.prep_time_minutes && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium" style={{ color: "var(--navy-muted)" }}>
+              <Clock size={10} strokeWidth={2.2} />
+              {menu.prep_time_minutes} mnt
+            </span>
+          )}
+          {menu.calories && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium" style={{ color: "var(--navy-muted)" }}>
+              <Flame size={10} style={{ color: "var(--orange)" }} />
+              {menu.calories} kal
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 

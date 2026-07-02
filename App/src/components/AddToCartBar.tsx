@@ -82,7 +82,7 @@ export default function AddToCartBar({ menu, slug }: { menu: Menu; slug: string 
               >
                 <Minus size={15} strokeWidth={2.5} />
               </button>
-              <span className="w-7 text-center font-bold text-base tabular-nums" style={{ color: "var(--navy)" }}>
+              <span key={qty} className="qty-pop w-7 text-center font-bold text-base tabular-nums" style={{ color: "var(--navy)" }}>
                 {qty}
               </span>
               <button

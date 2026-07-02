@@ -177,11 +177,7 @@ export default async function MenuDetailPage({ params }: PageProps) {
           <div className="mt-5">
             <Link
               href={`/${slug}/${menu_id}/3d`}
-              className="press w-full h-[52px] rounded-2xl inline-flex items-center justify-center gap-2.5 font-semibold text-[15px]"
-              style={{
-                background: "var(--navy)",
-                color: "var(--white)",
-              }}
+              className="btn-navy press w-full h-[52px] rounded-2xl inline-flex items-center justify-center gap-2.5 font-semibold text-[15px]"
             >
               <Box size={18} strokeWidth={2} />
               Lihat Model 3D
