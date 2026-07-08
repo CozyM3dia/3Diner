@@ -59,10 +59,10 @@ export async function createImageToModelTask(imageUrl: string): Promise<string> 
       // Food photography → textured PBR model for realistic menu preview.
       texture: true,
       pbr: true,
-      // Bandwidth diet: 2K textures, capped geometry, Draco-compressed GLB.
-      // Raw output was ~500k tris / 14MB; this targets ~1-2MB per model.
+      // Bandwidth diet: 2K textures, capped geometry, meshopt-compressed GLB.
+      // Raw output was ~500k tris / 14MB uncompressed.
       texture_quality: "standard",
-      face_limit: 20000,
+      face_limit: 150000,
       compress: "geometry",
     }),
   });
