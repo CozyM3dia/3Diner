@@ -65,6 +65,7 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
   const [discount, setDiscount] = useState<number>(menu?.discount_pct ?? 0);
   const [imageUrl, setImageUrl] = useState(menu?.image_url ?? "");
   const [generatedGlb, setGeneratedGlb] = useState("");
+  const [generatedUsdz, setGeneratedUsdz] = useState("");
 
   const promo = discount > 0 ? Math.round(harga * (1 - discount / 100)) : harga;
   const ingList = ingredients.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 10);
@@ -222,7 +223,14 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
           defaultUrl={menu?.image_url}
           onChange={setImageUrl}
         />
-        <Tripo3DGenerator imageUrl={imageUrl} menuName={nama} onDone={setGeneratedGlb} />
+        <Tripo3DGenerator
+          imageUrl={imageUrl}
+          menuName={nama}
+          onDone={(glb, usdz) => {
+            setGeneratedGlb(glb);
+            if (usdz) setGeneratedUsdz(usdz);
+          }}
+        />
         <FileUpload
           name="model_3d_url"
           kind="glb"
@@ -235,6 +243,7 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
         <FileUpload
           name="usdz_url"
           kind="usdz"
+          injectedUrl={generatedUsdz}
           label="Model iOS (.usdz)"
           accept=".usdz,model/vnd.usdz+zip"
           hint="File .usdz untuk AR di iPhone · maks 30MB"

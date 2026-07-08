@@ -62,6 +62,19 @@ export async function createImageToModelTask(imageUrl: string): Promise<string> 
   return data.task_id;
 }
 
+/** Convert a finished image_to_model task's GLB into USDZ (AR on iOS). */
+export async function createConvertUsdzTask(originalTaskId: string): Promise<string> {
+  const data = await tripoFetch<{ task_id: string }>("/task", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "convert_model",
+      format: "USDZ",
+      original_model_task_id: originalTaskId,
+    }),
+  });
+  return data.task_id;
+}
+
 export async function getTripoTask(taskId: string): Promise<TripoTask> {
   return tripoFetch<TripoTask>(`/task/${encodeURIComponent(taskId)}`);
 }

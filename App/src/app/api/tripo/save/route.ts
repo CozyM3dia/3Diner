@@ -16,16 +16,19 @@ export async function POST(req: Request) {
     const cafeId = await getAuthCafeId();
     if (!cafeId) return NextResponse.json({ error: "Sesi tidak valid. Masuk ulang." }, { status: 401 });
 
-    const body = (await req.json().catch(() => ({}))) as { task_id?: string; name?: string };
+    const body = (await req.json().catch(() => ({}))) as { task_id?: string; name?: string; format?: string };
     const taskId = String(body.task_id ?? "").trim();
     if (!taskId) return NextResponse.json({ error: "task_id wajib diisi." }, { status: 400 });
+    const isUsdz = body.format === "usdz";
 
     const task = await getTripoTask(taskId);
     if (task.status !== "success") {
       return NextResponse.json({ error: `Task belum selesai (status: ${task.status}).` }, { status: 409 });
     }
     const modelUrl = pickModelUrl(task);
-    if (!modelUrl) return NextResponse.json({ error: "Tripo tidak mengembalikan model GLB." }, { status: 502 });
+    if (!modelUrl) {
+      return NextResponse.json({ error: `Tripo tidak mengembalikan model ${isUsdz ? "USDZ" : "GLB"}.` }, { status: 502 });
+    }
 
     const dl = await fetch(modelUrl);
     if (!dl.ok) return NextResponse.json({ error: `Gagal mengunduh model (${dl.status}).` }, { status: 502 });
@@ -36,10 +39,11 @@ export async function POST(req: Request) {
     }
 
     const safeName = String(body.name ?? "model").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 40) || "model";
-    const path = `${cafeId}/glb/${Date.now()}-tripo-${safeName}.glb`;
+    const kind = isUsdz ? "usdz" : "glb";
+    const path = `${cafeId}/${kind}/${Date.now()}-tripo-${safeName}.${kind}`;
     const { error } = await supabaseAdmin.storage
       .from(BUCKET)
-      .upload(path, buf, { contentType: "model/gltf-binary", upsert: false });
+      .upload(path, buf, { contentType: isUsdz ? "model/vnd.usdz+zip" : "model/gltf-binary", upsert: false });
     if (error) return NextResponse.json({ error: error.message }, { status: 502 });
 
     const { data: pub } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path);
