@@ -22,7 +22,9 @@ export interface TripoTask {
 }
 
 function apiKey(): string {
-  const key = process.env.TRIPO_API_KEY;
+  // Strip BOM/zero-width chars — a UTF-8 BOM smuggled in via .env tooling makes
+  // the Authorization header an invalid ByteString and kills every request.
+  const key = (process.env.TRIPO_API_KEY ?? "").replace(/[﻿​]/g, "").trim();
   if (!key) throw new Error("TRIPO_API_KEY belum dikonfigurasi di server.");
   return key;
 }
