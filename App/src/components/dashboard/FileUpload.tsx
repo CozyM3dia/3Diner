@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { UploadCloud, Loader2, X, ImageIcon, Box, CheckCircle2, AlertCircle } from "lucide-react";
 import { createMediaUploadUrl } from "@/lib/dashboard-actions";
@@ -17,6 +17,8 @@ interface FileUploadProps {
   variant?: "image" | "file";
   defaultUrl?: string | null;
   onChange?: (url: string) => void;
+  /** Externally-provided URL (e.g. AI-generated model). Overrides current value when set. */
+  injectedUrl?: string;
 }
 
 function fileName(url: string): string {
@@ -29,9 +31,13 @@ function fileName(url: string): string {
   }
 }
 
-export default function FileUpload({ name, kind, label, accept, hint, variant = "file", defaultUrl, onChange }: FileUploadProps) {
+export default function FileUpload({ name, kind, label, accept, hint, variant = "file", defaultUrl, onChange, injectedUrl }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState<string>(defaultUrl ?? "");
+
+  useEffect(() => {
+    if (injectedUrl) setUrl(injectedUrl);
+  }, [injectedUrl]);
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
   const [error, setError] = useState("");

@@ -8,6 +8,7 @@ import type { ActionResult } from "@/lib/dashboard-actions";
 import { formatRupiah } from "@/lib/format";
 import FileUpload from "./FileUpload";
 import PhoneMockup from "./PhoneMockup";
+import Tripo3DGenerator from "./Tripo3DGenerator";
 
 interface MenuFormProps {
   menu?: Menu;
@@ -63,6 +64,7 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
   const [ingredients, setIngredients] = useState(menu?.ingredients ?? "");
   const [discount, setDiscount] = useState<number>(menu?.discount_pct ?? 0);
   const [imageUrl, setImageUrl] = useState(menu?.image_url ?? "");
+  const [generatedGlb, setGeneratedGlb] = useState("");
 
   const promo = discount > 0 ? Math.round(harga * (1 - discount / 100)) : harga;
   const ingList = ingredients.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 10);
@@ -220,9 +222,11 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
           defaultUrl={menu?.image_url}
           onChange={setImageUrl}
         />
+        <Tripo3DGenerator imageUrl={imageUrl} menuName={nama} onDone={setGeneratedGlb} />
         <FileUpload
           name="model_3d_url"
           kind="glb"
+          injectedUrl={generatedGlb}
           label="Model 3D (.glb)"
           accept=".glb,model/gltf-binary,application/octet-stream"
           hint="File .glb untuk tampilan 3D & AR Android · maks 30MB"

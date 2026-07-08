@@ -10,7 +10,7 @@ export interface ActionResult {
 }
 
 /** Resolve the cafe_id owned by the authenticated user, or null. */
-async function getAuthCafeId(): Promise<string | null> {
+export async function getAuthCafeId(): Promise<string | null> {
   const supabase = await createClient();
   const {
     data: { user },
