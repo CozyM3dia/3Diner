@@ -105,10 +105,12 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       if (!gltf) {
         const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
         const { DRACOLoader } = await import("three/examples/jsm/loaders/DRACOLoader.js");
+        const { MeshoptDecoder } = await import("three/examples/jsm/libs/meshopt_decoder.module.js");
         const loader = new GLTFLoader();
         const draco = new DRACOLoader();
         draco.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
         loader.setDRACOLoader(draco);
+        loader.setMeshoptDecoder(MeshoptDecoder); // Tripo compress:"geometry" emits EXT_meshopt_compression
         gltf = await new Promise<any>((res, rej) =>
           loader.load(url, res, undefined, rej)
         );
