@@ -18,22 +18,25 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
   const [touched, setTouched] = useState(false);
   const tableValid = table.trim().length > 0;
 
-  function submit() {
+  async function submit() {
     if (!tableValid) {
       setTouched(true);
       return;
     }
-    const order = createOrder({
+    try {
+    const order = await createOrder({
       cafeId: cafe.id_cafe,
       cafeSlug: slug,
       cafeName: cafe.nama_cafe,
       table: table.trim(),
       items,
-      total,
       notes: notes.trim(),
     });
     clear();
     router.push(`/${slug}/pesanan/${order.id_order}`);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Gagal membuat pesanan");
+    }
   }
 
   return (

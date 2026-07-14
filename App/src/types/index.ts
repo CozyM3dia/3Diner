@@ -93,4 +93,5 @@ export interface Order {
   payment_status: PaymentStatus
   created_at: string
   notes?: string | null
+  customer_token?: string
 }
