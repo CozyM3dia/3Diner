@@ -27,7 +27,10 @@ describe("POST /api/payment/charge", () => {
     eqToken.mockReturnValue({ single });
     eqOrder.mockReturnValue({ eq: eqToken });
     select.mockReturnValue({ eq: eqOrder });
-    from.mockReturnValue({ select });
+    from.mockReturnValue({
+      select,
+      update: () => ({ eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }),
+    });
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(

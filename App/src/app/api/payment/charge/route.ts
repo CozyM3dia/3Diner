@@ -65,6 +65,15 @@ export async function POST(req: Request) {
       );
     }
 
+    const { error: updateError } = await supabaseAdmin
+      .from("Orders")
+      .update({ payment_method: "qris", payment_status: "pending" })
+      .eq("id_order", order.id_order)
+      .eq("payment_status", "unpaid");
+    if (updateError) {
+      return NextResponse.json({ error: "Gagal memperbarui pesanan" }, { status: 502 });
+    }
+
     return NextResponse.json(data);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Unknown error";
