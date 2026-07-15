@@ -114,6 +114,8 @@ begin
     select 1
     from tmp_raw_requested_items
     where jsonb_typeof(item) <> 'object'
+      or not (item ? 'id_menu')
+      or not (item ? 'qty')
       or jsonb_typeof(item->'id_menu') <> 'string'
       or jsonb_typeof(item->'qty') <> 'number'
       or (item->>'id_menu') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'

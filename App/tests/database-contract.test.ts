@@ -49,6 +49,7 @@ describe("inventory core migration", () => {
     const sql = readFileSync(inventoryMigrationPath, "utf8");
 
     expect(sql).toContain("jsonb_typeof(item) <> 'object'");
+    expect(sql).toMatch(/not \(item \? 'id_menu'\)[\s\S]*not \(item \? 'qty'\)/i);
     expect(sql).toContain("jsonb_typeof(item->'id_menu') <> 'string'");
     expect(sql).toContain("jsonb_typeof(item->'qty') <> 'number'");
     expect(sql).toContain("(item->>'id_menu') !~* '^[0-9a-f]{8}-");
