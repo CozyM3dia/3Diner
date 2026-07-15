@@ -36,6 +36,20 @@ describe("inventory core migration", () => {
     expect(sql).toContain("set search_path = public");
   });
 
+  it("locks inventory tables behind RLS while preserving RPC access", () => {
+    const sql = readFileSync(inventoryMigrationPath, "utf8");
+
+    expect(sql).toContain('alter table public."Inventory_Items" enable row level security');
+    expect(sql).toContain('alter table public."Menu_Recipes" enable row level security');
+    expect(sql).toContain('alter table public."Inventory_Movements" enable row level security');
+    expect(sql).toMatch(
+      /revoke all on table\s+public\."Inventory_Items",\s*public\."Menu_Recipes",\s*public\."Inventory_Movements"\s+from public, anon, authenticated/i
+    );
+    expect(sql).toContain(
+      "grant execute on function public.create_order_with_inventory(uuid, text, jsonb, text) to anon, authenticated"
+    );
+  });
+
   it("keeps Orders.id_order text-compatible and stores order references as text", () => {
     const sql = readFileSync(inventoryMigrationPath, "utf8");
 

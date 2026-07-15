@@ -64,6 +64,16 @@ create index if not exists "Inventory_Movements_cafe_item_created_idx"
 create index if not exists "Inventory_Movements_reference_idx"
   on public."Inventory_Movements" (reference_type, reference_id);
 
+alter table public."Inventory_Items" enable row level security;
+alter table public."Menu_Recipes" enable row level security;
+alter table public."Inventory_Movements" enable row level security;
+
+revoke all on table
+  public."Inventory_Items",
+  public."Menu_Recipes",
+  public."Inventory_Movements"
+from public, anon, authenticated;
+
 alter table public."Orders"
   add column if not exists notes text;
 
