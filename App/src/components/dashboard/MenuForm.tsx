@@ -3,15 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Trash2, Save, AlertCircle, Clock, Flame, ScanLine, ShoppingBag, ImageOff, Sparkles } from "lucide-react";
-import type { Menu } from "@/types";
+import type { InventoryItem, Menu, MenuRecipe } from "@/types";
 import type { ActionResult } from "@/lib/dashboard-actions";
 import { formatRupiah } from "@/lib/format";
 import FileUpload from "./FileUpload";
 import PhoneMockup from "./PhoneMockup";
 import Tripo3DGenerator from "./Tripo3DGenerator";
+import RecipeEditor from "./RecipeEditor";
 
 interface MenuFormProps {
   menu?: Menu;
+  inventoryItems?: InventoryItem[];
+  recipes?: MenuRecipe[];
   onSave: (fd: FormData) => Promise<ActionResult>;
   onDelete?: () => Promise<ActionResult>;
 }
@@ -43,7 +46,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
+export default function MenuForm({ menu, inventoryItems = [], recipes = [], onSave, onDelete }: MenuFormProps) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -329,6 +332,8 @@ export default function MenuForm({ menu, onSave, onDelete }: MenuFormProps) {
           </Field>
         </div>
       </div>
+
+      <RecipeEditor menuId={menu?.id_menu} inventoryItems={inventoryItems} recipes={recipes} />
 
       {/* Actions */}
       <div className="flex items-center gap-3">

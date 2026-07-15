@@ -6,7 +6,7 @@ import { updateMenu, deleteMenu } from "@/lib/dashboard-actions";
 import { createClient } from "@/lib/supabase/server";
 import { getOwnerCafeSlug } from "@/lib/analytics";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import type { Menu } from "@/types";
+import type { InventoryItem, Menu, MenuRecipe } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +32,20 @@ export default async function EditMenuPage({ params }: { params: Promise<{ id: s
     .single();
   if (!menu) notFound();
 
+  const [{ data: inventoryItems }, { data: recipes }] = await Promise.all([
+    supabaseAdmin
+      .from("Inventory_Items")
+      .select("*")
+      .eq("cafe_id", cafe.id_cafe)
+      .order("name", { ascending: true }),
+    supabaseAdmin
+      .from("Menu_Recipes")
+      .select("*")
+      .eq("menu_id", id)
+      .eq("cafe_id", cafe.id_cafe)
+      .order("created_at", { ascending: true }),
+  ]);
+
   const onSave = updateMenu.bind(null, id);
   const onDelete = deleteMenu.bind(null, id);
 
@@ -41,7 +55,13 @@ export default async function EditMenuPage({ params }: { params: Promise<{ id: s
         <ChevronLeft size={15} /> Menu
       </Link>
       <h1 className="font-display text-2xl font-bold mb-6" style={{ color: "#E9EEF6" }}>Edit Menu</h1>
-      <MenuForm menu={menu as Menu} onSave={onSave} onDelete={onDelete} />
+      <MenuForm
+        menu={menu as Menu}
+        inventoryItems={(inventoryItems ?? []) as InventoryItem[]}
+        recipes={(recipes ?? []) as MenuRecipe[]}
+        onSave={onSave}
+        onDelete={onDelete}
+      />
     </div>
   );
 }
