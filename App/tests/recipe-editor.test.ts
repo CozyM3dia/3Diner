@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextRecipeRow } from "../src/components/dashboard/RecipeEditor";
+import { nextRecipeRow, recipeRowsValidationError } from "../src/components/dashboard/RecipeEditor";
 
 describe("recipe editor row selection", () => {
   it("selects the first inventory item not already used by a recipe row", () => {
@@ -21,5 +21,21 @@ describe("recipe editor row selection", () => {
         [{ inventory_item_id: "item-1", qty_per_menu: 1 }]
       )
     ).toBeUndefined();
+  });
+});
+
+describe("recipe editor quantity validation", () => {
+  it("blocks a save when a retained recipe row has a non-positive or non-finite quantity", () => {
+    expect(recipeRowsValidationError([{ inventory_item_id: "item-1", qty_per_menu: 0 }])).toBe(
+      "Jumlah setiap bahan harus lebih dari 0."
+    );
+    expect(recipeRowsValidationError([{ inventory_item_id: "item-1", qty_per_menu: Number.NaN }])).toBe(
+      "Jumlah setiap bahan harus lebih dari 0."
+    );
+  });
+
+  it("allows an intentional empty recipe or positive retained rows", () => {
+    expect(recipeRowsValidationError([])).toBeUndefined();
+    expect(recipeRowsValidationError([{ inventory_item_id: "item-1", qty_per_menu: 0.001 }])).toBeUndefined();
   });
 });

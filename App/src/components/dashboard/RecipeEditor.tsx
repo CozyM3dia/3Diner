@@ -20,6 +20,12 @@ export function nextRecipeRow(
   return item ? { inventory_item_id: item.id_inventory_item, qty_per_menu: 1 } : undefined;
 }
 
+export function recipeRowsValidationError(rows: RecipeDraftInput[]): string | undefined {
+  return rows.some((row) => !Number.isFinite(row.qty_per_menu) || row.qty_per_menu <= 0)
+    ? "Jumlah setiap bahan harus lebih dari 0."
+    : undefined;
+}
+
 export default function RecipeEditor({
   menuId,
   inventoryItems,
@@ -61,6 +67,8 @@ export default function RecipeEditor({
   }
 
   const currentMenuId = menuId;
+  const validationError = recipeRowsValidationError(rows);
+  const visibleError = validationError ?? error;
 
   function addRow() {
     const row = nextRecipeRow(inventoryItems, rows);
@@ -68,12 +76,18 @@ export default function RecipeEditor({
   }
 
   function updateRow(index: number, patch: Partial<RecipeDraftInput>) {
+    setError("");
+    setSaved(false);
     setRows((current) => current.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
   }
 
   function save() {
     setError("");
     setSaved(false);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     startTransition(async () => {
       const result = await saveMenuRecipes(currentMenuId, rows);
       if (result.error) {
@@ -111,9 +125,9 @@ export default function RecipeEditor({
         </button>
       </div>
 
-      {error && (
+      {visibleError && (
         <div className="rounded-xl px-3 py-2 text-sm" style={{ background: "rgba(239,68,68,0.1)", color: "#FCA5A5" }} role="alert">
-          {error}
+          {visibleError}
         </div>
       )}
 
@@ -187,7 +201,7 @@ export default function RecipeEditor({
       <button
         type="button"
         onClick={save}
-        disabled={pending}
+        disabled={pending || Boolean(validationError)}
         className="dash-btn inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-white disabled:cursor-not-allowed"
         style={{ background: saved ? "#22D3A6" : "#FD5002", opacity: pending ? 0.7 : 1 }}
       >
