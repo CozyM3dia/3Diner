@@ -305,7 +305,186 @@ begin
 end;
 $$;
 
+create or replace function public.adjust_inventory_stock(
+  p_cafe_id uuid,
+  p_inventory_item_id uuid,
+  p_mode text,
+  p_quantity numeric,
+  p_note text default null
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_before numeric(12,3);
+  v_after numeric(12,3);
+  v_unit text;
+  v_unit_cost integer;
+  v_movement_type text;
+  v_now timestamptz := now();
+begin
+  if p_cafe_id is null
+    or p_inventory_item_id is null
+    or p_mode is null
+    or p_mode not in ('add', 'subtract', 'set')
+    or p_quantity is null
+    or p_quantity < 0 then
+    return jsonb_build_object('error', 'invalid_adjustment');
+  end if;
+
+  select current_qty, unit, estimated_unit_cost
+    into v_before, v_unit, v_unit_cost
+  from public."Inventory_Items"
+  where id_inventory_item = p_inventory_item_id
+    and cafe_id = p_cafe_id
+  for update;
+  if not found then
+    return jsonb_build_object('error', 'inventory_not_found');
+  end if;
+
+  v_after := case p_mode
+    when 'add' then v_before + p_quantity
+    when 'subtract' then v_before - p_quantity
+    else p_quantity
+  end;
+  if v_after < 0 then
+    return jsonb_build_object('error', 'negative_stock');
+  end if;
+
+  v_movement_type := case p_mode
+    when 'add' then 'manual_add'
+    when 'subtract' then 'manual_subtract'
+    else 'manual_set'
+  end;
+
+  update public."Inventory_Items"
+  set current_qty = v_after,
+      updated_at = v_now
+  where id_inventory_item = p_inventory_item_id
+    and cafe_id = p_cafe_id;
+
+  insert into public."Inventory_Movements" (
+    cafe_id,
+    inventory_item_id,
+    movement_type,
+    delta_qty,
+    qty_before,
+    qty_after,
+    unit,
+    unit_cost,
+    reference_type,
+    note,
+    created_at
+  ) values (
+    p_cafe_id,
+    p_inventory_item_id,
+    v_movement_type,
+    v_after - v_before,
+    v_before,
+    v_after,
+    v_unit,
+    v_unit_cost,
+    'manual',
+    nullif(trim(p_note), ''),
+    v_now
+  );
+
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+create or replace function public.replace_menu_recipes(
+  p_cafe_id uuid,
+  p_menu_id uuid,
+  p_rows jsonb
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_cafe_id is null or p_menu_id is null then
+    return jsonb_build_object('error', 'menu_not_found');
+  end if;
+  if p_rows is null or jsonb_typeof(p_rows) <> 'array' then
+    return jsonb_build_object('error', 'invalid_recipe_rows');
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(p_rows) as entry
+    where jsonb_typeof(entry) <> 'object'
+      or jsonb_typeof(entry->'inventory_item_id') <> 'string'
+      or (entry->>'inventory_item_id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+      or jsonb_typeof(entry->'qty_per_menu') <> 'number'
+  ) then
+    return jsonb_build_object('error', 'invalid_recipe_rows');
+  end if;
+
+  perform 1
+  from public."Menus"
+  where id_menu = p_menu_id
+    and cafe_id = p_cafe_id
+  for update;
+  if not found then
+    return jsonb_build_object('error', 'menu_not_found');
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_to_recordset(p_rows) as row(inventory_item_id uuid, qty_per_menu numeric)
+    where row.qty_per_menu is null or row.qty_per_menu <= 0
+  ) then
+    return jsonb_build_object('error', 'invalid_recipe_rows');
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_to_recordset(p_rows) as row(inventory_item_id uuid, qty_per_menu numeric)
+    group by row.inventory_item_id
+    having count(*) > 1
+  ) then
+    return jsonb_build_object('error', 'duplicate_recipe_item');
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_to_recordset(p_rows) as row(inventory_item_id uuid, qty_per_menu numeric)
+    left join public."Inventory_Items" ii
+      on ii.id_inventory_item = row.inventory_item_id
+     and ii.cafe_id = p_cafe_id
+    where ii.id_inventory_item is null
+  ) then
+    return jsonb_build_object('error', 'inventory_item_not_found');
+  end if;
+
+  delete from public."Menu_Recipes"
+  where menu_id = p_menu_id
+    and cafe_id = p_cafe_id;
+
+  insert into public."Menu_Recipes" (
+    cafe_id,
+    menu_id,
+    inventory_item_id,
+    qty_per_menu
+  )
+  select
+    p_cafe_id,
+    p_menu_id,
+    row.inventory_item_id,
+    row.qty_per_menu
+  from jsonb_to_recordset(p_rows) as row(inventory_item_id uuid, qty_per_menu numeric);
+
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
 revoke all on function public.create_order_with_inventory(uuid, text, jsonb, text) from public;
 grant execute on function public.create_order_with_inventory(uuid, text, jsonb, text) to anon, authenticated;
+revoke all on function public.adjust_inventory_stock(uuid, uuid, text, numeric, text) from public, anon, authenticated;
+revoke all on function public.replace_menu_recipes(uuid, uuid, jsonb) from public, anon, authenticated;
+grant execute on function public.adjust_inventory_stock(uuid, uuid, text, numeric, text) to service_role;
+grant execute on function public.replace_menu_recipes(uuid, uuid, jsonb) to service_role;
 
 commit;

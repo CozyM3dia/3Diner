@@ -332,47 +332,19 @@ export async function adjustInventoryStock(id: string, fd: FormData): Promise<Ac
   if (!["add", "subtract", "set"].includes(mode ?? "")) return { error: "Jenis penyesuaian tidak valid." };
   if (rawQty === null) return { error: "Jumlah penyesuaian tidak valid." };
 
-  const { data: item, error: loadError } = await supabaseAdmin
-    .from("Inventory_Items")
-    .select("id_inventory_item,current_qty,unit,estimated_unit_cost")
-    .eq("id_inventory_item", id)
-    .eq("cafe_id", cafeId)
-    .single();
-  if (loadError || !item) return { error: "Bahan tidak ditemukan." };
+  const { data, error } = await supabaseAdmin.rpc("adjust_inventory_stock", {
+    p_cafe_id: cafeId,
+    p_inventory_item_id: id,
+    p_mode: mode,
+    p_quantity: rawQty,
+    p_note: note,
+  });
+  if (error) return { error: error.message };
 
-  const before = Number(item.current_qty) || 0;
-  const after =
-    mode === "add" ? before + rawQty :
-    mode === "subtract" ? before - rawQty :
-    rawQty;
-
-  if (after < 0) return { error: "Stok tidak boleh kurang dari 0." };
-
-  const movementType =
-    mode === "add" ? "manual_add" :
-    mode === "subtract" ? "manual_subtract" :
-    "manual_set";
-
-  const { error: updateError } = await supabaseAdmin
-    .from("Inventory_Items")
-    .update({ current_qty: after, updated_at: new Date().toISOString() })
-    .eq("id_inventory_item", id)
-    .eq("cafe_id", cafeId);
-  if (updateError) return { error: updateError.message };
-
-  const { error: movementError } = await supabaseAdmin.from("Inventory_Movements").insert([{
-    cafe_id: cafeId,
-    inventory_item_id: id,
-    movement_type: movementType,
-    delta_qty: after - before,
-    qty_before: before,
-    qty_after: after,
-    unit: item.unit,
-    unit_cost: item.estimated_unit_cost,
-    reference_type: "manual",
-    note,
-  }]);
-  if (movementError) return { error: movementError.message };
+  const rpcError = (data as { error?: string } | null)?.error;
+  if (rpcError === "inventory_not_found") return { error: "Bahan tidak ditemukan." };
+  if (rpcError === "negative_stock") return { error: "Stok tidak boleh kurang dari 0." };
+  if (rpcError === "invalid_adjustment") return { error: "Jumlah penyesuaian tidak valid." };
 
   revalidatePath("/dashboard/inventory");
   return {};
@@ -397,25 +369,23 @@ export async function saveMenuRecipes(menuId: string, rows: RecipeDraftInput[]):
     ids.add(row.inventory_item_id);
   }
 
-  const { data: menu } = await supabaseAdmin
-    .from("Menus")
-    .select("id_menu")
-    .eq("id_menu", menuId)
-    .eq("cafe_id", cafeId)
-    .single();
-  if (!menu) return { error: "Menu tidak ditemukan." };
+  const { data, error } = await supabaseAdmin.rpc("replace_menu_recipes", {
+    p_cafe_id: cafeId,
+    p_menu_id: menuId,
+    p_rows: cleanRows.map(({ inventory_item_id, qty_per_menu }) => ({
+      inventory_item_id,
+      qty_per_menu,
+    })),
+  });
+  if (error) return { error: error.message };
 
-  const { error: deleteError } = await supabaseAdmin
-    .from("Menu_Recipes")
-    .delete()
-    .eq("menu_id", menuId)
-    .eq("cafe_id", cafeId);
-  if (deleteError) return { error: deleteError.message };
-
-  if (cleanRows.length > 0) {
-    const { error: insertError } = await supabaseAdmin.from("Menu_Recipes").insert(cleanRows);
-    if (insertError) return { error: insertError.message };
+  const rpcError = (data as { error?: string } | null)?.error;
+  if (rpcError === "menu_not_found") return { error: "Menu tidak ditemukan." };
+  if (rpcError === "inventory_item_not_found") return { error: "Bahan tidak ditemukan." };
+  if (rpcError === "duplicate_recipe_item") {
+    return { error: "Satu bahan tidak boleh muncul dua kali di resep yang sama." };
   }
+  if (rpcError === "invalid_recipe_rows") return { error: "Data resep tidak valid." };
 
   revalidatePath("/dashboard/menu");
   revalidatePath("/dashboard/menu/" + menuId + "/edit");

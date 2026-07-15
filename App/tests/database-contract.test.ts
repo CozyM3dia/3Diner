@@ -88,4 +88,36 @@ describe("inventory core migration", () => {
     expect(sql).not.toContain("'ingredient'");
     expect(sql).not.toContain("'ingredients'");
   });
+
+  it("defines atomic dashboard inventory RPCs with row locking and cafe isolation", () => {
+    const sql = readFileSync(inventoryMigrationPath, "utf8");
+
+    expect(sql).toContain("create or replace function public.adjust_inventory_stock");
+    expect(sql).toMatch(
+      /function public\.adjust_inventory_stock[\s\S]*from public\."Inventory_Items"[\s\S]*cafe_id = p_cafe_id[\s\S]*for update[\s\S]*update public\."Inventory_Items"[\s\S]*insert into public\."Inventory_Movements"/i
+    );
+    expect(sql).toMatch(/p_mode is null\s+or p_mode not in \('add', 'subtract', 'set'\)/i);
+    expect(sql).toContain("create or replace function public.replace_menu_recipes");
+    expect(sql).toMatch(
+      /function public\.replace_menu_recipes[\s\S]*from public\."Menus"[\s\S]*cafe_id = p_cafe_id[\s\S]*for update/i
+    );
+    expect(sql).toMatch(
+      /function public\.replace_menu_recipes[\s\S]*join public\."Inventory_Items" ii[\s\S]*ii\.cafe_id = p_cafe_id/i
+    );
+    expect(sql).toMatch(
+      /function public\.replace_menu_recipes[\s\S]*delete from public\."Menu_Recipes"[\s\S]*insert into public\."Menu_Recipes"/i
+    );
+    expect(sql).toContain(
+      "revoke all on function public.adjust_inventory_stock(uuid, uuid, text, numeric, text) from public, anon, authenticated"
+    );
+    expect(sql).toContain(
+      "revoke all on function public.replace_menu_recipes(uuid, uuid, jsonb) from public, anon, authenticated"
+    );
+    expect(sql).toContain(
+      "grant execute on function public.adjust_inventory_stock(uuid, uuid, text, numeric, text) to service_role"
+    );
+    expect(sql).toContain(
+      "grant execute on function public.replace_menu_recipes(uuid, uuid, jsonb) to service_role"
+    );
+  });
 });
