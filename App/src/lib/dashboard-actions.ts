@@ -9,6 +9,24 @@ export interface ActionResult {
   error?: string;
 }
 
+export interface RecipeDraftInput {
+  inventory_item_id: string;
+  qty_per_menu: number;
+}
+
+const INVENTORY_UNIT_VALUES = ["gram", "kg", "ml", "liter", "pcs", "pack", "botol"];
+
+function cleanInventoryUnit(value: FormDataEntryValue | null): string {
+  const unit = String(value ?? "").trim();
+  return INVENTORY_UNIT_VALUES.includes(unit) ? unit : "";
+}
+
+function nonnegativeNumber(fd: FormData, key: string): number | null {
+  const value = num(fd, key);
+  if (value === null || value < 0) return null;
+  return value;
+}
+
 /** Resolve the cafe_id owned by the authenticated user, or null. */
 export async function getAuthCafeId(): Promise<string | null> {
   const supabase = await createClient();
@@ -254,6 +272,153 @@ export async function updateCafeSettings(fd: FormData): Promise<ActionResult> {
   const { error } = await supabaseAdmin.from("Cafes").update(payload).eq("id_cafe", cafeId);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/settings");
+  return {};
+}
+
+function inventoryPayload(fd: FormData) {
+  return {
+    name: str(fd, "name") ?? "",
+    unit: cleanInventoryUnit(fd.get("unit")),
+    current_qty: nonnegativeNumber(fd, "current_qty") ?? 0,
+    minimum_qty: nonnegativeNumber(fd, "minimum_qty") ?? 0,
+    estimated_unit_cost: Math.round(nonnegativeNumber(fd, "estimated_unit_cost") ?? 0),
+    notes: str(fd, "notes"),
+  };
+}
+
+export async function createInventoryItem(fd: FormData): Promise<ActionResult> {
+  const cafeId = await getAuthCafeId();
+  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
+  const payload = inventoryPayload(fd);
+  if (!payload.name) return { error: "Nama bahan wajib diisi." };
+  if (!payload.unit) return { error: "Satuan bahan tidak valid." };
+
+  const { error } = await supabaseAdmin
+    .from("Inventory_Items")
+    .insert([{ cafe_id: cafeId, ...payload }]);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/inventory");
+  revalidatePath("/dashboard/menu");
+  return {};
+}
+
+export async function updateInventoryItem(id: string, fd: FormData): Promise<ActionResult> {
+  const cafeId = await getAuthCafeId();
+  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
+  const payload = inventoryPayload(fd);
+  if (!payload.name) return { error: "Nama bahan wajib diisi." };
+  if (!payload.unit) return { error: "Satuan bahan tidak valid." };
+
+  const { error } = await supabaseAdmin
+    .from("Inventory_Items")
+    .update({ ...payload, updated_at: new Date().toISOString() })
+    .eq("id_inventory_item", id)
+    .eq("cafe_id", cafeId);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/inventory");
+  revalidatePath("/dashboard/menu");
+  return {};
+}
+
+export async function adjustInventoryStock(id: string, fd: FormData): Promise<ActionResult> {
+  const cafeId = await getAuthCafeId();
+  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
+
+  const mode = str(fd, "mode");
+  const rawQty = nonnegativeNumber(fd, "quantity");
+  const note = str(fd, "note");
+  if (!["add", "subtract", "set"].includes(mode ?? "")) return { error: "Jenis penyesuaian tidak valid." };
+  if (rawQty === null) return { error: "Jumlah penyesuaian tidak valid." };
+
+  const { data: item, error: loadError } = await supabaseAdmin
+    .from("Inventory_Items")
+    .select("id_inventory_item,current_qty,unit,estimated_unit_cost")
+    .eq("id_inventory_item", id)
+    .eq("cafe_id", cafeId)
+    .single();
+  if (loadError || !item) return { error: "Bahan tidak ditemukan." };
+
+  const before = Number(item.current_qty) || 0;
+  const after =
+    mode === "add" ? before + rawQty :
+    mode === "subtract" ? before - rawQty :
+    rawQty;
+
+  if (after < 0) return { error: "Stok tidak boleh kurang dari 0." };
+
+  const movementType =
+    mode === "add" ? "manual_add" :
+    mode === "subtract" ? "manual_subtract" :
+    "manual_set";
+
+  const { error: updateError } = await supabaseAdmin
+    .from("Inventory_Items")
+    .update({ current_qty: after, updated_at: new Date().toISOString() })
+    .eq("id_inventory_item", id)
+    .eq("cafe_id", cafeId);
+  if (updateError) return { error: updateError.message };
+
+  const { error: movementError } = await supabaseAdmin.from("Inventory_Movements").insert([{
+    cafe_id: cafeId,
+    inventory_item_id: id,
+    movement_type: movementType,
+    delta_qty: after - before,
+    qty_before: before,
+    qty_after: after,
+    unit: item.unit,
+    unit_cost: item.estimated_unit_cost,
+    reference_type: "manual",
+    note,
+  }]);
+  if (movementError) return { error: movementError.message };
+
+  revalidatePath("/dashboard/inventory");
+  return {};
+}
+
+export async function saveMenuRecipes(menuId: string, rows: RecipeDraftInput[]): Promise<ActionResult> {
+  const cafeId = await getAuthCafeId();
+  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
+
+  const cleanRows = rows
+    .map((row) => ({
+      cafe_id: cafeId,
+      menu_id: menuId,
+      inventory_item_id: String(row.inventory_item_id ?? "").trim(),
+      qty_per_menu: Number(row.qty_per_menu),
+    }))
+    .filter((row) => row.inventory_item_id && Number.isFinite(row.qty_per_menu) && row.qty_per_menu > 0);
+
+  const ids = new Set<string>();
+  for (const row of cleanRows) {
+    if (ids.has(row.inventory_item_id)) return { error: "Satu bahan tidak boleh muncul dua kali di resep yang sama." };
+    ids.add(row.inventory_item_id);
+  }
+
+  const { data: menu } = await supabaseAdmin
+    .from("Menus")
+    .select("id_menu")
+    .eq("id_menu", menuId)
+    .eq("cafe_id", cafeId)
+    .single();
+  if (!menu) return { error: "Menu tidak ditemukan." };
+
+  const { error: deleteError } = await supabaseAdmin
+    .from("Menu_Recipes")
+    .delete()
+    .eq("menu_id", menuId)
+    .eq("cafe_id", cafeId);
+  if (deleteError) return { error: deleteError.message };
+
+  if (cleanRows.length > 0) {
+    const { error: insertError } = await supabaseAdmin.from("Menu_Recipes").insert(cleanRows);
+    if (insertError) return { error: insertError.message };
+  }
+
+  revalidatePath("/dashboard/menu");
+  revalidatePath("/dashboard/menu/" + menuId + "/edit");
   return {};
 }
 
