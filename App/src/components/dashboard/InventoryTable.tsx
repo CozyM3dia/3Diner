@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowDownToLine,
+  ArrowLeftRight,
   ArrowUpFromLine,
   CheckCircle2,
   Equal,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import InventoryItemForm from "@/components/dashboard/InventoryItemForm";
 import StockAdjustmentModal from "@/components/dashboard/StockAdjustmentModal";
+import { useModalFocus } from "@/components/dashboard/StockAdjustmentModal";
 import { createInventoryItem, updateInventoryItem } from "@/lib/dashboard-actions";
 import { formatRupiah } from "@/lib/format";
 import { formatQty, inventoryStatus } from "@/lib/inventory";
@@ -54,6 +56,12 @@ export function movementTypeLabel(type: InventoryMovementType): string {
   }
 }
 
+export function tableHorizontalScrollDelta(key: string): number {
+  if (key === "ArrowLeft") return -240;
+  if (key === "ArrowRight") return 240;
+  return 0;
+}
+
 function movementIcon(type: InventoryMovementType) {
   if (type === "manual_add") return ArrowUpFromLine;
   if (type === "manual_set") return Equal;
@@ -62,18 +70,33 @@ function movementIcon(type: InventoryMovementType) {
 
 export default function InventoryTable({ items, movements }: { items: InventoryItem[]; movements: InventoryMovement[] }) {
   const [modal, setModal] = useState<ModalState>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const router = useRouter();
 
-  function closeAndRefresh() {
+  const restoreFocus = useCallback(() => {
+    requestAnimationFrame(() => returnFocusRef.current?.focus());
+  }, []);
+
+  const closeModal = useCallback(() => {
     setModal(null);
+    restoreFocus();
+  }, [restoreFocus]);
+
+  const closeAndRefresh = useCallback(() => {
+    closeModal();
     router.refresh();
-  }
+  }, [closeModal, router]);
+
+  const openModal = useCallback((next: Exclude<ModalState, null>, trigger: HTMLElement) => {
+    returnFocusRef.current = trigger;
+    setModal(next);
+  }, []);
 
   return (
     <>
-      {modal?.type === "adjust" && <StockAdjustmentModal item={modal.item} onClose={() => setModal(null)} onDone={closeAndRefresh} />}
+      {modal?.type === "adjust" && <StockAdjustmentModal item={modal.item} onClose={closeModal} onDone={closeAndRefresh} />}
       {modal && modal.type !== "adjust" && (
-        <InventoryDialog title={modal.type === "create" ? "Tambah Bahan" : "Ubah Bahan"} onClose={() => setModal(null)}>
+        <InventoryDialog title={modal.type === "create" ? "Tambah Bahan" : "Ubah Bahan"} onClose={closeModal}>
           <InventoryItemForm
             item={modal.type === "edit" ? modal.item : undefined}
             onSave={modal.type === "create" ? createInventoryItem : (fd) => updateInventoryItem(modal.item.id_inventory_item, fd)}
@@ -89,7 +112,7 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
               <h2 id="inventory-list-title" className="text-sm font-bold" style={{ color: "#E9EEF6" }}>Daftar Bahan</h2>
               <p className="mt-0.5 text-xs" style={{ color: "#5A7898" }}>{items.length} bahan terdaftar</p>
             </div>
-            <button onClick={() => setModal({ type: "create" })} className="dash-btn inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-semibold text-white" style={{ background: "#FD5002" }}>
+            <button onClick={(event) => openModal({ type: "create" }, event.currentTarget)} className="dash-btn inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-semibold text-white" style={{ background: "#FD5002" }}>
               <Plus size={15} aria-hidden="true" />
               Tambah Bahan
             </button>
@@ -102,13 +125,30 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
               </span>
               <p className="mt-4 font-semibold" style={{ color: "#E9EEF6" }}>Belum ada bahan</p>
               <p className="mt-1 max-w-xs text-sm" style={{ color: "#5A7898" }}>Tambahkan bahan pertama untuk mulai memantau stok kafe.</p>
-              <button onClick={() => setModal({ type: "create" })} className="dash-btn mt-5 inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold text-white" style={{ background: "#FD5002" }}>
+              <button onClick={(event) => openModal({ type: "create" }, event.currentTarget)} className="dash-btn mt-5 inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold text-white" style={{ background: "#FD5002" }}>
                 <Plus size={15} aria-hidden="true" />
                 Tambah Bahan
               </button>
             </div>
           ) : (
-            <div className="overflow-x-auto" aria-label="Tabel inventaris">
+            <>
+              <div id="inventory-table-scroll-hint" className="flex items-center gap-2 px-4 py-2 text-xs sm:hidden" style={{ color: "#9FB6D1", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                <ArrowLeftRight size={14} aria-hidden="true" />
+                Geser tabel atau gunakan tombol panah untuk melihat kolom lain.
+              </div>
+              <div
+                className="overflow-x-auto outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD5002]"
+                role="region"
+                tabIndex={0}
+                aria-label="Tabel inventaris"
+                aria-describedby="inventory-table-scroll-hint"
+                onKeyDown={(event) => {
+                  const delta = tableHorizontalScrollDelta(event.key);
+                  if (delta === 0) return;
+                  event.preventDefault();
+                  event.currentTarget.scrollBy({ left: delta, behavior: "smooth" });
+                }}
+              >
               <table className="w-full min-w-[760px]">
                 <thead>
                   <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
@@ -141,10 +181,10 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
                         </td>
                         <td className="px-4 py-3.5 text-right">
                           <div className="inline-flex items-center gap-1.5">
-                            <button onClick={() => setModal({ type: "adjust", item })} className="dash-icon-btn dash-press rounded-lg p-2" style={{ background: "#132136", color: "#9FB6D1" }} aria-label={`Atur stok ${item.name}`} title="Atur stok">
+                            <button onClick={(event) => openModal({ type: "adjust", item }, event.currentTarget)} className="dash-icon-btn dash-press rounded-lg p-2" style={{ background: "#132136", color: "#9FB6D1" }} aria-label={`Atur stok ${item.name}`} title="Atur stok">
                               <PackagePlus size={15} aria-hidden="true" />
                             </button>
-                            <button onClick={() => setModal({ type: "edit", item })} className="dash-icon-btn dash-press rounded-lg p-2" style={{ background: "#132136", color: "#9FB6D1" }} aria-label={`Ubah bahan ${item.name}`} title="Ubah bahan">
+                            <button onClick={(event) => openModal({ type: "edit", item }, event.currentTarget)} className="dash-icon-btn dash-press rounded-lg p-2" style={{ background: "#132136", color: "#9FB6D1" }} aria-label={`Ubah bahan ${item.name}`} title="Ubah bahan">
                               <Pencil size={15} aria-hidden="true" />
                             </button>
                           </div>
@@ -154,7 +194,8 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
                   })}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
         </section>
 
@@ -200,24 +241,21 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
   );
 }
 
-function InventoryDialog({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [onClose]);
+function InventoryDialog({
+  title,
+  children,
+  onClose,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  useModalFocus(dialogRef, onClose, "input[name='name']");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4" style={{ background: "rgba(0,0,0,0.7)" }} onMouseDown={onClose}>
-      <section role="dialog" aria-modal="true" aria-labelledby="inventory-item-dialog-title" className="my-auto w-full max-w-lg rounded-2xl p-5" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.1)" }} onMouseDown={(event) => event.stopPropagation()}>
+      <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="inventory-item-dialog-title" className="my-auto w-full max-w-lg rounded-2xl p-5" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.1)" }} onMouseDown={(event) => event.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between gap-4">
           <h2 id="inventory-item-dialog-title" className="font-display text-lg font-bold" style={{ color: "#E9EEF6" }}>{title}</h2>
           <button type="button" onClick={onClose} className="dash-icon-btn shrink-0 rounded-lg p-1.5" style={{ color: "#5A7898" }} aria-label="Tutup formulir bahan" title="Tutup">

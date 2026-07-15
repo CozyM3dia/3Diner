@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, type CSSProperties } from "react";
+import { useEffect, useRef, useState, useTransition, type CSSProperties, type RefObject } from "react";
 import { AlertCircle, Loader2, X } from "lucide-react";
 import { adjustInventoryStock } from "@/lib/dashboard-actions";
 import { formatQty } from "@/lib/inventory";
@@ -11,6 +11,69 @@ const inputStyle: CSSProperties = {
   border: "1px solid rgba(255,255,255,0.1)",
   color: "#E9EEF6",
 };
+
+const focusableSelector = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(",");
+
+function focusableElements(dialog: HTMLElement) {
+  return Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+    (element) => element.tabIndex >= 0 && element.getAttribute("aria-hidden") !== "true"
+  );
+}
+
+export function useModalFocus(
+  dialogRef: RefObject<HTMLElement | null>,
+  onClose: () => void,
+  initialFocusSelector: string
+) {
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const focusInitial = () => {
+      const preferred = dialog.querySelector<HTMLElement>(initialFocusSelector);
+      (preferred ?? focusableElements(dialog)[0])?.focus();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const elements = focusableElements(dialog);
+      if (elements.length === 0) return;
+      const activeIndex = elements.indexOf(document.activeElement as HTMLElement);
+      const wrapsBackward = event.shiftKey && (activeIndex <= 0);
+      const wrapsForward = !event.shiftKey && (activeIndex === -1 || activeIndex === elements.length - 1);
+      if (!wrapsBackward && !wrapsForward) return;
+
+      event.preventDefault();
+      elements[event.shiftKey ? elements.length - 1 : 0].focus();
+    };
+    const onFocusIn = (event: FocusEvent) => {
+      if (event.target instanceof Node && !dialog.contains(event.target)) focusInitial();
+    };
+
+    document.body.style.overflow = "hidden";
+    const frame = requestAnimationFrame(focusInitial);
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("focusin", onFocusIn);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("focusin", onFocusIn);
+    };
+  }, [dialogRef, initialFocusSelector, onClose]);
+}
 
 export default function StockAdjustmentModal({
   item,
@@ -23,20 +86,9 @@ export default function StockAdjustmentModal({
 }) {
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
+  const dialogRef = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [onClose]);
+  useModalFocus(dialogRef, onClose, "input[name='quantity']");
 
   function submit(fd: FormData) {
     setError("");
@@ -53,6 +105,7 @@ export default function StockAdjustmentModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4" style={{ background: "rgba(0,0,0,0.7)" }} onMouseDown={onClose}>
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="stock-adjustment-title"
