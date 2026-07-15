@@ -95,3 +95,54 @@ export interface Order {
   notes?: string | null
   customer_token?: string
 }
+
+export const INVENTORY_UNITS = ["gram", "kg", "ml", "liter", "pcs", "pack", "botol"] as const;
+export type InventoryUnit = (typeof INVENTORY_UNITS)[number];
+export type InventoryStatus = "safe" | "low" | "empty";
+
+export interface InventoryItem {
+  id_inventory_item: string;
+  cafe_id: string;
+  name: string;
+  unit: InventoryUnit;
+  current_qty: number;
+  minimum_qty: number;
+  estimated_unit_cost: number;
+  notes?: string | null;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface MenuRecipe {
+  id_menu_recipe: string;
+  cafe_id: string;
+  menu_id: string;
+  inventory_item_id: string;
+  qty_per_menu: number;
+  created_at: string;
+  updated_at?: string;
+  inventory_item?: InventoryItem;
+}
+
+export type InventoryMovementType =
+  | "manual_add"
+  | "manual_subtract"
+  | "manual_set"
+  | "order_deduction";
+
+export interface InventoryMovement {
+  id_inventory_movement: string;
+  cafe_id: string;
+  inventory_item_id: string;
+  movement_type: InventoryMovementType;
+  delta_qty: number;
+  qty_before: number;
+  qty_after: number;
+  unit: InventoryUnit;
+  unit_cost?: number | null;
+  reference_type?: string | null;
+  reference_id?: string | null;
+  note?: string | null;
+  created_at: string;
+  inventory_item?: Pick<InventoryItem, "name" | "unit">;
+}
