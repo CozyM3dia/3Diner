@@ -132,7 +132,7 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
             </div>
           ) : (
             <>
-              <div id="inventory-table-scroll-hint" className="flex items-center gap-2 px-4 py-2 text-xs sm:hidden" style={{ color: "#9FB6D1", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+              <div id="inventory-table-scroll-hint" className="flex items-center gap-2 px-4 py-2 text-xs" style={{ color: "#9FB6D1", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                 <ArrowLeftRight size={14} aria-hidden="true" />
                 Geser tabel atau gunakan tombol panah untuk melihat kolom lain.
               </div>
@@ -146,7 +146,7 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
                   const delta = tableHorizontalScrollDelta(event.key);
                   if (delta === 0) return;
                   event.preventDefault();
-                  event.currentTarget.scrollBy({ left: delta, behavior: "smooth" });
+                  event.currentTarget.scrollBy({ left: delta, behavior: "auto" });
                 }}
               >
               <table className="w-full min-w-[760px]">
