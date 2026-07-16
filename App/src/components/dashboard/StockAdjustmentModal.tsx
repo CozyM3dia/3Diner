@@ -88,7 +88,7 @@ export default function StockAdjustmentModal({
 }: {
   item: InventoryItem;
   onClose: () => void;
-  onDone: () => void;
+  onDone: (itemName: string) => void;
 }) {
   const [error, setError] = useState("");
   const [mode, setMode] = useState<AdjustmentMode>("add");
@@ -105,7 +105,7 @@ export default function StockAdjustmentModal({
         setError(result.error);
         return;
       }
-      onDone();
+      onDone(item.name);
     });
   }
 

@@ -30,6 +30,8 @@ type ModalState =
   | { type: "adjust"; item: InventoryItem }
   | null;
 
+type InventoryAction = "create" | "edit" | "adjust";
+
 const STATUS = {
   safe: { label: "Aman", color: "#22D3A6", bg: "rgba(34,211,166,0.12)", icon: CheckCircle2 },
   low: { label: "Menipis", color: "#F59E0B", bg: "rgba(245,158,11,0.12)", icon: TriangleAlert },
@@ -62,6 +64,12 @@ export function tableHorizontalScrollDelta(key: string): number {
   return 0;
 }
 
+export function inventoryActionMessage(action: InventoryAction, itemName: string): string {
+  if (action === "create") return `${itemName} berhasil ditambahkan ke inventory.`;
+  if (action === "edit") return `${itemName} berhasil diperbarui.`;
+  return `Stok ${itemName} berhasil disesuaikan.`;
+}
+
 function movementIcon(type: InventoryMovementType) {
   if (type === "manual_add") return ArrowUpFromLine;
   if (type === "manual_set") return Equal;
@@ -70,6 +78,7 @@ function movementIcon(type: InventoryMovementType) {
 
 export default function InventoryTable({ items, movements }: { items: InventoryItem[]; movements: InventoryMovement[] }) {
   const [modal, setModal] = useState<ModalState>(null);
+  const [notice, setNotice] = useState("");
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const router = useRouter();
 
@@ -82,8 +91,9 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
     restoreFocus();
   }, [restoreFocus]);
 
-  const closeAndRefresh = useCallback(() => {
+  const finishAction = useCallback((action: InventoryAction, itemName: string) => {
     closeModal();
+    setNotice(inventoryActionMessage(action, itemName));
     router.refresh();
   }, [closeModal, router]);
 
@@ -94,13 +104,27 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
 
   return (
     <>
-      {modal?.type === "adjust" && <StockAdjustmentModal item={modal.item} onClose={closeModal} onDone={closeAndRefresh} />}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {notice}
+      </div>
+
+      {notice && (
+        <div className="fixed right-4 top-4 z-50 flex max-w-sm items-start gap-2 rounded-xl px-3.5 py-3 text-sm shadow-2xl" style={{ background: "#0D1829", border: "1px solid rgba(34,211,166,0.35)", color: "#E9EEF6" }}>
+          <CheckCircle2 size={16} className="mt-0.5 shrink-0" style={{ color: "#22D3A6" }} aria-hidden="true" />
+          <p className="min-w-0">{notice}</p>
+          <button type="button" onClick={() => setNotice("")} className="dash-icon-btn -mr-1 rounded-lg p-1" style={{ color: "#9FB6D1" }} aria-label="Tutup pesan inventory">
+            <X size={14} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
+      {modal?.type === "adjust" && <StockAdjustmentModal item={modal.item} onClose={closeModal} onDone={(itemName) => finishAction("adjust", itemName)} />}
       {modal && modal.type !== "adjust" && (
         <InventoryDialog title={modal.type === "create" ? "Tambah Bahan" : "Ubah Bahan"} onClose={closeModal}>
           <InventoryItemForm
             item={modal.type === "edit" ? modal.item : undefined}
             onSave={modal.type === "create" ? createInventoryItem : (fd) => updateInventoryItem(modal.item.id_inventory_item, fd)}
-            onDone={closeAndRefresh}
+            onDone={(itemName) => finishAction(modal.type, itemName)}
           />
         </InventoryDialog>
       )}

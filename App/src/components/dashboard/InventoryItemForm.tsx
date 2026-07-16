@@ -18,7 +18,7 @@ export default function InventoryItemForm({
 }: {
   item?: InventoryItem;
   onSave: (fd: FormData) => Promise<ActionResult>;
-  onDone: () => void;
+  onDone: (itemName: string) => void;
 }) {
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
@@ -31,7 +31,8 @@ export default function InventoryItemForm({
         setError(result.error);
         return;
       }
-      onDone();
+      const itemName = String(fd.get("name") ?? item?.name ?? "Bahan").trim() || "Bahan";
+      onDone(itemName);
     });
   }
 

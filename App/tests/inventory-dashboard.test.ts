@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { movementTypeLabel, tableHorizontalScrollDelta } from "../src/components/dashboard/InventoryTable";
+import { inventoryActionMessage, movementTypeLabel, tableHorizontalScrollDelta } from "../src/components/dashboard/InventoryTable";
 import { quantityMinForMode } from "../src/components/dashboard/StockAdjustmentModal";
 
 describe("inventory dashboard movement labels", () => {
@@ -16,6 +16,14 @@ describe("inventory table keyboard scrolling", () => {
     expect(tableHorizontalScrollDelta("ArrowLeft")).toBe(-240);
     expect(tableHorizontalScrollDelta("ArrowRight")).toBe(240);
     expect(tableHorizontalScrollDelta("ArrowUp")).toBe(0);
+  });
+});
+
+describe("inventory action feedback", () => {
+  it("builds clear live-region messages for inventory actions", () => {
+    expect(inventoryActionMessage("create", "Tomat Roma")).toBe("Tomat Roma berhasil ditambahkan ke inventory.");
+    expect(inventoryActionMessage("edit", "Tomat Roma")).toBe("Tomat Roma berhasil diperbarui.");
+    expect(inventoryActionMessage("adjust", "Tomat Roma")).toBe("Stok Tomat Roma berhasil disesuaikan.");
   });
 });
 
