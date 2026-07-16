@@ -485,8 +485,7 @@ begin
 end;
 $$;
 
-revoke all on function public.create_order_with_inventory(uuid, text, jsonb, text) from public;
-grant execute on function public.create_order_with_inventory(uuid, text, jsonb, text) to anon, authenticated;
+revoke all on function public.create_order_with_inventory(uuid, text, jsonb, text) from public, anon, authenticated;
 grant execute on function public.create_order_with_inventory(uuid, text, jsonb, text) to service_role;
 revoke all on function public.adjust_inventory_stock(uuid, uuid, text, numeric, text) from public, anon, authenticated;
 revoke all on function public.replace_menu_recipes(uuid, uuid, jsonb) from public, anon, authenticated;

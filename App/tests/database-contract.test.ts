@@ -46,6 +46,9 @@ describe("inventory core migration", () => {
       /revoke all on table\s+public\."Inventory_Items",\s*public\."Menu_Recipes",\s*public\."Inventory_Movements"\s+from public, anon, authenticated/i
     );
     expect(sql).toContain(
+      "revoke all on function public.create_order_with_inventory(uuid, text, jsonb, text) from public, anon, authenticated"
+    );
+    expect(sql).not.toContain(
       "grant execute on function public.create_order_with_inventory(uuid, text, jsonb, text) to anon, authenticated"
     );
     expect(sql).toContain(

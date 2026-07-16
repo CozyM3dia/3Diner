@@ -144,7 +144,8 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         code: "insufficient_inventory",
-        error: `Stok beberapa menu sedang tidak cukup.${menuNames} Silakan kurangi jumlah atau pilih menu lain.`,
+        error: "Menu tidak tersedia",
+        message: `Stok beberapa menu sedang tidak cukup.${menuNames} Silakan kurangi jumlah atau pilih menu lain.`,
         unavailableMenus,
       },
       { status: 409 }

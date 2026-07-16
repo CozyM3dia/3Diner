@@ -5,7 +5,7 @@ const key = (id: string) => `3diner.order.${id}`;
 export async function createOrder(input: { cafeId: string; cafeSlug: string; cafeName: string; table: string; items: CartItem[]; notes?: string }): Promise<Order> {
   const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cafeId: input.cafeId, table: input.table, items: input.items.map(({ id_menu, qty }) => ({ id_menu, qty })), notes: input.notes }) });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Gagal membuat pesanan");
+  if (!response.ok) throw new Error(data.message || data.error || "Gagal membuat pesanan");
   const order: Order = { ...data.order, cafe_slug: input.cafeSlug, cafe_name: input.cafeName, customer_token: data.orderToken, created_at: data.order.created_at || new Date().toISOString() };
   localStorage.setItem(key(order.id_order), JSON.stringify(order));
   return order;

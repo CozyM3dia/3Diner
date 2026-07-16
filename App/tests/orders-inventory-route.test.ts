@@ -52,7 +52,8 @@ describe("POST /api/orders inventory integration", () => {
     expect(response.status).toBe(409);
     expect(json).toEqual({
       code: "insufficient_inventory",
-      error: "Stok beberapa menu sedang tidak cukup. Menu: Pasta Meatball. Silakan kurangi jumlah atau pilih menu lain.",
+      error: "Menu tidak tersedia",
+      message: "Stok beberapa menu sedang tidak cukup. Menu: Pasta Meatball. Silakan kurangi jumlah atau pilih menu lain.",
       unavailableMenus: ["Pasta Meatball"],
     });
   });
