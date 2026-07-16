@@ -217,9 +217,9 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
     }
 
     return () => {
-      controller.abort();
-      if (loadAbortRef.current === controller) loadAbortRef.current = null;
-      if (loadGenerationRef.current === generation) loadGenerationRef.current += 1;
+      loadAbortRef.current?.abort();
+      loadAbortRef.current = null;
+      loadGenerationRef.current += 1;
       if (viewerRef.current) {
         try { viewerRef.current.dispose(); } catch { /* noop */ }
         viewerRef.current = null;

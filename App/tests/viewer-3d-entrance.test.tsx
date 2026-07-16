@@ -8,6 +8,7 @@ import Viewer3DPage from "../src/components/viewer/Viewer3DPage";
 
 const {
   fetchMock,
+  fitCameraMock,
   glbEffectRuns,
   glbViewerProps,
   gsapSet,
@@ -54,6 +55,7 @@ const {
 
   return {
     fetchMock: vi.fn(),
+    fitCameraMock: vi.fn(),
     glbEffectRuns: vi.fn(),
     glbViewerProps: [] as Array<Record<string, unknown>>,
     gsapSet: vi.fn(),
@@ -84,7 +86,7 @@ vi.mock("../src/components/viewer/GlbViewer", () => ({
 }));
 
 vi.mock("@/lib/fit-camera", () => ({
-  fitCameraToModel: vi.fn(),
+  fitCameraToModel: fitCameraMock,
 }));
 
 vi.mock("@mkkellogg/gaussian-splats-3d", () => ({
@@ -251,6 +253,41 @@ describe("Viewer3DPage entrance", () => {
 
     expect(staleViewer?.start).not.toHaveBeenCalled();
     expect(view.container.querySelectorAll("canvas")).toHaveLength(1);
+  });
+
+  it("cancels retry-owned PLY work when the page unmounts", async () => {
+    let resolveRetryScene: (() => void) | undefined;
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    fetchMock
+      .mockRejectedValueOnce(new Error("initial load failed"))
+      .mockImplementationOnce(() => Promise.resolve(plyResponse()));
+    plyAddSplatScene.mockImplementationOnce(
+      () => new Promise<void>((resolve) => { resolveRetryScene = resolve; }),
+    );
+
+    const view = render(plyViewer("/models/retry.ply"));
+    const retryButton = await screen.findByRole("button", { name: "Coba Lagi" });
+    consoleError.mockRestore();
+
+    act(() => retryButton.click());
+    await waitFor(() => expect(plyViewerConstructor).toHaveBeenCalledTimes(1));
+
+    const retrySignal = (fetchMock.mock.calls[1]?.[1] as RequestInit | undefined)?.signal;
+    const retryViewer = plyViewerInstances[0];
+    view.unmount();
+
+    expect(retrySignal?.aborted).toBe(true);
+    expect(retryViewer?.dispose).toHaveBeenCalled();
+    expect(retryViewer?.start).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveRetryScene?.();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(retryViewer?.start).not.toHaveBeenCalled();
+    expect(fitCameraMock).not.toHaveBeenCalled();
+    expect(view.container.querySelectorAll("canvas")).toHaveLength(0);
   });
 
   it("uses a block flex AR CTA so desktop auto margins center it", () => {

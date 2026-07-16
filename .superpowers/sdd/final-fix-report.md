@@ -66,3 +66,22 @@ Additional storage-read red run:
   - Exit 0; no errors or warnings.
 - Final post-cleanup revalidation used the same installed package entrypoints directly (`node node_modules/vitest/vitest.mjs`, `node node_modules/typescript/bin/tsc`, and `node node_modules/eslint/bin/eslint.js`) after npm command shims became unavailable.
   - Focused Vitest: exit 0; 9 tests passed. TypeScript: exit 0. Scoped ESLint: exit 0.
+
+## Retry-owned PLY Unmount Follow-up
+
+### Root Cause And Fix
+
+The mount effect cleanup aborted only its captured initial `AbortController` and invalidated the generation only when that initial generation was still active. A retry replaced both refs, so unmount left retry-owned async work live. Cleanup now aborts and clears the current controller ref and increments the active generation unconditionally before disposing viewer resources. Existing async generation checks therefore reject retry completion after unmount.
+
+### Red/Green Evidence
+
+- Red: `node node_modules/vitest/vitest.mjs run tests/viewer-3d-entrance.test.tsx`
+  - Exit 1; 1 failed, 9 passed.
+  - The retry fetch signal remained un-aborted after unmount (`expected false to be true`).
+- Green: `node node_modules/vitest/vitest.mjs run tests/viewer-3d-entrance.test.tsx`
+  - Exit 0; 1 file passed; 10 tests passed.
+  - Regression coverage holds retry `addSplatScene` through unmount and verifies the current signal is aborted, the viewer is disposed, `start` and camera fitting are not called, and no canvas remains after late completion.
+- TypeScript: `node node_modules/typescript/bin/tsc --noEmit`
+  - Exit 0; no diagnostics.
+- Scoped ESLint: `node node_modules/eslint/bin/eslint.js src/components/viewer/Viewer3DPage.tsx tests/viewer-3d-entrance.test.tsx`
+  - Exit 0; no errors or warnings.
