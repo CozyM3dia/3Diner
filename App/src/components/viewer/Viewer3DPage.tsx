@@ -33,6 +33,8 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const viewerRef = useRef<any>(null);
   const blobUrlRef = useRef<string | null>(null);
+  const loadAbortRef = useRef<AbortController | null>(null);
+  const loadGenerationRef = useRef(0);
   const [state, setState] = useState<ViewerState>("loading");
   const [progress, setProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
@@ -41,6 +43,19 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
   const [preloadedGltf, setPreloadedGltf] = useState<any>(null);
 
   const isGlb = url.toLowerCase().endsWith(".glb");
+
+  const handleGlbReady = useCallback(() => {
+    setState("ready");
+  }, []);
+
+  const handleGlbError = useCallback((message: string) => {
+    setErrorMsg(message);
+    setState("error");
+  }, []);
+
+  const handleGltfLoaded = useCallback((gltf: unknown) => {
+    setPreloadedGltf(gltf);
+  }, []);
 
   useGSAP(() => {
     const targets = [headerRef.current, stageRef.current, controlsRef.current];
@@ -74,11 +89,32 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
     return () => timeline.kill();
   }, { scope: shellRef });
 
-  const initViewer = useCallback(async () => {
-    if (!containerRef.current) return;
+  const initViewer = useCallback(async (generation: number, signal: AbortSignal) => {
+    const isCurrent = () => (
+      !signal.aborted && generation === loadGenerationRef.current
+    );
+    if (!containerRef.current || !isCurrent()) return;
+
+    let localBlobUrl: string | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let localViewer: any = null;
+
+    const disposeLocalResources = () => {
+      if (localViewer) {
+        if (viewerRef.current === localViewer) viewerRef.current = null;
+        try { localViewer.dispose(); } catch { /* noop */ }
+        localViewer = null;
+      }
+      if (localBlobUrl) {
+        if (blobUrlRef.current === localBlobUrl) blobUrlRef.current = null;
+        URL.revokeObjectURL(localBlobUrl);
+        localBlobUrl = null;
+      }
+    };
 
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { signal });
+      if (!isCurrent()) return;
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const contentLength = response.headers.get("content-length");
@@ -89,6 +125,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
 
       while (true) {
         const { done, value } = await reader.read();
+        if (!isCurrent()) return;
         if (done) break;
         rawChunks.push(new Uint8Array(value.buffer.slice(0)));
         loaded += value.byteLength;
@@ -103,18 +140,25 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
       }
 
       const blob = new Blob([combined.buffer], { type: "application/octet-stream" });
-      const blobUrl = URL.createObjectURL(blob);
-      blobUrlRef.current = blobUrl;
+      localBlobUrl = URL.createObjectURL(blob);
 
       const GS = await import("@mkkellogg/gaussian-splats-3d");
+      if (!isCurrent() || !containerRef.current) {
+        disposeLocalResources();
+        return;
+      }
 
       if (viewerRef.current) {
         try { viewerRef.current.dispose(); } catch { /* noop */ }
         viewerRef.current = null;
       }
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
       containerRef.current.innerHTML = "";
 
-      const viewer = new GS.Viewer({
+      localViewer = new GS.Viewer({
         rootElement: containerRef.current,
         selfDrivenMode: true,
         useBuiltInControls: true,
@@ -124,23 +168,36 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
         initialCameraLookAt: [0, 0, 0],
       });
 
-      viewerRef.current = viewer;
+      viewerRef.current = localViewer;
+      blobUrlRef.current = localBlobUrl;
 
-      await viewer.addSplatScene(blobUrl, {
+      await localViewer.addSplatScene(localBlobUrl, {
         splatAlphaRemovalThreshold: 5,
         showLoadingUI: false,
         progressiveLoad: false,
         format: GS.SceneFormat.Ply,
       });
+      if (!isCurrent()) {
+        disposeLocalResources();
+        return;
+      }
 
-      viewer.start();
+      localViewer.start();
 
       const THREE = await import("three");
-      fitCameraToModel(viewer, THREE);
+      if (!isCurrent()) {
+        disposeLocalResources();
+        return;
+      }
+      fitCameraToModel(localViewer, THREE);
 
       setProgress(100);
       setState("ready");
     } catch (err) {
+      if (!isCurrent() || (err instanceof DOMException && err.name === "AbortError")) {
+        disposeLocalResources();
+        return;
+      }
       console.error("[Viewer3DPage]", err);
       setErrorMsg(err instanceof Error ? err.message : String(err));
       setState("error");
@@ -148,15 +205,21 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
   }, [url]);
 
   useEffect(() => {
-    let cancelled = false;
+    const generation = ++loadGenerationRef.current;
+    const controller = new AbortController();
+    const container = containerRef.current;
+    loadAbortRef.current = controller;
+
     if (!isGlb) {
       queueMicrotask(() => {
-        if (!cancelled) void initViewer();
+        if (!controller.signal.aborted) void initViewer(generation, controller.signal);
       });
     }
 
     return () => {
-      cancelled = true;
+      controller.abort();
+      if (loadAbortRef.current === controller) loadAbortRef.current = null;
+      if (loadGenerationRef.current === generation) loadGenerationRef.current += 1;
       if (viewerRef.current) {
         try { viewerRef.current.dispose(); } catch { /* noop */ }
         viewerRef.current = null;
@@ -165,14 +228,29 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
         URL.revokeObjectURL(blobUrlRef.current);
         blobUrlRef.current = null;
       }
+      if (container) container.innerHTML = "";
     };
   }, [initViewer, isGlb]);
 
   const retryViewer = () => {
+    loadAbortRef.current?.abort();
+    if (viewerRef.current) {
+      try { viewerRef.current.dispose(); } catch { /* noop */ }
+      viewerRef.current = null;
+    }
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
+    if (containerRef.current) containerRef.current.innerHTML = "";
+
+    const generation = ++loadGenerationRef.current;
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
     setState("loading");
     setProgress(0);
     setErrorMsg("");
-    void initViewer();
+    void initViewer(generation, controller.signal);
   };
 
   return (
@@ -202,9 +280,9 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
         {isGlb ? (
           <GlbViewer
             url={url}
-            onReady={() => setState("ready")}
-            onError={(msg) => { setErrorMsg(msg); setState("error"); }}
-            onGltfLoaded={setPreloadedGltf}
+            onReady={handleGlbReady}
+            onError={handleGlbError}
+            onGltfLoaded={handleGltfLoaded}
             modelScale={modelScale}
           />
         ) : (
@@ -257,7 +335,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
         <button
           onClick={() => setShowAR(true)}
           disabled={state !== "ready"}
-          className="btn-primary press w-full h-[54px] rounded-2xl inline-flex items-center justify-center gap-2.5 font-semibold text-[15px] text-white disabled:opacity-50 max-w-xl mx-auto"
+          className="btn-primary press w-full h-[54px] rounded-2xl flex items-center justify-center gap-2.5 font-semibold text-[15px] text-white disabled:opacity-50 max-w-xl mx-auto"
         >
           <ScanLine size={20} strokeWidth={2.2} />
           Lihat di Meja (AR)

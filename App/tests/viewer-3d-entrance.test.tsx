@@ -2,11 +2,23 @@
  * @vitest-environment jsdom
  */
 import React from "react";
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Viewer3DPage from "../src/components/viewer/Viewer3DPage";
 
-const { gsapSet, gsapTimeline, timelineFromTo, timelines, useGSAPOptions } = vi.hoisted(() => {
+const {
+  fetchMock,
+  glbEffectRuns,
+  glbViewerProps,
+  gsapSet,
+  gsapTimeline,
+  plyAddSplatScene,
+  plyViewerConstructor,
+  plyViewerInstances,
+  timelineFromTo,
+  timelines,
+  useGSAPOptions,
+} = vi.hoisted(() => {
   const timelineFromTo = vi.fn();
   const timelines: Array<{ fromTo: ReturnType<typeof vi.fn>; kill: ReturnType<typeof vi.fn> }> = [];
   const gsapTimeline = vi.fn(() => {
@@ -20,10 +32,35 @@ const { gsapSet, gsapTimeline, timelineFromTo, timelines, useGSAPOptions } = vi.
     timelines.push(timeline);
     return timeline;
   });
+  const plyViewerInstances: Array<{
+    addSplatScene: ReturnType<typeof vi.fn>;
+    canvas: HTMLCanvasElement;
+    dispose: ReturnType<typeof vi.fn>;
+    start: ReturnType<typeof vi.fn>;
+  }> = [];
+  const plyAddSplatScene = vi.fn().mockResolvedValue(undefined);
+  const plyViewerConstructor = vi.fn(function PlyViewer(options: { rootElement?: HTMLElement }) {
+    const canvas = document.createElement("canvas");
+    options.rootElement?.appendChild(canvas);
+    const instance = {
+      addSplatScene: vi.fn((...args: unknown[]) => plyAddSplatScene(...args)),
+      canvas,
+      dispose: vi.fn(() => canvas.remove()),
+      start: vi.fn(),
+    };
+    plyViewerInstances.push(instance);
+    return instance;
+  });
 
   return {
+    fetchMock: vi.fn(),
+    glbEffectRuns: vi.fn(),
+    glbViewerProps: [] as Array<Record<string, unknown>>,
     gsapSet: vi.fn(),
     gsapTimeline,
+    plyAddSplatScene,
+    plyViewerConstructor,
+    plyViewerInstances,
     timelineFromTo,
     timelines,
     useGSAPOptions: vi.fn(),
@@ -37,7 +74,22 @@ vi.mock("next/dynamic", () => ({
 }));
 
 vi.mock("../src/components/viewer/GlbViewer", () => ({
-  default: () => <div data-testid="glb-viewer" />,
+  default: function TestGlbViewer(props: Record<string, unknown>) {
+    glbViewerProps.push(props);
+    React.useEffect(() => {
+      glbEffectRuns();
+    }, [props.url, props.onReady, props.onError, props.onGltfLoaded]);
+    return <div data-testid="glb-viewer" />;
+  },
+}));
+
+vi.mock("@/lib/fit-camera", () => ({
+  fitCameraToModel: vi.fn(),
+}));
+
+vi.mock("@mkkellogg/gaussian-splats-3d", () => ({
+  SceneFormat: { Ply: 2 },
+  Viewer: plyViewerConstructor,
 }));
 
 vi.mock("gsap", () => ({
@@ -76,11 +128,137 @@ function renderViewer(reducedMotion = false, hasTransitionMarker = true) {
   );
 }
 
+function plyResponse() {
+  const bytes = new Uint8Array([1, 2, 3]);
+  let delivered = false;
+  return {
+    body: {
+      getReader: () => ({
+        read: vi.fn(async () => {
+          if (delivered) return { done: true, value: undefined };
+          delivered = true;
+          return { done: false, value: bytes };
+        }),
+      }),
+    },
+    headers: new Headers({ "content-length": String(bytes.byteLength) }),
+    ok: true,
+    status: 200,
+  } as unknown as Response;
+}
+
+function plyViewer(url: string) {
+  return (
+    <Viewer3DPage
+      url={url}
+      menuName="Pasta Meatball"
+      backUrl="/demo/pasta"
+    />
+  );
+}
+
 describe("Viewer3DPage entrance", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    glbViewerProps.length = 0;
+    plyViewerInstances.length = 0;
+    plyAddSplatScene.mockReset().mockResolvedValue(undefined);
     timelines.length = 0;
     sessionStorage.clear();
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => `blob:viewer-${Math.random()}`),
+      revokeObjectURL: vi.fn(),
+    });
+  });
+
+  it("keeps GlbViewer lifecycle callbacks stable across parent state updates", () => {
+    renderViewer();
+    const initialProps = glbViewerProps.at(-1);
+    const onGltfLoaded = initialProps?.onGltfLoaded as ((gltf: unknown) => void) | undefined;
+    const onReady = initialProps?.onReady as (() => void) | undefined;
+    const onError = initialProps?.onError as ((message: string) => void) | undefined;
+    if (!onGltfLoaded || !onReady || !onError) throw new Error("Expected GlbViewer callbacks");
+
+    act(() => onGltfLoaded({ scene: {} }));
+    const afterGltf = glbViewerProps.at(-1);
+    act(() => onReady());
+    const afterReady = glbViewerProps.at(-1);
+    act(() => onError("load failed"));
+    const afterError = glbViewerProps.at(-1);
+
+    for (const props of [afterGltf, afterReady, afterError]) {
+      expect(props?.onGltfLoaded).toBe(onGltfLoaded);
+      expect(props?.onReady).toBe(onReady);
+      expect(props?.onError).toBe(onError);
+    }
+    expect(glbEffectRuns).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps one current PLY viewer when a stale Strict Mode load finishes late", async () => {
+    let resolveFirst: ((response: Response) => void) | undefined;
+    let resolveSecond: ((response: Response) => void) | undefined;
+    fetchMock
+      .mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveFirst = resolve; }))
+      .mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveSecond = resolve; }));
+
+    const view = render(<React.StrictMode>{plyViewer("/models/first.ply")}</React.StrictMode>);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    view.rerender(<React.StrictMode>{plyViewer("/models/current.ply")}</React.StrictMode>);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      resolveSecond?.(plyResponse());
+    });
+    await waitFor(() => expect(plyViewerConstructor).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      resolveFirst?.(plyResponse());
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(plyViewerConstructor).toHaveBeenCalledTimes(1);
+    expect(plyViewerInstances).toHaveLength(1);
+    expect(plyViewerInstances[0]?.dispose).not.toHaveBeenCalled();
+    expect(view.container.querySelectorAll("canvas")).toHaveLength(1);
+  });
+
+  it("disposes a constructed stale PLY viewer and ignores its late scene completion", async () => {
+    let resolveStaleScene: (() => void) | undefined;
+    plyAddSplatScene
+      .mockImplementationOnce(() => new Promise<void>((resolve) => { resolveStaleScene = resolve; }))
+      .mockResolvedValueOnce(undefined);
+    fetchMock.mockImplementation(() => Promise.resolve(plyResponse()));
+
+    const view = render(plyViewer("/models/stale.ply"));
+    await waitFor(() => expect(plyViewerConstructor).toHaveBeenCalledTimes(1));
+    const staleViewer = plyViewerInstances[0];
+
+    view.rerender(plyViewer("/models/current.ply"));
+    await waitFor(() => expect(plyViewerConstructor).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(plyViewerInstances[1]?.start).toHaveBeenCalledTimes(1));
+
+    expect(staleViewer?.dispose).toHaveBeenCalled();
+    expect(staleViewer?.start).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveStaleScene?.();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(staleViewer?.start).not.toHaveBeenCalled();
+    expect(view.container.querySelectorAll("canvas")).toHaveLength(1);
+  });
+
+  it("uses a block flex AR CTA so desktop auto margins center it", () => {
+    renderViewer();
+
+    const cta = screen.getByRole("button", { name: "Lihat di Meja (AR)" });
+    expect(cta.classList).toContain("flex");
+    expect(cta.classList).not.toContain("inline-flex");
   });
 
   it("uses a subtle entrance for direct visits without a transition marker", () => {
