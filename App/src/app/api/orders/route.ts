@@ -20,6 +20,11 @@ interface CreateOrderResult {
   orderToken?: unknown;
 }
 
+interface RpcResponseEnvelope {
+  data: unknown;
+  error: unknown;
+}
+
 function parseItems(value: unknown): RequestedOrderItem[] | null {
   if (!Array.isArray(value) || value.length === 0 || value.length > 50) return null;
 
@@ -57,8 +62,40 @@ function isInvalidOrderError(value: unknown): boolean {
   );
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isRpcResponseEnvelope(value: unknown): value is RpcResponseEnvelope {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    "data" in value &&
+    "error" in value
+  );
+}
+
+function getRpcErrorMessage(value: unknown): unknown {
+  return typeof value === "object" && value !== null
+    ? (value as { message?: unknown }).message
+    : undefined;
+}
+
 function isOrder(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+
+  const order = value as Record<string, unknown>;
+  return (
+    isNonEmptyString(order.id_order) &&
+    isNonEmptyString(order.cafe_id) &&
+    isNonEmptyString(order.table_number) &&
+    Array.isArray(order.items) &&
+    typeof order.total === "number" &&
+    Number.isFinite(order.total) &&
+    order.total >= 0 &&
+    isNonEmptyString(order.status)
+  );
 }
 
 export async function POST(req: Request) {
@@ -84,9 +121,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
   }
 
+  if (!isRpcResponseEnvelope(rpcResponse)) {
+    return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
+  }
+
   const { data, error } = rpcResponse;
   if (error) {
-    if (isInvalidOrderError(error.message)) {
+    if (isInvalidOrderError(getRpcErrorMessage(error))) {
       return NextResponse.json({ error: "Menu tidak tersedia" }, { status: 400 });
     }
 
@@ -112,7 +153,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Menu tidak tersedia" }, { status: 400 });
   }
 
-  if (!isOrder(result?.order) || typeof result.orderToken !== "string" || !result.orderToken) {
+  if (!isOrder(result?.order) || !isNonEmptyString(result.orderToken)) {
     return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
   }
 
