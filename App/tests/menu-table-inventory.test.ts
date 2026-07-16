@@ -117,6 +117,14 @@ describe("MenuTable inventory readiness", () => {
     expect(html).toContain("Tanpa resep");
   });
 
+  it("keeps the edit action discoverable as a keyboard-accessible link", () => {
+    const html = renderToStaticMarkup(React.createElement(MenuTable, { menus }));
+
+    expect(html).toContain('href="/dashboard/menu/menu-ready/edit"');
+    expect(html).toMatch(/href="\/dashboard\/menu\/menu-ready\/edit"[^>]*>.*Edit/);
+    expect(html).not.toContain("opacity-0 group-hover:opacity-100");
+  });
+
   it("renders object and array recipe joins while preserving the lowest readiness", async () => {
     const html = await renderPage([
       { menu_id: "menu-ready", qty_per_menu: 2, inventory_item: { current_qty: 10 } },

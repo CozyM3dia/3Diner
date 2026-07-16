@@ -140,7 +140,9 @@ export default function MenuTable({
             <SortableTH label="3D" col="3d" sortKey={sortKey} sortDir={sortDir} onClick={clickHeader} />
             <SortableTH label="Inventory" col="inventory" sortKey={sortKey} sortDir={sortDir} onClick={clickHeader} />
             <SortableTH label="Status" col="status" sortKey={sortKey} sortDir={sortDir} onClick={clickHeader} />
-            <th className="px-4 py-3" />
+            <th className="sticky right-0 z-10 px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider" style={{ background: "#0D1829", color: "#5A7898" }}>
+              Aksi
+            </th>
           </tr>
           </thead>
           <tbody>
@@ -237,16 +239,14 @@ export default function MenuTable({
                   <MenuActiveToggle menuId={menu.id_menu} initialActive={active} />
                 </td>
                 {/* Edit */}
-                <td className="px-4 py-3 text-right">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                    <Link
-                      href={`/dashboard/menu/${menu.id_menu}/edit`}
-                      className="dash-press dash-icon-btn inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg"
-                      style={{ background: "#132136", color: "#E9EEF6" }}
-                    >
-                      <Pencil size={12} /> Edit
-                    </Link>
-                  </div>
+                <td className="sticky right-0 z-10 px-4 py-3 text-right" style={{ background: isDragging ? "#132136" : "#0D1829" }}>
+                  <Link
+                    href={`/dashboard/menu/${menu.id_menu}/edit`}
+                    className="dash-press dash-icon-btn inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium"
+                    style={{ background: "#132136", color: "#E9EEF6" }}
+                  >
+                    <Pencil size={12} aria-hidden="true" /> Edit
+                  </Link>
                 </td>
               </tr>
             );
