@@ -2,11 +2,16 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { X, Loader2, RotateCcw, ScanLine, Move3d } from "lucide-react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import { fitCameraToModel } from "@/lib/fit-camera";
 import GlbViewer from "./GlbViewer";
 import dynamic from "next/dynamic";
 
+gsap.registerPlugin(useGSAP);
+
 const ARSession = dynamic(() => import("./ARSession"), { ssr: false });
+const TRANSITION_MARKER = "3diner:viewer-transition";
 
 interface Viewer3DPageProps {
   url: string;
@@ -19,6 +24,10 @@ interface Viewer3DPageProps {
 type ViewerState = "loading" | "ready" | "error";
 
 export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelScale = 1.0 }: Viewer3DPageProps) {
+  const shellRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const viewerRef = useRef<any>(null);
@@ -31,6 +40,34 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
   const [showAR, setShowAR] = useState(false);
 
   const isGlb = url.toLowerCase().endsWith(".glb");
+
+  useGSAP(() => {
+    const targets = [headerRef.current, stageRef.current, controlsRef.current];
+    if (targets.some((target) => !target)) return;
+
+    let shouldAnimate = false;
+    try {
+      shouldAnimate = sessionStorage.getItem(TRANSITION_MARKER) === "true";
+      if (shouldAnimate) sessionStorage.removeItem(TRANSITION_MARKER);
+    } catch {
+      return;
+    }
+
+    if (!shouldAnimate) return;
+
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      gsap.set(targets, { opacity: 1, scale: 1, x: 0, y: 0 });
+      return;
+    }
+
+    const timeline = gsap.timeline();
+    timeline
+      .fromTo(headerRef.current, { opacity: 0, y: -16 }, { duration: 0.28, ease: "power2.out", opacity: 1, y: 0 }, 0)
+      .fromTo(stageRef.current, { opacity: 0, scale: 0.97 }, { duration: 0.42, ease: "power2.out", opacity: 1, scale: 1 }, 0.05)
+      .fromTo(controlsRef.current, { opacity: 0, y: 18 }, { duration: 0.32, ease: "power2.out", opacity: 1, y: 0 }, 0.12);
+
+    return () => timeline.kill();
+  }, { scope: shellRef });
 
   const initViewer = useCallback(async () => {
     if (isGlb) {
@@ -128,9 +165,11 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
   }, [initViewer]);
 
   return (
-    <div className="fixed inset-0 flex flex-col" style={{ background: "radial-gradient(120% 90% at 50% 35%, #0A3A78 0%, #022C60 45%, #002355 100%)", touchAction: "none", overscrollBehavior: "none" } as React.CSSProperties}>
+    <div ref={shellRef} data-viewer-entrance="shell" className="fixed inset-0 flex flex-col" style={{ background: "radial-gradient(120% 90% at 50% 35%, #0A3A78 0%, #022C60 45%, #002355 100%)", touchAction: "none", overscrollBehavior: "none" } as React.CSSProperties}>
       {/* Top bar */}
       <div
+        ref={headerRef}
+        data-viewer-entrance="header"
         className="flex items-center gap-3 px-4 shrink-0"
         style={{ paddingTop: "calc(env(safe-area-inset-top,0px) + 14px)", paddingBottom: "14px" }}
       >
@@ -148,7 +187,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
       </div>
 
       {/* Canvas */}
-      <div className="relative flex-1 overflow-hidden min-h-0">
+      <div ref={stageRef} data-viewer-entrance="stage" className="relative flex-1 overflow-hidden min-h-0">
         {isGlb ? (
           <GlbViewer
             url={url}
@@ -190,6 +229,8 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
 
       {/* Bottom control panel */}
       <div
+        ref={controlsRef}
+        data-viewer-entrance="controls"
         className="shrink-0 px-4 pt-4"
         style={{
           paddingBottom: "calc(env(safe-area-inset-bottom,0px) + 16px)",
