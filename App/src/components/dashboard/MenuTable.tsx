@@ -9,12 +9,13 @@ import { reorderMenus } from "@/lib/dashboard-actions";
 import MenuActiveToggle from "@/components/dashboard/MenuActiveToggle";
 import type { Menu } from "@/types";
 
-type SortKey = "nama" | "kategori" | "harga" | "3d" | "status";
+export type MenuInventoryState = "none" | "ready" | "low";
+type SortKey = "nama" | "kategori" | "harga" | "3d" | "status" | "inventory";
 type SortDir = "asc" | "desc";
 
 const idsOf = (m: Menu[]) => m.map((x) => x.id_menu).join(",");
 
-function compare(a: Menu, b: Menu, key: SortKey): number {
+function compare(a: Menu, b: Menu, key: SortKey, inventoryRank: (id: string) => number): number {
   switch (key) {
     case "nama":
       return a.nama_menu.localeCompare(b.nama_menu, "id", { sensitivity: "base" });
@@ -26,10 +27,18 @@ function compare(a: Menu, b: Menu, key: SortKey): number {
       return Number(!!a.model_3d_url) - Number(!!b.model_3d_url);
     case "status":
       return Number(a.is_active !== false) - Number(b.is_active !== false);
+    case "inventory":
+      return inventoryRank(a.id_menu) - inventoryRank(b.id_menu);
   }
 }
 
-export default function MenuTable({ menus }: { menus: Menu[] }) {
+export default function MenuTable({
+  menus,
+  inventoryByMenu = {},
+}: {
+  menus: Menu[];
+  inventoryByMenu?: Record<string, MenuInventoryState>;
+}) {
   const [rows, setRows] = useState<Menu[]>(menus);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -40,13 +49,20 @@ export default function MenuTable({ menus }: { menus: Menu[] }) {
 
   // Keep local order in sync when the server sends a new set/order.
   useEffect(() => {
+    // Preserve the existing local drag order synchronization.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRows(menus);
   }, [idsOf(menus)]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const inventoryRank = (id: string) => {
+    const state = inventoryByMenu[id] ?? "none";
+    return state === "low" ? 0 : state === "ready" ? 1 : 2;
+  };
 
   const manual = sortKey === null;
   const display = manual
     ? rows
-    : [...rows].sort((a, b) => (sortDir === "asc" ? compare(a, b, sortKey) : -compare(a, b, sortKey)));
+    : [...rows].sort((a, b) => (sortDir === "asc" ? compare(a, b, sortKey, inventoryRank) : -compare(a, b, sortKey, inventoryRank)));
 
   function clickHeader(key: SortKey) {
     if (sortKey === key) {
@@ -77,6 +93,7 @@ export default function MenuTable({ menus }: { menus: Menu[] }) {
     persist(next);
   }
 
+  // eslint-disable-next-line react-hooks/purity
   const showSaved = savedAt > 0 && Date.now() - savedAt < 2200;
 
   return (
@@ -99,8 +116,9 @@ export default function MenuTable({ menus }: { menus: Menu[] }) {
         </span>
       </div>
 
-      <table className="w-full">
-        <thead>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[880px]" aria-label="Daftar menu">
+          <thead>
           <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
             <th className="w-10 px-2 py-3" />
             <th className="w-12 px-2 py-3" />
@@ -108,11 +126,12 @@ export default function MenuTable({ menus }: { menus: Menu[] }) {
             <SortableTH label="Kategori" col="kategori" sortKey={sortKey} sortDir={sortDir} onClick={clickHeader} />
             <SortableTH label="Harga" col="harga" sortKey={sortKey} sortDir={sortDir} onClick={clickHeader} align="right" />
             <SortableTH label="3D" col="3d" sortKey={sortKey} sortDir={sortDir} onClick={clickHeader} />
+            <SortableTH label="Inventory" col="inventory" sortKey={sortKey} sortDir={sortDir} onClick={clickHeader} />
             <SortableTH label="Status" col="status" sortKey={sortKey} sortDir={sortDir} onClick={clickHeader} />
             <th className="px-4 py-3" />
           </tr>
-        </thead>
-        <tbody>
+          </thead>
+          <tbody>
           {display.map((menu, i) => {
             const active = menu.is_active !== false;
             const isDragging = dragId === menu.id_menu;
@@ -182,7 +201,7 @@ export default function MenuTable({ menus }: { menus: Menu[] }) {
                 {/* Kategori */}
                 <td className="px-4 py-3">
                   <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: "#132136", color: "#5A7898" }}>
-                    {menu.category ?? "—"}
+                    {menu.category ?? "-"}
                   </span>
                 </td>
                 {/* Harga */}
@@ -194,8 +213,12 @@ export default function MenuTable({ menus }: { menus: Menu[] }) {
                   {menu.model_3d_url ? (
                     <span className="text-xs font-bold" style={{ color: "#00C2A8" }}>3D</span>
                   ) : (
-                    <span style={{ color: "#5A7898" }}>—</span>
+                    <span style={{ color: "#5A7898" }}>-</span>
                   )}
+                </td>
+                {/* Inventory */}
+                <td className="px-4 py-3">
+                  <InventoryBadge state={inventoryByMenu[menu.id_menu] ?? "none"} />
                 </td>
                 {/* Status */}
                 <td className="px-4 py-3">
@@ -216,9 +239,27 @@ export default function MenuTable({ menus }: { menus: Menu[] }) {
               </tr>
             );
           })}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </div>
+  );
+}
+
+function InventoryBadge({ state }: { state: MenuInventoryState }) {
+  const meta = {
+    none: { label: "Tanpa resep", color: "#5A7898", bg: "#132136" },
+    ready: { label: "Resep aktif", color: "#22D3A6", bg: "rgba(34,211,166,0.12)" },
+    low: { label: "Stok kurang", color: "#F59E0B", bg: "rgba(245,158,11,0.12)" },
+  }[state];
+
+  return (
+    <span
+      className="inline-flex whitespace-nowrap text-xs font-semibold px-2.5 py-1 rounded-full"
+      style={{ background: meta.bg, color: meta.color }}
+    >
+      {meta.label}
+    </span>
   );
 }
 
