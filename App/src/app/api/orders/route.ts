@@ -1,9 +1,4 @@
-import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import {
-  calculateOrderTotal,
-  type RequestedOrderItem,
-} from "@/lib/order-validation";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 interface CreateOrderBody {
@@ -13,10 +8,24 @@ interface CreateOrderBody {
   notes?: unknown;
 }
 
+interface RequestedOrderItem {
+  id_menu: string;
+  qty: number;
+}
+
+interface CreateOrderResult {
+  error?: unknown;
+  unavailableMenus?: unknown;
+  order?: unknown;
+  orderToken?: unknown;
+}
+
 function parseItems(value: unknown): RequestedOrderItem[] | null {
   if (!Array.isArray(value) || value.length === 0 || value.length > 50) return null;
 
   const items = value.map((item) => {
+    if (!item || typeof item !== "object") return null;
+
     const candidate = item as { id_menu?: unknown; qty?: unknown };
     return {
       id_menu: typeof candidate.id_menu === "string" ? candidate.id_menu : "",
@@ -26,13 +35,30 @@ function parseItems(value: unknown): RequestedOrderItem[] | null {
 
   if (
     items.some(
-      (item) => !item.id_menu || !Number.isInteger(item.qty) || typeof item.qty !== "number"
+      (item) =>
+        !item ||
+        !item.id_menu ||
+        typeof item.qty !== "number" ||
+        !Number.isInteger(item.qty) ||
+        item.qty < 1 ||
+        item.qty > 50
     )
   ) {
     return null;
   }
 
   return items as RequestedOrderItem[];
+}
+
+function isInvalidOrderError(value: unknown): boolean {
+  return (
+    typeof value === "string" &&
+    (value.includes("menu_unavailable") || value.includes("invalid_order"))
+  );
+}
+
+function isOrder(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export async function POST(req: Request) {
@@ -46,44 +72,49 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Data pesanan tidak valid" }, { status: 400 });
   }
 
-  const menuIds = [...new Set(items.map((item) => item.id_menu))];
-  const { data: menus, error: menuError } = await supabaseAdmin
-    .from("Menus")
-    .select("id_menu,cafe_id,nama_menu,harga_menu,discount_pct,is_active")
-    .eq("cafe_id", cafeId)
-    .in("id_menu", menuIds);
-
-  if (menuError || !menus) {
-    return NextResponse.json({ error: "Gagal memuat menu" }, { status: 502 });
-  }
-
-  let canonicalItems;
+  let rpcResponse;
   try {
-    canonicalItems = calculateOrderTotal(menus, items);
+    rpcResponse = await supabaseAdmin.rpc("create_order_with_inventory", {
+      p_cafe_id: cafeId,
+      p_table_number: table,
+      p_items: items,
+      p_notes: notes,
+    });
   } catch {
-    return NextResponse.json({ error: "Menu tidak tersedia" }, { status: 400 });
-  }
-
-  const total = canonicalItems.reduce((sum, item) => sum + item.harga_menu * item.qty, 0);
-  const idOrder = randomUUID();
-  const customerToken = randomUUID();
-  const order = {
-    id_order: idOrder,
-    cafe_id: cafeId,
-    table_number: table,
-    items: canonicalItems,
-    total,
-    status: "received",
-    payment_method: null,
-    payment_status: "unpaid",
-    notes,
-    customer_token: customerToken,
-  };
-
-  const { error: insertError } = await supabaseAdmin.from("Orders").insert(order);
-  if (insertError) {
     return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
   }
 
-  return NextResponse.json({ order, orderToken: customerToken }, { status: 201 });
+  const { data, error } = rpcResponse;
+  if (error) {
+    if (isInvalidOrderError(error.message)) {
+      return NextResponse.json({ error: "Menu tidak tersedia" }, { status: 400 });
+    }
+
+    return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
+  }
+
+  const result = data as CreateOrderResult | null;
+  if (result?.error === "insufficient_inventory") {
+    const unavailableMenus = Array.isArray(result.unavailableMenus)
+      ? result.unavailableMenus.filter((name): name is string => typeof name === "string")
+      : [];
+    const menuNames = unavailableMenus.length > 0 ? ` Menu: ${unavailableMenus.join(", ")}.` : "";
+
+    return NextResponse.json(
+      {
+        error: `Stok beberapa menu sedang tidak cukup.${menuNames} Silakan kurangi jumlah atau pilih menu lain.`,
+      },
+      { status: 409 }
+    );
+  }
+
+  if (isInvalidOrderError(result?.error)) {
+    return NextResponse.json({ error: "Menu tidak tersedia" }, { status: 400 });
+  }
+
+  if (!isOrder(result?.order) || typeof result.orderToken !== "string" || !result.orderToken) {
+    return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
+  }
+
+  return NextResponse.json({ order: result.order, orderToken: result.orderToken }, { status: 201 });
 }
