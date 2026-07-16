@@ -35,7 +35,7 @@ describe("POST /api/orders inventory integration", () => {
     vi.resetModules();
   });
 
-  it("returns unavailable menu names, not ingredient names, when inventory is insufficient", async () => {
+  it("returns a structured inventory conflict with unavailable menu names", async () => {
     rpc.mockResolvedValue({
       data: {
         error: "insufficient_inventory",
@@ -50,8 +50,11 @@ describe("POST /api/orders inventory integration", () => {
     const json = await response.json();
 
     expect(response.status).toBe(409);
-    expect(json.error).toContain("Pasta Meatball");
-    expect(json.error).not.toContain("Daging");
+    expect(json).toEqual({
+      code: "insufficient_inventory",
+      error: "Stok beberapa menu sedang tidak cukup. Menu: Pasta Meatball. Silakan kurangi jumlah atau pilih menu lain.",
+      unavailableMenus: ["Pasta Meatball"],
+    });
   });
 
   it.each([

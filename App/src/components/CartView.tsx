@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Minus, Plus, Plus as PlusIcon, Box, ShoppingBag, WifiOff } from "lucide-react";
+import { AlertCircle, ArrowLeft, LoaderCircle, Minus, Plus, Plus as PlusIcon, Box, ShoppingBag, WifiOff } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { createOrder } from "@/lib/orders";
 import { formatRupiah } from "@/lib/format";
@@ -16,6 +16,9 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
   const router = useRouter();
   const isOnline = useOnlineStatus();
   const [touched, setTouched] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const orderErrorRef = useRef<HTMLDivElement>(null);
   const tableValid = table.trim().length > 0;
 
   async function submit() {
@@ -23,19 +26,24 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
       setTouched(true);
       return;
     }
+    setOrderError(null);
+    setIsSubmitting(true);
     try {
-    const order = await createOrder({
-      cafeId: cafe.id_cafe,
-      cafeSlug: slug,
-      cafeName: cafe.nama_cafe,
-      table: table.trim(),
-      items,
-      notes: notes.trim(),
-    });
-    clear();
-    router.push(`/${slug}/pesanan/${order.id_order}`);
+      const order = await createOrder({
+        cafeId: cafe.id_cafe,
+        cafeSlug: slug,
+        cafeName: cafe.nama_cafe,
+        table: table.trim(),
+        items,
+        notes: notes.trim(),
+      });
+      clear();
+      router.push(`/${slug}/pesanan/${order.id_order}`);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Gagal membuat pesanan");
+      setOrderError(error instanceof Error ? error.message : "Gagal membuat pesanan. Silakan coba lagi.");
+      requestAnimationFrame(() => orderErrorRef.current?.focus());
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -217,11 +225,26 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
         >
           {isOnline ? (
             <>
+              {orderError && (
+                <div
+                  ref={orderErrorRef}
+                  role="alert"
+                  aria-live="assertive"
+                  tabIndex={-1}
+                  className="max-w-xl mx-auto mb-3 flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ background: "var(--surface)", border: "1px solid var(--orange)", color: "var(--navy)" }}
+                >
+                  <AlertCircle size={18} className="mt-0.5 shrink-0" style={{ color: "var(--orange-ink)" }} />
+                  <p>{orderError}</p>
+                </div>
+              )}
               <button
                 onClick={submit}
-                className="btn-primary press w-full h-[52px] rounded-2xl font-semibold text-[15px] text-white max-w-xl mx-auto block"
+                disabled={isSubmitting}
+                className="btn-primary press w-full h-[52px] rounded-2xl font-semibold text-[15px] text-white max-w-xl mx-auto inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                Pesan Sekarang
+                {isSubmitting && <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />}
+                {isSubmitting ? "Mengirim pesanan..." : "Pesan Sekarang"}
               </button>
               <p className="text-[11px] text-center mt-2" style={{ color: "var(--navy-muted)" }}>
                 Pesananmu akan dikirim ke dapur {cafe.nama_cafe}
