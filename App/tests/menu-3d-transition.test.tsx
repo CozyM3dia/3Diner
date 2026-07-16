@@ -8,7 +8,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Menu3DTransitionLink from "../src/components/Menu3DTransitionLink";
 
 const { routerPush, timeline, timelineCall, timelineFromTo, timelineTo } = vi.hoisted(() => {
-  const call = vi.fn(() => timeline);
+  const call = vi.fn(
+    (_callback: () => void, _params: undefined, _position: string) => timeline,
+  );
   const fromTo = vi.fn(() => timeline);
   const to = vi.fn(() => timeline);
   const timeline = { call, fromTo, kill: vi.fn(), to };
@@ -142,7 +144,8 @@ describe("Menu3DTransitionLink", () => {
     expect(routerPush).not.toHaveBeenCalled();
     expect(sessionStorage.getItem("3diner:viewer-transition")).toBeNull();
 
-    const [navigate] = timelineCall.mock.calls[0] as [() => void];
+    const navigate = timelineCall.mock.calls[0]?.[0];
+    if (!navigate) throw new Error("Expected a scheduled navigation callback");
     navigate();
 
     expect(sessionStorage.getItem("3diner:viewer-transition")).toBe("true");
