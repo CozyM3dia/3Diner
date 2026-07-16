@@ -8,10 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Menu3DTransitionLink from "../src/components/Menu3DTransitionLink";
 
 const { routerPush, timeline, timelineCall, timelineFromTo, timelineTo } = vi.hoisted(() => {
-  const call = vi.fn((_callback: () => void) => {
-    _callback();
-    return timeline;
-  });
+  const call = vi.fn(() => timeline);
   const fromTo = vi.fn(() => timeline);
   const to = vi.fn(() => timeline);
   const timeline = { call, fromTo, kill: vi.fn(), to };
@@ -81,7 +78,7 @@ function renderLink(reducedMotion = false) {
   });
   document.body.appendChild(hero);
 
-  render(
+  return render(
     <Menu3DTransitionLink
       href="/kopi/pasta/3d"
       heroId="menu-hero"
@@ -111,9 +108,43 @@ describe("Menu3DTransitionLink", () => {
     const portal = document.querySelector('[data-menu-3d-portal="true"]');
     expect(portal?.getAttribute("aria-hidden")).toBe("true");
     expect(portal?.textContent).toContain("Pasta Meatball");
-    expect(timelineTo).toHaveBeenCalled();
-    expect(timelineFromTo).toHaveBeenCalled();
-    expect(timelineCall).toHaveBeenCalled();
+    expect((portal as HTMLElement).style.borderRadius).toBe("24px");
+    expect(timelineFromTo).toHaveBeenNthCalledWith(
+      1,
+      portal,
+      {
+        scaleX: 320 / window.innerWidth,
+        scaleY: 220 / window.innerHeight,
+        x: 16,
+        y: 40,
+      },
+      {
+        duration: 0.68,
+        ease: "power3.inOut",
+        scaleX: 1,
+        scaleY: 1,
+        x: 0,
+        y: 0,
+      },
+    );
+    expect(timelineTo).toHaveBeenCalledTimes(1);
+    expect(timelineCall).toHaveBeenCalledWith(
+      expect.any(Function),
+      undefined,
+      "-=0.12",
+    );
+    expect(timelineCall.mock.invocationCallOrder[0]).toBeGreaterThan(
+      timelineFromTo.mock.invocationCallOrder.at(-1) ?? 0,
+    );
+    expect(timelineCall.mock.invocationCallOrder[0]).toBeGreaterThan(
+      timelineTo.mock.invocationCallOrder[0],
+    );
+    expect(routerPush).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("3diner:viewer-transition")).toBeNull();
+
+    const [navigate] = timelineCall.mock.calls[0] as [() => void];
+    navigate();
+
     expect(sessionStorage.getItem("3diner:viewer-transition")).toBe("true");
     expect(routerPush).toHaveBeenCalledWith("/kopi/pasta/3d");
   });
@@ -149,5 +180,42 @@ describe("Menu3DTransitionLink", () => {
     expect(defaultPreventedByComponent).toBe(false);
     expect(timelineTo).not.toHaveBeenCalled();
     expect(routerPush).not.toHaveBeenCalled();
+  });
+
+  it("preserves non-primary clicks for native link navigation", () => {
+    renderLink();
+    const link = screen.getByRole("link", { name: "Lihat Model 3D" });
+    let defaultPreventedByComponent: boolean | undefined;
+    document.addEventListener("click", (clickEvent) => {
+      defaultPreventedByComponent = clickEvent.defaultPrevented;
+      clickEvent.preventDefault();
+    }, {
+      once: true,
+    });
+    const event = new MouseEvent("click", {
+      bubbles: true,
+      button: 1,
+      cancelable: true,
+    });
+
+    link.dispatchEvent(event);
+
+    expect(defaultPreventedByComponent).toBe(false);
+    expect(timelineFromTo).not.toHaveBeenCalled();
+    expect(routerPush).not.toHaveBeenCalled();
+  });
+
+  it("kills the timeline and removes the portal when unmounted", async () => {
+    const view = renderLink();
+    await userEvent.click(screen.getByRole("link", { name: "Lihat Model 3D" }));
+    const portal = document.querySelector('[data-menu-3d-portal="true"]');
+
+    expect(portal).not.toBeNull();
+
+    view.unmount();
+
+    expect(timeline.kill).toHaveBeenCalledTimes(1);
+    expect(portal?.isConnected).toBe(false);
+    expect(document.querySelector('[data-menu-3d-portal="true"]')).toBeNull();
   });
 });

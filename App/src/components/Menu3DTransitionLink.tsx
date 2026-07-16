@@ -84,6 +84,7 @@ export default function Menu3DTransitionLink({
       backgroundImage: imageUrl ? `url("${imageUrl}")` : "none",
       backgroundPosition: "center",
       backgroundSize: "cover",
+      borderRadius: "24px",
       height: "100dvh",
       inset: "0",
       overflow: "hidden",
@@ -122,14 +123,12 @@ export default function Menu3DTransitionLink({
       .fromTo(
         portal,
         {
-          borderRadius: "24px",
           scaleX: bounds.width / window.innerWidth,
           scaleY: bounds.height / window.innerHeight,
           x: bounds.left,
           y: bounds.top,
         },
         {
-          borderRadius: "0px",
           duration: 0.68,
           ease: "power3.inOut",
           scaleX: 1,
