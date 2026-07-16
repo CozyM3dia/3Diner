@@ -7,19 +7,26 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Menu3DTransitionLink from "../src/components/Menu3DTransitionLink";
 
-const { routerPush, timeline, timelineCall, timelineFromTo, timelineTo } = vi.hoisted(() => {
+const { routerPush, timeline, timelineCall, timelineFromTo, timelineSet, timelineTo } = vi.hoisted(() => {
   const call = vi.fn(
-    (_callback: () => void, _params: undefined, _position: string) => timeline,
+    (callback: () => void, params: undefined, position: string) => {
+      void callback;
+      void params;
+      void position;
+      return timeline;
+    },
   );
   const fromTo = vi.fn(() => timeline);
+  const set = vi.fn(() => timeline);
   const to = vi.fn(() => timeline);
-  const timeline = { call, fromTo, kill: vi.fn(), to };
+  const timeline = { call, fromTo, kill: vi.fn(), set, to };
 
   return {
     routerPush: vi.fn(),
     timeline,
     timelineCall: call,
     timelineFromTo: fromTo,
+    timelineSet: set,
     timelineTo: to,
   };
 });
@@ -60,7 +67,7 @@ vi.mock("@gsap/react", () => ({
   },
 }));
 
-function renderLink(reducedMotion = false) {
+function renderLink(reducedMotion = false, imageUrl: string | null = "/pasta.jpg") {
   vi.stubGlobal(
     "matchMedia",
     vi.fn().mockReturnValue({ matches: reducedMotion }),
@@ -84,7 +91,7 @@ function renderLink(reducedMotion = false) {
     <Menu3DTransitionLink
       href="/kopi/pasta/3d"
       heroId="menu-hero"
-      imageUrl="/pasta.jpg"
+      imageUrl={imageUrl}
       menuName="Pasta Meatball"
     />,
   );
@@ -130,6 +137,11 @@ describe("Menu3DTransitionLink", () => {
       },
     );
     expect(timelineTo).toHaveBeenCalledTimes(1);
+    expect(timelineSet).toHaveBeenCalledWith(
+      portal,
+      { borderRadius: 0 },
+      0.68,
+    );
     expect(timelineCall).toHaveBeenCalledWith(
       expect.any(Function),
       undefined,
@@ -149,6 +161,28 @@ describe("Menu3DTransitionLink", () => {
     navigate();
 
     expect(sessionStorage.getItem("3diner:viewer-transition")).toBe("true");
+    expect(routerPush).toHaveBeenCalledWith("/kopi/pasta/3d");
+  });
+
+  it("omits an inline background image when no menu image is available", async () => {
+    renderLink(false, null);
+
+    await userEvent.click(screen.getByRole("link", { name: "Lihat Model 3D" }));
+
+    const portal = document.querySelector<HTMLElement>('[data-menu-3d-portal="true"]');
+    expect(portal?.className).toBe("dish-mesh");
+    expect(portal?.style.backgroundImage).toBe("");
+  });
+
+  it("routes even when transition marker storage throws", async () => {
+    const storageError = new Error("storage unavailable");
+    vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
+      throw storageError;
+    });
+    renderLink(true);
+
+    await userEvent.click(screen.getByRole("link", { name: "Lihat Model 3D" }));
+
     expect(routerPush).toHaveBeenCalledWith("/kopi/pasta/3d");
   });
 

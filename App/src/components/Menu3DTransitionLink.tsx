@@ -40,8 +40,13 @@ export default function Menu3DTransitionLink({
   );
 
   const navigate = () => {
-    sessionStorage.setItem(TRANSITION_MARKER, "true");
-    router.push(href);
+    try {
+      sessionStorage.setItem(TRANSITION_MARKER, "true");
+    } catch {
+      // Storage is best-effort; navigation must not depend on browser availability.
+    } finally {
+      router.push(href);
+    }
   };
 
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -81,7 +86,7 @@ export default function Menu3DTransitionLink({
     portal.setAttribute("aria-hidden", "true");
     portal.className = imageUrl ? "" : "dish-mesh";
     Object.assign(portal.style, {
-      backgroundImage: imageUrl ? `url("${imageUrl}")` : "none",
+      ...(imageUrl ? { backgroundImage: `url("${imageUrl}")` } : {}),
       backgroundPosition: "center",
       backgroundSize: "cover",
       borderRadius: "24px",
@@ -137,6 +142,7 @@ export default function Menu3DTransitionLink({
           y: 0,
         },
       )
+      .set(portal, { borderRadius: 0 }, 0.68)
       .to(shade, { duration: 0.36, ease: "power2.in", opacity: 0.94 }, "-=0.3")
       .fromTo(
         label,

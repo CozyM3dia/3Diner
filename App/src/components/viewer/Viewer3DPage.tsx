@@ -32,13 +32,13 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const viewerRef = useRef<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const gltfCacheRef = useRef<any>(null);
   const blobUrlRef = useRef<string | null>(null);
   const [state, setState] = useState<ViewerState>("loading");
   const [progress, setProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
   const [showAR, setShowAR] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [preloadedGltf, setPreloadedGltf] = useState<any>(null);
 
   const isGlb = url.toLowerCase().endsWith(".glb");
 
@@ -51,36 +51,31 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
         entranceDecisionRef.current = sessionStorage.getItem(TRANSITION_MARKER) === "true";
         if (entranceDecisionRef.current) sessionStorage.removeItem(TRANSITION_MARKER);
       } catch {
-        return;
+        entranceDecisionRef.current = false;
       }
     }
-
-    if (!entranceDecisionRef.current) return;
 
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       gsap.set(targets, { opacity: 1, scale: 1, x: 0, y: 0 });
       return;
     }
 
+    const enteredFromMenu = entranceDecisionRef.current;
+    const headerFrom = enteredFromMenu ? { opacity: 0, y: -16 } : { opacity: 0.6, y: -8 };
+    const stageFrom = enteredFromMenu ? { opacity: 0, scale: 0.97 } : { opacity: 0.65, scale: 0.99 };
+    const controlsFrom = enteredFromMenu ? { opacity: 0, y: 18 } : { opacity: 0.6, y: 8 };
+
     const timeline = gsap.timeline();
     timeline
-      .fromTo(headerRef.current, { opacity: 0, y: -16 }, { duration: 0.28, ease: "power2.out", opacity: 1, y: 0 }, 0)
-      .fromTo(stageRef.current, { opacity: 0, scale: 0.97 }, { duration: 0.42, ease: "power2.out", opacity: 1, scale: 1 }, 0.05)
-      .fromTo(controlsRef.current, { opacity: 0, y: 18 }, { duration: 0.32, ease: "power2.out", opacity: 1, y: 0 }, 0.12);
+      .fromTo(headerRef.current, headerFrom, { duration: enteredFromMenu ? 0.28 : 0.22, ease: "power2.out", opacity: 1, y: 0 }, 0)
+      .fromTo(stageRef.current, stageFrom, { duration: enteredFromMenu ? 0.42 : 0.3, ease: "power2.out", opacity: 1, scale: 1 }, enteredFromMenu ? 0.05 : 0.02)
+      .fromTo(controlsRef.current, controlsFrom, { duration: enteredFromMenu ? 0.32 : 0.24, ease: "power2.out", opacity: 1, y: 0 }, enteredFromMenu ? 0.12 : 0.06);
 
     return () => timeline.kill();
   }, { scope: shellRef });
 
   const initViewer = useCallback(async () => {
-    if (isGlb) {
-      setState("loading");
-      setProgress(0);
-      return;
-    }
-
     if (!containerRef.current) return;
-    setState("loading");
-    setProgress(0);
 
     try {
       const response = await fetch(url);
@@ -150,11 +145,18 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
       setErrorMsg(err instanceof Error ? err.message : String(err));
       setState("error");
     }
-  }, [url, isGlb]);
+  }, [url]);
 
   useEffect(() => {
-    initViewer();
+    let cancelled = false;
+    if (!isGlb) {
+      queueMicrotask(() => {
+        if (!cancelled) void initViewer();
+      });
+    }
+
     return () => {
+      cancelled = true;
       if (viewerRef.current) {
         try { viewerRef.current.dispose(); } catch { /* noop */ }
         viewerRef.current = null;
@@ -164,7 +166,14 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
         blobUrlRef.current = null;
       }
     };
-  }, [initViewer]);
+  }, [initViewer, isGlb]);
+
+  const retryViewer = () => {
+    setState("loading");
+    setProgress(0);
+    setErrorMsg("");
+    void initViewer();
+  };
 
   return (
     <div ref={shellRef} data-viewer-entrance="shell" className="fixed inset-0 flex flex-col" style={{ background: "radial-gradient(120% 90% at 50% 35%, #0A3A78 0%, #022C60 45%, #002355 100%)", touchAction: "none", overscrollBehavior: "none" } as React.CSSProperties}>
@@ -195,7 +204,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
             url={url}
             onReady={() => setState("ready")}
             onError={(msg) => { setErrorMsg(msg); setState("error"); }}
-            onGltfLoaded={(g) => { gltfCacheRef.current = g; }}
+            onGltfLoaded={setPreloadedGltf}
             modelScale={modelScale}
           />
         ) : (
@@ -222,7 +231,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
             <p className="font-semibold text-sm" style={{ color: "#FDFDFD" }}>Gagal memuat model 3D</p>
             <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>Cek koneksi internet lalu coba lagi</p>
             {errorMsg && <p className="text-xs px-4 font-mono break-all" style={{ color: "rgba(255,255,255,0.45)" }}>{errorMsg}</p>}
-            <button onClick={initViewer} className="btn-primary press inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white">
+            <button onClick={retryViewer} className="btn-primary press inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white">
               <RotateCcw size={14} /> Coba Lagi
             </button>
           </div>
@@ -266,7 +275,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
           usdzUrl={usdzUrl}
           menuName={menuName}
           onClose={() => setShowAR(false)}
-          preloadedGltf={gltfCacheRef.current}
+          preloadedGltf={preloadedGltf}
           modelScale={modelScale}
         />
       )}
