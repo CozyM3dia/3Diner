@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { CheckCircle2, Loader2, Plus, Trash2 } from "lucide-react";
-import { saveMenuRecipes, type RecipeDraftInput } from "@/lib/dashboard-actions";
-import type { InventoryItem, MenuRecipe } from "@/types";
+import { useMemo } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import type { RecipeDraftInput } from "@/lib/dashboard-actions";
+import type { InventoryItem } from "@/types";
 
 const inputStyle: React.CSSProperties = {
   background: "#132136",
@@ -27,76 +27,30 @@ export function recipeRowsValidationError(rows: RecipeDraftInput[]): string | un
 }
 
 export default function RecipeEditor({
-  menuId,
   inventoryItems,
-  recipes,
+  rows,
+  onRowsChange,
+  disabled = false,
 }: {
-  menuId?: string;
   inventoryItems: InventoryItem[];
-  recipes: MenuRecipe[];
+  rows: RecipeDraftInput[];
+  onRowsChange: (rows: RecipeDraftInput[]) => void;
+  disabled?: boolean;
 }) {
-  const [rows, setRows] = useState<RecipeDraftInput[]>(() =>
-    recipes.map((recipe) => ({
-      inventory_item_id: recipe.inventory_item_id,
-      qty_per_menu: recipe.qty_per_menu,
-    }))
-  );
-  const [error, setError] = useState("");
-  const [saved, setSaved] = useState(false);
-  const [pending, startTransition] = useTransition();
   const itemById = useMemo(
     () => new Map(inventoryItems.map((item) => [item.id_inventory_item, item])),
     [inventoryItems]
   );
 
-  if (!menuId) {
-    return (
-      <section
-        className="dash-card rounded-2xl p-5"
-        style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}
-        aria-labelledby="recipe-editor-title"
-      >
-        <p id="recipe-editor-title" className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>
-          Resep Inventory
-        </p>
-        <p className="mt-2 text-sm" style={{ color: "#9FB6D1" }}>
-          Simpan menu terlebih dahulu, lalu buka halaman edit untuk menghubungkan bahan inventory.
-        </p>
-      </section>
-    );
-  }
-
-  const currentMenuId = menuId;
   const validationError = recipeRowsValidationError(rows);
-  const visibleError = validationError ?? error;
 
   function addRow() {
     const row = nextRecipeRow(inventoryItems, rows);
-    if (row) setRows((current) => [...current, row]);
+    if (row) onRowsChange([...rows, row]);
   }
 
   function updateRow(index: number, patch: Partial<RecipeDraftInput>) {
-    setError("");
-    setSaved(false);
-    setRows((current) => current.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
-  }
-
-  function save() {
-    setError("");
-    setSaved(false);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-    startTransition(async () => {
-      const result = await saveMenuRecipes(currentMenuId, rows);
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
-      setSaved(true);
-      window.setTimeout(() => setSaved(false), 1800);
-    });
+    onRowsChange(rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
   }
 
   return (
@@ -117,7 +71,7 @@ export default function RecipeEditor({
         <button
           type="button"
           onClick={addRow}
-          disabled={pending || !nextRecipeRow(inventoryItems, rows)}
+          disabled={disabled || !nextRecipeRow(inventoryItems, rows)}
           className="dash-press inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
           style={{ background: "#132136", color: "#E9EEF6" }}
         >
@@ -125,9 +79,9 @@ export default function RecipeEditor({
         </button>
       </div>
 
-      {visibleError && (
+      {validationError && (
         <div className="rounded-xl px-3 py-2 text-sm" style={{ background: "rgba(239,68,68,0.1)", color: "#FCA5A5" }} role="alert">
-          {visibleError}
+          {validationError}
         </div>
       )}
 
@@ -148,6 +102,7 @@ export default function RecipeEditor({
                 <select
                   value={row.inventory_item_id}
                   onChange={(event) => updateRow(index, { inventory_item_id: event.target.value })}
+                  disabled={disabled}
                   className="dash-input h-11 min-w-0 rounded-xl px-3 text-sm outline-none"
                   style={inputStyle}
                   aria-label={`Bahan resep ${index + 1}`}
@@ -170,6 +125,7 @@ export default function RecipeEditor({
                   <input
                     value={row.qty_per_menu || ""}
                     onChange={(event) => updateRow(index, { qty_per_menu: Number(event.target.value) || 0 })}
+                    disabled={disabled}
                     type="number"
                     min="0.001"
                     step="0.001"
@@ -183,8 +139,8 @@ export default function RecipeEditor({
                 </label>
                 <button
                   type="button"
-                  onClick={() => setRows((current) => current.filter((_, rowIndex) => rowIndex !== index))}
-                  disabled={pending}
+                  onClick={() => onRowsChange(rows.filter((_, rowIndex) => rowIndex !== index))}
+                  disabled={disabled}
                   className="dash-press inline-flex h-11 w-10 items-center justify-center rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
                   style={{ background: "rgba(239,68,68,0.1)", color: "#FCA5A5" }}
                   aria-label={`Hapus bahan ${item?.name ?? index + 1}`}
@@ -197,17 +153,6 @@ export default function RecipeEditor({
           })}
         </div>
       )}
-
-      <button
-        type="button"
-        onClick={save}
-        disabled={pending || Boolean(validationError)}
-        className="dash-btn inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-white disabled:cursor-not-allowed"
-        style={{ background: saved ? "#22D3A6" : "#FD5002", opacity: pending ? 0.7 : 1 }}
-      >
-        {pending ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : saved ? <CheckCircle2 size={15} aria-hidden="true" /> : null}
-        {pending ? "Menyimpan Resep" : saved ? "Resep Tersimpan" : "Simpan Resep"}
-      </button>
     </section>
   );
 }

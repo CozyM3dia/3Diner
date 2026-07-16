@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { movementTypeLabel, tableHorizontalScrollDelta } from "../src/components/dashboard/InventoryTable";
+import { quantityMinForMode } from "../src/components/dashboard/StockAdjustmentModal";
 
 describe("inventory dashboard movement labels", () => {
   it("translates each inventory movement type for the operations log", () => {
@@ -15,5 +16,13 @@ describe("inventory table keyboard scrolling", () => {
     expect(tableHorizontalScrollDelta("ArrowLeft")).toBe(-240);
     expect(tableHorizontalScrollDelta("ArrowRight")).toBe(240);
     expect(tableHorizontalScrollDelta("ArrowUp")).toBe(0);
+  });
+});
+
+describe("stock adjustment quantity rules", () => {
+  it("requires positive add and subtract quantities while permitting set zero", () => {
+    expect(quantityMinForMode("add")).toBe("0.001");
+    expect(quantityMinForMode("subtract")).toBe("0.001");
+    expect(quantityMinForMode("set")).toBe("0");
   });
 });

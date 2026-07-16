@@ -32,7 +32,7 @@ export default async function EditMenuPage({ params }: { params: Promise<{ id: s
     .single();
   if (!menu) notFound();
 
-  const [{ data: inventoryItems }, { data: recipes, error: recipesError }] = await Promise.all([
+  const [{ data: inventoryItems, error: inventoryError }, { data: recipes, error: recipesError }] = await Promise.all([
     supabaseAdmin
       .from("Inventory_Items")
       .select("*")
@@ -45,6 +45,32 @@ export default async function EditMenuPage({ params }: { params: Promise<{ id: s
       .eq("cafe_id", cafe.id_cafe)
       .order("created_at", { ascending: true }),
   ]);
+
+  if (inventoryError) {
+    return (
+      <div className="p-5 lg:p-8 max-w-5xl mx-auto">
+        <Link href="/dashboard/menu" className="inline-flex items-center gap-1 text-sm mb-5" style={{ color: "#5A7898" }}>
+          <ChevronLeft size={15} /> Menu
+        </Link>
+        <h1 className="font-display text-2xl font-bold mb-6" style={{ color: "#E9EEF6" }}>Edit Menu</h1>
+        <section
+          className="dash-card flex min-h-56 flex-col items-center justify-center rounded-2xl px-5 py-10 text-center"
+          style={{ background: "#0D1829", border: "1px solid rgba(239,68,68,0.28)" }}
+          aria-labelledby="inventory-load-error-title"
+        >
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "rgba(239,68,68,0.1)", color: "#FCA5A5" }}>
+            <CircleAlert size={23} strokeWidth={1.5} aria-hidden="true" />
+          </span>
+          <h2 id="inventory-load-error-title" className="mt-4 font-semibold" style={{ color: "#E9EEF6" }}>
+            Inventory belum dapat dimuat
+          </h2>
+          <p className="mt-1 max-w-md text-sm" style={{ color: "#9FB6D1" }}>
+            Terjadi kendala saat memuat bahan inventory. Coba muat ulang halaman sebelum mengubah menu.
+          </p>
+        </section>
+      </div>
+    );
+  }
 
   if (recipesError) {
     return (

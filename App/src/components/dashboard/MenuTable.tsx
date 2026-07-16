@@ -10,8 +10,8 @@ import MenuActiveToggle from "@/components/dashboard/MenuActiveToggle";
 import type { Menu } from "@/types";
 
 export type MenuInventoryState = "none" | "ready" | "low";
-type SortKey = "nama" | "kategori" | "harga" | "3d" | "status" | "inventory";
-type SortDir = "asc" | "desc";
+export type SortKey = "nama" | "kategori" | "harga" | "3d" | "status" | "inventory";
+export type SortDir = "asc" | "desc";
 
 const idsOf = (m: Menu[]) => m.map((x) => x.id_menu).join(",");
 
@@ -30,6 +30,25 @@ function compare(a: Menu, b: Menu, key: SortKey, inventoryRank: (id: string) => 
     case "inventory":
       return inventoryRank(a.id_menu) - inventoryRank(b.id_menu);
   }
+}
+
+function inventoryRankFor(inventoryByMenu: Record<string, MenuInventoryState>, id: string) {
+  const state = inventoryByMenu[id] ?? "none";
+  return state === "low" ? 0 : state === "ready" ? 1 : 2;
+}
+
+export function sortMenusForDisplay(
+  rows: Menu[],
+  sortKey: SortKey | null,
+  sortDir: SortDir,
+  inventoryByMenu: Record<string, MenuInventoryState>
+) {
+  if (sortKey === null) return rows;
+  return [...rows].sort((a, b) =>
+    sortDir === "asc"
+      ? compare(a, b, sortKey, (id) => inventoryRankFor(inventoryByMenu, id))
+      : -compare(a, b, sortKey, (id) => inventoryRankFor(inventoryByMenu, id))
+  );
 }
 
 export default function MenuTable({
@@ -54,15 +73,8 @@ export default function MenuTable({
     setRows(menus);
   }, [idsOf(menus)]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const inventoryRank = (id: string) => {
-    const state = inventoryByMenu[id] ?? "none";
-    return state === "low" ? 0 : state === "ready" ? 1 : 2;
-  };
-
   const manual = sortKey === null;
-  const display = manual
-    ? rows
-    : [...rows].sort((a, b) => (sortDir === "asc" ? compare(a, b, sortKey, inventoryRank) : -compare(a, b, sortKey, inventoryRank)));
+  const display = sortMenusForDisplay(rows, sortKey, sortDir, inventoryByMenu);
 
   function clickHeader(key: SortKey) {
     if (sortKey === key) {

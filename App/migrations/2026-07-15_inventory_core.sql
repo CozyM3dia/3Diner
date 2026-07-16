@@ -319,6 +319,7 @@ as $$
 declare
   v_before numeric(12,3);
   v_after numeric(12,3);
+  v_delta numeric(12,3);
   v_unit text;
   v_unit_cost integer;
   v_movement_type text;
@@ -351,6 +352,10 @@ begin
   if v_after < 0 then
     return jsonb_build_object('error', 'negative_stock');
   end if;
+  v_delta := v_after - v_before;
+  if v_delta = 0 then
+    return jsonb_build_object('error', 'invalid_adjustment');
+  end if;
 
   v_movement_type := case p_mode
     when 'add' then 'manual_add'
@@ -380,7 +385,7 @@ begin
     p_cafe_id,
     p_inventory_item_id,
     v_movement_type,
-    v_after - v_before,
+    v_delta,
     v_before,
     v_after,
     v_unit,
@@ -482,6 +487,7 @@ $$;
 
 revoke all on function public.create_order_with_inventory(uuid, text, jsonb, text) from public;
 grant execute on function public.create_order_with_inventory(uuid, text, jsonb, text) to anon, authenticated;
+grant execute on function public.create_order_with_inventory(uuid, text, jsonb, text) to service_role;
 revoke all on function public.adjust_inventory_stock(uuid, uuid, text, numeric, text) from public, anon, authenticated;
 revoke all on function public.replace_menu_recipes(uuid, uuid, jsonb) from public, anon, authenticated;
 grant execute on function public.adjust_inventory_stock(uuid, uuid, text, numeric, text) to service_role;

@@ -48,6 +48,9 @@ describe("inventory core migration", () => {
     expect(sql).toContain(
       "grant execute on function public.create_order_with_inventory(uuid, text, jsonb, text) to anon, authenticated"
     );
+    expect(sql).toContain(
+      "grant execute on function public.create_order_with_inventory(uuid, text, jsonb, text) to service_role"
+    );
   });
 
   it("keeps Orders.id_order text-compatible and stores order references as text", () => {
@@ -97,6 +100,8 @@ describe("inventory core migration", () => {
       /function public\.adjust_inventory_stock[\s\S]*from public\."Inventory_Items"[\s\S]*cafe_id = p_cafe_id[\s\S]*for update[\s\S]*update public\."Inventory_Items"[\s\S]*insert into public\."Inventory_Movements"/i
     );
     expect(sql).toMatch(/p_mode is null\s+or p_mode not in \('add', 'subtract', 'set'\)/i);
+    expect(sql).toMatch(/v_delta\s*:=\s*v_after\s*-\s*v_before/i);
+    expect(sql).toMatch(/if v_delta = 0 then\s+return jsonb_build_object\('error', 'invalid_adjustment'\)/i);
     expect(sql).toContain("create or replace function public.replace_menu_recipes");
     expect(sql).toMatch(
       /function public\.replace_menu_recipes[\s\S]*from public\."Menus"[\s\S]*cafe_id = p_cafe_id[\s\S]*for update/i

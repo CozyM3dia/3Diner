@@ -21,6 +21,12 @@ const focusableSelector = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
 
+type AdjustmentMode = "add" | "subtract" | "set";
+
+export function quantityMinForMode(mode: AdjustmentMode): "0" | "0.001" {
+  return mode === "set" ? "0" : "0.001";
+}
+
 function focusableElements(dialog: HTMLElement) {
   return Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector)).filter(
     (element) => element.tabIndex >= 0 && element.getAttribute("aria-hidden") !== "true"
@@ -85,6 +91,7 @@ export default function StockAdjustmentModal({
   onDone: () => void;
 }) {
   const [error, setError] = useState("");
+  const [mode, setMode] = useState<AdjustmentMode>("add");
   const [pending, startTransition] = useTransition();
   const dialogRef = useRef<HTMLElement | null>(null);
 
@@ -138,7 +145,13 @@ export default function StockAdjustmentModal({
         <form action={submit} className="space-y-4" aria-busy={pending}>
           <label className="block">
             <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>Jenis Penyesuaian</span>
-            <select name="mode" defaultValue="add" className="dash-input w-full rounded-xl px-3.5 py-2.5 text-sm outline-none" style={inputStyle}>
+            <select
+              name="mode"
+              value={mode}
+              onChange={(event) => setMode(event.target.value as AdjustmentMode)}
+              className="dash-input w-full rounded-xl px-3.5 py-2.5 text-sm outline-none"
+              style={inputStyle}
+            >
               <option value="add">Tambah stok</option>
               <option value="subtract">Kurangi stok</option>
               <option value="set">Set jumlah persis</option>
@@ -146,7 +159,7 @@ export default function StockAdjustmentModal({
           </label>
           <label className="block">
             <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>Jumlah</span>
-            <input name="quantity" required autoFocus type="number" min="0" step="0.001" inputMode="decimal" className="dash-input w-full rounded-xl px-3.5 py-2.5 text-sm outline-none" style={inputStyle} placeholder={`Jumlah (${item.unit})`} />
+            <input name="quantity" required autoFocus type="number" min={quantityMinForMode(mode)} step="0.001" inputMode="decimal" className="dash-input w-full rounded-xl px-3.5 py-2.5 text-sm outline-none" style={inputStyle} placeholder={`Jumlah (${item.unit})`} />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>Catatan</span>

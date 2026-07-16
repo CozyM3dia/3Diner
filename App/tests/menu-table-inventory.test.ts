@@ -2,7 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MenuListPage from "../src/app/dashboard/menu/page";
-import MenuTable from "../src/components/dashboard/MenuTable";
+import MenuTable, { sortMenusForDisplay } from "../src/components/dashboard/MenuTable";
 import type { Menu } from "../src/types";
 
 const mocks = vi.hoisted(() => ({
@@ -133,5 +133,25 @@ describe("MenuTable inventory readiness", () => {
     await expect(renderPage([], new Error("recipe query unavailable"))).rejects.toThrow(
       "Gagal memuat resep menu: recipe query unavailable"
     );
+  });
+
+  it("sorts inventory readiness low, ready, none without changing manual order", () => {
+    const manual = [menus[0], menus[1], menus[2]];
+    const inventoryByMenu = {
+      "menu-ready": "ready",
+      "menu-low": "low",
+      "menu-none": "none",
+    } as const;
+
+    expect(sortMenusForDisplay(manual, null, "asc", inventoryByMenu).map((menu) => menu.id_menu)).toEqual([
+      "menu-ready",
+      "menu-low",
+      "menu-none",
+    ]);
+    expect(sortMenusForDisplay(manual, "inventory", "asc", inventoryByMenu).map((menu) => menu.id_menu)).toEqual([
+      "menu-low",
+      "menu-ready",
+      "menu-none",
+    ]);
   });
 });

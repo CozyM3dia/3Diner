@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Trash2, Save, AlertCircle, Clock, Flame, ScanLine, ShoppingBag, ImageOff, Sparkles } from "lucide-react";
 import type { InventoryItem, Menu, MenuRecipe } from "@/types";
-import type { ActionResult } from "@/lib/dashboard-actions";
+import { saveMenuRecipes, type ActionResult, type RecipeDraftInput } from "@/lib/dashboard-actions";
+import { saveMenuAndRecipes } from "@/lib/menu-form-save";
 import { formatRupiah } from "@/lib/format";
 import FileUpload from "./FileUpload";
 import PhoneMockup from "./PhoneMockup";
 import Tripo3DGenerator from "./Tripo3DGenerator";
-import RecipeEditor from "./RecipeEditor";
+import RecipeEditor, { recipeRowsValidationError } from "./RecipeEditor";
 
 interface MenuFormProps {
   menu?: Menu;
@@ -51,6 +52,13 @@ export default function MenuForm({ menu, inventoryItems = [], recipes = [], onSa
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [createdMenuId, setCreatedMenuId] = useState<string | undefined>();
+  const [recipeRows, setRecipeRows] = useState<RecipeDraftInput[]>(() =>
+    recipes.map((recipe) => ({
+      inventory_item_id: recipe.inventory_item_id,
+      qty_per_menu: recipe.qty_per_menu,
+    }))
+  );
   const [days, setDays] = useState<Set<string>>(
     new Set((menu?.schedule_days ?? "").split(",").map((s) => s.trim()).filter(Boolean))
   );
@@ -120,14 +128,28 @@ export default function MenuForm({ menu, inventoryItems = [], recipes = [], onSa
     const fd = new FormData(e.currentTarget);
     fd.set("schedule_days", [...days].join(","));
     fd.set("is_active", active ? "true" : "false");
-    const res = await onSave(fd);
+    const recipeError = recipeRowsValidationError(recipeRows);
+    if (recipeError) {
+      setError(recipeError);
+      setSaving(false);
+      return;
+    }
+    const res = await saveMenuAndRecipes({
+      fd,
+      menuId: menu?.id_menu ?? createdMenuId,
+      rows: recipeRows,
+      onSave,
+      saveRecipes: saveMenuRecipes,
+      navigate: router.push,
+      refresh: router.refresh,
+      skipMenuSave: !menu && Boolean(createdMenuId),
+    });
+    if (res.persistedMenuId) setCreatedMenuId(res.persistedMenuId);
     if (res.error) {
       setError(res.error);
       setSaving(false);
       return;
     }
-    router.push("/dashboard/menu");
-    router.refresh();
   }
 
   async function handleDelete() {
@@ -147,7 +169,8 @@ export default function MenuForm({ menu, inventoryItems = [], recipes = [], onSa
   function toggleDay(v: string) {
     setDays((prev) => {
       const next = new Set(prev);
-      next.has(v) ? next.delete(v) : next.add(v);
+      if (next.has(v)) next.delete(v);
+      else next.add(v);
       return next;
     });
   }
@@ -333,7 +356,12 @@ export default function MenuForm({ menu, inventoryItems = [], recipes = [], onSa
         </div>
       </div>
 
-      <RecipeEditor menuId={menu?.id_menu} inventoryItems={inventoryItems} recipes={recipes} />
+      <RecipeEditor
+        inventoryItems={inventoryItems}
+        rows={recipeRows}
+        onRowsChange={setRecipeRows}
+        disabled={saving}
+      />
 
       {/* Actions */}
       <div className="flex items-center gap-3">

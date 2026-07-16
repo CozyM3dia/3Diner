@@ -7,6 +7,7 @@ import { getOwnerCafeSlug } from "./analytics";
 
 export interface ActionResult {
   error?: string;
+  id_menu?: string;
 }
 
 export interface RecipeDraftInput {
@@ -86,10 +87,14 @@ export async function createMenu(fd: FormData): Promise<ActionResult> {
   if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
   const payload = menuPayload(fd);
   if (!payload.nama_menu) return { error: "Nama menu wajib diisi." };
-  const { error } = await supabaseAdmin.from("Menus").insert([{ cafe_id: cafeId, ...payload }]);
+  const { data, error } = await supabaseAdmin
+    .from("Menus")
+    .insert([{ cafe_id: cafeId, ...payload }])
+    .select("id_menu")
+    .single();
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
-  return {};
+  return { id_menu: (data?.id_menu as string | undefined) };
 }
 
 export interface DraftMenuInput {
@@ -275,21 +280,45 @@ export async function updateCafeSettings(fd: FormData): Promise<ActionResult> {
   return {};
 }
 
-function inventoryPayload(fd: FormData) {
-  return {
+function inventoryNumber(fd: FormData, key: string): number | null {
+  const raw = fd.get(key);
+  if (raw === null || String(raw).trim() === "") return 0;
+  const value = Number(String(raw).trim());
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+interface InventoryPayload {
+  name: string;
+  unit: string;
+  current_qty: number;
+  minimum_qty: number;
+  estimated_unit_cost: number;
+  notes: string | null;
+}
+
+function inventoryPayload(fd: FormData): { payload?: InventoryPayload; error?: string } {
+  const currentQty = inventoryNumber(fd, "current_qty");
+  const minimumQty = inventoryNumber(fd, "minimum_qty");
+  const estimatedUnitCost = inventoryNumber(fd, "estimated_unit_cost");
+  if (currentQty === null || minimumQty === null || estimatedUnitCost === null) {
+    return { error: "Angka inventory tidak valid." };
+  }
+
+  return { payload: {
     name: str(fd, "name") ?? "",
     unit: cleanInventoryUnit(fd.get("unit")),
-    current_qty: nonnegativeNumber(fd, "current_qty") ?? 0,
-    minimum_qty: nonnegativeNumber(fd, "minimum_qty") ?? 0,
-    estimated_unit_cost: Math.round(nonnegativeNumber(fd, "estimated_unit_cost") ?? 0),
+    current_qty: currentQty,
+    minimum_qty: minimumQty,
+    estimated_unit_cost: Math.round(estimatedUnitCost),
     notes: str(fd, "notes"),
-  };
+  } };
 }
 
 export async function createInventoryItem(fd: FormData): Promise<ActionResult> {
   const cafeId = await getAuthCafeId();
   if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
-  const payload = inventoryPayload(fd);
+  const { payload, error: payloadError } = inventoryPayload(fd);
+  if (payloadError || !payload) return { error: payloadError ?? "Angka inventory tidak valid." };
   if (!payload.name) return { error: "Nama bahan wajib diisi." };
   if (!payload.unit) return { error: "Satuan bahan tidak valid." };
 
@@ -306,7 +335,8 @@ export async function createInventoryItem(fd: FormData): Promise<ActionResult> {
 export async function updateInventoryItem(id: string, fd: FormData): Promise<ActionResult> {
   const cafeId = await getAuthCafeId();
   if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
-  const payload = inventoryPayload(fd);
+  const { payload, error: payloadError } = inventoryPayload(fd);
+  if (payloadError || !payload) return { error: payloadError ?? "Angka inventory tidak valid." };
   if (!payload.name) return { error: "Nama bahan wajib diisi." };
   if (!payload.unit) return { error: "Satuan bahan tidak valid." };
 
@@ -331,6 +361,9 @@ export async function adjustInventoryStock(id: string, fd: FormData): Promise<Ac
   const note = str(fd, "note");
   if (!["add", "subtract", "set"].includes(mode ?? "")) return { error: "Jenis penyesuaian tidak valid." };
   if (rawQty === null) return { error: "Jumlah penyesuaian tidak valid." };
+  if ((mode === "add" || mode === "subtract") && rawQty <= 0) {
+    return { error: "Jumlah penyesuaian harus lebih dari 0." };
+  }
 
   const { data, error } = await supabaseAdmin.rpc("adjust_inventory_stock", {
     p_cafe_id: cafeId,
@@ -354,14 +387,20 @@ export async function saveMenuRecipes(menuId: string, rows: RecipeDraftInput[]):
   const cafeId = await getAuthCafeId();
   if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
 
-  const cleanRows = rows
-    .map((row) => ({
+  const cleanRows = rows.map((row) => ({
       cafe_id: cafeId,
       menu_id: menuId,
       inventory_item_id: String(row.inventory_item_id ?? "").trim(),
       qty_per_menu: Number(row.qty_per_menu),
-    }))
-    .filter((row) => row.inventory_item_id && Number.isFinite(row.qty_per_menu) && row.qty_per_menu > 0);
+    }));
+
+  if (
+    cleanRows.some(
+      (row) => !row.inventory_item_id || !Number.isFinite(row.qty_per_menu) || row.qty_per_menu <= 0
+    )
+  ) {
+    return { error: "Data resep tidak valid." };
+  }
 
   const ids = new Set<string>();
   for (const row of cleanRows) {
