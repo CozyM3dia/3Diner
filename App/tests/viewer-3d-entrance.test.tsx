@@ -122,4 +122,34 @@ describe("Viewer3DPage entrance", () => {
     expect(timelineFromTo).not.toHaveBeenCalled();
     expect(sessionStorage.getItem("3diner:viewer-transition")).toBeNull();
   });
+
+  it("replays the entrance after Strict Mode cleans up the first setup", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockReturnValue({ matches: false }),
+    );
+    sessionStorage.setItem("3diner:viewer-transition", "true");
+
+    const view = render(
+      <React.StrictMode>
+        <Viewer3DPage
+          url="/models/pasta.glb"
+          menuName="Pasta Meatball"
+          backUrl="/demo/pasta"
+        />
+      </React.StrictMode>,
+    );
+    const header = view.container.querySelector('[data-viewer-entrance="header"]');
+
+    expect(timeline.kill).toHaveBeenCalledTimes(1);
+    expect(timelineFromTo).toHaveBeenCalledTimes(6);
+    expect(timelineFromTo).toHaveBeenNthCalledWith(
+      4,
+      header,
+      expect.objectContaining({ opacity: 0, y: -16 }),
+      expect.objectContaining({ opacity: 1, y: 0 }),
+      expect.anything(),
+    );
+    expect(sessionStorage.getItem("3diner:viewer-transition")).toBeNull();
+  });
 });

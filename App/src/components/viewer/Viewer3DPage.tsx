@@ -28,6 +28,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
   const headerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
+  const entranceDecisionRef = useRef<boolean | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const viewerRef = useRef<any>(null);
@@ -45,15 +46,16 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
     const targets = [headerRef.current, stageRef.current, controlsRef.current];
     if (targets.some((target) => !target)) return;
 
-    let shouldAnimate = false;
-    try {
-      shouldAnimate = sessionStorage.getItem(TRANSITION_MARKER) === "true";
-      if (shouldAnimate) sessionStorage.removeItem(TRANSITION_MARKER);
-    } catch {
-      return;
+    if (entranceDecisionRef.current === null) {
+      try {
+        entranceDecisionRef.current = sessionStorage.getItem(TRANSITION_MARKER) === "true";
+        if (entranceDecisionRef.current) sessionStorage.removeItem(TRANSITION_MARKER);
+      } catch {
+        return;
+      }
     }
 
-    if (!shouldAnimate) return;
+    if (!entranceDecisionRef.current) return;
 
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       gsap.set(targets, { opacity: 1, scale: 1, x: 0, y: 0 });
