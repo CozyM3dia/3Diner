@@ -1,18 +1,15 @@
 import { redirect } from "next/navigation";
 import InventoryWorkspace from "@/components/dashboard/InventoryWorkspace";
-import { getDashboardInventoryDataForOwner } from "@/lib/dashboard-inventory";
-import { createClient } from "@/lib/supabase/server";
+import { getDashboardCafeContext } from "@/lib/dashboard-context";
+import { getDashboardInventoryDataForSlug } from "@/lib/dashboard-inventory";
 
 export const dynamic = "force-dynamic";
 
 export default async function InventoryPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { userId, slug } = await getDashboardCafeContext();
+  if (!userId) redirect("/login");
 
-  const inventory = await getDashboardInventoryDataForOwner(user.id);
+  const inventory = await getDashboardInventoryDataForSlug(slug);
 
   return (
     <div className="max-w-[1180px] mx-auto p-5 lg:p-8">

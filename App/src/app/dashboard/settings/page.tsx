@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getOwnerCafeSlug } from "@/lib/analytics";
+import { getDashboardCafeContext } from "@/lib/dashboard-context";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import SettingsForm from "@/components/dashboard/SettingsForm";
 import type { Cafe } from "@/types";
@@ -8,13 +7,10 @@ import type { Cafe } from "@/types";
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { userId, slug } = await getDashboardCafeContext();
+  if (!userId) redirect("/login");
 
-  const slug = await getOwnerCafeSlug(user.id);
+  // Settings butuh seluruh kolom Cafes — satu query khusus tetap diperlukan.
   const { data: cafe } = slug
     ? await supabaseAdmin.from("Cafes").select("*").eq("slug_url", slug).single()
     : { data: null };

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Wallet, Receipt, TrendingUp, Package } from "lucide-react";
-import { getRevenueData, getOwnerCafeSlug, getSessionUserId } from "@/lib/analytics";
+import { getRevenueData } from "@/lib/analytics";
+import { getDashboardCafeContext } from "@/lib/dashboard-context";
 import { formatRupiah } from "@/lib/format";
 import StatCard from "@/components/dashboard/StatCard";
 import RevenueChart from "@/components/dashboard/RevenueChart";
@@ -33,10 +34,9 @@ interface PageProps {
 
 export default async function RevenuePage({ searchParams }: PageProps) {
   const { start, end } = await searchParams;
-  const userId = await getSessionUserId();
+  const { userId, slug } = await getDashboardCafeContext();
   if (!userId) redirect("/login");
 
-  const slug = await getOwnerCafeSlug(userId);
   const data = slug ? await getRevenueData(slug, start, end) : null;
 
   if (!data) {

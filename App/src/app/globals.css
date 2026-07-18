@@ -372,6 +372,13 @@ html:has(.dash-root), body:has(.dash-root) {
 @media (hover: hover) { .dash-row:hover { background: rgba(255,255,255,0.035); } }
 .dash-nav { transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out); }
 @media (hover: hover) { .dash-nav:not(.is-active):hover { background: rgba(255,255,255,0.05); color: #E9EEF6 !important; } }
+
+/* Nav pending: soft pulse on icon while route transition is in flight */
+@keyframes navPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+.dash-nav.is-pending svg { animation: navPulse 0.9s ease-in-out infinite; }
 .dash-input { transition: border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out); }
 .dash-input:focus { border-color: rgba(253,80,2,0.6) !important; box-shadow: 0 0 0 3px rgba(253,80,2,0.13); outline: none; }
 .dash-btn { transition: filter 0.15s var(--ease-out), transform 0.12s var(--ease-soft), box-shadow 0.18s var(--ease-out); }
@@ -398,12 +405,12 @@ html:has(.dash-root), body:has(.dash-root) {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.dash-reveal { animation: dashReveal 0.45s var(--ease-out) both; }
-.dash-d1 { animation-delay: 0.05s; }
-.dash-d2 { animation-delay: 0.10s; }
-.dash-d3 { animation-delay: 0.15s; }
-.dash-d4 { animation-delay: 0.20s; }
-.dash-d5 { animation-delay: 0.25s; }
+.dash-reveal { animation: dashReveal 0.28s var(--ease-out) both; }
+.dash-d1 { animation-delay: 0.03s; }
+.dash-d2 { animation-delay: 0.06s; }
+.dash-d3 { animation-delay: 0.09s; }
+.dash-d4 { animation-delay: 0.12s; }
+.dash-d5 { animation-delay: 0.15s; }
 
 /* ── Accessibility: respect reduced motion ── */
 @media (prefers-reduced-motion: reduce) {

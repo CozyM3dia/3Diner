@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus, Box } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import { getOwnerCafeSlug } from "@/lib/analytics";
+import { getDashboardCafeContext } from "@/lib/dashboard-context";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import MenuTable from "@/components/dashboard/MenuTable";
 import MenuExtractor from "@/components/dashboard/MenuExtractor";
@@ -18,29 +17,21 @@ type MenuRecipeRow = {
 };
 
 export default async function MenuListPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { userId, cafeId } = await getDashboardCafeContext();
+  if (!userId) redirect("/login");
 
-  const slug = await getOwnerCafeSlug(user.id);
-  const { data: cafe } = slug
-    ? await supabaseAdmin.from("Cafes").select("id_cafe").eq("slug_url", slug).single()
-    : { data: null };
-
-  const [menuResult, recipeResult] = cafe
+  const [menuResult, recipeResult] = cafeId
     ? await Promise.all([
         supabaseAdmin
           .from("Menus")
           .select("*")
-          .eq("cafe_id", cafe.id_cafe)
+          .eq("cafe_id", cafeId)
           .order("sort_order", { ascending: true, nullsFirst: false })
           .order("created_at", { ascending: true }),
         supabaseAdmin
           .from("Menu_Recipes")
           .select("menu_id,qty_per_menu,inventory_item:Inventory_Items(current_qty)")
-          .eq("cafe_id", cafe.id_cafe),
+          .eq("cafe_id", cafeId),
       ])
     : [{ data: [], error: null }, { data: [], error: null }];
 

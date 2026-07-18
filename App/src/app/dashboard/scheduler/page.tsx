@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getOwnerCafeSlug } from "@/lib/analytics";
+import { getDashboardCafeContext } from "@/lib/dashboard-context";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import SchedulerClient from "@/components/dashboard/SchedulerClient";
 import type { Menu } from "@/types";
@@ -8,19 +7,11 @@ import type { Menu } from "@/types";
 export const dynamic = "force-dynamic";
 
 export default async function SchedulerPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { userId, cafeId } = await getDashboardCafeContext();
+  if (!userId) redirect("/login");
 
-  const slug = await getOwnerCafeSlug(user.id);
-  const { data: cafe } = slug
-    ? await supabaseAdmin.from("Cafes").select("id_cafe").eq("slug_url", slug).single()
-    : { data: null };
-
-  const { data: menus } = cafe
-    ? await supabaseAdmin.from("Menus").select("*").eq("cafe_id", cafe.id_cafe).order("nama_menu", { ascending: true })
+  const { data: menus } = cafeId
+    ? await supabaseAdmin.from("Menus").select("*").eq("cafe_id", cafeId).order("nama_menu", { ascending: true })
     : { data: [] };
 
   return (

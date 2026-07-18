@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   Wallet,
@@ -40,10 +40,24 @@ const POPPINS = "var(--font-poppins), system-ui, sans-serif";
 
 export default function DashboardShell({ cafe, children }: DashboardShellProps) {
   const [open, setOpen] = useState(false);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [lastPath, setLastPath] = useState<string | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
+
+  // Route sudah berpindah — bereskan indikator pending (render-time state reset).
+  if (lastPath !== pathname) {
+    setLastPath(pathname);
+    if (pendingHref) setPendingHref(null);
+  }
+
+  // Warm up route utama setelah shell mount supaya navigasi terasa instan.
+  useEffect(() => {
+    for (const { href } of NAV) router.prefetch(href);
+  }, [router]);
 
   const current = NAV.find((n) => isActive(n.href, n.exact)) ?? NAV[0];
   const CurrentIcon = current.icon;
@@ -112,17 +126,23 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
         <nav className="flex-1 px-2.5 py-3 overflow-y-auto space-y-0.5">
           {NAV.map(({ href, label, icon: Icon, exact }) => {
             const active = isActive(href, exact);
+            const isPending = pendingHref === href && !active;
             return (
               <Link
                 key={href}
                 href={href}
-                onClick={() => setOpen(false)}
+                prefetch={true}
+                onClick={() => {
+                  setOpen(false);
+                  if (!active) setPendingHref(href);
+                }}
                 aria-current={active ? "page" : undefined}
-                className={`dash-nav group flex items-center gap-2.5 px-3 rounded-[10px] ${active ? "is-active" : ""}`}
+                aria-busy={isPending || undefined}
+                className={`dash-nav group flex items-center gap-2.5 px-3 rounded-[10px] ${active ? "is-active" : ""} ${isPending ? "is-pending" : ""}`}
                 style={{
                   height: "38px",
-                  background: active ? "var(--dash-raised)" : "transparent",
-                  color: active ? "var(--dash-text)" : "var(--dash-muted)",
+                  background: active || isPending ? "var(--dash-raised)" : "transparent",
+                  color: active || isPending ? "var(--dash-text)" : "var(--dash-muted)",
                   boxShadow: active ? "inset 0 0 0 1px var(--dash-border)" : "none",
                 }}
               >
@@ -130,7 +150,7 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
                   size={16}
                   strokeWidth={active ? 2.2 : 1.8}
                   className="shrink-0"
-                  style={{ color: active ? "var(--orange)" : undefined }}
+                  style={{ color: active || isPending ? "var(--orange)" : undefined }}
                 />
                 <span className="text-[13px] leading-none truncate" style={{ fontWeight: active ? 600 : 500 }}>
                   {label}

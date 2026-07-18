@@ -12,7 +12,8 @@ import {
   Wallet,
   AlertTriangle,
 } from "lucide-react";
-import { getDashboardData, getOwnerCafeSlug, getSessionUserId, type EventType } from "@/lib/analytics";
+import { getDashboardData, type EventType } from "@/lib/analytics";
+import { getDashboardCafeContext } from "@/lib/dashboard-context";
 import { getDashboardInventoryDataForSlug } from "@/lib/dashboard-inventory";
 import { getTodayOps } from "@/lib/dashboard-today";
 import DateRangePicker from "@/components/dashboard/DateRangePicker";
@@ -55,10 +56,9 @@ interface PageProps {
 
 export default async function AnalyticsPage({ searchParams }: PageProps) {
   const { start, end } = await searchParams;
-  const userId = await getSessionUserId();
+  const { userId, slug } = await getDashboardCafeContext();
   if (!userId) redirect("/login");
 
-  const slug = await getOwnerCafeSlug(userId);
   const [data, inventory, today] = slug
     ? await Promise.all([
         getDashboardData(slug, start, end),
