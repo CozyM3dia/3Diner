@@ -132,9 +132,10 @@ describe("MenuTable inventory readiness", () => {
       { menu_id: "menu-low", qty_per_menu: 1, inventory_item: { current_qty: 10 } },
     ]);
 
+    // Table (desktop) and card list (mobile) both render, so each label appears twice.
     expect(html).toContain("Resep aktif");
-    expect(html.match(/Stok kurang/g)).toHaveLength(1);
-    expect(html.match(/Tanpa resep/g)).toHaveLength(1);
+    expect(html.match(/Stok kurang/g)).toHaveLength(2);
+    expect(html.match(/Tanpa resep/g)).toHaveLength(2);
   });
 
   it("surfaces recipe query failures instead of rendering every menu without a recipe", async () => {

@@ -68,16 +68,17 @@ export default async function MenuListPage() {
 
   return (
     <div className="p-4 lg:p-6 max-w-[1100px] mx-auto">
-      <div className="flex items-center justify-between mb-5 dash-reveal">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 dash-reveal">
         <div>
           <h1 className="font-display text-[22px] font-bold" style={{ color: "var(--dash-text)" }}>Menu</h1>
           <p className="text-[13px] mt-1" style={{ color: "var(--dash-muted)" }}>{list.length} item terdaftar</p>
         </div>
-        <div className="flex items-center gap-2.5">
+        {/* Mobile: stacked full-width (primary on top); sm+: inline row */}
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-2 sm:gap-2.5 [&_button]:w-full sm:[&_button]:w-auto">
           <MenuExtractor />
           <Link
             href="/dashboard/menu/new"
-            className="dash-btn inline-flex items-center gap-2 px-3.5 rounded-[10px] text-[13px] font-semibold text-white"
+            className="dash-btn inline-flex items-center justify-center gap-2 px-3.5 rounded-[10px] text-[13px] font-semibold text-white"
             style={{ background: "var(--orange)", height: "38px" }}
           >
             <Plus size={15} /> Tambah Menu

@@ -318,6 +318,11 @@ model-viewer::part(default-ar-button) { display: none !important; }
   font-family: var(--font-poppins), system-ui, sans-serif;
 }
 
+/* Dark canvas covers full document + overscroll while dashboard is mounted */
+html:has(.dash-root), body:has(.dash-root) {
+  background: var(--dash-canvas);
+}
+
 /* ── Dash-8 panel language: card with separated header band ── */
 .dash-panel {
   background: var(--dash-panel);
