@@ -28,10 +28,10 @@ export default async function OrdersPage() {
     : { data: [] };
 
   return (
-    <div className="p-5 lg:p-8 max-w-[1100px] mx-auto">
-      <div className="mb-7">
-        <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>Pesanan</h1>
-        <p className="text-sm mt-1" style={{ color: "#5A7898" }}>Pesanan masuk diperbarui otomatis</p>
+    <div className="p-4 lg:p-6 max-w-[1100px] mx-auto">
+      <div className="mb-5 dash-reveal">
+        <h1 className="font-display text-[22px] font-bold" style={{ color: "var(--dash-text)" }}>Pesanan</h1>
+        <p className="text-[13px] mt-1" style={{ color: "var(--dash-muted)" }}>Pesanan masuk diperbarui otomatis</p>
       </div>
       <OrdersClient initial={(orders ?? []) as OrderRow[]} cafeId={cafe?.id_cafe ?? ""} cafeName={(cafe as { id_cafe: string; nama_cafe?: string } | null)?.nama_cafe ?? "3Diner"} />
     </div>

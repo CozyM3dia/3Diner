@@ -28,6 +28,30 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.33, 1, 0.68, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Dashboard dark tokens (brand/UI_TOKENS.md) ── */
+  --dash-canvas:    #060E1B;
+  --dash-sidebar:   #0B1728;
+  --dash-panel:     #0D1829;
+  --dash-raised:    #132136;
+  --dash-text:      #E9EEF6;
+  --dash-muted:     #5A7898;
+  --dash-secondary: #9FB6D1;
+  --dash-border:    rgba(255,255,255,0.07);
+  --dash-border-strong: rgba(255,255,255,0.12);
+
+  --semantic-success: #22D3A6;
+  --semantic-teal:    #00C2A8;
+  --semantic-warning: #F59E0B;
+  --semantic-danger:  #EF4444;
+
+  --radius-xs:   8px;
+  --radius-sm:   12px;
+  --radius-md:   16px;
+  --radius-lg:   20px;
+  --radius-pill: 999px;
+
+  --shadow-dashboard: 0 18px 48px rgba(0, 0, 0, 0.22);
 }
 
 @theme inline {
@@ -289,10 +313,46 @@ model-viewer::part(default-ar-button) { display: none !important; }
 .stagger-5 { animation-delay: 0.24s; opacity: 0; }
 .stagger-6 { animation-delay: 0.29s; opacity: 0; }
 
-/* ── Dashboard uses Plus Jakarta Sans (overrides Poppins .font-display inside) ── */
+/* ── Dashboard font: Poppins (brand contract — UI_TOKENS.md) ── */
 .dash-root, .dash-root .font-display {
-  font-family: var(--font-jakarta), system-ui, sans-serif;
+  font-family: var(--font-poppins), system-ui, sans-serif;
 }
+
+/* ── Dash-8 panel language: card with separated header band ── */
+.dash-panel {
+  background: var(--dash-panel);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.dash-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.025);
+  border-bottom: 1px solid var(--dash-border);
+  color: var(--dash-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dash-panel-body { padding: 16px; }
+
+/* Delta chip (dash-8 KPI style) */
+.delta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+  padding: 2px 7px;
+  font-variant-numeric: tabular-nums;
+}
+.delta-chip.up   { color: var(--semantic-success); background: rgba(34,211,166,0.10); }
+.delta-chip.down { color: var(--semantic-danger);  background: rgba(239,68,68,0.10); }
 
 /* ── Dashboard (dark) interaction layer ── */
 .dash-card {

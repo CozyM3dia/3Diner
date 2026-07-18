@@ -19,10 +19,6 @@ function useCountUp(target: number, run: boolean, ms = 900) {
   const [n, setN] = useState(0);
   useEffect(() => {
     if (!run) return;
-    if (target === 0) {
-      setN(0);
-      return;
-    }
     let raf = 0;
     const start = performance.now();
     const tick = (t: number) => {
@@ -56,44 +52,45 @@ export default function StatCard({ value, label, icon, accent, accentBg, delta, 
   const up = (delta ?? 0) >= 0;
 
   return (
-    <div
-      ref={ref}
-      className="dash-card rounded-2xl p-5"
-      style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}
-    >
-      <div className="flex items-start justify-between">
-        <span className="text-[28px] font-bold leading-none tabular-nums" style={{ color: "#E9EEF6" }}>
-          {prefix && <span className="text-lg" style={{ color: "#5A7898" }}>{prefix}</span>}
-          {n.toLocaleString("id-ID")}
-          {suffix && <span className="text-lg" style={{ color: "#5A7898" }}>{suffix}</span>}
+    <div ref={ref} className="dash-card dash-panel">
+      {/* Header band — icon + label (dash-8 KPI rhythm) */}
+      <div className="flex items-center gap-2 px-4 pt-3.5">
+        <span className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: accentBg, color: accent }}>
+          <span className="scale-[0.8] flex items-center justify-center">{icon}</span>
         </span>
-        <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: accentBg, color: accent }}>
-          {icon}
+        <span
+          className="text-[11px] font-semibold uppercase tracking-[0.06em] truncate"
+          style={{ color: "var(--dash-muted)" }}
+        >
+          {label}
         </span>
       </div>
-      <p className="text-sm mt-2.5" style={{ color: "#5A7898" }}>
-        {label}
-      </p>
-      {delta !== undefined ? (
-        <div className="flex items-center gap-1 mt-2">
-          {up ? (
-            <ArrowUpRight size={13} style={{ color: "#22D3A6" }} />
-          ) : (
-            <ArrowDownRight size={13} style={{ color: "#EF4444" }} />
-          )}
-          <span className="text-xs font-semibold" style={{ color: up ? "#22D3A6" : "#EF4444" }}>
-            {up ? "+" : ""}
-            {delta}%
-          </span>
-          <span className="text-xs" style={{ color: "#5A7898" }}>
-            vs minggu lalu
-          </span>
-        </div>
-      ) : sub ? (
-        <p className="text-xs mt-2" style={{ color: "#5A7898" }}>
-          {sub}
-        </p>
-      ) : null}
+
+      {/* Value */}
+      <div className="px-4 pt-2.5 pb-4">
+        <span className="text-[26px] font-bold leading-none tabular-nums" style={{ color: "var(--dash-text)" }}>
+          {prefix && <span className="text-base font-semibold" style={{ color: "var(--dash-muted)" }}>{prefix}</span>}
+          {n.toLocaleString("id-ID")}
+          {suffix && <span className="text-base font-semibold" style={{ color: "var(--dash-muted)" }}>{suffix}</span>}
+        </span>
+
+        {delta !== undefined ? (
+          <div className="flex items-center gap-1.5 mt-2.5">
+            <span className={`delta-chip ${up ? "up" : "down"}`}>
+              {up ? <ArrowUpRight size={11} strokeWidth={2.4} /> : <ArrowDownRight size={11} strokeWidth={2.4} />}
+              {up ? "+" : ""}
+              {delta}%
+            </span>
+            <span className="text-[11px]" style={{ color: "var(--dash-muted)" }}>
+              vs minggu lalu
+            </span>
+          </div>
+        ) : sub ? (
+          <p className="text-[11px] mt-2.5" style={{ color: "var(--dash-muted)" }}>
+            {sub}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

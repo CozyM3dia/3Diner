@@ -24,10 +24,10 @@ export default async function SchedulerPage() {
     : { data: [] };
 
   return (
-    <div className="p-5 lg:p-8 max-w-3xl mx-auto">
-      <div className="mb-7">
-        <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>Jadwal & Diskon</h1>
-        <p className="text-sm mt-1" style={{ color: "#5A7898" }}>
+    <div className="p-4 lg:p-6 max-w-3xl mx-auto">
+      <div className="mb-5 dash-reveal">
+        <h1 className="font-display text-[22px] font-bold" style={{ color: "var(--dash-text)" }}>Jadwal & Diskon</h1>
+        <p className="text-[13px] mt-1" style={{ color: "var(--dash-muted)" }}>
           Atur jam tayang dan diskon otomatis tiap menu. Menu di luar jadwal otomatis tersembunyi.
         </p>
       </div>

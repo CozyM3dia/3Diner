@@ -94,8 +94,9 @@ export default function LineChart({ data, color = "#FD5002", height = 180 }: Lin
             y1={t.y}
             x2={W - PAD_R}
             y2={t.y}
-            stroke="rgba(255,255,255,0.06)"
+            stroke="rgba(255,255,255,0.07)"
             strokeWidth="1"
+            strokeDasharray="2 5"
           />
           <text x={PAD_L - 8} y={t.y + 3} textAnchor="end" fontSize="10" fill="#5A7898">
             {t.label}

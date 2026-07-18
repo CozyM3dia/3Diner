@@ -1,7 +1,20 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MousePointerClick, Box, ShoppingBag, Target, Clock, Flame, Sparkles, CalendarDays } from "lucide-react";
+import {
+  MousePointerClick,
+  Box,
+  ShoppingBag,
+  Target,
+  Clock,
+  Flame,
+  CalendarDays,
+  Wallet,
+  AlertTriangle,
+} from "lucide-react";
 import { getDashboardData, getOwnerCafeSlug, getSessionUserId, type EventType } from "@/lib/analytics";
+import { getDashboardInventoryDataForSlug } from "@/lib/dashboard-inventory";
+import { getTodayOps } from "@/lib/dashboard-today";
 import DateRangePicker from "@/components/dashboard/DateRangePicker";
 import StatCard from "@/components/dashboard/StatCard";
 import LineChart from "@/components/dashboard/LineChart";
@@ -10,7 +23,6 @@ import HeatmapGrid from "@/components/dashboard/HeatmapGrid";
 import DonutChart from "@/components/dashboard/DonutChart";
 import WeekdayBars from "@/components/dashboard/WeekdayBars";
 import InventoryWorkspace from "@/components/dashboard/InventoryWorkspace";
-import { getDashboardInventoryDataForSlug } from "@/lib/dashboard-inventory";
 
 export const metadata: Metadata = { title: "Analitik · Dashboard | 3Diner" };
 export const dynamic = "force-dynamic";
@@ -37,16 +49,6 @@ function relTime(iso: string): string {
   return `${Math.round(h / 24)} hari lalu`;
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-[11px] font-semibold uppercase tracking-wider mb-4" style={{ color: "#5A7898" }}>
-      {children}
-    </h2>
-  );
-}
-
-const PANEL = { background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" } as const;
-
 interface PageProps {
   searchParams: Promise<{ start?: string; end?: string }>;
 }
@@ -57,24 +59,26 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
   if (!userId) redirect("/login");
 
   const slug = await getOwnerCafeSlug(userId);
-  const [data, inventory] = slug
+  const [data, inventory, today] = slug
     ? await Promise.all([
         getDashboardData(slug, start, end),
         getDashboardInventoryDataForSlug(slug),
+        getTodayOps(slug),
       ])
-    : [null, await getDashboardInventoryDataForSlug(null)];
+    : [null, await getDashboardInventoryDataForSlug(null), await getTodayOps(null)];
 
   if (!data) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-2 text-center px-6">
-        <p className="font-semibold" style={{ color: "#E9EEF6" }}>Belum ada kafe terhubung</p>
-        <p className="text-sm" style={{ color: "#5A7898" }}>Akun ini belum terkait ke kafe mana pun.</p>
+        <p className="font-semibold" style={{ color: "var(--dash-text)" }}>Belum ada kafe terhubung</p>
+        <p className="text-sm" style={{ color: "var(--dash-muted)" }}>Akun ini belum terkait ke kafe mana pun.</p>
       </div>
     );
   }
 
   const { cafe, totals, deltas, conversion, view3dRate, totalEvents, daily, hourly, weekday, insights, topDishes, recent } = data;
   const base = Math.max(1, totals.click_menu);
+  const criticalStock = inventory.summary.low + inventory.summary.empty;
 
   const funnel = [
     { label: "Buka Menu", value: totals.click_menu, pct: 100, color: "#5A7898" },
@@ -123,47 +127,57 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
     : "14 hari terakhir";
 
   return (
-    <div className="p-5 lg:p-8 max-w-[1400px] mx-auto">
-      {/* Hero header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 dash-reveal">
+    <div className="p-4 lg:p-6 max-w-[1400px] mx-auto">
+      {/* Header — cafe context + range + primary action */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5 dash-reveal">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles size={15} style={{ color: "#FD5002" }} />
-            <span className="text-xs font-medium" style={{ color: "#5A7898" }}>Ringkasan {rangeLabel} · {cafe.nama_cafe}</span>
-          </div>
-          <h1 className="font-display text-[28px] font-bold leading-tight" style={{ color: "#E9EEF6" }}>
-            Analitik
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1" style={{ color: "var(--dash-muted)" }}>
+            {cafe.nama_cafe} · {rangeLabel}
+          </p>
+          <h1 className="font-display text-[22px] font-bold leading-tight" style={{ color: "var(--dash-text)" }}>
+            Ringkasan Operasional
           </h1>
-          <p className="text-sm mt-1.5" style={{ color: "#9FB6D1" }}>
-            <span style={{ color: "#E9EEF6", fontWeight: 600 }}>{totalEvents.toLocaleString("id-ID")}</span> total interaksi ·
-            rata-rata <span style={{ color: "#E9EEF6", fontWeight: 600 }}>{insights.avgPerDay}</span>/hari
-            {insights.quietHint && (
-              <span className="block mt-1 text-[13px]" style={{ color: "#5A7898" }}>{insights.quietHint}</span>
-            )}
+          <p className="text-[13px] mt-1" style={{ color: "var(--dash-secondary)" }}>
+            <span style={{ color: "var(--dash-text)", fontWeight: 600 }}>{totalEvents.toLocaleString("id-ID")}</span> interaksi ·
+            rata-rata <span style={{ color: "var(--dash-text)", fontWeight: 600 }}>{insights.avgPerDay}</span>/hari
           </p>
         </div>
-        <div className="shrink-0">
+        <div className="shrink-0 flex items-center gap-2.5">
+          <Link
+            href="/dashboard/orders"
+            className="dash-btn inline-flex items-center gap-2 px-3.5 rounded-[10px] text-[13px] font-semibold text-white"
+            style={{ background: "var(--orange)", height: "38px" }}
+          >
+            <ShoppingBag size={14} strokeWidth={2.2} />
+            Kelola Pesanan
+          </Link>
           <DateRangePicker initialStart={start} initialEnd={end} />
         </div>
       </div>
 
+      {/* Today Overview — 6 KPI */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-4 dash-reveal dash-d1">
+        <StatCard value={today.revenueToday} prefix="Rp " label="Omzet Hari Ini" icon={<Wallet size={15} strokeWidth={2} />} accent="#22D3A6" accentBg="rgba(34,211,166,0.12)" sub={`${today.ordersToday} pesanan hari ini`} />
+        <StatCard value={today.activeOrders} label="Pesanan Aktif" icon={<ShoppingBag size={15} strokeWidth={2} />} accent="#FD5002" accentBg="rgba(253,80,2,0.12)" sub="perlu diproses" />
+        <StatCard value={totals.click_menu} label="Tampilan Menu" icon={<MousePointerClick size={15} strokeWidth={2} />} accent="#9FB6D1" accentBg="rgba(159,182,209,0.12)" delta={deltas.click_menu} />
+        <StatCard value={totals.view_3d} label="Lihat Model 3D" icon={<Box size={15} strokeWidth={2} />} accent="#00C2A8" accentBg="rgba(0,194,168,0.12)" delta={deltas.view_3d} />
+        <StatCard value={Math.round(conversion)} suffix="%" label="Konversi ke Pesan" icon={<Target size={15} strokeWidth={2} />} accent="#22D3A6" accentBg="rgba(34,211,166,0.12)" sub={`${Math.round(view3dRate)}% buka model 3D`} />
+        <StatCard value={criticalStock} label="Stok Kritis" icon={<AlertTriangle size={15} strokeWidth={2} />} accent="#F59E0B" accentBg="rgba(245,158,11,0.12)" sub={criticalStock > 0 ? "bahan di bawah minimum" : "semua stok aman"} />
+      </div>
+
       {/* Insight strip */}
       {insightTiles.length > 0 && (
-        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 mb-5 dash-reveal dash-d1">
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 mb-4 dash-reveal dash-d2">
           {insightTiles.map((t, i) => {
             const Icon = t.icon;
             return (
-              <div
-                key={i}
-                className="dash-card shrink-0 flex items-center gap-3 rounded-2xl px-4 py-3 min-w-[200px]"
-                style={PANEL}
-              >
-                <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: t.bg, color: t.accent }}>
-                  <Icon size={17} strokeWidth={2} />
+              <div key={i} className="dash-card dash-panel shrink-0 flex items-center gap-3 px-4 py-3 min-w-[200px]">
+                <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: t.bg, color: t.accent }}>
+                  <Icon size={15} strokeWidth={2} />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[11px]" style={{ color: "#5A7898" }}>{t.label}</p>
-                  <p className="text-sm font-semibold truncate" style={{ color: "#E9EEF6" }}>{t.value}</p>
+                  <p className="text-[11px]" style={{ color: "var(--dash-muted)" }}>{t.label}</p>
+                  <p className="text-[13px] font-semibold truncate" style={{ color: "var(--dash-text)" }}>{t.value}</p>
                 </div>
               </div>
             );
@@ -171,61 +185,51 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5 dash-reveal dash-d2">
-        <StatCard value={totals.click_menu} label="Tampilan Menu" icon={<MousePointerClick size={17} strokeWidth={2} />} accent="#9FB6D1" accentBg="rgba(159,182,209,0.12)" delta={deltas.click_menu} />
-        <StatCard value={totals.view_3d} label="Lihat Model 3D" icon={<Box size={17} strokeWidth={2} />} accent="#00C2A8" accentBg="rgba(0,194,168,0.12)" delta={deltas.view_3d} />
-        <StatCard value={totals.click_order} label="Mulai Pesan" icon={<ShoppingBag size={17} strokeWidth={2} />} accent="#FD5002" accentBg="rgba(253,80,2,0.12)" delta={deltas.click_order} />
-        <StatCard value={Math.round(conversion)} suffix="%" label="Konversi ke Pesan" icon={<Target size={17} strokeWidth={2} />} accent="#22D3A6" accentBg="rgba(34,211,166,0.12)" sub={`${Math.round(view3dRate)}% buka model 3D`} />
-      </div>
-
-      <div className="mb-5">
-        <InventoryWorkspace
-          items={inventory.items}
-          movements={inventory.movements}
-          summary={inventory.summary}
-          failedLoads={inventory.failedLoads}
-          embedded
-        />
-      </div>
-
-      {/* Timeline + Funnel */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5 dash-reveal dash-d3">
-        <section className="lg:col-span-2 rounded-2xl p-5" style={PANEL}>
-          <SectionLabel>Aktivitas Harian</SectionLabel>
-          <LineChart data={daily.map((d) => ({ label: d.label, value: d.count }))} />
+      {/* Main analytics — activity + funnel rail */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4 dash-reveal dash-d3">
+        <section className="lg:col-span-2 dash-panel">
+          <div className="dash-panel-head">Aktivitas Harian</div>
+          <div className="dash-panel-body">
+            <LineChart data={daily.map((d) => ({ label: d.label, value: d.count }))} />
+          </div>
         </section>
-        <section className="rounded-2xl p-5" style={PANEL}>
-          <SectionLabel>Corong Engagement</SectionLabel>
-          <FunnelBars stages={funnel} />
-          <p className="text-xs mt-5 leading-relaxed" style={{ color: "#5A7898" }}>
-            Dari setiap 100 tamu yang membuka menu,{" "}
-            <span style={{ color: "#00C2A8", fontWeight: 600 }}>{Math.round(view3dRate)}</span> melihat model 3D dan{" "}
-            <span style={{ color: "#FD5002", fontWeight: 600 }}>{Math.round(conversion)}</span> mulai memesan.
-          </p>
+        <section className="dash-panel">
+          <div className="dash-panel-head">Corong Engagement</div>
+          <div className="dash-panel-body">
+            <FunnelBars stages={funnel} />
+            <p className="text-xs mt-5 leading-relaxed" style={{ color: "var(--dash-muted)" }}>
+              Dari setiap 100 tamu yang membuka menu,{" "}
+              <span style={{ color: "#00C2A8", fontWeight: 600 }}>{Math.round(view3dRate)}</span> melihat model 3D dan{" "}
+              <span style={{ color: "#FD5002", fontWeight: 600 }}>{Math.round(conversion)}</span> mulai memesan.
+            </p>
+          </div>
         </section>
       </div>
 
-      {/* Heatmap + Weekday */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5 dash-reveal dash-d4">
-        <section className="lg:col-span-2 rounded-2xl p-5" style={PANEL}>
-          <SectionLabel>Jam Tersibuk</SectionLabel>
-          <HeatmapGrid hourly={hourly} />
-          <p className="text-xs mt-3" style={{ color: "#5A7898" }}>
-            Sebaran interaksi per jam · kotak paling terang = jam paling ramai
-          </p>
+      {/* Heatmap + weekday */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4 dash-reveal dash-d4">
+        <section className="lg:col-span-2 dash-panel">
+          <div className="dash-panel-head">Jam Tersibuk</div>
+          <div className="dash-panel-body">
+            <HeatmapGrid hourly={hourly} />
+            <p className="text-xs mt-3" style={{ color: "var(--dash-muted)" }}>
+              Sebaran interaksi per jam · kotak paling terang = jam paling ramai
+            </p>
+          </div>
         </section>
-        <section className="rounded-2xl p-5" style={PANEL}>
-          <SectionLabel>Per Hari</SectionLabel>
-          <WeekdayBars data={weekday} />
+        <section className="dash-panel">
+          <div className="dash-panel-head">Per Hari</div>
+          <div className="dash-panel-body">
+            <WeekdayBars data={weekday} />
+          </div>
         </section>
       </div>
 
-      {/* Composition donut full-width-ish + top dishes + recent */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 dash-reveal dash-d5">
-        <section className="rounded-2xl p-5 flex flex-col" style={PANEL}>
-          <SectionLabel>Komposisi Interaksi</SectionLabel>
-          <div className="flex-1 flex items-center">
+      {/* Operations — komposisi + top menu + aktivitas */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4 dash-reveal dash-d5">
+        <section className="dash-panel flex flex-col">
+          <div className="dash-panel-head">Komposisi Interaksi</div>
+          <div className="dash-panel-body flex-1 flex items-center">
             <DonutChart
               centerLabel="Interaksi"
               segments={[
@@ -237,58 +241,71 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
           </div>
         </section>
 
-        <section className="rounded-2xl p-5" style={PANEL}>
-          <SectionLabel>Menu Terpopuler</SectionLabel>
-          {topDishes.length === 0 ? (
-            <p className="text-sm py-8 text-center" style={{ color: "#5A7898" }}>Belum ada data interaksi.</p>
-          ) : (
-            <div className="space-y-1">
-              {topDishes.map((d, i) => (
-                <div
-                  key={i}
-                  className="grid grid-cols-[20px_1fr_auto] gap-3 items-center px-2 py-2 rounded-lg"
-                  style={{ background: i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent" }}
-                >
-                  <span className="text-xs font-bold tabular-nums" style={{ color: i === 0 ? "#FD5002" : "#5A7898" }}>
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: "#E9EEF6" }}>{d.name}</p>
-                    <div className="h-1 rounded-full mt-1.5 overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
-                      <div className="h-full rounded-full" style={{ width: `${((d.views || d.clicks) / maxDishViews) * 100}%`, background: "#00C2A8" }} />
+        <section className="dash-panel">
+          <div className="dash-panel-head">Menu Terpopuler</div>
+          <div className="dash-panel-body">
+            {topDishes.length === 0 ? (
+              <p className="text-sm py-8 text-center" style={{ color: "var(--dash-muted)" }}>Belum ada data interaksi.</p>
+            ) : (
+              <div className="space-y-1">
+                {topDishes.map((d, i) => (
+                  <div
+                    key={i}
+                    className="grid grid-cols-[20px_1fr_auto] gap-3 items-center px-2 py-2 rounded-lg"
+                    style={{ background: i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent" }}
+                  >
+                    <span className="text-xs font-bold tabular-nums" style={{ color: i === 0 ? "#FD5002" : "var(--dash-muted)" }}>
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: "var(--dash-text)" }}>{d.name}</p>
+                      <div className="h-1 rounded-full mt-1.5 overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
+                        <div className="h-full rounded-full" style={{ width: `${((d.views || d.clicks) / maxDishViews) * 100}%`, background: "#00C2A8" }} />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-right tabular-nums">
+                      <span className="text-xs font-semibold" style={{ color: "#00C2A8" }}>{d.views}</span>
+                      <span className="text-xs font-semibold" style={{ color: "#FD5002" }}>{d.orders}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 text-right tabular-nums">
-                    <span className="text-xs font-semibold" style={{ color: "#00C2A8" }}>{d.views}</span>
-                    <span className="text-xs font-semibold" style={{ color: "#FD5002" }}>{d.orders}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
-        <section className="rounded-2xl p-5" style={PANEL}>
-          <SectionLabel>Aktivitas Terbaru</SectionLabel>
-          {recent.length === 0 ? (
-            <p className="text-sm py-8 text-center" style={{ color: "#5A7898" }}>Belum ada aktivitas.</p>
-          ) : (
-            <ul className="space-y-3">
-              {recent.map((r, i) => (
-                <li key={i} className="flex items-center gap-3">
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: EVENT_COLOR[r.type] }} />
-                  <span className="text-sm flex-1 min-w-0 truncate" style={{ color: "#9FB6D1" }}>
-                    <span style={{ color: "#E9EEF6", fontWeight: 500 }}>{EVENT_LABEL[r.type]}</span> · {r.name}
-                  </span>
-                  <span className="text-[11px] shrink-0 tabular-nums" style={{ color: "#5A7898" }}>
-                    {relTime(r.at)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+        <section className="dash-panel">
+          <div className="dash-panel-head">Aktivitas Terbaru</div>
+          <div className="dash-panel-body">
+            {recent.length === 0 ? (
+              <p className="text-sm py-8 text-center" style={{ color: "var(--dash-muted)" }}>Belum ada aktivitas.</p>
+            ) : (
+              <ul className="space-y-3">
+                {recent.map((r, i) => (
+                  <li key={i} className="flex items-center gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: EVENT_COLOR[r.type] }} />
+                    <span className="text-sm flex-1 min-w-0 truncate" style={{ color: "var(--dash-secondary)" }}>
+                      <span style={{ color: "var(--dash-text)", fontWeight: 500 }}>{EVENT_LABEL[r.type]}</span> · {r.name}
+                    </span>
+                    <span className="text-[11px] shrink-0 tabular-nums" style={{ color: "var(--dash-muted)" }}>
+                      {relTime(r.at)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
       </div>
+
+      {/* Inventory workspace */}
+      <InventoryWorkspace
+        items={inventory.items}
+        movements={inventory.movements}
+        summary={inventory.summary}
+        failedLoads={inventory.failedLoads}
+        embedded
+      />
     </div>
   );
 }

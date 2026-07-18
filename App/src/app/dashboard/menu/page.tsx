@@ -67,30 +67,30 @@ export default async function MenuListPage() {
   }
 
   return (
-    <div className="p-5 lg:p-8 max-w-[1100px] mx-auto">
-      <div className="flex items-center justify-between mb-7 dash-reveal">
+    <div className="p-4 lg:p-6 max-w-[1100px] mx-auto">
+      <div className="flex items-center justify-between mb-5 dash-reveal">
         <div>
-          <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>Menu</h1>
-          <p className="text-sm mt-1" style={{ color: "#5A7898" }}>{list.length} item terdaftar</p>
+          <h1 className="font-display text-[22px] font-bold" style={{ color: "var(--dash-text)" }}>Menu</h1>
+          <p className="text-[13px] mt-1" style={{ color: "var(--dash-muted)" }}>{list.length} item terdaftar</p>
         </div>
         <div className="flex items-center gap-2.5">
           <MenuExtractor />
           <Link
             href="/dashboard/menu/new"
-            className="dash-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
-            style={{ background: "#FD5002" }}
+            className="dash-btn inline-flex items-center gap-2 px-3.5 rounded-[10px] text-[13px] font-semibold text-white"
+            style={{ background: "var(--orange)", height: "38px" }}
           >
-            <Plus size={16} /> Tambah Menu
+            <Plus size={15} /> Tambah Menu
           </Link>
         </div>
       </div>
 
       {list.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 rounded-2xl" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
-          <Box size={38} style={{ color: "#5A7898" }} strokeWidth={1.2} />
-          <p className="mt-4 font-semibold" style={{ color: "#E9EEF6" }}>Belum ada menu</p>
-          <p className="text-sm mt-1 mb-6" style={{ color: "#5A7898" }}>Tambah menu pertama untuk kafe kamu</p>
-          <Link href="/dashboard/menu/new" className="dash-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: "#FD5002" }}>
+        <div className="dash-panel flex flex-col items-center justify-center py-24">
+          <Box size={38} style={{ color: "var(--dash-muted)" }} strokeWidth={1.2} />
+          <p className="mt-4 font-semibold" style={{ color: "var(--dash-text)" }}>Belum ada menu</p>
+          <p className="text-sm mt-1 mb-6" style={{ color: "var(--dash-muted)" }}>Tambah menu pertama untuk kafe kamu</p>
+          <Link href="/dashboard/menu/new" className="dash-btn inline-flex items-center gap-2 px-3.5 py-2.5 rounded-[10px] text-[13px] font-semibold text-white" style={{ background: "var(--orange)" }}>
             <Plus size={15} /> Tambah Menu
           </Link>
         </div>
