@@ -9,6 +9,8 @@ import FunnelBars from "@/components/dashboard/FunnelBars";
 import HeatmapGrid from "@/components/dashboard/HeatmapGrid";
 import DonutChart from "@/components/dashboard/DonutChart";
 import WeekdayBars from "@/components/dashboard/WeekdayBars";
+import InventoryWorkspace from "@/components/dashboard/InventoryWorkspace";
+import { getDashboardInventoryDataForSlug } from "@/lib/dashboard-inventory";
 
 export const metadata: Metadata = { title: "Analitik · Dashboard | 3Diner" };
 export const dynamic = "force-dynamic";
@@ -55,7 +57,12 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
   if (!userId) redirect("/login");
 
   const slug = await getOwnerCafeSlug(userId);
-  const data = slug ? await getDashboardData(slug, start, end) : null;
+  const [data, inventory] = slug
+    ? await Promise.all([
+        getDashboardData(slug, start, end),
+        getDashboardInventoryDataForSlug(slug),
+      ])
+    : [null, await getDashboardInventoryDataForSlug(null)];
 
   if (!data) {
     return (
@@ -170,6 +177,16 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
         <StatCard value={totals.view_3d} label="Lihat Model 3D" icon={<Box size={17} strokeWidth={2} />} accent="#00C2A8" accentBg="rgba(0,194,168,0.12)" delta={deltas.view_3d} />
         <StatCard value={totals.click_order} label="Mulai Pesan" icon={<ShoppingBag size={17} strokeWidth={2} />} accent="#FD5002" accentBg="rgba(253,80,2,0.12)" delta={deltas.click_order} />
         <StatCard value={Math.round(conversion)} suffix="%" label="Konversi ke Pesan" icon={<Target size={17} strokeWidth={2} />} accent="#22D3A6" accentBg="rgba(34,211,166,0.12)" sub={`${Math.round(view3dRate)}% buka model 3D`} />
+      </div>
+
+      <div className="mb-5">
+        <InventoryWorkspace
+          items={inventory.items}
+          movements={inventory.movements}
+          summary={inventory.summary}
+          failedLoads={inventory.failedLoads}
+          embedded
+        />
       </div>
 
       {/* Timeline + Funnel */}

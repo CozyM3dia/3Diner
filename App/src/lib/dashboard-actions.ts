@@ -327,6 +327,7 @@ export async function createInventoryItem(fd: FormData): Promise<ActionResult> {
     .insert([{ cafe_id: cafeId, ...payload }]);
 
   if (error) return { error: error.message };
+  revalidatePath("/dashboard");
   revalidatePath("/dashboard/inventory");
   revalidatePath("/dashboard/menu");
   return {};
@@ -347,6 +348,7 @@ export async function updateInventoryItem(id: string, fd: FormData): Promise<Act
     .eq("cafe_id", cafeId);
 
   if (error) return { error: error.message };
+  revalidatePath("/dashboard");
   revalidatePath("/dashboard/inventory");
   revalidatePath("/dashboard/menu");
   return {};
@@ -379,6 +381,7 @@ export async function adjustInventoryStock(id: string, fd: FormData): Promise<Ac
   if (rpcError === "negative_stock") return { error: "Stok tidak boleh kurang dari 0." };
   if (rpcError === "invalid_adjustment") return { error: "Jumlah penyesuaian tidak valid." };
 
+  revalidatePath("/dashboard");
   revalidatePath("/dashboard/inventory");
   return {};
 }
