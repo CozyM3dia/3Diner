@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { Box, Clock, Flame, Star } from "lucide-react";
 import { getCafeBySlug, getMenuById, logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
 import { effectivePrice, hasDiscount } from "@/lib/menu-availability";
 import DetailHeader from "@/components/DetailHeader";
 import AddToCartBar from "@/components/AddToCartBar";
+import Menu3DTransitionLink from "@/components/Menu3DTransitionLink";
 
 interface PageProps {
   params: Promise<{ slug: string; menu_id: string }>;
@@ -46,7 +46,7 @@ export default async function MenuDetailPage({ params }: PageProps) {
       <DetailHeader cafeName={cafe.nama_cafe} slug={slug} />
 
       {/* Hero image */}
-      <div className="relative w-full overflow-hidden" style={{ height: "300px" }}>
+      <div id="menu-detail-hero" className="relative w-full overflow-hidden" style={{ height: "300px" }}>
         {menu.image_url ? (
           <Image
             src={menu.image_url}
@@ -175,13 +175,12 @@ export default async function MenuDetailPage({ params }: PageProps) {
         {/* 3D button */}
         {has3d && (
           <div className="mt-5">
-            <Link
+            <Menu3DTransitionLink
               href={`/${slug}/${menu_id}/3d`}
-              className="btn-navy press w-full h-[52px] rounded-2xl inline-flex items-center justify-center gap-2.5 font-semibold text-[15px]"
-            >
-              <Box size={18} strokeWidth={2} />
-              Lihat Model 3D
-            </Link>
+              heroId="menu-detail-hero"
+              imageUrl={menu.image_url}
+              menuName={menu.nama_menu}
+            />
           </div>
         )}
 

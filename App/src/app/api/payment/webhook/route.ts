@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { verifyMidtransSignature } from "@/lib/order-validation";
 
 export async function POST(req: Request) {
   try {
@@ -19,21 +19,26 @@ export async function POST(req: Request) {
       transaction_status: string;
     };
 
-    const serverKey = process.env.MIDTRANS_SERVER_KEY!;
-    const expected = crypto
-      .createHash("sha512")
-      .update(`${order_id}${status_code}${gross_amount}${serverKey}`)
-      .digest("hex");
-
-    if (expected !== signature_key) {
+    const serverKey = process.env.MIDTRANS_SERVER_KEY;
+    if (!serverKey || !verifyMidtransSignature({ order_id, status_code, gross_amount, signature_key }, serverKey)) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
+    const { data: order } = await supabaseAdmin
+      .from("Orders")
+      .select("total,payment_status")
+      .eq("id_order", order_id)
+      .single();
+    if (!order || Number(gross_amount) !== Number(order.total)) {
+      return NextResponse.json({ error: "Amount mismatch" }, { status: 400 });
     }
 
     if (transaction_status === "settlement" || transaction_status === "capture") {
       await supabaseAdmin
         .from("Orders")
         .update({ payment_status: "paid", status: "preparing", payment_method: "qris" })
-        .eq("id_order", order_id);
+        .eq("id_order", order_id)
+        .eq("payment_status", "pending");
     }
 
     return NextResponse.json({ ok: true });

@@ -90,7 +90,7 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
       const res = await fetch("/api/payment/charge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: order.id_order, amount: order.total, items: order.items }),
+        body: JSON.stringify({ orderId: order.id_order, orderToken: order.customer_token }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal membuat QRIS");

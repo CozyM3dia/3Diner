@@ -10,6 +10,13 @@ import type { Menu } from "@/types";
 
 export const dynamic = "force-dynamic";
 
+type MenuInventoryState = "none" | "ready" | "low";
+type MenuRecipeRow = {
+  menu_id: string;
+  qty_per_menu: number;
+  inventory_item?: { current_qty: number } | { current_qty: number }[] | null;
+};
+
 export default async function MenuListPage() {
   const supabase = await createClient();
   const {
@@ -22,16 +29,42 @@ export default async function MenuListPage() {
     ? await supabaseAdmin.from("Cafes").select("id_cafe").eq("slug_url", slug).single()
     : { data: null };
 
-  const { data: menus } = cafe
-    ? await supabaseAdmin
-        .from("Menus")
-        .select("*")
-        .eq("cafe_id", cafe.id_cafe)
-        .order("sort_order", { ascending: true, nullsFirst: false })
-        .order("created_at", { ascending: true })
-    : { data: [] };
+  const [menuResult, recipeResult] = cafe
+    ? await Promise.all([
+        supabaseAdmin
+          .from("Menus")
+          .select("*")
+          .eq("cafe_id", cafe.id_cafe)
+          .order("sort_order", { ascending: true, nullsFirst: false })
+          .order("created_at", { ascending: true }),
+        supabaseAdmin
+          .from("Menu_Recipes")
+          .select("menu_id,qty_per_menu,inventory_item:Inventory_Items(current_qty)")
+          .eq("cafe_id", cafe.id_cafe),
+      ])
+    : [{ data: [], error: null }, { data: [], error: null }];
+
+  const { data: menus, error: menusError } = menuResult;
+  const { data: recipes, error: recipesError } = recipeResult;
+
+  if (menusError) {
+    throw new Error(`Gagal memuat menu: ${menusError.message}`);
+  }
+  if (recipesError) {
+    throw new Error(`Gagal memuat resep menu: ${recipesError.message}`);
+  }
 
   const list = (menus ?? []) as Menu[];
+  const inventoryByMenu: Record<string, MenuInventoryState> = {};
+  for (const menu of list) inventoryByMenu[menu.id_menu] = "none";
+
+  for (const recipe of recipes ?? []) {
+    const row = recipe as MenuRecipeRow;
+    const joinedInventory = Array.isArray(row.inventory_item) ? row.inventory_item[0] : row.inventory_item;
+    const current = Number(joinedInventory?.current_qty ?? 0);
+    const state: MenuInventoryState = current >= Number(row.qty_per_menu) ? "ready" : "low";
+    inventoryByMenu[row.menu_id] = inventoryByMenu[row.menu_id] === "low" || state === "low" ? "low" : "ready";
+  }
 
   return (
     <div className="p-5 lg:p-8 max-w-[1100px] mx-auto">
@@ -62,7 +95,7 @@ export default async function MenuListPage() {
           </Link>
         </div>
       ) : (
-        <MenuTable menus={list} />
+        <MenuTable menus={list} inventoryByMenu={inventoryByMenu} />
       )}
     </div>
   );
