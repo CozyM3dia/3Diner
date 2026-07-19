@@ -1,8 +1,4 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-
-@custom-variant dark (&:is(.dark *));
 
 /* ── 3Diner Brand Tokens ── */
 :root {
@@ -19,7 +15,7 @@
   --paper:        #F6F8FB;
   --border:       #CFD9E4;
   --surface:      #E0E7EE;
-  --radius:       0.625rem; /* shadcn base radius; brand card radius = --radius-card */
+  --radius:       18px;
   --radius-card:  16px;
 
   /* Layered elevation — navy-tinted, never pure black */
@@ -49,67 +45,13 @@
   --semantic-warning: #F59E0B;
   --semantic-danger:  #EF4444;
 
+  --radius-xs:   8px;
+  --radius-sm:   12px;
+  --radius-md:   16px;
+  --radius-lg:   20px;
+  --radius-pill: 999px;
+
   --shadow-dashboard: 0 18px 48px rgba(0, 0, 0, 0.22);
-
-  --background:         oklch(1 0 0);
-
-  --foreground:         oklch(0.145 0 0);
-
-  --card:         oklch(1 0 0);
-
-  --card-foreground:         oklch(0.145 0 0);
-
-  --popover:         oklch(1 0 0);
-
-  --popover-foreground:         oklch(0.145 0 0);
-
-  --primary:         oklch(0.205 0 0);
-
-  --primary-foreground:         oklch(0.985 0 0);
-
-  --secondary:         oklch(0.97 0 0);
-
-  --secondary-foreground:         oklch(0.205 0 0);
-
-  --muted:         oklch(0.97 0 0);
-
-  --muted-foreground:         oklch(0.556 0 0);
-
-  --accent:         oklch(0.97 0 0);
-
-  --accent-foreground:         oklch(0.205 0 0);
-
-  --destructive:         oklch(0.577 0.245 27.325);
-
-  --input:         oklch(0.922 0 0);
-
-  --ring:         oklch(0.708 0 0);
-
-  --chart-1:         oklch(0.87 0 0);
-
-  --chart-2:         oklch(0.556 0 0);
-
-  --chart-3:         oklch(0.439 0 0);
-
-  --chart-4:         oklch(0.371 0 0);
-
-  --chart-5:         oklch(0.269 0 0);
-
-  --sidebar:         oklch(0.985 0 0);
-
-  --sidebar-foreground:         oklch(0.145 0 0);
-
-  --sidebar-primary:         oklch(0.205 0 0);
-
-  --sidebar-primary-foreground:         oklch(0.985 0 0);
-
-  --sidebar-accent:         oklch(0.97 0 0);
-
-  --sidebar-accent-foreground:         oklch(0.205 0 0);
-
-  --sidebar-border:         oklch(0.922 0 0);
-
-  --sidebar-ring:         oklch(0.708 0 0);
 }
 
 @theme inline {
@@ -129,46 +71,6 @@
 
   --font-display: var(--font-poppins);
   --font-body:    var(--font-poppins);
-  --font-heading: var(--font-poppins), system-ui, sans-serif;
-  --font-sans:    var(--font-poppins), system-ui, sans-serif;
-  --color-sidebar-ring:         var(--sidebar-ring);
-  --color-sidebar-border:         var(--sidebar-border);
-  --color-sidebar-accent-foreground:         var(--sidebar-accent-foreground);
-  --color-sidebar-accent:         var(--sidebar-accent);
-  --color-sidebar-primary-foreground:         var(--sidebar-primary-foreground);
-  --color-sidebar-primary:         var(--sidebar-primary);
-  --color-sidebar-foreground:         var(--sidebar-foreground);
-  --color-sidebar:         var(--sidebar);
-  --color-chart-5:         var(--chart-5);
-  --color-chart-4:         var(--chart-4);
-  --color-chart-3:         var(--chart-3);
-  --color-chart-2:         var(--chart-2);
-  --color-chart-1:         var(--chart-1);
-  --color-ring:         var(--ring);
-  --color-input:         var(--input);
-  --color-destructive:         var(--destructive);
-  --color-accent-foreground:         var(--accent-foreground);
-  --color-accent:         var(--accent);
-  --color-muted-foreground:         var(--muted-foreground);
-  --color-muted:         var(--muted);
-  --color-secondary-foreground:         var(--secondary-foreground);
-  --color-secondary:         var(--secondary);
-  --color-primary-foreground:         var(--primary-foreground);
-  --color-primary:         var(--primary);
-  --color-popover-foreground:         var(--popover-foreground);
-  --color-popover:         var(--popover);
-  --color-card-foreground:         var(--card-foreground);
-  --color-card:         var(--card);
-  --color-foreground:         var(--foreground);
-  --color-background:         var(--background);
-  /* Tailwind default radius scale — customer pages keep their exact pre-shadcn look */
-  --radius-sm:  0.25rem;
-  --radius-md:  0.375rem;
-  --radius-lg:  0.5rem;
-  --radius-xl:  0.75rem;
-  --radius-2xl: 1rem;
-  --radius-3xl: 1.5rem;
-  --radius-4xl: 2rem;
 }
 
 /* ── Base ── */
@@ -412,7 +314,7 @@ model-viewer::part(default-ar-button) { display: none !important; }
 .stagger-6 { animation-delay: 0.29s; opacity: 0; }
 
 /* ── Dashboard font: Poppins (brand contract — UI_TOKENS.md) ── */
-.dash-root, .dash-root .font-display, .dash-portal-root {
+.dash-root, .dash-root .font-display {
   font-family: var(--font-poppins), system-ui, sans-serif;
 }
 
@@ -425,7 +327,7 @@ html:has(.dash-root), body:has(.dash-root) {
 .dash-panel {
   background: var(--dash-panel);
   border: 1px solid var(--dash-border);
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 .dash-panel-head {
@@ -450,7 +352,7 @@ html:has(.dash-root), body:has(.dash-root) {
   gap: 3px;
   font-size: 11px;
   font-weight: 700;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 2px 7px;
   font-variant-numeric: tabular-nums;
 }
@@ -521,77 +423,4 @@ html:has(.dash-root), body:has(.dash-root) {
   .fade-up, .float, .pulse-ring, .pulse-dot, .fab-in, .dash-reveal, .qty-pop { animation: none !important; opacity: 1 !important; transform: none !important; }
   .btn-navy::after, .btn-primary::after { animation: none !important; transform: translateX(-120%) !important; }
   .menu-card, .menu-card .card-img { transition: none !important; }
-}
-
-.dark {
-  --background:         oklch(0.145 0 0);
-  --foreground:         oklch(0.985 0 0);
-  --card:         oklch(0.205 0 0);
-  --card-foreground:         oklch(0.985 0 0);
-  --popover:         oklch(0.205 0 0);
-  --popover-foreground:         oklch(0.985 0 0);
-  --primary:         oklch(0.922 0 0);
-  --primary-foreground:         oklch(0.205 0 0);
-  --secondary:         oklch(0.269 0 0);
-  --secondary-foreground:         oklch(0.985 0 0);
-  --muted:         oklch(0.269 0 0);
-  --muted-foreground:         oklch(0.708 0 0);
-  --accent:         oklch(0.269 0 0);
-  --accent-foreground:         oklch(0.985 0 0);
-  --destructive:         oklch(0.704 0.191 22.216);
-  --border:         oklch(1 0 0 / 10%);
-  --input:         oklch(1 0 0 / 15%);
-  --ring:         oklch(0.556 0 0);
-  --chart-1:         oklch(0.87 0 0);
-  --chart-2:         oklch(0.556 0 0);
-  --chart-3:         oklch(0.439 0 0);
-  --chart-4:         oklch(0.371 0 0);
-  --chart-5:         oklch(0.269 0 0);
-  --sidebar:         oklch(0.205 0 0);
-  --sidebar-foreground:         oklch(0.985 0 0);
-  --sidebar-primary:         oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground:         oklch(0.985 0 0);
-  --sidebar-accent:         oklch(0.269 0 0);
-  --sidebar-accent-foreground:         oklch(0.985 0 0);
-  --sidebar-border:         oklch(1 0 0 / 10%);
-  --sidebar-ring:         oklch(0.556 0 0);
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-  }
-}
-
-/* ── shadcn token adapter: dashboard scope only (spec: portal rule) ──
-   Applied on .dash-root AND .dash-portal-root (dedicated portal class —
-   bukan .dash-root, mencegah nested dashboard root) sehingga portaled
-   primitives (Dialog/Sheet/Popover/Tooltip/Sonner) mewarisi bahasa 3Diner.
-   Customer pages tidak pernah menerima nilai ini. */
-.dash-root, .dash-portal-root {
-  --background: var(--dash-canvas);
-  --foreground: var(--dash-text);
-  --card: var(--dash-panel);
-  --card-foreground: var(--dash-text);
-  --popover: var(--dash-panel);
-  --popover-foreground: var(--dash-text);
-  --primary: var(--orange);
-  --primary-foreground: #FDFDFD;
-  --secondary: var(--dash-raised);
-  --secondary-foreground: var(--dash-text);
-  --muted: var(--dash-raised);
-  --muted-foreground: var(--dash-muted);
-  --accent: var(--dash-raised);
-  --accent-foreground: var(--dash-text);
-  --destructive: var(--semantic-danger);
-  --border: var(--dash-border);
-  --input: rgba(255,255,255,0.1);
-  --ring: var(--orange);
-  --radius: 0.625rem;
 }

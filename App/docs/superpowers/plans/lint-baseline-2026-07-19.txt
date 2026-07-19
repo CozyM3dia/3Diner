@@ -388,3 +388,5 @@ C:\Kerja\3Diner\App\src\lib\cart.tsx:51:9
 ✖ 56 problems (44 errors, 12 warnings)
   0 errors and 1 warning potentially fixable with the `--fix` option.
 
+
+BASELINE-SUMMARY exit=1

@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins, Plus_Jakarta_Sans } from "next/font/google";
+import { Poppins, Plus_Jakarta_Sans, Geist } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+
 
 // Poppins — 3Diner consumer brand face (customer-facing menu).
 const poppins = Poppins({
@@ -44,7 +48,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" className={`${poppins.variable} ${jakarta.variable}`}>
+    <html lang="id" className={cn(poppins.variable, jakarta.variable, "font-sans", geist.variable)}>
       <body className="min-h-dvh">{children}</body>
     </html>
   );

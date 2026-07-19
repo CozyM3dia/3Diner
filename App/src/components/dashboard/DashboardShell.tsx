@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
+import { DASH_PORTAL_ID } from "./system/portal";
 
 interface DashboardShellProps {
   cafe: { nama_cafe: string; logo_url?: string | null; slug_url: string } | null;
@@ -218,6 +219,10 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
 
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
+
+      {/* Portal root untuk Dialog/Sheet/Popover/Tooltip/Sonner — membawa token
+          dashboard ke konten yang di-portal (spec: portal token rule). */}
+      <div id={DASH_PORTAL_ID} className="dash-portal-root" />
     </div>
   );
 }

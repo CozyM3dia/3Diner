@@ -11,8 +11,8 @@
 ## Global Constraints (from spec — apply to every task)
 
 - Never touch: DB schema, server actions signatures, API routes, customer routes, auth, 3D viewer, DateRangePicker internals.
-- All dashboard portals render into `#dash-portal-root` (inside `.dash-root`) or receive the token class via portal container prop. Customer pages never receive dashboard tokens.
-- Motion: only `import { LazyMotion, domAnimation, m } from "framer-motion"`; `motion.*` forbidden in dashboard code. Never Framer + CSS animation on the same primitive; disable shadcn CSS animation where Framer controls Sheet/Dialog. Sonner keeps its own transition, never wrapped in AnimatePresence. 150-220ms, ease-out-quart, transform+opacity only. `useReducedMotion` respected.
+- All dashboard portals render into `#dash-portal-root` (a div with class `dash-portal-root`, NOT `dash-root`, to avoid nested-root layout side effects; the token adapter selector covers both classes). Customer pages never receive dashboard tokens. shadcn ui primitives may receive ONLY a `container` prop passthrough on their Portal; their animation/focus/lifecycle code is never modified.
+- Motion ownership (single owner per primitive): Radix/shadcn primitives (Sheet, Dialog, AlertDialog, Popover, Tooltip) KEEP their built-in shadcn CSS animations; Framer Motion is used only for project-authored motion (list/filter state, reveals, feedback, skeleton-to-content). Never both on one primitive. Sonner keeps its own transition, never wrapped in AnimatePresence. Framer usage: `import { LazyMotion, domAnimation, m } from "framer-motion"`; `motion.*` forbidden in dashboard code — enforced by a grep check in the hardening task plus code review (`LazyMotion strict` additionally throws at runtime if a `motion.*` component renders inside it; it is NOT a lint substitute). 150-220ms, ease-out-quart, transform+opacity only. `useReducedMotion` respected.
 - Colors/typography: existing dash tokens only, Poppins only, orange scarce, no gradients/glass/pure black/white.
 - Test gate per task: `npm test -- --run` fully green (baseline + new). Lint gate: zero errors in changed files/dashboard scope; global lint no new errors vs baseline; never suppress rules.
 - ResponsiveDataView contract: only the active representation visible/focusable/exposed to AT; no duplicate IDs/labels/controls between table and cards.
@@ -23,11 +23,11 @@
 
 ---
 
-### Task 0: Record lint baseline
+### Task 0: Record lint baseline (reproducible)
 
-**Files:** Create: `docs/superpowers/plans/lint-baseline-2026-07-19.txt`
+**Files:** Create: `docs/superpowers/plans/lint-baseline-2026-07-19.txt` (human-readable), `docs/superpowers/plans/lint-baseline-2026-07-19.json` (machine-comparable)
 
-- [ ] Run `npx eslint src 2>&1 | Out-File -Encoding utf8 docs/superpowers/plans/lint-baseline-2026-07-19.txt` from `C:\Kerja\3Diner\App`; commit the file (`chore: record lint baseline before shadcn rebuild`). This is the comparison base for the "no new global lint errors" gate.
+- [ ] From `C:\Kerja\3Diner\App` run both: `npx eslint src > lint-baseline txt` AND `npx eslint src --format json > lint-baseline json`; append to the txt a summary line with exit code + total errors + total warnings. The JSON (file/line/ruleId) is the objective base for the "no new global lint errors" comparison in Task 9 (`compare: same or fewer errors per rule per file; any new file:rule pair = failure`). Commit both.
 
 ### Task 1: shadcn init + token adapter + portal root
 
@@ -37,7 +37,7 @@
 - Test: `tests/dash-token-adapter.test.ts`
 
 **Interfaces:**
-- Produces: `.dash-root` shadcn variable mapping; `<div id="dash-portal-root" className="dash-root">` inside DashboardShell; exported const `DASH_PORTAL_ID = "dash-portal-root"` from `src/components/dashboard/system/portal.ts` plus `getDashPortal(): HTMLElement | null` returning `document.getElementById(DASH_PORTAL_ID)`.
+- Produces: shadcn variable mapping on selector `.dash-root, .dash-portal-root`; `<div id="dash-portal-root" className="dash-portal-root">` inside DashboardShell (dedicated class — never `dash-root`, to prevent nested dashboard roots); exported const `DASH_PORTAL_ID = "dash-portal-root"` from `src/components/dashboard/system/portal.ts` plus `getDashPortal(): HTMLElement | null` returning `document.getElementById(DASH_PORTAL_ID)`. Poppins font rule also covers `.dash-portal-root`.
 
 - [ ] **Step 1:** Backup CSS: `Copy-Item src/app/globals.css src/app/globals.css.bak`
 - [ ] **Step 2:** `npx shadcn@latest init` (style: default asks — pick base color neutral, CSS variables yes). Inspect diff of globals.css; restore any removed existing content from `.bak`; keep shadcn's `@theme`/vars additions BELOW existing tokens. Delete `.bak` after verified.
@@ -94,8 +94,8 @@ export function getDashPortal(): HTMLElement | null {
 - Consumes: `DASH_PORTAL_ID`, `getDashPortal` from Task 1.
 - Produces: shell wraps children in `<LazyMotion features={domAnimation} strict>`; `<Toaster/>` mounted once; mobile sidebar rendered via `Sheet` whose `SheetPortal` uses `container={getDashPortal()}`; Sheet slide handled by `m.div` (Framer), shadcn CSS animation classes removed from the sheet content wrapper.
 
-- [ ] **Step 1:** Wrap shell: `import { LazyMotion, domAnimation } from "framer-motion"` — `<LazyMotion features={domAnimation} strict>` around the whole shell tree. `strict` enforces the m.*-only contract at runtime.
-- [ ] **Step 2:** Replace the hand-rolled mobile overlay+aside with `Sheet open={open} onOpenChange={setOpen}` for `< lg`, keeping the same nav markup inside `SheetContent side="left"`. Edit `src/components/ui/sheet.tsx`: `SheetPortal` accepts container via `getDashPortal()`; remove `data-[state=...]:animate-*` classes from SheetContent; animate with `m.div` (translateX, 200ms, cubic-bezier(0.22,1,0.36,1)) inside `AnimatePresence`. Respect `useReducedMotion` (skip transform, keep instant).
+- [ ] **Step 1:** Wrap shell: `import { LazyMotion, domAnimation } from "framer-motion"` — `<LazyMotion features={domAnimation} strict>` around the whole shell tree (`strict` throws if any `motion.*` renders inside — a runtime tripwire, not the enforcement mechanism; enforcement = Task 8 grep + review).
+- [ ] **Step 2:** Replace the hand-rolled mobile overlay+aside with a dashboard wrapper `DashSheet` (`src/components/dashboard/system/DashSheet.tsx`) built ON TOP of the untouched shadcn Sheet primitive: it renders `Sheet`/`SheetContent side="left"` with the same nav markup. `src/components/ui/sheet.tsx` receives ONLY a `container?: HTMLElement | null` prop passthrough to `SheetPortal` (Radix supports it) — no animation, focus, or lifecycle changes; shadcn CSS animation stays the single motion owner for the Sheet. Container resolves via `getDashPortal()` at open time (null-safe: fall back to default body portal if the node is not yet mounted).
 - [ ] **Step 3:** Desktop sidebar unchanged (sticky aside). Nav pending/prefetch logic unchanged.
 - [ ] **Step 4:** Mount `<Toaster position="top-right" />` from `src/components/ui/sonner.tsx`, styled: toast background `var(--dash-panel)`, border `var(--dash-border)`, text `var(--dash-text)`, font Poppins. Do NOT wrap in AnimatePresence.
 - [ ] **Step 5:** Icon-only buttons in shell (hamburger, close) get `Tooltip` (portal container = dash portal) + keep aria-labels.
@@ -118,17 +118,23 @@ DashboardToolbar({ children, className? })  // flex row, panel-top border treatm
 DashboardEmptyState({ icon?, title, hint?, action? })
 DashboardErrorState({ title, hint? })
 StatusBadge({ kind: "order-received"|"order-preparing"|"order-ready"|"pay-cash"|"pay-qris"|"pay-unpaid"|"inv-ready"|"inv-low"|"inv-none"|"active"|"inactive"|"threeD", label?: string })
-ResponsiveDataView({ table: ReactNode, cards: ReactNode, breakpoint?: "lg" })
-  // renders <div class="hidden lg:block">{table}</div><div class="lg:hidden" aria-hidden=false>{cards}</div>
-  // PLUS a11y contract: inactive representation gets `inert` + aria-hidden via a
-  // matchMedia-driven client hook so only one representation is focusable/exposed.
+ResponsiveDataView({ table: () => ReactNode, cards: () => ReactNode, breakpoint?: "lg" })
+  // Render FUNCTIONS, not nodes. Before hydration/mode detection (SSR + first
+  // paint): both branches render inside CSS-breakpoint containers where the
+  // inactive branch is display:none (`hidden lg:block` / `lg:hidden`) —
+  // display:none already removes it from focus order and the accessibility
+  // tree. After matchMedia resolves, ONLY the active branch stays mounted
+  // (inactive branch unmounted entirely) — no inert dependency, no duplicate
+  // controls in the DOM. Render functions must namespace any ids they
+  // generate (accept an `idPrefix` argument) so the brief dual-render phase
+  // never produces duplicate ids.
 ConfirmAction({ trigger, title, description, confirmLabel, onConfirm, destructive? })  // AlertDialog, portal container = dash portal
 Field({ label, hint?, htmlFor?, children })  // matches existing SettingsForm Field
 ```
 
 - [ ] **Step 1:** Write failing tests first in `tests/dashboard-system.test.tsx`: StatusBadge maps every `kind` to expected label text + never renders color-only (asserts a text node + dot span exists); ResponsiveDataView renders both containers with correct classes and applies `inert`/`aria-hidden` to the inactive one under mocked `matchMedia` (desktop and mobile cases); ConfirmAction calls `onConfirm` after confirm click and not after cancel.
 - [ ] **Step 2:** Implement components. StatusBadge palette: received=orange, preparing=amber, ready/success=`#22D3A6`, qris/threeD=`#00C2A8`, unpaid/none/inactive=muted, low=amber. Dot + label always.
-- [ ] **Step 3:** ResponsiveDataView inert hook:
+- [ ] **Step 3:** ResponsiveDataView mode hook (unmount strategy, no inert):
 
 ```tsx
 "use client";
@@ -140,10 +146,11 @@ function useIsDesktop(bp = "(min-width: 1024px)") {
     on(); mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, [bp]);
-  return is;
+  return is; // null = mode unknown (SSR/first paint)
 }
-// null (SSR/first paint) -> rely on CSS classes only; once known, set
-// inert + aria-hidden on the inactive container.
+// mode null  -> render both branches, inactive hidden via CSS breakpoint
+//               classes (display:none = out of focus order + a11y tree)
+// mode known -> render ONLY the active branch (other unmounted)
 ```
 
 - [ ] **Step 4:** Run tests PASS. Full gate. Commit `feat(dashboard): reusable system component layer`.
@@ -170,6 +177,7 @@ function useIsDesktop(bp = "(min-width: 1024px)") {
 - [ ] **Orders toast -> Sonner:** replace custom toast portal with `toast.custom(..., { id: order.id_order })` — same card content, chime logic unchanged and fired only when a NEW id appears (dedupe guard: keep a `Set<string>` of seen order ids; skip toast+chime if seen). Write failing test first: mock sonner `toast.custom`, emit same order event twice, assert called once with `id: "order-1"` and chime fn called once.
 - [ ] Order cards -> `DashboardPanel` variant + `StatusBadge` (order-* and pay-* kinds); filter row -> `DashboardToolbar`; ReceiptModal -> `Dialog` shell (iframe print body unchanged).
 - [ ] AnnouncementForm / SchedulerClient: `Field` patterns, `StatusBadge` for live "Tampil/Tersembunyi", section panels -> `DashboardPanel`. Server action calls + state logic untouched.
+- [ ] Realtime resilience: surface Supabase channel disconnect/reconnect via a single Sonner warning toast (id "realtime-status", so it never stacks) — subscribe status callback already available on the existing channel object; no data-flow change.
 - [ ] Gate + browser QA: realtime insert produces one toast + one chime, receipt print works, scheduler save works. Commit `refactor(dashboard): orders on Sonner + announcements + scheduler on system components`.
 
 ### Task 7: Re-base Settings + QR (Phase 6)
@@ -177,20 +185,26 @@ function useIsDesktop(bp = "(min-width: 1024px)") {
 **Files:** Modify: `src/components/dashboard/SettingsForm.tsx`, `src/components/dashboard/QrSmartMenu.tsx`
 
 - [ ] SettingsForm: `Field` + `DashboardPanel` + `ConfirmAction` where destructive (none currently — skip if N/A). Upload + preview logic untouched.
-- [ ] QrSmartMenu: disclosure -> `Collapsible` (Framer-controlled reveal, CSS anims off), chips -> shadcn `Button` variant secondary with existing 44px minHeight, everything else (matrix, exports, EC-H, aria-live) untouched. All 17 QR tests must stay green unchanged.
+- [ ] QrSmartMenu: disclosure -> `Collapsible` (its own animation owner, or none), chips -> shadcn `Button` variant secondary with existing 44px minHeight, everything else (matrix, exports, EC-H, aria-live) untouched. All existing QR tests must stay green unchanged (dynamic gate — no hardcoded counts).
 - [ ] Gate + browser QA (copy/downloads still fire). Commit `refactor(dashboard): settings + QR on system components`.
 
-### Task 8: Hardening + cleanup (Phase 7)
+### Task 8: Hardening + cleanup + UX audit (Phase 7)
 
 - [ ] Remove now-unused code: old StatCard (if fully replaced), old custom toast markup, dead CSS classes — only after `grep` proves zero references.
 - [ ] Motion audit: grep dashboard for `from "framer-motion"` — only `LazyMotion|domAnimation|m|AnimatePresence|useReducedMotion` imports allowed; no `motion.` in dashboard files.
-- [ ] Responsive QA at 390/768/1024/1280/1440: no horizontal overflow (JS check), no clipped text. Keyboard pass on every route. Reduced-motion pass (emulate via CSS media in devtools/resize_window colorScheme not applicable — use matchMedia mock in tests + manual). Console clean.
+- [ ] Cross-phase UX audit gate (explicit, per owner review):
+  - Numeric/monetary alignment: all currency, counts, and metric columns right-aligned with `tabular-nums`; verify on analytics, revenue, orders, menu, inventory.
+  - Progressive disclosure: advanced/rare controls collapsed by default (QR customization, scheduler per-menu detail); nothing important hidden behind hover-only.
+  - Tooltip coverage: EVERY icon-only control across all routes (not just sidebar) has Tooltip + accessible name.
+  - Onboarding/first-run: every empty state (no menus, no orders, no inventory, no announcements) teaches the next action via `DashboardEmptyState` with a concrete CTA.
+  - Degraded states: realtime disconnected (Task 6 toast), partial data (inventory `failedLoads` pattern preserved), session expired (middleware redirect verified), export/save failure copy present. Document any state that cannot be simulated.
+- [ ] Responsive QA at 390/768/1024/1280/1440: no horizontal overflow (JS check), no clipped text. Keyboard pass on every route. Reduced-motion pass (matchMedia mock in tests + manual). Console clean.
 - [ ] Full gate. Commit `polish(dashboard): hardening pass`.
 
 ### Task 9: Delivery (Phase 8)
 
-- [ ] Full suite + lint compare vs `lint-baseline-2026-07-19.txt` (no new global errors) + `npm run build`.
-- [ ] Push branch, open PR to main via `gh pr create` (title: "Dashboard rebuild: shadcn foundation + Framer Motion"; body: parity checklist + gates; end with the Claude Code attribution line). Merge when green.
+- [ ] Full suite + lint compare vs `lint-baseline-2026-07-19.json` (objective diff: no new file:rule error pairs) + `npm run build`.
+- [ ] Push branch, open PR to main via `gh pr create` (title: "Dashboard rebuild: shadcn foundation + Framer Motion"; body: parity checklist + gates). Merge when green.
 - [ ] After merge: checkout main, pull, deploy `npx vercel deploy --prod --cwd C:\Kerja\3Diner\App`; verify READY (fallback: repo root form; record which). Verify /dashboard routes live.
 - [ ] Final report per spec section.
 
