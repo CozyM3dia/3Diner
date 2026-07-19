@@ -92,6 +92,8 @@ export default function QrSmartMenu({ menuUrl, cafeName, slug }: QrSmartMenuProp
     document.body.appendChild(a);
     a.click();
     a.remove();
+    // Revoke setelah browser sempat memulai unduhan — revoke sinkron bisa membatalkannya.
+    setTimeout(() => URL.revokeObjectURL(href), 2000);
   }
 
   async function logoAsDataUri(): Promise<string | null> {
@@ -123,9 +125,7 @@ export default function QrSmartMenu({ menuUrl, cafeName, slug }: QrSmartMenuProp
       }
       const svg = buildQrSvg(matrix, opts);
       const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      triggerDownload(url, qrFileName(slug, "svg"));
-      URL.revokeObjectURL(url);
+      triggerDownload(URL.createObjectURL(blob), qrFileName(slug, "svg"));
       setExportMsg({ kind: "ok", text: "SVG terunduh." });
     } catch {
       setExportMsg({ kind: "err", text: "Gagal mengunduh QR. Coba lagi." });
@@ -224,9 +224,7 @@ export default function QrSmartMenu({ menuUrl, cafeName, slug }: QrSmartMenuProp
 
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
       if (!blob) throw new Error("no-blob");
-      const url = URL.createObjectURL(blob);
-      triggerDownload(url, qrFileName(slug, "png"));
-      URL.revokeObjectURL(url);
+      triggerDownload(URL.createObjectURL(blob), qrFileName(slug, "png"));
       setExportMsg({ kind: "ok", text: "PNG terunduh." });
     } catch {
       setExportMsg({ kind: "err", text: "Gagal mengunduh QR. Coba lagi." });
@@ -263,7 +261,7 @@ export default function QrSmartMenu({ menuUrl, cafeName, slug }: QrSmartMenuProp
     background: selected ? "var(--dash-raised)" : "transparent",
     color: selected ? "var(--dash-text)" : "var(--dash-muted)",
     border: `1px solid ${selected ? "var(--dash-border-strong)" : "var(--dash-border)"}`,
-    height: "36px",
+    minHeight: "44px",
   });
 
   return (
@@ -443,7 +441,7 @@ export default function QrSmartMenu({ menuUrl, cafeName, slug }: QrSmartMenuProp
                     <legend className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--dash-muted)" }}>
                       Elemen
                     </legend>
-                    <div className="space-y-2.5">
+                    <div className="space-y-1">
                       <CheckRow checked={logoOn} onChange={setLogoOn} label="Logo 3Diner di tengah QR" hint="Koreksi error otomatis naik ke level H" />
                       <CheckRow checked={showName} onChange={setShowName} label="Tampilkan nama kafe" />
                       <CheckRow checked={showScan} onChange={setShowScan} label={`Tampilkan teks "${SCAN_CAPTION}"`} />
@@ -471,12 +469,12 @@ function CheckRow({
   hint?: string;
 }) {
   return (
-    <label className="flex items-start gap-2.5 cursor-pointer" style={{ minHeight: "24px" }}>
+    <label className="flex items-center gap-2.5 cursor-pointer" style={{ minHeight: "44px" }}>
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 w-4 h-4 rounded accent-[#FD5002] shrink-0"
+        className="w-4 h-4 rounded accent-[#FD5002] shrink-0"
       />
       <span className="min-w-0">
         <span className="block text-[13px]" style={{ color: "var(--dash-text)" }}>{label}</span>

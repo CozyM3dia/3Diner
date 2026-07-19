@@ -3,7 +3,7 @@ import React from "react";
 import QRCode from "qrcode";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { canonicalOrigin, menuUrlFor, stripTrailingSlash } from "../src/lib/site-url";
+import { canonicalOrigin, menuUrlFor, normalizeOrigin, stripTrailingSlash } from "../src/lib/site-url";
 import { buildQrSvg, escapeXml, qrFileName, QUIET_ZONE, computeLayout, type QrMatrix } from "../src/lib/qr-render";
 import QrSmartMenu from "../src/components/dashboard/QrSmartMenu";
 
@@ -37,6 +37,24 @@ describe("site-url helpers", () => {
     if (prevSite !== undefined) process.env.NEXT_PUBLIC_SITE_URL = prevSite;
     if (prevVercel !== undefined) process.env.VERCEL_PROJECT_PRODUCTION_URL = prevVercel;
     else delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  });
+
+  it("never produces a doubled protocol from the Vercel variable", () => {
+    expect(normalizeOrigin("3diner.vercel.app")).toBe("https://3diner.vercel.app");
+    expect(normalizeOrigin("https://3diner.vercel.app")).toBe("https://3diner.vercel.app");
+    expect(normalizeOrigin("https://https://3diner.vercel.app")).toBe("https://3diner.vercel.app");
+    expect(normalizeOrigin("https://3diner.vercel.app///")).toBe("https://3diner.vercel.app");
+  });
+
+  it("treats empty and whitespace-only values as absent", () => {
+    expect(normalizeOrigin(undefined)).toBeNull();
+    expect(normalizeOrigin("")).toBeNull();
+    expect(normalizeOrigin("   ")).toBeNull();
+    expect(normalizeOrigin("https://")).toBeNull();
+  });
+
+  it("preserves an explicit http protocol for local development", () => {
+    expect(normalizeOrigin("http://localhost:3000/")).toBe("http://localhost:3000");
   });
 });
 
@@ -132,6 +150,29 @@ describe("QrSmartMenu component", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Salin tautan smart menu" }));
     expect(await screen.findByText("Tautan disalin")).toBeTruthy();
+  });
+
+  it("gives every customization control a 44px minimum touch target", () => {
+    render(
+      React.createElement(QrSmartMenu, {
+        menuUrl: "https://3diner.vercel.app/senja-kopi",
+        cafeName: "Senja Kopi",
+        slug: "senja-kopi",
+      })
+    );
+    const disclosure = screen.getByRole("button", { name: "Sesuaikan Tampilan QR" });
+    expect((disclosure as HTMLElement).style.minHeight).toBe("44px");
+    fireEvent.click(disclosure);
+
+    for (const name of ["Bersih", "Bingkai 3Diner", "Navy 3Diner", "Gelap Pekat"]) {
+      const btn = screen.getByRole("button", { name }) as HTMLElement;
+      expect(btn.style.minHeight).toBe("44px");
+    }
+    for (const label of ["Logo 3Diner di tengah QR", "Tampilkan nama kafe"]) {
+      const input = screen.getByLabelText(label, { exact: false }) as HTMLElement;
+      const row = input.closest("label") as HTMLElement;
+      expect(row.style.minHeight).toBe("44px");
+    }
   });
 
   it("disables both download buttons while an export is in progress", async () => {
