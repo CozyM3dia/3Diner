@@ -1,0 +1,390 @@
+﻿
+C:\Kerja\3Diner\App\src\components\DetailHeader.tsx
+  13:40  warning  'cafeName' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Kerja\3Diner\App\src\components\OrderView.tsx
+  34:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Kerja\3Diner\App\src\components\OrderView.tsx:34:7
+  32 |     const o = getOrder(orderId);
+  33 |     if (!o) {
+> 34 |       setView("missing");
+     |       ^^^^^^^ Avoid calling setState() directly within an effect
+  35 |       return;
+  36 |     }
+  37 |     setOrder(o);  react-hooks/set-state-in-effect
+
+C:\Kerja\3Diner\App\src\components\dashboard\AnnouncementForm.tsx
+  103:12  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Kerja\3Diner\App\src\components\dashboard\AnnouncementForm.tsx:103:12
+  101 |         {/* Type */}
+  102 |         <div>
+> 103 |           <SectionLabel>Jenis</SectionLabel>
+      |            ^^^^^^^^^^^^ This component is created during render
+  104 |           <div className="grid grid-cols-4 gap-2">
+  105 |             {ANNOUNCEMENT_TYPES.map((t) => {
+  106 |               const Icon = t.icon;
+
+C:\Kerja\3Diner\App\src\components\dashboard\AnnouncementForm.tsx:79:24
+  77 |   }
+  78 |
+> 79 |   const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+     |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 80 |     <span className="block text-[11px] font-semibold uppercase tracking-wider mb-2.5" style={{ color: "#5A7898" }}>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 81 |       {children}
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 82 |     </span>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 83 |   );
+     | ^^^^ The component is created during render here
+  84 |
+  85 |   return (
+  86 |     <form                                                react-hooks/static-components
+  132:12  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Kerja\3Diner\App\src\components\dashboard\AnnouncementForm.tsx:132:12
+  130 |         {/* Templates */}
+  131 |         <div>
+> 132 |           <SectionLabel>Template cepat</SectionLabel>
+      |            ^^^^^^^^^^^^ This component is created during render
+  133 |           <div className="flex flex-wrap gap-2">
+  134 |             {TEMPLATES.map((t) => (
+  135 |               <button
+
+C:\Kerja\3Diner\App\src\components\dashboard\AnnouncementForm.tsx:79:24
+  77 |   }
+  78 |
+> 79 |   const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+     |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 80 |     <span className="block text-[11px] font-semibold uppercase tracking-wider mb-2.5" style={{ color: "#5A7898" }}>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 81 |       {children}
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 82 |     </span>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 83 |   );
+     | ^^^^ The component is created during render here
+  84 |
+  85 |   return (
+  86 |     <form                                                          react-hooks/static-components
+  154:12  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Kerja\3Diner\App\src\components\dashboard\AnnouncementForm.tsx:154:12
+  152 |         {/* Message */}
+  153 |         <div>
+> 154 |           <SectionLabel>Pesan</SectionLabel>
+      |            ^^^^^^^^^^^^ This component is created during render
+  155 |           <div className="relative">
+  156 |             <textarea
+  157 |               value={message}
+
+C:\Kerja\3Diner\App\src\components\dashboard\AnnouncementForm.tsx:79:24
+  77 |   }
+  78 |
+> 79 |   const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+     |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 80 |     <span className="block text-[11px] font-semibold uppercase tracking-wider mb-2.5" style={{ color: "#5A7898" }}>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 81 |       {children}
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 82 |     </span>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 83 |   );
+     | ^^^^ The component is created during render here
+  84 |
+  85 |   return (
+  86 |     <form                                                                                       react-hooks/static-components
+  176:12  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Kerja\3Diner\App\src\components\dashboard\AnnouncementForm.tsx:176:12
+  174 |         {/* Color */}
+  175 |         <div>
+> 176 |           <SectionLabel>Warna latar</SectionLabel>
+      |            ^^^^^^^^^^^^ This component is created during render
+  177 |           <div className="flex flex-wrap items-center gap-2.5">
+  178 |             {PRESETS.map((p) => {
+  179 |               const on = color.toUpperCase() === p.value.toUpperCase();
+
+C:\Kerja\3Diner\App\src\components\dashboard\AnnouncementForm.tsx:79:24
+  77 |   }
+  78 |
+> 79 |   const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+     |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 80 |     <span className="block text-[11px] font-semibold uppercase tracking-wider mb-2.5" style={{ color: "#5A7898" }}>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 81 |       {children}
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 82 |     </span>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 83 |   );
+     | ^^^^ The component is created during render here
+  84 |
+  85 |   return (
+  86 |     <form  react-hooks/static-components
+
+C:\Kerja\3Diner\App\src\components\dashboard\DateRangePicker.tsx
+   56:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Kerja\3Diner\App\src\components\dashboard\DateRangePicker.tsx:56:5
+  54 |   // Sync state if initial props change
+  55 |   useEffect(() => {
+> 56 |     setTempStart(initialStart ? new Date(initialStart) : null);
+     |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  57 |     setTempEnd(initialEnd ? new Date(initialEnd) : null);
+  58 |   }, [initialStart, initialEnd]);
+  59 |  react-hooks/set-state-in-effect
+  291:52  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+
+C:\Kerja\3Diner\App\src\components\dashboard\DonutChart.tsx
+  43:5  error  Error: Cannot reassign variable after render completes
+
+Reassigning `offset` after render has completed can cause inconsistent behavior on subsequent renders. Consider using state instead.
+
+C:\Kerja\3Diner\App\src\components\dashboard\DonutChart.tsx:43:5
+  41 |     const len = frac * c;
+  42 |     const arc = { ...seg, len, gap: c - len, rot: (offset / c) * 360 };
+> 43 |     offset += len;
+     |     ^^^^^^ Cannot reassign `offset` after render completes
+  44 |     return arc;
+  45 |   });
+  46 |  react-hooks/immutability
+
+C:\Kerja\3Diner\App\src\components\dashboard\ExportReport.tsx
+  127:19  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Kerja\3Diner\App\src\components\dashboard\ExportReport.tsx:127:19
+  125 |   const menuRef = useRef<HTMLDivElement>(null);
+  126 |
+> 127 |   useEffect(() => setMounted(true), []);
+      |                   ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  128 |
+  129 |   // Anchor the portal menu just below the button, aligned to its right edge.
+  130 |   const place = useCallback(() => {  react-hooks/set-state-in-effect
+
+C:\Kerja\3Diner\App\src\components\dashboard\FileUpload.tsx
+   4:8   warning  'Image' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  39:22  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Kerja\3Diner\App\src\components\dashboard\FileUpload.tsx:39:22
+  37 |
+  38 |   useEffect(() => {
+> 39 |     if (injectedUrl) setUrl(injectedUrl);
+     |                      ^^^^^^ Avoid calling setState() directly within an effect
+  40 |   }, [injectedUrl]);
+  41 |   const [busy, setBusy] = useState(false);
+  42 |   const [drag, setDrag] = useState(false);  react-hooks/set-state-in-effect
+
+C:\Kerja\3Diner\App\src\components\dashboard\MenuExtractor.tsx
+  54:19  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Kerja\3Diner\App\src\components\dashboard\MenuExtractor.tsx:54:19
+  52 |   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  53 |
+> 54 |   useEffect(() => setMounted(true), []);
+     |                   ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  55 |
+  56 |   // Lock body scroll while the overlay is open.
+  57 |   useEffect(() => {  react-hooks/set-state-in-effect
+
+C:\Kerja\3Diner\App\src\components\dashboard\OrdersClient.tsx
+  252:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Kerja\3Diner\App\src\components\dashboard\OrdersClient.tsx:252:5
+  250 |
+  251 |   useEffect(() => {
+> 252 |     setMounted(true);
+      |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  253 |     setAlertsOn(localStorage.getItem("3diner.orderAlerts") === "on");
+  254 |   }, []);
+  255 |  react-hooks/set-state-in-effect
+
+C:\Kerja\3Diner\App\src\components\dashboard\SchedulerClient.tsx
+  71:7  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+C:\Kerja\3Diner\App\src\components\viewer\ARSession.tsx
+    6:8   warning  'GlbViewer' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+    9:7   warning  'ModelViewerEl' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+    9:41  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   11:16  warning  'loadModelViewerCDN' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   45:42  warning  '_menuName' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   47:10  warning  'arStarted' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   55:27  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   66:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Kerja\3Diner\App\src\components\viewer\ARSession.tsx:66:7
+  64 |   useEffect(() => {
+  65 |     if (modelAnchored) {
+> 66 |       setShowRotateHint(true);
+     |       ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  67 |       const t = setTimeout(() => setShowRotateHint(false), 5000);
+  68 |       return () => clearTimeout(t);
+  69 |     }                                                                                      react-hooks/set-state-in-effect
+   73:3   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+   75:5   error    Error: Cannot access variable before it is declared
+
+`startAR` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Kerja\3Diner\App\src\components\viewer\ARSession.tsx:75:5
+  73 |   // eslint-disable-next-line react-hooks/exhaustive-deps
+  74 |   useEffect(() => {
+> 75 |     startAR();
+     |     ^^^^^^^ `startAR` accessed before it is declared
+  76 |     return () => { sessionEndRef.current?.(); };
+  77 |   }, []);
+  78 |
+
+C:\Kerja\3Diner\App\src\components\viewer\ARSession.tsx:79:3
+   77 |   }, []);
+   78 |
+>  79 |   async function startAR() {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  80 |     // iOS: USDZ QuickLook — trigger and return immediately
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  81 |     if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 566 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 567 |   }
+      | ^^^^ `startAR` is declared here
+  568 |
+  569 |   const exitAR = () => sessionEndRef.current?.();
+  570 |  react-hooks/immutability
+   77:6   warning  React Hook useEffect has a missing dependency: 'startAR'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/exhaustive-deps
+  104:17  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  114:34  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  119:36  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  140:24  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  141:26  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  144:26  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  206:28  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  208:21  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  210:44  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  217:46  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  226:32  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  227:29  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  235:26  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  237:47  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  238:43  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  243:31  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  245:48  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  247:37  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  292:31  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  292:64  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  419:52  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  558:51  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  668:23  warning  'menuName' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+  671:28  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+C:\Kerja\3Diner\App\src\components\viewer\GlbViewer.tsx
+   18:30  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-explicit-any
+   91:38  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-explicit-any
+  250:6   warning  React Hook useCallback has missing dependencies: 'modelScale' and 'onGltfLoaded'. Either include them or remove the dependency array. If 'onGltfLoaded' changes too often, find the parent component that defines it and wrap that definition in useCallback                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+  253:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Kerja\3Diner\App\src\components\viewer\GlbViewer.tsx:253:5
+  251 |
+  252 |   useEffect(() => {
+> 253 |     init();
+      |     ^^^^ Avoid calling setState() directly within an effect
+  254 |     return () => {
+  255 |       cancelAnimationFrame(frameRef.current);
+  256 |       if (rendererRef.current) {  react-hooks/set-state-in-effect
+
+C:\Kerja\3Diner\App\src\hooks\useOnlineStatus.ts
+  10:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Kerja\3Diner\App\src\hooks\useOnlineStatus.ts:10:5
+   8 |
+   9 |   useEffect(() => {
+> 10 |     setIsOnline(navigator.onLine);
+     |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  11 |
+  12 |     function handleOnline() {
+  13 |       setIsOnline(true);  react-hooks/set-state-in-effect
+
+C:\Kerja\3Diner\App\src\lib\cart.tsx
+  51:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Kerja\3Diner\App\src\lib\cart.tsx:51:9
+  49 |       if (raw) {
+  50 |         const parsed = JSON.parse(raw) as { items?: CartItem[]; table?: string; notes?: string };
+> 51 |         setItems(parsed.items ?? []);
+     |         ^^^^^^^^ Avoid calling setState() directly within an effect
+  52 |         setTableState(parsed.table ?? "");
+  53 |         setNotesState(parsed.notes ?? "");
+  54 |       }  react-hooks/set-state-in-effect
+
+✖ 56 problems (44 errors, 12 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+
