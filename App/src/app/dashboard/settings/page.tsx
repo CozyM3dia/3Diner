@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { getDashboardCafeContext } from "@/lib/dashboard-context";
+import { canonicalOrigin, menuUrlFor } from "@/lib/site-url";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import QrSmartMenu from "@/components/dashboard/QrSmartMenu";
 import SettingsForm from "@/components/dashboard/SettingsForm";
 import type { Cafe } from "@/types";
 
@@ -23,13 +25,21 @@ export default async function SettingsPage() {
     );
   }
 
+  const typedCafe = cafe as Cafe;
+  const menuUrl = slug ? menuUrlFor(canonicalOrigin(), slug) : null;
+
   return (
     <div className="p-4 lg:p-6 max-w-5xl mx-auto">
       <div className="mb-5 dash-reveal">
         <h1 className="font-display text-[22px] font-bold" style={{ color: "var(--dash-text)" }}>Pengaturan Kafe</h1>
         <p className="text-[13px] mt-1" style={{ color: "var(--dash-muted)" }}>Profil yang tampil di halaman menu pelanggan</p>
       </div>
-      <SettingsForm cafe={cafe as Cafe} />
+
+      <div className="mb-6">
+        <QrSmartMenu menuUrl={menuUrl} cafeName={typedCafe.nama_cafe} slug={slug} />
+      </div>
+
+      <SettingsForm cafe={typedCafe} />
     </div>
   );
 }
