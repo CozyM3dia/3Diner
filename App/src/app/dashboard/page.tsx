@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -17,7 +17,7 @@ import { getDashboardCafeContext } from "@/lib/dashboard-context";
 import { getDashboardInventoryDataForSlug } from "@/lib/dashboard-inventory";
 import { getTodayOps } from "@/lib/dashboard-today";
 import DateRangePicker from "@/components/dashboard/DateRangePicker";
-import StatCard from "@/components/dashboard/StatCard";
+import { DashboardMetric, DashboardPageHeader, DashboardPanel } from "@/components/dashboard/system";
 import LineChart from "@/components/dashboard/LineChart";
 import FunnelBars from "@/components/dashboard/FunnelBars";
 import HeatmapGrid from "@/components/dashboard/HeatmapGrid";
@@ -128,41 +128,38 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
 
   return (
     <div className="p-4 lg:p-6 max-w-[1400px] mx-auto">
-      {/* Header — cafe context + range + primary action */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5 dash-reveal">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1" style={{ color: "var(--dash-muted)" }}>
-            {cafe.nama_cafe} · {rangeLabel}
-          </p>
-          <h1 className="font-display text-[22px] font-bold leading-tight" style={{ color: "var(--dash-text)" }}>
-            Ringkasan Operasional
-          </h1>
-          <p className="text-[13px] mt-1" style={{ color: "var(--dash-secondary)" }}>
+      <DashboardPageHeader
+        eyebrow={`${cafe.nama_cafe} · ${rangeLabel}`}
+        title="Ringkasan Operasional"
+        subtitle={
+          <>
             <span style={{ color: "var(--dash-text)", fontWeight: 600 }}>{totalEvents.toLocaleString("id-ID")}</span> interaksi ·
             rata-rata <span style={{ color: "var(--dash-text)", fontWeight: 600 }}>{insights.avgPerDay}</span>/hari
-          </p>
-        </div>
-        <div className="shrink-0 flex items-center gap-2.5">
-          <Link
-            href="/dashboard/orders"
-            className="dash-btn inline-flex items-center gap-2 px-3.5 rounded-[10px] text-[13px] font-semibold text-white"
-            style={{ background: "var(--orange)", height: "38px" }}
-          >
-            <ShoppingBag size={14} strokeWidth={2.2} />
-            Kelola Pesanan
-          </Link>
-          <DateRangePicker initialStart={start} initialEnd={end} />
-        </div>
-      </div>
+          </>
+        }
+        actions={
+          <>
+            <Link
+              href="/dashboard/orders"
+              className="dash-btn inline-flex items-center gap-2 px-3.5 rounded-[10px] text-[13px] font-semibold text-white"
+              style={{ background: "var(--orange)", height: "38px" }}
+            >
+              <ShoppingBag size={14} strokeWidth={2.2} />
+              Kelola Pesanan
+            </Link>
+            <DateRangePicker initialStart={start} initialEnd={end} />
+          </>
+        }
+      />
 
       {/* Today Overview — 6 KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-4 dash-reveal dash-d1">
-        <StatCard value={today.revenueToday} prefix="Rp " label="Omzet Hari Ini" icon={<Wallet size={15} strokeWidth={2} />} accent="#22D3A6" accentBg="rgba(34,211,166,0.12)" sub={`${today.ordersToday} pesanan hari ini`} />
-        <StatCard value={today.activeOrders} label="Pesanan Aktif" icon={<ShoppingBag size={15} strokeWidth={2} />} accent="#FD5002" accentBg="rgba(253,80,2,0.12)" sub="perlu diproses" />
-        <StatCard value={totals.click_menu} label="Tampilan Menu" icon={<MousePointerClick size={15} strokeWidth={2} />} accent="#9FB6D1" accentBg="rgba(159,182,209,0.12)" delta={deltas.click_menu} />
-        <StatCard value={totals.view_3d} label="Lihat Model 3D" icon={<Box size={15} strokeWidth={2} />} accent="#00C2A8" accentBg="rgba(0,194,168,0.12)" delta={deltas.view_3d} />
-        <StatCard value={Math.round(conversion)} suffix="%" label="Konversi ke Pesan" icon={<Target size={15} strokeWidth={2} />} accent="#22D3A6" accentBg="rgba(34,211,166,0.12)" sub={`${Math.round(view3dRate)}% buka model 3D`} />
-        <StatCard value={criticalStock} label="Stok Kritis" icon={<AlertTriangle size={15} strokeWidth={2} />} accent="#F59E0B" accentBg="rgba(245,158,11,0.12)" sub={criticalStock > 0 ? "bahan di bawah minimum" : "semua stok aman"} />
+        <DashboardMetric value={today.revenueToday} prefix="Rp " label="Omzet Hari Ini" icon={<Wallet size={15} strokeWidth={2} />} accent="#22D3A6" accentBg="rgba(34,211,166,0.12)" sub={`${today.ordersToday} pesanan hari ini`} />
+        <DashboardMetric value={today.activeOrders} label="Pesanan Aktif" icon={<ShoppingBag size={15} strokeWidth={2} />} accent="#FD5002" accentBg="rgba(253,80,2,0.12)" sub="perlu diproses" />
+        <DashboardMetric value={totals.click_menu} label="Tampilan Menu" icon={<MousePointerClick size={15} strokeWidth={2} />} accent="#9FB6D1" accentBg="rgba(159,182,209,0.12)" delta={deltas.click_menu} />
+        <DashboardMetric value={totals.view_3d} label="Lihat Model 3D" icon={<Box size={15} strokeWidth={2} />} accent="#00C2A8" accentBg="rgba(0,194,168,0.12)" delta={deltas.view_3d} />
+        <DashboardMetric value={Math.round(conversion)} suffix="%" label="Konversi ke Pesan" icon={<Target size={15} strokeWidth={2} />} accent="#22D3A6" accentBg="rgba(34,211,166,0.12)" sub={`${Math.round(view3dRate)}% buka model 3D`} />
+        <DashboardMetric value={criticalStock} label="Stok Kritis" icon={<AlertTriangle size={15} strokeWidth={2} />} accent="#F59E0B" accentBg="rgba(245,158,11,0.12)" sub={criticalStock > 0 ? "bahan di bawah minimum" : "semua stok aman"} />
       </div>
 
       {/* Insight strip */}
@@ -187,49 +184,36 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
 
       {/* Main analytics — activity + funnel rail */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4 dash-reveal dash-d3">
-        <section className="lg:col-span-2 dash-panel">
-          <div className="dash-panel-head">Aktivitas Harian</div>
-          <div className="dash-panel-body">
-            <LineChart data={daily.map((d) => ({ label: d.label, value: d.count }))} />
-          </div>
-        </section>
-        <section className="dash-panel">
-          <div className="dash-panel-head">Corong Engagement</div>
-          <div className="dash-panel-body">
-            <FunnelBars stages={funnel} />
-            <p className="text-xs mt-5 leading-relaxed" style={{ color: "var(--dash-muted)" }}>
-              Dari setiap 100 tamu yang membuka menu,{" "}
-              <span style={{ color: "#00C2A8", fontWeight: 600 }}>{Math.round(view3dRate)}</span> melihat model 3D dan{" "}
-              <span style={{ color: "#FD5002", fontWeight: 600 }}>{Math.round(conversion)}</span> mulai memesan.
-            </p>
-          </div>
-        </section>
+        <DashboardPanel title="Aktivitas Harian" className="lg:col-span-2">
+          <LineChart data={daily.map((d) => ({ label: d.label, value: d.count }))} />
+        </DashboardPanel>
+        <DashboardPanel title="Corong Engagement">
+          <FunnelBars stages={funnel} />
+          <p className="text-xs mt-5 leading-relaxed" style={{ color: "var(--dash-muted)" }}>
+            Dari setiap 100 tamu yang membuka menu,{" "}
+            <span style={{ color: "#00C2A8", fontWeight: 600 }}>{Math.round(view3dRate)}</span> melihat model 3D dan{" "}
+            <span style={{ color: "#FD5002", fontWeight: 600 }}>{Math.round(conversion)}</span> mulai memesan.
+          </p>
+        </DashboardPanel>
       </div>
 
       {/* Heatmap + weekday */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4 dash-reveal dash-d4">
-        <section className="lg:col-span-2 dash-panel">
-          <div className="dash-panel-head">Jam Tersibuk</div>
-          <div className="dash-panel-body">
-            <HeatmapGrid hourly={hourly} />
-            <p className="text-xs mt-3" style={{ color: "var(--dash-muted)" }}>
-              Sebaran interaksi per jam · kotak paling terang = jam paling ramai
-            </p>
-          </div>
-        </section>
-        <section className="dash-panel">
-          <div className="dash-panel-head">Per Hari</div>
-          <div className="dash-panel-body">
-            <WeekdayBars data={weekday} />
-          </div>
-        </section>
+        <DashboardPanel title="Jam Tersibuk" className="lg:col-span-2">
+          <HeatmapGrid hourly={hourly} />
+          <p className="text-xs mt-3" style={{ color: "var(--dash-muted)" }}>
+            Sebaran interaksi per jam · kotak paling terang = jam paling ramai
+          </p>
+        </DashboardPanel>
+        <DashboardPanel title="Per Hari">
+          <WeekdayBars data={weekday} />
+        </DashboardPanel>
       </div>
 
       {/* Operations — komposisi + top menu + aktivitas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4 dash-reveal dash-d5">
-        <section className="dash-panel flex flex-col">
-          <div className="dash-panel-head">Komposisi Interaksi</div>
-          <div className="dash-panel-body flex-1 flex items-center">
+        <DashboardPanel title="Komposisi Interaksi" className="flex flex-col" bodyClassName="dash-panel-body flex-1 flex items-center">
+          <div className="w-full flex items-center">
             <DonutChart
               centerLabel="Interaksi"
               segments={[
@@ -239,11 +223,10 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
               ]}
             />
           </div>
-        </section>
+        </DashboardPanel>
 
-        <section className="dash-panel">
-          <div className="dash-panel-head">Menu Terpopuler</div>
-          <div className="dash-panel-body">
+        <DashboardPanel title="Menu Terpopuler">
+          <div>
             {topDishes.length === 0 ? (
               <p className="text-sm py-8 text-center" style={{ color: "var(--dash-muted)" }}>Belum ada data interaksi.</p>
             ) : (
@@ -272,11 +255,10 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
               </div>
             )}
           </div>
-        </section>
+        </DashboardPanel>
 
-        <section className="dash-panel">
-          <div className="dash-panel-head">Aktivitas Terbaru</div>
-          <div className="dash-panel-body">
+        <DashboardPanel title="Aktivitas Terbaru">
+          <div>
             {recent.length === 0 ? (
               <p className="text-sm py-8 text-center" style={{ color: "var(--dash-muted)" }}>Belum ada aktivitas.</p>
             ) : (
@@ -295,7 +277,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
               </ul>
             )}
           </div>
-        </section>
+        </DashboardPanel>
       </div>
 
       {/* Inventory workspace */}
