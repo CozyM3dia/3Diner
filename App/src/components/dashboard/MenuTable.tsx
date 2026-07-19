@@ -18,6 +18,8 @@ import {
 import { formatRupiah } from "@/lib/format";
 import { reorderMenus } from "@/lib/dashboard-actions";
 import MenuActiveToggle from "@/components/dashboard/MenuActiveToggle";
+import ResponsiveDataView from "@/components/dashboard/system/ResponsiveDataView";
+import StatusBadge from "@/components/dashboard/system/StatusBadge";
 import type { Menu } from "@/types";
 
 export type MenuInventoryState = "none" | "ready" | "low";
@@ -204,8 +206,9 @@ export default function MenuTable({
         </div>
       </div>
 
-      {/* ── Desktop table (lg+) ── */}
-      <div className="hidden lg:block overflow-x-auto">
+      <ResponsiveDataView
+        table={() => (
+      <div className="overflow-x-auto">
         <table className="w-full min-w-[720px]" aria-label="Daftar menu">
           <thead>
           <tr style={{ borderBottom: "1px solid var(--dash-border)" }}>
@@ -312,8 +315,9 @@ export default function MenuTable({
         )}
       </div>
 
-      {/* ── Compact cards (<lg) ── */}
-      <ul className="lg:hidden" aria-label="Daftar menu (tampilan ringkas)">
+        )}
+        cards={() => (
+      <ul aria-label="Daftar menu (tampilan ringkas)">
         {display.map((menu, i) => {
           const active = menu.is_active !== false;
           const isDragging = dragId === menu.id_menu;
@@ -376,6 +380,8 @@ export default function MenuTable({
           </li>
         )}
       </ul>
+        )}
+      />
     </div>
   );
 }
@@ -384,41 +390,11 @@ function Badge3D({ has }: { has: boolean }) {
   if (!has) {
     return <span className="text-[11px]" style={{ color: "#41557A" }}>—</span>;
   }
-  return (
-    <span
-      className="inline-flex items-center gap-1 text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full"
-      style={{ background: "rgba(0,194,168,0.12)", color: "#00C2A8" }}
-    >
-      3D
-    </span>
-  );
+  return <StatusBadge kind="threeD" className="text-[10px] font-bold tracking-wide" />;
 }
 
 function InventoryBadge({ state }: { state: MenuInventoryState }) {
-  if (state === "none") {
-    return (
-      <span
-        className="inline-flex whitespace-nowrap text-[11px] px-2 py-0.5 rounded-full"
-        style={{ color: "#41557A", border: "1px solid rgba(255,255,255,0.08)" }}
-      >
-        Tanpa resep
-      </span>
-    );
-  }
-  const meta = {
-    ready: { label: "Resep aktif", color: "#22D3A6", bg: "rgba(34,211,166,0.12)" },
-    low: { label: "Stok kurang", color: "#F59E0B", bg: "rgba(245,158,11,0.12)" },
-  }[state];
-
-  return (
-    <span
-      className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-semibold px-2 py-0.5 rounded-full"
-      style={{ background: meta.bg, color: meta.color }}
-    >
-      <span className="w-1 h-1 rounded-full" style={{ background: meta.color }} aria-hidden="true" />
-      {meta.label}
-    </span>
-  );
+  return <StatusBadge kind={state === "ready" ? "inv-ready" : state === "low" ? "inv-low" : "inv-none"} />;
 }
 
 function SortableTH({
