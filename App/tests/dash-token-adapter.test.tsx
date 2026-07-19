@@ -18,7 +18,7 @@ describe("dash token adapter", () => {
   afterEach(cleanup);
 
   it("mounts the dedicated portal root inside the shell with its own class", () => {
-    render(React.createElement(DashboardShell, { cafe: null }, null));
+    render(<DashboardShell cafe={null}>{null}</DashboardShell>);
     const portal = document.getElementById(DASH_PORTAL_ID);
     expect(portal).toBeTruthy();
     expect(portal!.classList.contains("dash-portal-root")).toBe(true);
