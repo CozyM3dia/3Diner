@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition, useRef, useCallback } from "react";
-import { createPortal } from "react-dom";
 import { ShoppingBag, Clock, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer, X, BellRing, BellOff } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { updateOrderStatus } from "@/lib/dashboard-actions";
 import { formatRupiah } from "@/lib/format";
@@ -242,15 +242,17 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [previewOrder, setPreviewOrder] = useState<OrderRow | null>(null);
 
-  // ── New-order alerts (sound + browser notification + in-app toast) ──
+  // ── New-order alerts (sound + browser notification + Sonner toast) ──
   const [alertsOn, setAlertsOn] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [toasts, setToasts] = useState<{ key: string; table: string; total: number; items: number }[]>([]);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
+  // Hydrate preferensi alarm setelah mount (localStorage client-only);
+  // rAF menghindari setState sinkron di body effect.
   useEffect(() => {
-    setMounted(true);
-    setAlertsOn(localStorage.getItem("3diner.orderAlerts") === "on");
+    const id = requestAnimationFrame(() => {
+      if (localStorage.getItem("3diner.orderAlerts") === "on") setAlertsOn(true);
+    });
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const playChime = useCallback(() => {
@@ -276,10 +278,6 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
     } catch { /* audio unavailable */ }
   }, []);
 
-  const dismissToast = useCallback((key: string) => {
-    setToasts((prev) => prev.filter((t) => t.key !== key));
-  }, []);
-
   const fireAlert = useCallback((row: OrderRow) => {
     const itemCount = (Array.isArray(row.items) ? row.items : []).reduce((n, i) => n + i.qty, 0);
     playChime();
@@ -289,10 +287,42 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
         tag: row.id_order,
       });
     }
-    const key = row.id_order + ":" + Date.now();
-    setToasts((prev) => [{ key, table: row.table_number, total: row.total, items: itemCount }, ...prev].slice(0, 4));
-    setTimeout(() => dismissToast(key), 6500);
-  }, [playChime, dismissToast]);
+    // Sonner id = ID pesanan -> event realtime berulang tidak pernah
+    // menghasilkan toast ganda (dedupe kontrak spec).
+    toast.custom(
+      (t) => (
+        <div
+          className="flex items-center gap-3 p-3.5 rounded-2xl"
+          style={{
+            background: "var(--dash-panel)",
+            border: "1px solid rgba(34,211,166,0.35)",
+            boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
+            width: "min(320px, calc(100vw - 32px))",
+          }}
+        >
+          <span className="w-10 h-10 rounded-xl inline-flex items-center justify-center shrink-0" style={{ background: "rgba(34,211,166,0.14)" }}>
+            <ShoppingBag size={18} style={{ color: "#22D3A6" }} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold leading-tight" style={{ color: "var(--dash-text)" }}>
+              Pesanan baru · Meja {row.table_number}
+            </p>
+            <p className="text-xs mt-0.5 tabular-nums" style={{ color: "var(--dash-secondary)" }}>
+              {itemCount} item · {formatRupiah(row.total)}
+            </p>
+          </div>
+          <button
+            onClick={() => toast.dismiss(t)}
+            className="shrink-0 p-1 rounded-lg hover:bg-white/10 transition-colors"
+            aria-label="Tutup notifikasi pesanan"
+          >
+            <X size={15} style={{ color: "var(--dash-muted)" }} />
+          </button>
+        </div>
+      ),
+      { id: row.id_order, duration: 6500 }
+    );
+  }, [playChime]);
 
   function toggleAlerts() {
     if (alertsOn) {
@@ -323,6 +353,8 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
   useEffect(() => {
     if (!cafeId) return;
     const supabase = createClient();
+    let disposed = false;
+    let hadIssue = false;
     const channel = supabase
       .channel(`orders-${cafeId}`)
       .on(
@@ -344,8 +376,22 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (disposed) return;
+        // Satu id tetap -> peringatan tidak pernah menumpuk (kontrak spec).
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          hadIssue = true;
+          toast.warning("Koneksi realtime terputus. Pesanan baru mungkin tertunda — muat ulang bila perlu.", {
+            id: "realtime-status",
+            duration: 8000,
+          });
+        } else if (status === "SUBSCRIBED" && hadIssue) {
+          hadIssue = false;
+          toast.success("Koneksi realtime tersambung kembali.", { id: "realtime-status" });
+        }
+      });
     return () => {
+      disposed = true;
       supabase.removeChannel(channel);
     };
   }, [cafeId]);
@@ -373,31 +419,6 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
     <>
       {previewOrder && (
         <ReceiptModal order={previewOrder} cafeName={cafeName} onClose={() => setPreviewOrder(null)} />
-      )}
-
-      {/* New-order toasts */}
-      {mounted && toasts.length > 0 && createPortal(
-        <div className="fixed z-[120] flex flex-col gap-2.5 pointer-events-none"
-          style={{ top: "calc(env(safe-area-inset-top,0px) + 16px)", right: 16, width: "min(320px, calc(100vw - 32px))" }}>
-          <style>{`@keyframes ord-toast-in { from { opacity:0; transform: translateX(16px) } to { opacity:1; transform:none } }`}</style>
-          {toasts.map((t) => (
-            <div key={t.key}
-              className="pointer-events-auto flex items-center gap-3 p-3.5 rounded-2xl"
-              style={{ background: "#0D1829", border: "1px solid rgba(34,211,166,0.35)", boxShadow: "0 16px 40px rgba(0,0,0,0.5)", animation: "ord-toast-in .32s cubic-bezier(0.22,1,0.36,1)" }}>
-              <span className="w-10 h-10 rounded-xl inline-flex items-center justify-center shrink-0" style={{ background: "rgba(34,211,166,0.14)" }}>
-                <ShoppingBag size={18} style={{ color: "#22D3A6" }} />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold leading-tight" style={{ color: "#E9EEF6" }}>Pesanan baru · Meja {t.table}</p>
-                <p className="text-xs mt-0.5 tabular-nums" style={{ color: "#9FB6D1" }}>{t.items} item · {formatRupiah(t.total)}</p>
-              </div>
-              <button onClick={() => dismissToast(t.key)} className="shrink-0 p-1 rounded-lg hover:bg-white/10 transition-colors" aria-label="Tutup">
-                <X size={15} style={{ color: "#5A7898" }} />
-              </button>
-            </div>
-          ))}
-        </div>,
-        document.body
       )}
 
       {/* Filter tabs + alert toggle */}
