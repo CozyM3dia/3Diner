@@ -12,6 +12,18 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ prefetch: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
 }));
 
+// jsdom tidak punya matchMedia — dibutuhkan Sonner/Radix saat render.
+window.matchMedia = ((query: string) => ({
+  matches: false,
+  media: query,
+  onchange: null,
+  addEventListener: () => undefined,
+  removeEventListener: () => undefined,
+  addListener: () => undefined,
+  removeListener: () => undefined,
+  dispatchEvent: () => false,
+})) as unknown as typeof window.matchMedia;
+
 const css = readFileSync(join(__dirname, "../src/app/globals.css"), "utf8");
 
 describe("dash token adapter", () => {
