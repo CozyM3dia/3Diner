@@ -35,13 +35,11 @@ export default function DonutChart({ segments, size = 150, centerLabel = "Total"
   const c = 2 * Math.PI * r;
   const cx = size / 2;
 
-  let offset = 0;
-  const arcs = segments.map((seg) => {
-    const frac = total > 0 ? seg.value / total : 0;
-    const len = frac * c;
-    const arc = { ...seg, len, gap: c - len, rot: (offset / c) * 360 };
-    offset += len;
-    return arc;
+  const lengths = segments.map((seg) => (total > 0 ? seg.value / total : 0) * c);
+  const arcs = segments.map((seg, i) => {
+    const len = lengths[i];
+    const before = lengths.slice(0, i).reduce((sum, x) => sum + x, 0);
+    return { ...seg, len, gap: c - len, rot: (before / c) * 360 };
   });
 
   return (
@@ -66,7 +64,7 @@ export default function DonutChart({ segments, size = 150, centerLabel = "Total"
           ))}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-bold" style={{ color: "#E9EEF6" }}>
+          <span className="text-xl font-bold tabular-nums" style={{ color: "#E9EEF6" }}>
             {total.toLocaleString("id-ID")}
           </span>
           <span className="text-[10px] uppercase tracking-wider" style={{ color: "#5A7898" }}>

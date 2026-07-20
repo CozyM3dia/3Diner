@@ -113,7 +113,7 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
         <div className="fixed right-4 top-4 z-50 flex max-w-sm items-start gap-2 rounded-xl px-3.5 py-3 text-sm shadow-2xl" style={{ background: "#0D1829", border: "1px solid rgba(34,211,166,0.35)", color: "#E9EEF6" }}>
           <CheckCircle2 size={16} className="mt-0.5 shrink-0" style={{ color: "#22D3A6" }} aria-hidden="true" />
           <p className="min-w-0">{notice}</p>
-          <button type="button" onClick={() => setNotice("")} className="dash-icon-btn -mr-1 rounded-lg p-1" style={{ color: "#9FB6D1" }} aria-label="Tutup pesan inventory">
+          <button type="button" onClick={() => setNotice("")} className="dash-icon-btn -mr-1 rounded-lg p-1" style={{ color: "#9FB6D1" }} aria-label="Tutup pesan inventory" title="Tutup">
             <X size={14} aria-hidden="true" />
           </button>
         </div>

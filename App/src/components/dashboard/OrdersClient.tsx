@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition, useRef, useCallback } from "react";
-import { ShoppingBag, Clock, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer, X, BellRing, BellOff } from "lucide-react";
+import Link from "next/link";
+import { ShoppingBag, Clock, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer, X, BellRing, BellOff, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { updateOrderStatus } from "@/lib/dashboard-actions";
@@ -178,7 +179,7 @@ function ReceiptModal({ order, cafeName, onClose }: { order: OrderRow; cafeName:
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none" }}>
           <span className="font-semibold text-sm" style={{ color: "#E9EEF6" }}>Preview Struk · Meja {order.table_number}</span>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 transition-colors" aria-label="Tutup preview struk" title="Tutup">
             <X size={16} style={{ color: "#5A7898" }} />
           </button>
         </div>
@@ -315,6 +316,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
             onClick={() => toast.dismiss(t)}
             className="shrink-0 p-1 rounded-lg hover:bg-white/10 transition-colors"
             aria-label="Tutup notifikasi pesanan"
+            title="Tutup"
           >
             <X size={15} style={{ color: "var(--dash-muted)" }} />
           </button>
@@ -465,6 +467,13 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
           <ShoppingBag size={38} style={{ color: "#5A7898" }} strokeWidth={1.2} />
           <p className="mt-4 font-semibold" style={{ color: "#E9EEF6" }}>Belum ada pesanan</p>
           <p className="text-sm mt-1" style={{ color: "#5A7898" }}>Pesanan baru akan muncul di sini secara otomatis</p>
+          <Link
+            href="/dashboard/settings#qr-menu"
+            className="dash-btn mt-5 inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+            style={{ background: "var(--orange)" }}
+          >
+            <QrCode size={15} aria-hidden="true" /> Bagikan QR Menu
+          </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

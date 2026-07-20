@@ -166,7 +166,7 @@ export default async function RevenuePage({ searchParams }: PageProps) {
               {recentOrders.map((o, i) => (
                 <li key={i} className="flex items-center gap-2.5">
                   <StatusBadge kind={STATUS_KIND[o.status] ?? "pay-unpaid"} label={STATUS_KIND[o.status] ? undefined : o.status} />
-                  <span className="text-sm flex-1 min-w-0 truncate" style={{ color: "var(--dash-secondary)" }}>
+                  <span className="text-sm flex-1 min-w-0 truncate tabular-nums" style={{ color: "var(--dash-secondary)" }}>
                     <span style={{ color: "var(--dash-text)", fontWeight: 500 }}>Meja {o.table}</span> · {formatRupiah(o.total)}
                   </span>
                   <span className="text-[11px] shrink-0 tabular-nums" style={{ color: "var(--dash-muted)" }}>{relTime(o.at)}</span>

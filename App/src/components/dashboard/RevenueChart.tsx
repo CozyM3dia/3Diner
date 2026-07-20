@@ -46,7 +46,7 @@ export default function RevenueChart({ data, color = "#FD5002" }: RevenueChartPr
             >
               {hover === i && (
                 <div
-                  className="absolute -top-1 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-[10px] font-semibold whitespace-nowrap z-10 pointer-events-none"
+                  className="absolute -top-1 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-[10px] font-semibold tabular-nums whitespace-nowrap z-10 pointer-events-none"
                   style={{ background: "#132136", color: "#E9EEF6", border: "1px solid rgba(255,255,255,0.1)" }}
                 >
                   Rp {d.value.toLocaleString("id-ID")}

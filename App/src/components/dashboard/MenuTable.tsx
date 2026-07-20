@@ -178,7 +178,7 @@ export default function MenuTable({
             style={{ color: "var(--dash-text)" }}
           />
           {query && (
-            <button onClick={() => setQuery("")} aria-label="Hapus pencarian" className="dash-press" style={{ color: "var(--dash-muted)" }}>
+            <button onClick={() => setQuery("")} aria-label="Hapus pencarian" title="Hapus pencarian" className="dash-press" style={{ color: "var(--dash-muted)" }}>
               <X size={13} />
             </button>
           )}
