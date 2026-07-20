@@ -5,13 +5,8 @@ import { useMemo } from "react";
 import { ArrowUpRight, Plus, Trash2 } from "lucide-react";
 import type { RecipeDraftInput } from "@/lib/dashboard-actions";
 import type { InventoryItem } from "@/types";
+import { dashInputStyle as inputStyle } from "@/components/dashboard/system";
 import { formatQty, inventoryStatus } from "@/lib/inventory";
-
-const inputStyle: React.CSSProperties = {
-  background: "#132136",
-  border: "1px solid rgba(255,255,255,0.1)",
-  color: "#E9EEF6",
-};
 
 export function nextRecipeRow(
   inventoryItems: Pick<InventoryItem, "id_inventory_item">[],
