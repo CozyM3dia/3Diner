@@ -63,6 +63,28 @@ Sudah tercakup sebelumnya: hamburger shell (shadcn Tooltip), aksi baris inventor
 Tidak dapat disimulasikan tanpa environment khusus: session expiry mid-action,
 Supabase channel drop paksa. Keduanya punya jalur kode eksplisit di atas.
 
+## Review follow-up (commit `19e077c`)
+
+Temuan review pasca hardening pass, semua sudah ditutup:
+
+1. **Orders belum sesuai plan Task 6** — ReceiptModal masih overlay manual, order
+   card masih markup manual. FIXED: ReceiptModal -> `Dialog` (container
+   `getDashPortal()`), card -> `DashboardPanel` + `StatusBadge` kind `order-*`
+   (STATUS_META lokal dihapus, label identik), filter row -> `DashboardToolbar`,
+   empty state -> `DashboardEmptyState`.
+2. **Tooltip/Popover portal ke body** — melanggar aturan portal-token spec.
+   FIXED: `ui/tooltip.tsx` + `ui/popover.tsx` dapat passthrough `container`
+   (pola sama dengan dialog/alert-dialog/sheet); tooltip hamburger shell kini
+   `container={getDashPortal() ?? undefined}`.
+3. **1 lint warning BARU** di SchedulerClient:81 (ternary untuk side effect).
+   FIXED jadi if/else. Gate diperketat: bandingkan pasangan file::rule untuk
+   severity error DAN warning — sekarang 0 baru di keduanya
+   (errors 44 -> 37, warnings 12 -> 10).
+4. **Blank line at EOF** InventoryWorkspace.tsx terdeteksi `git diff --check
+   main...HEAD`. FIXED; PR diff check bersih.
+5. **lint-current-2026-07-20.json untracked** -> di-commit bersama baseline
+   pembandingnya.
+
 ## Browser QA (390/768/1024/1280/1440)
 
 Dashboard butuh login owner — QA browser interaktif menunggu user login di
