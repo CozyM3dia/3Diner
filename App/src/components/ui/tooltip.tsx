@@ -34,10 +34,14 @@ function TooltipContent({
   className,
   sideOffset = 0,
   children,
+  container,
   ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+}: React.ComponentProps<typeof TooltipPrimitive.Content> & {
+  /** Portal container passthrough (dashboard portal-token rule). */
+  container?: React.ComponentProps<typeof TooltipPrimitive.Portal>["container"]
+}) {
   return (
-    <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Portal container={container}>
       <TooltipPrimitive.Content
         data-slot="tooltip-content"
         sideOffset={sideOffset}

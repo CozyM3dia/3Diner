@@ -116,4 +116,3 @@ function InventoryLoadError({ failedLoads, embedded }: { failedLoads: string[]; 
     </section>
   );
 }
-

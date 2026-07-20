@@ -78,7 +78,8 @@ function MenuRow({ menu, index }: { menu: Menu; index: number }) {
   function toggleDay(v: string) {
     setSt((prev) => {
       const days = new Set(prev.days);
-      days.has(v) ? days.delete(v) : days.add(v);
+      if (days.has(v)) days.delete(v);
+      else days.add(v);
       return { ...prev, days };
     });
     setDirty(true);

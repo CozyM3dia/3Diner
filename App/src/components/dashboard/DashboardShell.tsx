@@ -22,7 +22,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import LogoutButton from "./LogoutButton";
 import DashSheet from "./system/DashSheet";
-import { DASH_PORTAL_ID } from "./system/portal";
+import { DASH_PORTAL_ID, getDashPortal } from "./system/portal";
 
 interface DashboardShellProps {
   cafe: { nama_cafe: string; logo_url?: string | null; slug_url: string } | null;
@@ -205,7 +205,9 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
                       <MenuIcon size={18} className="mx-auto" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom">Buka menu navigasi</TooltipContent>
+                  <TooltipContent side="bottom" container={getDashPortal() ?? undefined}>
+                    Buka menu navigasi
+                  </TooltipContent>
                 </Tooltip>
                 <span
                   className="hidden lg:inline-flex w-6 h-6 rounded-md items-center justify-center"

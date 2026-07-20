@@ -2,11 +2,20 @@
 
 import { useEffect, useState, useTransition, useRef, useCallback } from "react";
 import Link from "next/link";
-import { ShoppingBag, Clock, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer, X, BellRing, BellOff, QrCode } from "lucide-react";
+import { ShoppingBag, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer, X, BellRing, BellOff, QrCode } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { updateOrderStatus } from "@/lib/dashboard-actions";
 import { formatRupiah } from "@/lib/format";
+import {
+  DashboardEmptyState,
+  DashboardPanel,
+  DashboardToolbar,
+  StatusBadge,
+  getDashPortal,
+  type StatusKind,
+} from "@/components/dashboard/system";
 import type { CartItem } from "@/types";
 
 export interface OrderRow {
@@ -24,11 +33,12 @@ export interface OrderRow {
 
 type Filter = "all" | "received" | "preparing" | "ready";
 
-const STATUS_META = {
-  received: { label: "Baru", color: "#FD5002", bg: "rgba(253,80,2,0.12)", icon: Clock },
-  preparing: { label: "Diproses", color: "#F59E0B", bg: "rgba(245,158,11,0.12)", icon: ChefHat },
-  ready: { label: "Siap", color: "#22D3A6", bg: "rgba(34,211,166,0.12)", icon: CheckCircle2 },
-} as const;
+/** Status pesanan memakai vocabulary StatusBadge system (label identik). */
+const STATUS_KIND: Record<OrderRow["status"], StatusKind> = {
+  received: "order-received",
+  preparing: "order-preparing",
+  ready: "order-ready",
+};
 
 const TABS: { v: Filter; l: string }[] = [
   { v: "all", l: "Semua" },
@@ -166,26 +176,26 @@ function ReceiptModal({ order, cafeName, onClose }: { order: OrderRow; cafeName:
   }, [html]);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
-      onClick={onClose}
-    >
-      <div
-        className="relative flex flex-col"
+    <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
+        container={getDashPortal() ?? undefined}
+        showCloseButton={false}
+        aria-describedby={undefined}
+        className="flex flex-col gap-0 p-0 sm:max-w-none"
         style={{ maxHeight: "90vh", width: "min(360px, 95vw)" }}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none" }}>
-          <span className="font-semibold text-sm" style={{ color: "#E9EEF6" }}>Preview Struk · Meja {order.table_number}</span>
+        <div className="flex items-center justify-between px-4 py-3" style={{ background: "var(--dash-panel)", borderBottom: "1px solid var(--dash-border-strong)" }}>
+          <DialogTitle className="font-semibold text-sm" style={{ color: "var(--dash-text)" }}>
+            Preview Struk · Meja {order.table_number}
+          </DialogTitle>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 transition-colors" aria-label="Tutup preview struk" title="Tutup">
-            <X size={16} style={{ color: "#5A7898" }} />
+            <X size={16} style={{ color: "var(--dash-muted)" }} />
           </button>
         </div>
 
         {/* Receipt preview — looks like paper */}
-        <div className="overflow-y-auto flex-1" style={{ background: "#f5f0e8", borderLeft: "1px solid rgba(255,255,255,0.1)", borderRight: "1px solid rgba(255,255,255,0.1)" }}>
+        <div className="overflow-y-auto flex-1" style={{ background: "#f5f0e8" }}>
           {/* Paper top perforation */}
           <div style={{ height: "6px", background: "repeating-linear-gradient(90deg,#d4ccbb 0,#d4ccbb 6px,#f5f0e8 6px,#f5f0e8 10px)" }} />
           <iframe
@@ -205,24 +215,24 @@ function ReceiptModal({ order, cafeName, onClose }: { order: OrderRow; cafeName:
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 px-4 py-3 rounded-b-2xl" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.1)", borderTop: "none" }}>
+        <div className="flex gap-3 px-4 py-3" style={{ background: "var(--dash-panel)", borderTop: "1px solid var(--dash-border-strong)" }}>
           <button
             onClick={onClose}
             className="flex-1 h-10 rounded-xl text-sm font-semibold"
-            style={{ border: "1px solid rgba(255,255,255,0.12)", color: "#5A7898" }}
+            style={{ border: "1px solid rgba(255,255,255,0.12)", color: "var(--dash-muted)" }}
           >
             Tutup
           </button>
           <button
             onClick={() => { triggerPrint(html); onClose(); }}
             className="flex-1 h-10 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2"
-            style={{ background: "#FD5002" }}
+            style={{ background: "var(--orange)" }}
           >
             <Printer size={14} /> Cetak Sekarang
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -424,7 +434,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
       )}
 
       {/* Filter tabs + alert toggle */}
-      <div className="flex items-center gap-3 mb-5">
+      <DashboardToolbar className="dash-panel mb-5 gap-3">
         <div className="flex gap-2 overflow-x-auto no-scrollbar flex-1">
           {TABS.map((t) => {
             const on = filter === t.v;
@@ -460,74 +470,77 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
           {alertsOn ? <BellRing size={15} /> : <BellOff size={15} />}
           <span className="hidden sm:inline">{alertsOn ? "Alarm Aktif" : "Alarm Mati"}</span>
         </button>
-      </div>
+      </DashboardToolbar>
 
       {shown.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 rounded-2xl" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
-          <ShoppingBag size={38} style={{ color: "#5A7898" }} strokeWidth={1.2} />
-          <p className="mt-4 font-semibold" style={{ color: "#E9EEF6" }}>Belum ada pesanan</p>
-          <p className="text-sm mt-1" style={{ color: "#5A7898" }}>Pesanan baru akan muncul di sini secara otomatis</p>
-          <Link
-            href="/dashboard/settings#qr-menu"
-            className="dash-btn mt-5 inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
-            style={{ background: "var(--orange)" }}
-          >
-            <QrCode size={15} aria-hidden="true" /> Bagikan QR Menu
-          </Link>
-        </div>
+        <DashboardPanel>
+          <DashboardEmptyState
+            icon={<ShoppingBag size={38} strokeWidth={1.2} />}
+            title="Belum ada pesanan"
+            hint="Pesanan baru akan muncul di sini secara otomatis"
+            action={
+              <Link
+                href="/dashboard/settings#qr-menu"
+                className="dash-btn inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+                style={{ background: "var(--orange)" }}
+              >
+                <QrCode size={15} aria-hidden="true" /> Bagikan QR Menu
+              </Link>
+            }
+          />
+        </DashboardPanel>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {shown.map((o) => {
-            const meta = STATUS_META[o.status];
-            const Icon = meta.icon;
             const items = Array.isArray(o.items) ? o.items : [];
             return (
-              <div key={o.id_order} className="dash-card dash-reveal rounded-2xl p-5" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold" style={{ color: "#E9EEF6" }}>Meja {o.table_number}</span>
-                      <span className="text-xs flex items-center gap-1 group/id" style={{ color: "#5A7898" }}>
-                        · {o.id_order}
-                        <button
-                          onClick={() => handleCopy(o.id_order)}
-                          className="dash-press p-0.5 rounded transition-colors duration-150 hover:bg-white/10 hover:text-white"
-                          title="Salin ID Pesanan"
-                          aria-label="Salin ID Pesanan"
-                        >
-                          {copiedId === o.id_order ? (
-                            <Check size={11} className="text-emerald-400" />
-                          ) : (
-                            <Copy size={11} className="opacity-60 group-hover/id:opacity-100 transition-opacity" />
-                          )}
-                        </button>
-                      </span>
-                    </div>
-                    <p className="text-[11px] mt-0.5" style={{ color: "#5A7898" }}>{relTime(o.created_at)}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
+              <DashboardPanel
+                key={o.id_order}
+                className="dash-card dash-reveal"
+                title={
+                  <span className="inline-flex items-center gap-2 normal-case tracking-normal">
+                    <span className="text-sm font-bold" style={{ color: "var(--dash-text)" }}>Meja {o.table_number}</span>
+                    <span className="text-xs flex items-center gap-1 group/id" style={{ color: "var(--dash-muted)" }}>
+                      · {o.id_order}
+                      <button
+                        onClick={() => handleCopy(o.id_order)}
+                        className="dash-press p-0.5 rounded transition-colors duration-150 hover:bg-white/10 hover:text-white"
+                        title="Salin ID Pesanan"
+                        aria-label="Salin ID Pesanan"
+                      >
+                        {copiedId === o.id_order ? (
+                          <Check size={11} className="text-emerald-400" />
+                        ) : (
+                          <Copy size={11} className="opacity-60 group-hover/id:opacity-100 transition-opacity" />
+                        )}
+                      </button>
+                    </span>
+                  </span>
+                }
+                actions={
+                  <>
                     <button
                       onClick={() => setPreviewOrder(o)}
                       className="dash-press p-1.5 rounded-lg transition-colors duration-150"
-                      style={{ color: "#5A7898", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+                      style={{ color: "var(--dash-muted)", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
                       title="Preview & Cetak Struk"
                       aria-label="Preview & Cetak Struk"
                     >
                       <Printer size={14} strokeWidth={1.8} />
                     </button>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: meta.bg, color: meta.color }}>
-                      <Icon size={12} /> {meta.label}
-                    </span>
-                  </div>
-                </div>
+                    <StatusBadge kind={STATUS_KIND[o.status]} />
+                  </>
+                }
+              >
+                <p className="text-[11px] mb-3" style={{ color: "var(--dash-muted)" }}>{relTime(o.created_at)}</p>
 
                 <ul className="space-y-1.5 mb-3">
                   {items.map((it, idx) => (
                     <li key={idx} className="flex items-center justify-between text-sm">
-                      <span style={{ color: "#9FB6D1" }}>
-                        <span style={{ color: "#E9EEF6", fontWeight: 600 }}>{it.qty}×</span> {it.nama_menu}
+                      <span style={{ color: "var(--dash-secondary)" }}>
+                        <span style={{ color: "var(--dash-text)", fontWeight: 600 }}>{it.qty}×</span> {it.nama_menu}
                       </span>
-                      <span className="tabular-nums" style={{ color: "#5A7898" }}>{formatRupiah(it.harga_menu * it.qty)}</span>
+                      <span className="tabular-nums" style={{ color: "var(--dash-muted)" }}>{formatRupiah(it.harga_menu * it.qty)}</span>
                     </li>
                   ))}
                 </ul>
@@ -535,12 +548,12 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
                 {o.notes && (
                   <div className="mb-3 p-3 rounded-xl text-xs" style={{ background: "rgba(253,80,2,0.06)", border: "1px solid rgba(253,80,2,0.15)" }}>
                     <p style={{ color: "#FD5002", fontWeight: 600, marginBottom: "3px" }}>Catatan:</p>
-                    <p style={{ color: "#E9EEF6", whiteSpace: "pre-wrap" }}>{o.notes}</p>
+                    <p style={{ color: "var(--dash-text)", whiteSpace: "pre-wrap" }}>{o.notes}</p>
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-                  <span className="text-sm font-bold tabular-nums" style={{ color: "#E9EEF6" }}>{formatRupiah(o.total)}</span>
+                <div className="flex items-center justify-between pt-3" style={{ borderTop: "1px solid var(--dash-border)" }}>
+                  <span className="text-sm font-bold tabular-nums" style={{ color: "var(--dash-text)" }}>{formatRupiah(o.total)}</span>
                   {o.status === "ready" ? (
                     <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: "#22D3A6" }}>
                       <CheckCircle2 size={14} /> Selesai
@@ -563,7 +576,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
                     </button>
                   )}
                 </div>
-              </div>
+              </DashboardPanel>
             );
           })}
         </div>
