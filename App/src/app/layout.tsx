@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Poppins, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
+
 // Poppins — 3Diner consumer brand face (customer-facing menu).
 const poppins = Poppins({
   variable: "--font-poppins",

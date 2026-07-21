@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { useRef, useState } from "react";
 import { UploadCloud, Loader2, X, ImageIcon, Box, CheckCircle2, AlertCircle } from "lucide-react";
 import { createMediaUploadUrl } from "@/lib/dashboard-actions";
 import { createClient } from "@/lib/supabase/client";
@@ -35,9 +34,13 @@ export default function FileUpload({ name, kind, label, accept, hint, variant = 
   const inputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState<string>(defaultUrl ?? "");
 
-  useEffect(() => {
+  // Sinkron prop injectedUrl saat render (pola lastPath DashboardShell) —
+  // tanpa setState sinkron di body effect.
+  const [lastInjected, setLastInjected] = useState(injectedUrl);
+  if (injectedUrl !== lastInjected) {
+    setLastInjected(injectedUrl);
     if (injectedUrl) setUrl(injectedUrl);
-  }, [injectedUrl]);
+  }
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
   const [error, setError] = useState("");
@@ -126,7 +129,7 @@ export default function FileUpload({ name, kind, label, accept, hint, variant = 
             <button type="button" onClick={() => inputRef.current?.click()} className="dash-press dash-icon-btn text-xs font-medium px-3 py-1.5 rounded-lg" style={{ background: "#0D1829", color: "#9FB6D1" }}>
               Ganti
             </button>
-            <button type="button" onClick={() => { setUrl(""); onChange?.(""); }} aria-label="Hapus" className="dash-icon-btn p-1.5 rounded-lg" style={{ color: "#5A7898" }}>
+            <button type="button" onClick={() => { setUrl(""); onChange?.(""); }} aria-label="Hapus" title="Hapus" className="dash-icon-btn p-1.5 rounded-lg" style={{ color: "#5A7898" }}>
               <X size={15} />
             </button>
           </div>

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 
-interface StatCardProps {
+export interface DashboardMetricProps {
   value: number;
   label: string;
   icon: React.ReactNode;
@@ -33,7 +33,8 @@ function useCountUp(target: number, run: boolean, ms = 900) {
   return n;
 }
 
-export default function StatCard({ value, label, icon, accent, accentBg, delta, sub, suffix, prefix }: StatCardProps) {
+/** KPI card dashboard — head band icon+label, nilai tabular, delta chip. */
+export default function DashboardMetric({ value, label, icon, accent, accentBg, delta, sub, suffix, prefix }: DashboardMetricProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [on, setOn] = useState(false);
   const n = useCountUp(value, on);
@@ -53,7 +54,6 @@ export default function StatCard({ value, label, icon, accent, accentBg, delta, 
 
   return (
     <div ref={ref} className="dash-card dash-panel">
-      {/* Header band — icon + label (dash-8 KPI rhythm) */}
       <div className="flex items-center gap-2 px-4 pt-3.5">
         <span className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: accentBg, color: accent }}>
           <span className="scale-[0.8] flex items-center justify-center">{icon}</span>
@@ -66,7 +66,6 @@ export default function StatCard({ value, label, icon, accent, accentBg, delta, 
         </span>
       </div>
 
-      {/* Value */}
       <div className="px-4 pt-2.5 pb-4">
         <span className="text-[26px] font-bold leading-none tabular-nums" style={{ color: "var(--dash-text)" }}>
           {prefix && <span className="text-base font-semibold" style={{ color: "var(--dash-muted)" }}>{prefix}</span>}

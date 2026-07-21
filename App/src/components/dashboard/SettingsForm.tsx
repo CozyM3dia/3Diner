@@ -4,27 +4,10 @@ import { useState } from "react";
 import Image from "next/image";
 import { Loader2, Save, Check, AlertCircle, MapPin, Store, Star } from "lucide-react";
 import { updateCafeSettings } from "@/lib/dashboard-actions";
+import { DashboardPanel, Field, dashInputClass, dashInputStyle } from "@/components/dashboard/system";
 import FileUpload from "./FileUpload";
 import PhoneMockup from "./PhoneMockup";
 import type { Cafe } from "@/types";
-
-const inputStyle: React.CSSProperties = {
-  background: "#132136",
-  border: "1px solid rgba(255,255,255,0.1)",
-  color: "#E9EEF6",
-};
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#5A7898" }}>
-        {label}
-      </label>
-      {children}
-      {hint && <p className="text-[11px] mt-1.5" style={{ color: "#5A7898" }}>{hint}</p>}
-    </div>
-  );
-}
 
 export default function SettingsForm({ cafe }: { cafe: Cafe }) {
   const [error, setError] = useState("");
@@ -38,8 +21,6 @@ export default function SettingsForm({ cafe }: { cafe: Cafe }) {
   const [logoUrl, setLogoUrl] = useState(cafe.logo_url ?? "");
   const [coverUrl, setCoverUrl] = useState(cafe.cover_url ?? "");
   const [reviewUrl, setReviewUrl] = useState(cafe.google_maps_review_url ?? "");
-
-  const inputCls = "dash-input w-full px-3.5 py-2.5 rounded-xl text-sm outline-none";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -66,25 +47,29 @@ export default function SettingsForm({ cafe }: { cafe: Cafe }) {
       )}
 
       {/* Identitas */}
-      <div className="rounded-2xl p-5 space-y-4 dash-reveal dash-d1" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
-        <div className="flex items-center gap-2">
-          <Store size={14} style={{ color: "#FD5002" }} />
-          <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>Identitas</p>
-        </div>
-        <Field label="Nama Kafe *">
-          <input name="nama_cafe" value={nama} onChange={(e) => setNama(e.target.value)} required className={inputCls} style={inputStyle} />
+      <DashboardPanel
+        title="Identitas"
+        icon={<Store size={14} style={{ color: "#FD5002" }} />}
+        className="dash-reveal dash-d1"
+        bodyClassName="dash-panel-body space-y-4"
+      >
+        <Field label="Nama Kafe *" htmlFor="set-nama">
+          <input id="set-nama" name="nama_cafe" value={nama} onChange={(e) => setNama(e.target.value)} required className={dashInputClass} style={dashInputStyle} />
         </Field>
-        <Field label="Alamat">
-          <input name="alamat_cafe" value={alamat} onChange={(e) => setAlamat(e.target.value)} className={inputCls} style={inputStyle} />
+        <Field label="Alamat" htmlFor="set-alamat">
+          <input id="set-alamat" name="alamat_cafe" value={alamat} onChange={(e) => setAlamat(e.target.value)} className={dashInputClass} style={dashInputStyle} />
         </Field>
-        <Field label="Sapaan / Tagline" hint="Tampil di atas nama kafe pada halaman menu">
-          <input name="greeting" value={greeting} onChange={(e) => setGreeting(e.target.value)} className={inputCls} style={inputStyle} placeholder="Selamat datang di…" />
+        <Field label="Sapaan / Tagline" hint="Tampil di atas nama kafe pada halaman menu" htmlFor="set-greeting">
+          <input id="set-greeting" name="greeting" value={greeting} onChange={(e) => setGreeting(e.target.value)} className={dashInputClass} style={dashInputStyle} placeholder="Selamat datang di…" />
         </Field>
-      </div>
+      </DashboardPanel>
 
       {/* Branding — uploads */}
-      <div className="rounded-2xl p-5 space-y-4 dash-reveal dash-d2" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
-        <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>Branding</p>
+      <DashboardPanel
+        title="Branding"
+        className="dash-reveal dash-d2"
+        bodyClassName="dash-panel-body space-y-4"
+      >
         <FileUpload
           name="logo_url"
           kind="logo"
@@ -105,18 +90,19 @@ export default function SettingsForm({ cafe }: { cafe: Cafe }) {
           defaultUrl={cafe.cover_url}
           onChange={setCoverUrl}
         />
-      </div>
+      </DashboardPanel>
 
       {/* Tautan */}
-      <div className="rounded-2xl p-5 space-y-4 dash-reveal dash-d3" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
-        <div className="flex items-center gap-2">
-          <Star size={14} style={{ color: "#FBBC04" }} fill="#FBBC04" strokeWidth={0} />
-          <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>Tautan</p>
-        </div>
-        <Field label="URL Ulasan Google Maps" hint="Tombol 'Beri Ulasan' akan muncul di halaman menu jika diisi">
-          <input name="google_maps_review_url" value={reviewUrl} onChange={(e) => setReviewUrl(e.target.value)} className={inputCls} style={inputStyle} placeholder="https://g.page/r/…/review" />
+      <DashboardPanel
+        title="Tautan"
+        icon={<Star size={14} style={{ color: "#FBBC04" }} fill="#FBBC04" strokeWidth={0} />}
+        className="dash-reveal dash-d3"
+        bodyClassName="dash-panel-body space-y-4"
+      >
+        <Field label="URL Ulasan Google Maps" hint="Tombol 'Beri Ulasan' akan muncul di halaman menu jika diisi" htmlFor="set-review-url">
+          <input id="set-review-url" name="google_maps_review_url" value={reviewUrl} onChange={(e) => setReviewUrl(e.target.value)} className={dashInputClass} style={dashInputStyle} placeholder="https://g.page/r/…/review" />
         </Field>
-      </div>
+      </DashboardPanel>
 
       <button
         type="submit"

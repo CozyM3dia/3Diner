@@ -1,15 +1,10 @@
 "use client";
 
-import { useState, useTransition, type CSSProperties, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { AlertCircle, Loader2, Save } from "lucide-react";
+import { dashInputStyle as inputStyle } from "@/components/dashboard/system";
 import { INVENTORY_UNITS, type InventoryItem } from "@/types";
 import type { ActionResult } from "@/lib/dashboard-actions";
-
-const inputStyle: CSSProperties = {
-  background: "#132136",
-  border: "1px solid rgba(255,255,255,0.1)",
-  color: "#E9EEF6",
-};
 
 export default function InventoryItemForm({
   item,

@@ -45,3 +45,5 @@ next-env.d.ts
 
 # Raw 3D source models (only public/models/ is needed)
 /3dmodel/
+
+*.css.bak

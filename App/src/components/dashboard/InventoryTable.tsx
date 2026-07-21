@@ -18,7 +18,8 @@ import {
 } from "lucide-react";
 import InventoryItemForm from "@/components/dashboard/InventoryItemForm";
 import StockAdjustmentModal from "@/components/dashboard/StockAdjustmentModal";
-import { useModalFocus } from "@/components/dashboard/StockAdjustmentModal";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { getDashPortal } from "@/components/dashboard/system";
 import { createInventoryItem, updateInventoryItem } from "@/lib/dashboard-actions";
 import { formatRupiah } from "@/lib/format";
 import { formatQty, inventoryStatus } from "@/lib/inventory";
@@ -112,7 +113,7 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
         <div className="fixed right-4 top-4 z-50 flex max-w-sm items-start gap-2 rounded-xl px-3.5 py-3 text-sm shadow-2xl" style={{ background: "#0D1829", border: "1px solid rgba(34,211,166,0.35)", color: "#E9EEF6" }}>
           <CheckCircle2 size={16} className="mt-0.5 shrink-0" style={{ color: "#22D3A6" }} aria-hidden="true" />
           <p className="min-w-0">{notice}</p>
-          <button type="button" onClick={() => setNotice("")} className="dash-icon-btn -mr-1 rounded-lg p-1" style={{ color: "#9FB6D1" }} aria-label="Tutup pesan inventory">
+          <button type="button" onClick={() => setNotice("")} className="dash-icon-btn -mr-1 rounded-lg p-1" style={{ color: "#9FB6D1" }} aria-label="Tutup pesan inventory" title="Tutup">
             <X size={14} aria-hidden="true" />
           </button>
         </div>
@@ -274,20 +275,30 @@ function InventoryDialog({
   children: React.ReactNode;
   onClose: () => void;
 }) {
-  const dialogRef = useRef<HTMLElement | null>(null);
-  useModalFocus(dialogRef, onClose, "input[name='name']");
+  const contentRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4" style={{ background: "rgba(0,0,0,0.7)" }} onMouseDown={onClose}>
-      <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="inventory-item-dialog-title" className="my-auto w-full max-w-lg rounded-2xl p-5" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.1)" }} onMouseDown={(event) => event.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 id="inventory-item-dialog-title" className="font-display text-lg font-bold" style={{ color: "#E9EEF6" }}>{title}</h2>
-          <button type="button" onClick={onClose} className="dash-icon-btn shrink-0 rounded-lg p-1.5" style={{ color: "#5A7898" }} aria-label="Tutup formulir bahan" title="Tutup">
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent
+        ref={contentRef}
+        container={getDashPortal() ?? undefined}
+        showCloseButton={false}
+        className="sm:max-w-lg"
+        aria-describedby={undefined}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          contentRef.current?.querySelector<HTMLElement>("input[name='name']")?.focus();
+        }}
+        onCloseAutoFocus={(event) => event.preventDefault()}
+      >
+        <div className="flex items-center justify-between gap-4">
+          <DialogTitle className="font-display text-lg font-bold" style={{ color: "var(--dash-text)" }}>{title}</DialogTitle>
+          <button type="button" onClick={onClose} className="dash-icon-btn shrink-0 rounded-lg p-1.5" style={{ color: "var(--dash-muted)" }} aria-label="Tutup formulir bahan" title="Tutup">
             <X size={16} aria-hidden="true" />
           </button>
         </div>
         {children}
-      </section>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

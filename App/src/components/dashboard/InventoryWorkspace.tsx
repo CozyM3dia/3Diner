@@ -1,15 +1,10 @@
 import Link from "next/link";
-import { AlertTriangle, Boxes, CircleAlert, PackageX, Wallet, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Boxes, CircleAlert, PackageX, Wallet } from "lucide-react";
 import InventoryTable from "@/components/dashboard/InventoryTable";
+import { DashboardMetric } from "@/components/dashboard/system";
 import { criticalInventoryItems, type InventorySummary as InventorySummaryType } from "@/lib/dashboard-inventory";
 import { formatQty } from "@/lib/inventory";
 import type { InventoryItem, InventoryMovement } from "@/types";
-
-const rupiah = new Intl.NumberFormat("id-ID", {
-  style: "currency",
-  currency: "IDR",
-  maximumFractionDigits: 0,
-});
 
 interface InventoryWorkspaceProps {
   items: InventoryItem[];
@@ -63,10 +58,10 @@ export default function InventoryWorkspace({
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-5 lg:grid-cols-4">
-        <Summary icon={Boxes} label="Total Bahan" value={String(summary.total)} />
-        <Summary icon={AlertTriangle} label="Stok Menipis" value={String(summary.low)} tone="#F59E0B" />
-        <Summary icon={PackageX} label="Stok Habis" value={String(summary.empty)} tone="#EF4444" />
-        <Summary icon={Wallet} label="Nilai Stok" value={rupiah.format(summary.value)} tone="#22D3A6" />
+        <DashboardMetric value={summary.total} label="Total Bahan" icon={<Boxes size={15} strokeWidth={2} />} accent="#FD5002" accentBg="rgba(253,80,2,0.12)" />
+        <DashboardMetric value={summary.low} label="Stok Menipis" icon={<AlertTriangle size={15} strokeWidth={2} />} accent="#F59E0B" accentBg="rgba(245,158,11,0.12)" />
+        <DashboardMetric value={summary.empty} label="Stok Habis" icon={<PackageX size={15} strokeWidth={2} />} accent="#EF4444" accentBg="rgba(239,68,68,0.12)" />
+        <DashboardMetric value={summary.value} prefix="Rp " label="Nilai Stok" icon={<Wallet size={15} strokeWidth={2} />} accent="#22D3A6" accentBg="rgba(34,211,166,0.12)" />
       </div>
 
       {embedded && critical.length > 0 && (
@@ -119,32 +114,5 @@ function InventoryLoadError({ failedLoads, embedded }: { failedLoads: string[]; 
         </p>
       </div>
     </section>
-  );
-}
-
-function Summary({
-  icon: Icon,
-  label,
-  value,
-  tone = "#FD5002",
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-  tone?: string;
-}) {
-  return (
-    <div
-      className="dash-card rounded-2xl p-4"
-      style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}
-    >
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>
-        <Icon size={14} style={{ color: tone }} aria-hidden="true" />
-        {label}
-      </div>
-      <p className="mt-3 font-display text-[18px] font-bold leading-tight tabular-nums lg:text-xl" style={{ color: "#E9EEF6" }} title={value}>
-        {value}
-      </p>
-    </div>
   );
 }

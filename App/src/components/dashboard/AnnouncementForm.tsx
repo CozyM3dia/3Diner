@@ -5,6 +5,7 @@ import { Loader2, Save, Check, AlertCircle, Plus, EyeOff, X } from "lucide-react
 import { saveAnnouncement } from "@/lib/dashboard-actions";
 import { ANNOUNCEMENT_TYPES, typeMeta, type AnnouncementType } from "@/lib/announcement-types";
 import { readableOn, readableSoftOn } from "@/lib/contrast";
+import { DashboardPanel, Field, dashInputStyle } from "@/components/dashboard/system";
 import PhoneMockup from "./PhoneMockup";
 import type { Announcement } from "@/types";
 
@@ -76,19 +77,13 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
     setTimeout(() => setSaved(false), 2500);
   }
 
-  const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-    <span className="block text-[11px] font-semibold uppercase tracking-wider mb-2.5" style={{ color: "#5A7898" }}>
-      {children}
-    </span>
-  );
-
   return (
     <form
       onSubmit={handleSubmit}
       className="flex flex-col-reverse gap-7 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-9 lg:items-start"
     >
       {/* ── Editor ─────────────────────────────────────────────── */}
-      <div className="space-y-7">
+      <DashboardPanel title="Editor Banner" bodyClassName="dash-panel-body space-y-7">
         {error && (
           <div
             className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm"
@@ -99,8 +94,7 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
         )}
 
         {/* Type */}
-        <div>
-          <SectionLabel>Jenis</SectionLabel>
+        <Field label="Jenis">
           <div className="grid grid-cols-4 gap-2">
             {ANNOUNCEMENT_TYPES.map((t) => {
               const Icon = t.icon;
@@ -125,11 +119,10 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
               );
             })}
           </div>
-        </div>
+        </Field>
 
         {/* Templates */}
-        <div>
-          <SectionLabel>Template cepat</SectionLabel>
+        <Field label="Template cepat">
           <div className="flex flex-wrap gap-2">
             {TEMPLATES.map((t) => (
               <button
@@ -147,19 +140,19 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
               </button>
             ))}
           </div>
-        </div>
+        </Field>
 
         {/* Message */}
-        <div>
-          <SectionLabel>Pesan</SectionLabel>
+        <Field label="Pesan" htmlFor="ann-message">
           <div className="relative">
             <textarea
+              id="ann-message"
               value={message}
               onChange={(e) => setMessage(e.target.value.slice(0, MAX))}
               rows={3}
               maxLength={MAX}
               className="dash-input w-full px-3.5 py-3 rounded-xl text-sm outline-none resize-none"
-              style={{ background: "#132136", border: "1px solid rgba(255,255,255,0.1)", color: "#E9EEF6" }}
+              style={dashInputStyle}
               placeholder="Live music malam ini mulai jam 19.00!"
             />
             <span
@@ -169,11 +162,10 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
               {message.length}/{MAX}
             </span>
           </div>
-        </div>
+        </Field>
 
         {/* Color */}
-        <div>
-          <SectionLabel>Warna latar</SectionLabel>
+        <Field label="Warna latar">
           <div className="flex flex-wrap items-center gap-2.5">
             {PRESETS.map((p) => {
               const on = color.toUpperCase() === p.value.toUpperCase();
@@ -212,7 +204,7 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
               {color.toUpperCase()}
             </span>
           </div>
-        </div>
+        </Field>
 
         {/* Active toggle */}
         <div
@@ -255,7 +247,7 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
           {saving ? <Loader2 size={15} className="animate-spin" /> : saved ? <Check size={15} /> : <Save size={15} />}
           {saved ? "Tersimpan" : "Simpan Pengumuman"}
         </button>
-      </div>
+      </DashboardPanel>
 
       {/* ── Live preview ───────────────────────────────────────── */}
       <PhoneMockup>

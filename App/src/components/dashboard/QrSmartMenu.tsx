@@ -12,6 +12,8 @@ import {
   QrCode as QrCodeIcon,
 } from "lucide-react";
 import { buildQrSvg, computeLayout, qrFileName, type QrMatrix, type QrSvgOptions } from "@/lib/qr-render";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface QrSmartMenuProps {
   /** URL menu publik kanonik, null bila slug kafe belum ada. */
@@ -385,12 +387,13 @@ export default function QrSmartMenu({ menuUrl, cafeName, slug }: QrSmartMenuProp
             </p>
 
             {/* Kustomisasi — disclosure */}
-            <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--dash-border)" }}>
-              <button
-                type="button"
-                onClick={() => setCustomOpen((v) => !v)}
-                aria-expanded={customOpen}
-                aria-controls="qr-custom-panel"
+            <Collapsible
+              open={customOpen}
+              onOpenChange={setCustomOpen}
+              className="mt-4 pt-4"
+              style={{ borderTop: "1px solid var(--dash-border)" }}
+            >
+              <CollapsibleTrigger
                 className="dash-press flex items-center gap-2 text-[13px] font-semibold"
                 style={{ color: "var(--dash-secondary)", minHeight: "44px" }}
               >
@@ -403,21 +406,20 @@ export default function QrSmartMenu({ menuUrl, cafeName, slug }: QrSmartMenuProp
                   }}
                 />
                 Sesuaikan Tampilan QR
-              </button>
+              </CollapsibleTrigger>
 
-              {customOpen && (
-                <div id="qr-custom-panel" className="mt-3 space-y-4">
+              <CollapsibleContent className="mt-3 space-y-4">
                   <fieldset>
                     <legend className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--dash-muted)" }}>
                       Style
                     </legend>
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" onClick={() => setStyle("bersih")} aria-pressed={style === "bersih"} className="dash-chip px-3.5 rounded-[10px] text-[13px] font-medium" style={chip(style === "bersih")}>
+                      <Button type="button" variant="secondary" onClick={() => setStyle("bersih")} aria-pressed={style === "bersih"} className="dash-chip px-3.5 rounded-[10px] text-[13px] font-medium" style={chip(style === "bersih")}>
                         Bersih
-                      </button>
-                      <button type="button" onClick={() => setStyle("bingkai")} aria-pressed={style === "bingkai"} className="dash-chip px-3.5 rounded-[10px] text-[13px] font-medium" style={chip(style === "bingkai")}>
+                      </Button>
+                      <Button type="button" variant="secondary" onClick={() => setStyle("bingkai")} aria-pressed={style === "bingkai"} className="dash-chip px-3.5 rounded-[10px] text-[13px] font-medium" style={chip(style === "bingkai")}>
                         Bingkai 3Diner
-                      </button>
+                      </Button>
                     </div>
                   </fieldset>
 
@@ -426,14 +428,14 @@ export default function QrSmartMenu({ menuUrl, cafeName, slug }: QrSmartMenuProp
                       Warna QR
                     </legend>
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" onClick={() => setColor("navy")} aria-pressed={color === "navy"} className="dash-chip inline-flex items-center gap-2 px-3.5 rounded-[10px] text-[13px] font-medium" style={chip(color === "navy")}>
+                      <Button type="button" variant="secondary" onClick={() => setColor("navy")} aria-pressed={color === "navy"} className="dash-chip gap-2 px-3.5 rounded-[10px] text-[13px] font-medium" style={chip(color === "navy")}>
                         <span className="w-3 h-3 rounded-full shrink-0" style={{ background: NAVY, border: "1px solid rgba(255,255,255,0.25)" }} aria-hidden="true" />
                         Navy 3Diner
-                      </button>
-                      <button type="button" onClick={() => setColor("dark")} aria-pressed={color === "dark"} className="dash-chip inline-flex items-center gap-2 px-3.5 rounded-[10px] text-[13px] font-medium" style={chip(color === "dark")}>
+                      </Button>
+                      <Button type="button" variant="secondary" onClick={() => setColor("dark")} aria-pressed={color === "dark"} className="dash-chip gap-2 px-3.5 rounded-[10px] text-[13px] font-medium" style={chip(color === "dark")}>
                         <span className="w-3 h-3 rounded-full shrink-0" style={{ background: DARK, border: "1px solid rgba(255,255,255,0.25)" }} aria-hidden="true" />
                         Gelap Pekat
-                      </button>
+                      </Button>
                     </div>
                   </fieldset>
 
@@ -447,9 +449,8 @@ export default function QrSmartMenu({ menuUrl, cafeName, slug }: QrSmartMenuProp
                       <CheckRow checked={showScan} onChange={setShowScan} label={`Tampilkan teks "${SCAN_CAPTION}"`} />
                     </div>
                   </fieldset>
-                </div>
-              )}
-            </div>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         </div>
       </div>
