@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Download, FileSpreadsheet, FileText, Loader2, ChevronDown } from "lucide-react";
 import { getSalesExport, type SalesExportRow } from "@/lib/dashboard-actions";
-import { formatRupiah } from "@/lib/format";
+import { escapeHtml, formatRupiah } from "@/lib/format";
 
 function fmtDateTime(iso: string): string {
   const d = new Date(iso);
@@ -47,22 +47,26 @@ function downloadCsv(rows: SalesExportRow[], cafeName: string, start?: string, e
   URL.revokeObjectURL(url);
 }
 
-function printPdf(rows: SalesExportRow[], cafeName: string, start?: string, end?: string) {
+/** Laporan dirakit sebagai string HTML lalu ditulis via document.write ke
+ *  iframe same-origin — SEMUA teks yang disisipkan harus lewat escapeHtml.
+ *  table_number berasal dari POST /api/orders yang publik. */
+export function buildSalesReportHtml(rows: SalesExportRow[], cafeName: string, start?: string, end?: string): string {
   const totalSum = rows.reduce((n, r) => n + r.total, 0);
   const paidCount = rows.filter((r) => r.payment_status === "paid").length;
+  const cafe = escapeHtml(cafeName);
   const body = rows.map((r, i) => `
     <tr>
       <td class="num">${i + 1}</td>
-      <td>${fmtDateTime(r.created_at)}</td>
-      <td>${r.table_number}</td>
-      <td class="wrap">${r.items_summary || "-"}</td>
+      <td>${escapeHtml(fmtDateTime(r.created_at))}</td>
+      <td>${escapeHtml(String(r.table_number ?? ""))}</td>
+      <td class="wrap">${escapeHtml(String(r.items_summary ?? "")) || "-"}</td>
       <td class="num">${r.item_count}</td>
       <td class="num strong">${formatRupiah(r.total)}</td>
       <td>${PAY_LABEL[r.payment_method] ?? "-"}</td>
       <td>${r.payment_status === "paid" ? "Lunas" : "Belum"}</td>
     </tr>`).join("");
 
-  const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>Laporan Penjualan - ${cafeName}</title>
+  return `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>Laporan Penjualan - ${cafe}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#15233a;padding:32px 28px;font-size:12px}
@@ -86,7 +90,7 @@ function printPdf(rows: SalesExportRow[], cafeName: string, start?: string, end?
     @media print{ body{padding:0} @page{margin:14mm 12mm;size:A4} }
   </style></head><body>
     <div class="head">
-      <div><h1>${cafeName}</h1><div class="sub">Laporan Penjualan · ${rangeLabel(start, end)}</div></div>
+      <div><h1>${cafe}</h1><div class="sub">Laporan Penjualan · ${escapeHtml(rangeLabel(start, end))}</div></div>
       <div class="brand">3Diner POS<div style="color:#94a3b8;font-weight:500;margin-top:2px">Dicetak ${new Date().toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div></div>
     </div>
     <div class="cards">
@@ -99,8 +103,12 @@ function printPdf(rows: SalesExportRow[], cafeName: string, start?: string, end?
       <tbody>${body || `<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px">Tidak ada transaksi pada periode ini.</td></tr>`}</tbody>
       ${rows.length ? `<tfoot><tr><td colspan="5">TOTAL</td><td class="num">${formatRupiah(totalSum)}</td><td colspan="2"></td></tr></tfoot>` : ""}
     </table>
-    <div class="foot">Laporan dihasilkan otomatis oleh 3Diner · ${cafeName}</div>
+    <div class="foot">Laporan dihasilkan otomatis oleh 3Diner · ${cafe}</div>
   </body></html>`;
+}
+
+function printPdf(rows: SalesExportRow[], cafeName: string, start?: string, end?: string) {
+  const html = buildSalesReportHtml(rows, cafeName, start, end);
 
   const iframe = document.createElement("iframe");
   iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;opacity:0;";

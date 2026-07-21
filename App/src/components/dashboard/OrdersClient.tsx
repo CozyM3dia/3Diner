@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { updateOrderStatus } from "@/lib/dashboard-actions";
-import { formatRupiah } from "@/lib/format";
+import { escapeHtml, formatRupiah } from "@/lib/format";
 import {
   DashboardEmptyState,
   DashboardPanel,
@@ -47,7 +47,10 @@ const TABS: { v: Filter; l: string }[] = [
   { v: "ready", l: "Siap" },
 ];
 
-function buildReceiptHtml(order: OrderRow, cafeName: string): string {
+/** Struk dirakit sebagai string HTML lalu ditulis via document.write ke iframe
+ *  same-origin — SEMUA teks yang disisipkan harus lewat escapeHtml.
+ *  table_number dan notes berasal dari POST /api/orders yang publik. */
+export function buildReceiptHtml(order: OrderRow, cafeName: string): string {
   const date = new Date(order.created_at);
   const dateStr = date.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
   const timeStr = date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
@@ -69,7 +72,7 @@ function buildReceiptHtml(order: OrderRow, cafeName: string): string {
     const sub   = (it.harga_menu * it.qty).toLocaleString("id-ID");
     // name row + indent price row
     return `
-      <tr><td colspan="2" style="font-weight:600;padding-top:3px;">${it.qty}x ${it.nama_menu}</td></tr>
+      <tr><td colspan="2" style="font-weight:600;padding-top:3px;">${it.qty}x ${escapeHtml(String(it.nama_menu ?? ""))}</td></tr>
       <tr>
         <td style="padding-left:12px;font-size:10.5px;color:#333;">${it.qty} x Rp ${price}</td>
         <td style="text-align:right;font-weight:600;white-space:nowrap;">Rp ${sub}</td>
@@ -77,11 +80,13 @@ function buildReceiptHtml(order: OrderRow, cafeName: string): string {
   }).join("");
 
   const notesBlock = order.notes
-    ? `<div style="border:1px dashed #000;padding:4px 5px;margin:5px 0;font-size:10.5px;word-break:break-word;"><b>** CATATAN **</b><br>${order.notes}</div>`
+    ? `<div style="border:1px dashed #000;padding:4px 5px;margin:5px 0;font-size:10.5px;word-break:break-word;"><b>** CATATAN **</b><br>${escapeHtml(order.notes)}</div>`
     : "";
 
   const totalStr = order.total.toLocaleString("id-ID");
-  const orderId  = order.id_order.slice(-8).toUpperCase();
+  const orderId  = escapeHtml(order.id_order.slice(-8).toUpperCase());
+  const cafe     = escapeHtml(cafeName);
+  const table    = escapeHtml(String(order.table_number ?? ""));
 
   return `<!DOCTYPE html>
 <html>
@@ -122,13 +127,13 @@ function buildReceiptHtml(order: OrderRow, cafeName: string): string {
 </style>
 </head>
 <body>
-  <div class="cafe">${cafeName}</div>
+  <div class="cafe">${cafe}</div>
   <div class="sub">Powered by 3Diner POS</div>
   <div class="sep c">${D}</div>
-  <div class="meja">MEJA ${order.table_number}</div>
+  <div class="meja">MEJA ${table}</div>
   <div class="sep c">${S}</div>
   <div class="meta"><b>No.</b> <span>#${orderId}</span></div>
-  <div class="meta"><b>Tgl</b> <span>${dateStr} ${timeStr}</span></div>
+  <div class="meta"><b>Tgl</b> <span>${escapeHtml(dateStr)} ${escapeHtml(timeStr)}</span></div>
   <div class="meta"><b>Bayar</b> <span>${payLabel}</span></div>
   <div class="meta"><b>Status</b> <span class="status-paid">${statusLabel}</span></div>
   <div class="sep c">${D}</div>
