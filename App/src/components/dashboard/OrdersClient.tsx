@@ -253,6 +253,19 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [previewOrder, setPreviewOrder] = useState<OrderRow | null>(null);
 
+  // Dialog di-unmount begitu previewOrder null, jadi restore-focus bawaan Radix
+  // tidak sempat jalan — kembalikan fokus ke tombol pemicu sendiri
+  // (pola sama dengan InventoryTable).
+  const receiptTriggerRef = useRef<HTMLElement | null>(null);
+  const openReceipt = useCallback((order: OrderRow, trigger: HTMLElement) => {
+    receiptTriggerRef.current = trigger;
+    setPreviewOrder(order);
+  }, []);
+  const closeReceipt = useCallback(() => {
+    setPreviewOrder(null);
+    requestAnimationFrame(() => receiptTriggerRef.current?.focus());
+  }, []);
+
   // ── New-order alerts (sound + browser notification + Sonner toast) ──
   const [alertsOn, setAlertsOn] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -430,7 +443,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
   return (
     <>
       {previewOrder && (
-        <ReceiptModal order={previewOrder} cafeName={cafeName} onClose={() => setPreviewOrder(null)} />
+        <ReceiptModal order={previewOrder} cafeName={cafeName} onClose={closeReceipt} />
       )}
 
       {/* Filter tabs + alert toggle */}
@@ -520,7 +533,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
                 actions={
                   <>
                     <button
-                      onClick={() => setPreviewOrder(o)}
+                      onClick={(event) => openReceipt(o, event.currentTarget)}
                       className="dash-press p-1.5 rounded-lg transition-colors duration-150"
                       style={{ color: "var(--dash-muted)", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
                       title="Preview & Cetak Struk"

@@ -136,4 +136,17 @@ describe("OrdersClient system components", () => {
 
     portal.remove();
   });
+
+  it("returns focus to the print trigger after the receipt closes", async () => {
+    render(<OrdersClient initial={[order]} cafeId="cafe-1" cafeName="Senja Kopi" />);
+    const trigger = screen.getByRole("button", { name: "Preview & Cetak Struk" });
+    fireEvent.click(trigger);
+    await screen.findByRole("dialog");
+
+    // Dialog di-unmount saat ditutup, jadi restore-focus Radix tidak jalan —
+    // OrdersClient yang mengembalikan fokus (rAF).
+    fireEvent.click(screen.getByRole("button", { name: "Tutup preview struk" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
 });
