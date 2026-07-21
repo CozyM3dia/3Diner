@@ -85,9 +85,48 @@ Temuan review pasca hardening pass, semua sudah ditutup:
 5. **lint-current-2026-07-20.json untracked** -> di-commit bersama baseline
    pembandingnya.
 
-## Browser QA (390/768/1024/1280/1440)
+## Browser QA (390/768/1024/1280/1440) — DIJALANKAN 2026-07-20
 
-Dashboard butuh login owner — QA browser interaktif menunggu user login di
-Browser pane (`preview_start` name `3diner-app`, port 3000). Checklist yang
-akan dijalankan setelah login: overflow horizontal (JS check), keyboard pass
-per route, console bersih, reduced-motion.
+Owner login di Browser pane, QA dijalankan pada dev server `3diner-app`.
+
+**Overflow horizontal (JS: `scrollWidth - clientWidth`, offender di-filter agar
+node di dalam scroller tidak dihitung):**
+
+| Lebar | Route diuji | Hasil |
+|---|---|---|
+| 390 | 8 route (analytics, orders, menu, inventory, scheduler, settings, announcements, revenue) | 0px, 0 offender |
+| 768 | revenue, orders | 0px |
+| 1024 | orders (hamburger `display:none` = sidebar aktif) | 0px |
+| 1280 | inventory | 0px |
+| 1440 | inventory | 0px |
+
+**Dialog (portal-token + keyboard):**
+
+- Struk pesanan: `role=dialog` di dalam `#dash-portal-root` (class
+  `dash-portal-root`), judul benar, iframe ter-render, lebar 358px di 390.
+  Escape menutup, scroll lock lepas.
+- Atur Stok inventory: portal benar, fokus mendarat di `input[name=quantity]`,
+  Escape menutup, fokus balik ke tombol pemicu.
+
+**BUG DITEMUKAN + DIPERBAIKI:** setelah dialog struk ditutup, fokus mendarat di
+`<body>`, bukan kembali ke tombol printer. Penyebab: Dialog di-unmount begitu
+`previewOrder` null sehingga restore-focus bawaan Radix tidak sempat jalan, dan
+tombol printer bukan `DialogTrigger`. Fix: `returnFocusRef` + rAF (pola sama
+InventoryTable), commit `412aa13`, ditutup regression test. Diverifikasi ulang
+di browser: fokus kembali persis ke tombol pemicu.
+
+**Collapsible QR:** trigger `aria-expanded` false -> true, konten mount saat
+buka, keempat chip tinggi terukur 44px (bukan sekadar deklarasi).
+
+**Nama aksesibel:** orders 63 kontrol fokusable / 0 tanpa nama; inventory 16 / 0;
+settings 24 kontrol, satu-satunya elemen tanpa nama = 2 `input[type=file]`
+`class="hidden"` milik FileUpload (tidak fokusable, dipicu tombol berlabel).
+
+**Console + server log:** bersih. Catatan: server yang sudah lama idle
+mengakumulasi `TimeoutError` tanpa stack aplikasi; pada server fresh dengan
+page load yang sama, nol timeout — bukan berasal dari render halaman.
+
+**Reduced motion:** aturan `@media (prefers-reduced-motion: reduce)` diverifikasi
+ada di globals.css:514 (mematikan animation + transition + `.dash-reveal`).
+Media state ini TIDAK bisa diemulasi lewat tooling Browser pane yang tersedia,
+jadi verifikasi bersifat statis, bukan runtime.
