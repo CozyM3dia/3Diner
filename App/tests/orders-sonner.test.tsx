@@ -1,8 +1,21 @@
 // @vitest-environment jsdom
 import React from "react";
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import OrdersClient, { type OrderRow } from "../src/components/dashboard/OrdersClient";
+import { DASH_PORTAL_ID } from "../src/components/dashboard/system/portal";
+
+// jsdom tidak punya matchMedia — dibutuhkan Radix saat render Dialog.
+window.matchMedia = ((query: string) => ({
+  matches: false,
+  media: query,
+  onchange: null,
+  addEventListener: () => undefined,
+  removeEventListener: () => undefined,
+  addListener: () => undefined,
+  removeListener: () => undefined,
+  dispatchEvent: () => false,
+})) as unknown as typeof window.matchMedia;
 
 const sonnerMocks = vi.hoisted(() => ({
   custom: vi.fn(),
@@ -94,5 +107,33 @@ describe("OrdersClient Sonner migration", () => {
     channelState.statusCb!("SUBSCRIBED");
     expect(sonnerMocks.success).toHaveBeenCalledTimes(1);
     expect(sonnerMocks.success.mock.calls[0][1]).toMatchObject({ id: "realtime-status" });
+  });
+});
+
+describe("OrdersClient system components", () => {
+  afterEach(cleanup);
+
+  it("renders order status through the StatusBadge vocabulary", () => {
+    render(<OrdersClient initial={[order]} cafeId="cafe-1" cafeName="Senja Kopi" />);
+    // Kartu pesanan = DashboardPanel (<section>), status = StatusBadge kind order-received.
+    const card = screen.getByText("Meja 7").closest("section");
+    expect(card).toBeTruthy();
+    expect(within(card as HTMLElement).getByText("Baru")).toBeTruthy();
+  });
+
+  it("opens the receipt in a Dialog mounted inside the dashboard portal root", async () => {
+    const portal = document.createElement("div");
+    portal.id = DASH_PORTAL_ID;
+    document.body.appendChild(portal);
+
+    render(<OrdersClient initial={[order]} cafeId="cafe-1" cafeName="Senja Kopi" />);
+    fireEvent.click(screen.getByRole("button", { name: "Preview & Cetak Struk" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog.textContent).toContain("Preview Struk · Meja 7");
+    // Aturan portal-token: konten portal dashboard tidak boleh mendarat di body.
+    expect(portal.contains(dialog)).toBe(true);
+
+    portal.remove();
   });
 });
