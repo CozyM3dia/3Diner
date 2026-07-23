@@ -250,7 +250,6 @@ export default function MenuForm({ menu, inventoryItems = [], recipes = [], onSa
           onChange={setImageUrl}
         />
         <Tripo3DGenerator
-          imageUrl={imageUrl}
           menuName={nama}
           onDone={(glb, usdz) => {
             setGeneratedGlb(glb);
