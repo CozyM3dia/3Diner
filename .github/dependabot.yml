@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /App
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      # One PR per family instead of a dozen — react/next/three/radix all
+      # need to move together anyway.
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      next:
+        patterns: ["next", "eslint-config-next", "@ducanh2912/next-pwa"]
+      three:
+        patterns: ["three", "@types/three", "@mkkellogg/*", "@gltf-transform/*", "draco3dgltf"]
+      radix:
+        patterns: ["radix-ui", "lucide-react", "class-variance-authority", "clsx", "tailwind-merge"]
+      tooling:
+        patterns: ["typescript", "eslint", "vitest", "jsdom", "@testing-library/*", "tailwindcss", "@tailwindcss/*"]
+    ignore:
+      # Majors land through a deliberate upgrade PR, not automation —
+      # this repo pins Next and React exactly.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
