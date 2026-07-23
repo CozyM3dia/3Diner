@@ -22,12 +22,21 @@ function rangeLabel(start?: string, end?: string): string {
 const PAY_LABEL: Record<string, string> = { qris: "QRIS", cash: "Tunai" };
 const STATUS_LABEL: Record<string, string> = { received: "Baru", preparing: "Diproses", ready: "Siap" };
 
-function csvCell(v: string | number): string {
-  const s = String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+/** Excel & Google Sheets mengeksekusi sel teks yang diawali =, +, -, @, tab,
+ *  atau CR sebagai formula saat file dibuka. table_number dan items_summary
+ *  berasal dari POST /api/orders yang publik, jadi sel seperti itu diawali
+ *  apostrof agar dibaca sebagai teks biasa. Angka dilewati supaya total
+ *  negatif tetap jadi angka di spreadsheet. */
+const CSV_FORMULA_START = /^[=+\-@\t\r]/;
+
+export function csvCell(v: string | number): string {
+  if (typeof v === "number") return String(v);
+  const guarded = CSV_FORMULA_START.test(v) ? `'${v}` : v;
+  if (guarded !== v || /[",\n]/.test(guarded)) return `"${guarded.replace(/"/g, '""')}"`;
+  return guarded;
 }
 
-function downloadCsv(rows: SalesExportRow[], cafeName: string, start?: string, end?: string) {
+export function buildSalesCsv(rows: SalesExportRow[], cafeName: string, start?: string, end?: string): string {
   const header = ["No. Pesanan", "Tanggal", "Meja", "Item", "Jumlah Item", "Total (Rp)", "Metode Bayar", "Status Bayar", "Status Pesanan"];
   const lines = rows.map((r) => [
     r.id_order, fmtDateTime(r.created_at), r.table_number, r.items_summary,
@@ -36,8 +45,11 @@ function downloadCsv(rows: SalesExportRow[], cafeName: string, start?: string, e
   ].map(csvCell).join(","));
   const totalSum = rows.reduce((n, r) => n + r.total, 0);
   const meta = [`${cafeName} - Laporan Penjualan`, `Periode: ${rangeLabel(start, end)}`, `Total transaksi: ${rows.length}`, `Total pendapatan: ${totalSum}`, ""];
-  const csv = "﻿" + [...meta.map((m) => csvCell(m)), header.join(","), ...lines].join("\n");
+  return "﻿" + [...meta.map((m) => csvCell(m)), header.join(","), ...lines].join("\n");
+}
 
+function downloadCsv(rows: SalesExportRow[], cafeName: string, start?: string, end?: string) {
+  const csv = buildSalesCsv(rows, cafeName, start, end);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
