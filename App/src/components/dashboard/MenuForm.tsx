@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Loader2, Trash2, Save, AlertCircle, Clock, Flame, ScanLine, ShoppingBag, ImageOff, Sparkles } from "lucide-react";
 import type { InventoryItem, Menu, MenuRecipe } from "@/types";
 import { saveMenuRecipes, type ActionResult, type RecipeDraftInput } from "@/lib/dashboard-actions";
@@ -394,8 +395,7 @@ export default function MenuForm({ menu, inventoryItems = [], recipes = [], onSa
         {/* Dish image */}
         <div className="relative w-full" style={{ height: 188, background: "#0A1F40" }}>
           {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt="" className="w-full h-full object-cover transition-all duration-300" />
+            <Image src={imageUrl} alt="" fill className="object-cover transition-all duration-300" sizes="(max-width: 768px) 100vw, 50vw" />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ color: "#3B557C" }}>
               <ImageOff size={26} strokeWidth={1.4} />
