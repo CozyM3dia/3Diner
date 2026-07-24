@@ -26,6 +26,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "QRIS sudah dibuat" }, { status: 409 });
     }
 
+    // Atomically claim the order before calling Midtrans — prevents concurrent
+    // double-charge when two requests both read "unpaid" at the same time.
+    const { error: claimError } = await supabaseAdmin
+      .from("Orders")
+      .update({ payment_status: "pending" })
+      .eq("id_order", order.id_order)
+      .eq("payment_status", "unpaid");
+    if (claimError) {
+      return NextResponse.json({ error: "QRIS sudah dibuat" }, { status: 409 });
+    }
+
     const serverKey = process.env.MIDTRANS_SERVER_KEY;
     if (!serverKey) return NextResponse.json({ error: "Pembayaran belum dikonfigurasi" }, { status: 503 });
     const isProduction = process.env.MIDTRANS_IS_PRODUCTION === "true";
@@ -39,7 +50,7 @@ export async function POST(req: Request) {
         order_id: order.id_order,
         gross_amount: order.total,
       },
-      item_details: (order.items as { id_menu: string; harga_menu: number; qty: number; nama_menu: string }[]).map((it) => ({
+      item_details: (Array.isArray(order.items) ? order.items as { id_menu: string; harga_menu: number; qty: number; nama_menu: string }[] : []).map((it) => ({
         id: it.id_menu,
         price: it.harga_menu,
         quantity: it.qty,
@@ -59,6 +70,12 @@ export async function POST(req: Request) {
     const data = await res.json();
 
     if (!res.ok || parseInt(data.status_code ?? "200") >= 400) {
+      // Midtrans rejected — revert claim so customer can retry
+      await supabaseAdmin
+        .from("Orders")
+        .update({ payment_status: "unpaid" })
+        .eq("id_order", order.id_order)
+        .eq("payment_status", "pending");
       return NextResponse.json(
         { error: data.status_message ?? "Midtrans error" },
         { status: 400 }
@@ -67,9 +84,8 @@ export async function POST(req: Request) {
 
     const { error: updateError } = await supabaseAdmin
       .from("Orders")
-      .update({ payment_method: "qris", payment_status: "pending" })
-      .eq("id_order", order.id_order)
-      .eq("payment_status", "unpaid");
+      .update({ payment_method: "qris" })
+      .eq("id_order", order.id_order);
     if (updateError) {
       return NextResponse.json({ error: "Gagal memperbarui pesanan" }, { status: 502 });
     }

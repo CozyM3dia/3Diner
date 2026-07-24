@@ -62,7 +62,9 @@ export function verifyMidtransSignature(
     )
     .digest("hex");
 
-  if (notification.signature_key.length !== expected.length) return false;
+  const sigBuf = Buffer.from(notification.signature_key);
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length) return false;
 
-  return timingSafeEqual(Buffer.from(notification.signature_key), Buffer.from(expected));
+  return timingSafeEqual(sigBuf, expBuf);
 }
