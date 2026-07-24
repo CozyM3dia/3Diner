@@ -3,8 +3,6 @@ import InventoryWorkspace from "@/components/dashboard/InventoryWorkspace";
 import { getDashboardCafeContext } from "@/lib/dashboard-context";
 import { getDashboardInventoryDataForSlug } from "@/lib/dashboard-inventory";
 
-export const dynamic = "force-dynamic";
-
 export default async function InventoryPage() {
   const { userId, slug } = await getDashboardCafeContext();
   if (!userId) redirect("/login");

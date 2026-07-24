@@ -8,8 +8,6 @@ import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { InventoryItem } from "@/types";
 
-export const dynamic = "force-dynamic";
-
 export default async function NewMenuPage() {
   const supabase = await createClient();
   const {
