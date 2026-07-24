@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAuthCafeId } from "@/lib/dashboard-actions";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -71,6 +72,11 @@ function stripFences(text: string): string {
 
 export async function POST(req: Request) {
   try {
+    // Rute ini membakar kuota GEMINI_API_KEY milik server dan hanya dipakai
+    // dari dashboard pemilik, jadi gerbang sesi didahulukan seperti rute Tripo.
+    const cafeId = await getAuthCafeId();
+    if (!cafeId) return NextResponse.json({ error: "Sesi tidak valid. Masuk ulang." }, { status: 401 });
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "GEMINI_API_KEY belum dikonfigurasi di server." }, { status: 500 });

@@ -61,7 +61,7 @@ export async function createImageToModelTask(imageUrl: string): Promise<string> 
       pbr: true,
       // Bandwidth diet: 2K textures, capped geometry, meshopt-compressed GLB.
       // Raw output was ~500k tris / 14MB uncompressed.
-      texture_quality: "standard",
+      texture_quality: "detailed",
       face_limit: 150000,
       compress: "geometry",
     }),

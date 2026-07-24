@@ -64,14 +64,6 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
-      // Static 3D model files — perlu CORP agar bisa di-fetch oleh Web Workers
-      {
-        source: "/models/:file*",
-        headers: [
-          { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
-          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
-        ],
-      },
       // App pages — COOP untuk isolasi window
       {
         source: "/(.*)",

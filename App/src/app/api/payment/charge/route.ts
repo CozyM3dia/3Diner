@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
+
+/** Tiap panggilan yang lolos membuat transaksi Midtrans, jadi batasnya lebih
+ *  ketat daripada pembuatan pesanan. */
+const CHARGE_PER_IP = { limit: 6, windowSeconds: 60 };
 
 export async function POST(req: Request) {
   try {
@@ -11,6 +16,13 @@ export async function POST(req: Request) {
     if (typeof orderId !== "string" || typeof orderToken !== "string" || !orderId || !orderToken) {
       return NextResponse.json({ error: "Data pesanan tidak valid" }, { status: 400 });
     }
+
+    const limit = await consumeRateLimit(
+      `charge:ip:${clientIp(req)}`,
+      CHARGE_PER_IP.limit,
+      CHARGE_PER_IP.windowSeconds
+    );
+    if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("Orders")

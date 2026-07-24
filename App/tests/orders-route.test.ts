@@ -51,7 +51,9 @@ describe("POST /api/orders", () => {
       p_items: [{ id_menu: "menu-1", qty: 2 }],
       p_notes: "Tanpa acar",
     });
-    expect(rpc).toHaveBeenCalledTimes(1);
+    // Rute juga memanggil consume_rate_limit lewat spy yang sama, jadi yang
+    // dijaga di sini adalah pesanan dibuat tepat sekali — bukan total panggilan.
+    expect(rpc.mock.calls.filter(([fn]) => fn === "create_order_with_inventory")).toHaveLength(1);
   });
 
   it.each([

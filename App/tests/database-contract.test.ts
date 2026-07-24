@@ -9,6 +9,10 @@ const inventoryMigrationPath = new URL(
   "../migrations/2026-07-15_inventory_core.sql",
   import.meta.url
 );
+const rateLimitMigrationPath = new URL(
+  "../migrations/2026-07-23_rate_limits.sql",
+  import.meta.url
+);
 
 describe("security migration", () => {
   it("removes anonymous Orders policies and adds order token support", () => {
@@ -127,5 +131,43 @@ describe("inventory core migration", () => {
     expect(sql).toContain(
       "grant execute on function public.replace_menu_recipes(uuid, uuid, jsonb) to service_role"
     );
+  });
+});
+
+describe("rate limit migration", () => {
+  it("stores counters in Postgres so they are shared across function instances", () => {
+    const sql = readFileSync(rateLimitMigrationPath, "utf8");
+
+    expect(sql).toContain('create table if not exists public."Rate_Limits"');
+    expect(sql).toContain("bucket_key text primary key");
+    expect(sql).toContain("create or replace function public.consume_rate_limit");
+    expect(sql).toContain("on conflict (bucket_key) do update");
+    expect(sql).toContain("security definer");
+    expect(sql).toContain("set search_path = public");
+  });
+
+  it("keeps the counter table and its RPCs off the public API surface", () => {
+    const sql = readFileSync(rateLimitMigrationPath, "utf8");
+
+    expect(sql).toContain('alter table public."Rate_Limits" enable row level security');
+    expect(sql).toContain(
+      'revoke all on table public."Rate_Limits" from public, anon, authenticated'
+    );
+    expect(sql).toContain(
+      "revoke all on function public.consume_rate_limit(text, integer, integer) from public, anon, authenticated"
+    );
+    expect(sql).toContain(
+      "grant execute on function public.consume_rate_limit(text, integer, integer) to service_role"
+    );
+    expect(sql).not.toContain(
+      "grant execute on function public.consume_rate_limit(text, integer, integer) to anon"
+    );
+  });
+
+  it("provides a pruner so the counter table does not grow without bound", () => {
+    const sql = readFileSync(rateLimitMigrationPath, "utf8");
+
+    expect(sql).toContain("create or replace function public.prune_rate_limits");
+    expect(sql).toContain('create index if not exists "Rate_Limits_window_start_idx"');
   });
 });
