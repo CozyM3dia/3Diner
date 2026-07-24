@@ -258,11 +258,7 @@ export async function getRevenueData(
   startDate?: string,
   endDate?: string
 ): Promise<RevenueData | null> {
-  const { data: cafe } = await supabaseAdmin
-    .from("Cafes")
-    .select("id_cafe")
-    .eq("slug_url", slug)
-    .single();
+  const cafe = await getCafeBySlug(slug);
   if (!cafe) return null;
 
   let query = supabaseAdmin

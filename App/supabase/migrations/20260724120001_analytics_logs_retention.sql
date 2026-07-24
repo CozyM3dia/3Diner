@@ -9,6 +9,10 @@ AS $$
   DELETE FROM "Analytics_Logs" WHERE created_at < NOW() - INTERVAL '90 days';
 $$;
 
+-- Unschedule first to ensure idempotent re-runs (supabase db reset, etc.)
+SELECT cron.unschedule('delete-old-analytics-logs')
+WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'delete-old-analytics-logs');
+
 -- Schedule daily at 03:00 UTC.
 SELECT cron.schedule(
   'delete-old-analytics-logs',
