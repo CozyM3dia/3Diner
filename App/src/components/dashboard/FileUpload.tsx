@@ -112,7 +112,7 @@ export default function FileUpload({ name, kind, label, accept, hint, variant = 
         >
           {variant === "image" ? (
             <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0" style={{ background: "#0D1829" }}>
-              <Image src={url} alt="" width={48} height={48} className="w-full h-full object-cover" unoptimized />
+              <Image src={url} alt="" width={48} height={48} className="w-full h-full object-cover" />
             </div>
           ) : (
             <span className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(0,194,168,0.12)", color: "#00C2A8" }}>
