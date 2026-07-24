@@ -359,7 +359,7 @@ function QrisView({
           {/* QR image with scan animation */}
           <div className="relative rounded-xl overflow-hidden" style={{ background: "#fff", padding: "8px" }}>
             {qrUrl ? (
-              <Image src={qrUrl} alt="Kode QRIS pembayaran" width={240} height={240} className="w-full h-auto block" />
+              <Image src={qrUrl} alt="Kode QRIS pembayaran" width={240} height={240} unoptimized className="w-full h-auto block" />
             ) : (
               <div className="w-full aspect-square skeleton rounded-lg" />
             )}

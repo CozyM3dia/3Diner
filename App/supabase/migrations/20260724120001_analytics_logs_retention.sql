@@ -1,5 +1,7 @@
 -- Retain 90 days of analytics logs; older rows are operational noise.
 -- Requires pg_cron extension: Supabase Dashboard → Database → Extensions → pg_cron.
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
 CREATE OR REPLACE FUNCTION delete_old_analytics_logs()
 RETURNS void
 LANGUAGE sql
