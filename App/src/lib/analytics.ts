@@ -45,6 +45,23 @@ export const getSessionUserId = cache(async (): Promise<string | null> => {
   return user?.id ?? null;
 });
 
+export interface CafeRow {
+  id_cafe: string;
+  nama_cafe: string;
+  slug_url: string;
+  logo_url: string | null;
+}
+
+/** Cached slug → CafeRow lookup. Dedupes within one render pass via React cache(). */
+export const getCafeBySlug = cache(async (slug: string): Promise<CafeRow | null> => {
+  const { data } = await supabaseAdmin
+    .from("Cafes")
+    .select("id_cafe, nama_cafe, slug_url, logo_url")
+    .eq("slug_url", slug)
+    .single();
+  return (data as CafeRow | null) ?? null;
+});
+
 /** Find the slug of the cafe owned by a given auth user (or null).
  *  Wrapped in React cache() so layout + page in the same request dedupe to one query. */
 export const getOwnerCafeSlug = cache(async (ownerId: string): Promise<string | null> => {
@@ -62,12 +79,7 @@ export async function getDashboardData(
   startDate?: string,
   endDate?: string
 ): Promise<DashboardData | null> {
-  const { data: cafe } = await supabaseAdmin
-    .from("Cafes")
-    .select("id_cafe, nama_cafe, slug_url")
-    .eq("slug_url", slug)
-    .single();
-
+  const cafe = await getCafeBySlug(slug);
   if (!cafe) return null;
 
   // Compute effective query window
