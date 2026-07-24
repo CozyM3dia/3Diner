@@ -1,7 +1,8 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { getOwnerCafeSlug } from "@/lib/analytics";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getOwnerCafeSlug, getCafeBySlug } from "@/lib/analytics";
+
+export type { CafeRow } from "@/lib/analytics";
 
 export interface DashboardCafeContext {
   userId: string | null;
@@ -34,17 +35,13 @@ export const getDashboardCafeContext = cache(async (): Promise<DashboardCafeCont
   const slug = await getOwnerCafeSlug(user.id);
   if (!slug) return { ...EMPTY, userId: user.id };
 
-  const { data } = await supabaseAdmin
-    .from("Cafes")
-    .select("id_cafe, nama_cafe, logo_url, slug_url")
-    .eq("slug_url", slug)
-    .single();
+  const cafe = await getCafeBySlug(slug);
 
   return {
     userId: user.id,
     slug,
-    cafeId: (data?.id_cafe as string | undefined) ?? null,
-    cafeName: (data?.nama_cafe as string | undefined) ?? null,
-    logoUrl: (data?.logo_url as string | null | undefined) ?? null,
+    cafeId: cafe?.id_cafe ?? null,
+    cafeName: cafe?.nama_cafe ?? null,
+    logoUrl: cafe?.logo_url ?? null,
   };
 });

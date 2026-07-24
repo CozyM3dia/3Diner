@@ -8,8 +8,6 @@ import { getOwnerCafeSlug } from "@/lib/analytics";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { InventoryItem, Menu, MenuRecipe } from "@/types";
 
-export const dynamic = "force-dynamic";
-
 export default async function EditMenuPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();

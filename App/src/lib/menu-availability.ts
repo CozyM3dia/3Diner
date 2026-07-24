@@ -11,7 +11,10 @@ export function isMenuAvailableNow(menu: Menu, now: Date = new Date()): boolean 
   // Day filter — schedule_days is comma list of ISO weekdays (1=Mon..7=Sun)
   const days = (menu.schedule_days ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   if (days.length > 0) {
-    const isoDay = now.getDay() === 0 ? 7 : now.getDay();
+    const wibDay = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[
+      new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jakarta", weekday: "short" }).format(now)
+    ] ?? 0;
+    const isoDay = wibDay === 0 ? 7 : wibDay;
     if (!days.includes(String(isoDay))) return false;
   }
 
@@ -19,7 +22,9 @@ export function isMenuAvailableNow(menu: Menu, now: Date = new Date()): boolean 
   const start = menu.schedule_start?.trim();
   const end = menu.schedule_end?.trim();
   if (start && end) {
-    const cur = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const wibH = parseInt(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jakarta", hour: "numeric", hour12: false, hourCycle: "h23" }).format(now), 10);
+    const wibM = parseInt(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jakarta", minute: "numeric" }).format(now), 10);
+    const cur = `${String(wibH).padStart(2, "0")}:${String(wibM).padStart(2, "0")}`;
     if (start <= end) {
       // same-day window, e.g. 08:00–22:00
       if (cur < start || cur > end) return false;

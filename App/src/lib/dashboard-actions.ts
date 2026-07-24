@@ -232,11 +232,16 @@ export async function getSalesExport(
     .select("id_order, created_at, table_number, items, total, payment_method, payment_status, status")
     .eq("cafe_id", cafe.id_cafe)
     .order("created_at", { ascending: false });
-  if (start) q = q.gte("created_at", new Date(start).toISOString());
+  if (start) {
+    const startMs = new Date(start).getTime();
+    if (!isNaN(startMs)) q = q.gte("created_at", new Date(startMs).toISOString());
+  }
   if (end) {
     const e = new Date(end);
-    e.setHours(23, 59, 59, 999);
-    q = q.lte("created_at", e.toISOString());
+    if (!isNaN(e.getTime())) {
+      e.setHours(23, 59, 59, 999);
+      q = q.lte("created_at", e.toISOString());
+    }
   }
 
   const { data, error } = await q.limit(2000);

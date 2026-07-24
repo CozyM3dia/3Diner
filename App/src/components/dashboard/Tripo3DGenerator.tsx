@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { Loader2, Wand2, AlertCircle, CheckCircle2, ImageOff } from "lucide-react";
 
 type Phase = "idle" | "starting" | "generating" | "saving" | "converting" | "done" | "error";
@@ -149,8 +150,7 @@ export default function Tripo3DGenerator({ imageUrl, menuName, onDone }: Tripo3D
     >
       <div className="flex items-center gap-3">
         {preview ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt="Preview model" className="w-12 h-12 rounded-lg object-cover shrink-0" style={{ background: "#0D1829" }} />
+          <Image src={preview} alt="Preview model" width={48} height={48} unoptimized className="w-12 h-12 rounded-lg object-cover shrink-0" style={{ background: "#0D1829" }} />
         ) : (
           <span className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(0,194,168,0.12)", color: "#00C2A8" }}>
             {busy ? <Loader2 size={20} className="animate-spin" /> : phase === "done" ? <CheckCircle2 size={20} /> : <Wand2 size={20} />}

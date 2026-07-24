@@ -11,6 +11,19 @@ function sinceDays(n: number): string {
   return d.toISOString();
 }
 
+const WIB = "Asia/Jakarta";
+// Returns "YYYY-MM-DD" in WIB timezone for a UTC ISO timestamp.
+const wibDateKey = (ts: string): string =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: WIB }).format(new Date(ts));
+// Returns 0-23 (WIB hour) for a UTC ISO timestamp.
+const wibHour = (ts: string): number =>
+  parseInt(new Intl.DateTimeFormat("en-US", { timeZone: WIB, hour: "numeric", hour12: false, hourCycle: "h23" }).format(new Date(ts)), 10);
+// Returns 0=Mon..6=Sun (WIB weekday) for a UTC ISO timestamp.
+const wibWeekday = (ts: string): number =>
+  ({ Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 } as Record<string, number>)[
+    new Intl.DateTimeFormat("en-US", { timeZone: WIB, weekday: "short" }).format(new Date(ts))
+  ] ?? 0;
+
 export interface DashboardData {
   cafe: { nama_cafe: string; slug_url: string };
   totals: Record<EventType, number>;
@@ -45,6 +58,23 @@ export const getSessionUserId = cache(async (): Promise<string | null> => {
   return user?.id ?? null;
 });
 
+export interface CafeRow {
+  id_cafe: string;
+  nama_cafe: string;
+  slug_url: string;
+  logo_url: string | null;
+}
+
+/** Cached slug → CafeRow lookup. Dedupes within one render pass via React cache(). */
+export const getCafeBySlug = cache(async (slug: string): Promise<CafeRow | null> => {
+  const { data } = await supabaseAdmin
+    .from("Cafes")
+    .select("id_cafe, nama_cafe, slug_url, logo_url")
+    .eq("slug_url", slug)
+    .single();
+  return (data as CafeRow | null) ?? null;
+});
+
 /** Find the slug of the cafe owned by a given auth user (or null).
  *  Wrapped in React cache() so layout + page in the same request dedupe to one query. */
 export const getOwnerCafeSlug = cache(async (ownerId: string): Promise<string | null> => {
@@ -62,12 +92,7 @@ export async function getDashboardData(
   startDate?: string,
   endDate?: string
 ): Promise<DashboardData | null> {
-  const { data: cafe } = await supabaseAdmin
-    .from("Cafes")
-    .select("id_cafe, nama_cafe, slug_url")
-    .eq("slug_url", slug)
-    .single();
-
+  const cafe = await getCafeBySlug(slug);
   if (!cafe) return null;
 
   // Compute effective query window
@@ -109,7 +134,7 @@ export async function getDashboardData(
   const cur = new Date(startDay);
   let dCount = 0;
   while (cur <= endDay && dCount < 366) {
-    dayBuckets.set(cur.toISOString().slice(0, 10), 0);
+    dayBuckets.set(wibDateKey(cur.toISOString()), 0);
     cur.setDate(cur.getDate() + 1);
     dCount++;
   }
@@ -129,14 +154,13 @@ export async function getDashboardData(
     perDish.set(id, dish);
 
     const ts = new Date(log.created_at as string);
-    const dayKey = (log.created_at as string).slice(0, 10);
+    const dayKey = wibDateKey(log.created_at as string);
     if (dayBuckets.has(dayKey)) dayBuckets.set(dayKey, (dayBuckets.get(dayKey) ?? 0) + 1);
 
-    const h = ts.getHours();
+    const h = wibHour(log.created_at as string);
     if (h >= 0 && h < 24) hourly[h]++;
 
-    const wd = ts.getDay() === 0 ? 6 : ts.getDay() - 1; // Mon=0..Sun=6
-    weekday[wd]++;
+    weekday[wibWeekday(log.created_at as string)]++;
 
     const age = now - ts.getTime();
     if (type in totals) {
@@ -246,11 +270,7 @@ export async function getRevenueData(
   startDate?: string,
   endDate?: string
 ): Promise<RevenueData | null> {
-  const { data: cafe } = await supabaseAdmin
-    .from("Cafes")
-    .select("id_cafe")
-    .eq("slug_url", slug)
-    .single();
+  const cafe = await getCafeBySlug(slug);
   if (!cafe) return null;
 
   let query = supabaseAdmin
@@ -296,7 +316,7 @@ export async function getRevenueData(
   const cur = new Date(startDay);
   let count = 0;
   while (cur <= endDay && count < 366) {
-    dayBuckets.set(cur.toISOString().slice(0, 10), 0);
+    dayBuckets.set(wibDateKey(cur.toISOString()), 0);
     cur.setDate(cur.getDate() + 1);
     count++;
   }
@@ -324,7 +344,7 @@ export async function getRevenueData(
       paymentCounts.cash++;
     }
 
-    const dayKey = (o.created_at as string).slice(0, 10);
+    const dayKey = wibDateKey(o.created_at as string);
     if (dayBuckets.has(dayKey)) dayBuckets.set(dayKey, (dayBuckets.get(dayKey) ?? 0) + total);
 
     const age = now - new Date(o.created_at as string).getTime();

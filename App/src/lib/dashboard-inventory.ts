@@ -1,4 +1,4 @@
-import { getOwnerCafeSlug } from "@/lib/analytics";
+import { getOwnerCafeSlug, getCafeBySlug } from "@/lib/analytics";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { InventoryItem, InventoryMovement } from "@/types";
 
@@ -48,14 +48,10 @@ export async function getDashboardInventoryDataForSlug(slug: string | null): Pro
     return { ...empty, failedLoads: ["profil kafe"] };
   }
 
-  const { data: cafe, error: cafeError } = await supabaseAdmin
-    .from("Cafes")
-    .select("id_cafe")
-    .eq("slug_url", slug)
-    .single();
+  const cafe = await getCafeBySlug(slug);
 
-  const cafeId = cafe?.id_cafe as string | undefined;
-  if (cafeError || !cafeId) {
+  const cafeId = cafe?.id_cafe;
+  if (!cafeId) {
     return { ...empty, failedLoads: ["profil kafe"] };
   }
 

@@ -26,7 +26,6 @@ import WeekdayBars from "@/components/dashboard/WeekdayBars";
 import InventoryWorkspace from "@/components/dashboard/InventoryWorkspace";
 
 export const metadata: Metadata = { title: "Analitik · Dashboard | 3Diner" };
-export const dynamic = "force-dynamic";
 
 const EVENT_LABEL: Record<EventType, string> = {
   click_menu: "Buka menu",

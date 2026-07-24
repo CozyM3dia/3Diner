@@ -7,8 +7,6 @@ import MenuTable from "@/components/dashboard/MenuTable";
 import MenuExtractor from "@/components/dashboard/MenuExtractor";
 import type { Menu } from "@/types";
 
-export const dynamic = "force-dynamic";
-
 type MenuInventoryState = "none" | "ready" | "low";
 type MenuRecipeRow = {
   menu_id: string;

@@ -3,8 +3,6 @@ import { getDashboardCafeContext } from "@/lib/dashboard-context";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import OrdersClient, { type OrderRow } from "@/components/dashboard/OrdersClient";
 
-export const dynamic = "force-dynamic";
-
 export default async function OrdersPage() {
   const { userId, cafeId, cafeName } = await getDashboardCafeContext();
   if (!userId) redirect("/login");

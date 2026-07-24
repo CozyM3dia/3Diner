@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getCafeBySlug } from "@/lib/analytics";
 
 export interface TodayOps {
   /** Total omzet pesanan yang dibuat hari ini (WIB) */
@@ -25,12 +26,8 @@ export function startOfTodayWIB(now = new Date()): string {
 export async function getTodayOps(slug: string | null): Promise<TodayOps> {
   if (!slug) return EMPTY;
 
-  const { data: cafe } = await supabaseAdmin
-    .from("Cafes")
-    .select("id_cafe")
-    .eq("slug_url", slug)
-    .single();
-  const cafeId = cafe?.id_cafe as string | undefined;
+  const cafe = await getCafeBySlug(slug);
+  const cafeId = cafe?.id_cafe;
   if (!cafeId) return EMPTY;
 
   const [todayResult, activeResult] = await Promise.all([

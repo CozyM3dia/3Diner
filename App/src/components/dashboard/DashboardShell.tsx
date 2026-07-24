@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LazyMotion, domAnimation } from "framer-motion";
 import {
   BarChart3,
   Wallet,
@@ -159,8 +158,7 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
   );
 
   return (
-    <LazyMotion features={domAnimation} strict>
-      <TooltipProvider delayDuration={300}>
+    <TooltipProvider delayDuration={300}>
         <div className="dash-root min-h-dvh flex" style={{ background: "var(--dash-canvas)", fontFamily: POPPINS }}>
           {/* Desktop sidebar */}
           <aside
@@ -232,6 +230,5 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
           <div id={DASH_PORTAL_ID} className="dash-portal-root" />
         </div>
       </TooltipProvider>
-    </LazyMotion>
   );
 }

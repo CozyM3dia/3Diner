@@ -5,8 +5,6 @@ import AnnouncementForm from "@/components/dashboard/AnnouncementForm";
 import { DashboardPageHeader } from "@/components/dashboard/system";
 import type { Announcement } from "@/types";
 
-export const dynamic = "force-dynamic";
-
 export default async function AnnouncementsPage() {
   const { userId, cafeId } = await getDashboardCafeContext();
   if (!userId) redirect("/login");

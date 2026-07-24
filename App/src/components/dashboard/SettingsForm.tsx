@@ -120,8 +120,7 @@ export default function SettingsForm({ cafe }: { cafe: Cafe }) {
         {/* Cover */}
         <div className="relative w-full" style={{ height: 150 }}>
           {coverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverUrl} alt="" className="absolute inset-0 w-full h-full object-cover transition-all duration-300" />
+            <Image src={coverUrl} alt="" fill className="object-cover transition-all duration-300" sizes="(max-width: 768px) 100vw, 800px" />
           ) : (
             <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #0A3A78, #022C60 55%, #002355)" }} />
           )}
@@ -135,8 +134,7 @@ export default function SettingsForm({ cafe }: { cafe: Cafe }) {
         <div className="px-4" style={{ marginTop: -28 }}>
           <span className="relative z-10 w-16 h-16 rounded-2xl overflow-hidden inline-flex items-center justify-center" style={{ background: "#FDFDFD", boxShadow: "0 10px 28px rgba(0,0,0,0.45)" }}>
             {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt="" className="w-full h-full object-cover" />
+              <Image src={logoUrl} alt="" fill className="object-cover" sizes="80px" />
             ) : (
               <Image src="/brand/logo-3diner-mark.svg" alt="" width={30} height={30} className="object-contain" />
             )}

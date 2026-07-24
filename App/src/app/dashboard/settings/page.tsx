@@ -6,8 +6,6 @@ import QrSmartMenu from "@/components/dashboard/QrSmartMenu";
 import SettingsForm from "@/components/dashboard/SettingsForm";
 import type { Cafe } from "@/types";
 
-export const dynamic = "force-dynamic";
-
 export default async function SettingsPage() {
   const { userId, slug } = await getDashboardCafeContext();
   if (!userId) redirect("/login");

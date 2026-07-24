@@ -17,7 +17,6 @@ import {
 } from "@/components/dashboard/system";
 
 export const metadata: Metadata = { title: "Penjualan · Dashboard | 3Diner" };
-export const dynamic = "force-dynamic";
 
 function relTime(iso: string): string {
   const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);

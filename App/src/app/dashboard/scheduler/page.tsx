@@ -5,8 +5,6 @@ import SchedulerClient from "@/components/dashboard/SchedulerClient";
 import { DashboardPageHeader } from "@/components/dashboard/system";
 import type { Menu } from "@/types";
 
-export const dynamic = "force-dynamic";
-
 export default async function SchedulerPage() {
   const { userId, cafeId } = await getDashboardCafeContext();
   if (!userId) redirect("/login");

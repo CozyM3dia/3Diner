@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { UploadCloud, Loader2, X, ImageIcon, Box, CheckCircle2, AlertCircle } from "lucide-react";
 import { createMediaUploadUrl } from "@/lib/dashboard-actions";
 import { createClient } from "@/lib/supabase/client";
@@ -111,8 +112,7 @@ export default function FileUpload({ name, kind, label, accept, hint, variant = 
         >
           {variant === "image" ? (
             <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0" style={{ background: "#0D1829" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="w-full h-full object-cover" />
+              <Image src={url} alt="" width={48} height={48} className="w-full h-full object-cover" />
             </div>
           ) : (
             <span className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(0,194,168,0.12)", color: "#00C2A8" }}>
