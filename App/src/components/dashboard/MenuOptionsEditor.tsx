@@ -2,8 +2,12 @@
 
 import { useState } from "react";
 import { ChevronDown, Layers, Plus, Trash2 } from "lucide-react";
-import type { OptionGroupDraft, OptionValueDraft, RecipeDraftInput } from "@/lib/dashboard-actions";
-import { optionGroupsValidationError } from "@/lib/dashboard-actions";
+import type { RecipeDraftInput } from "@/lib/dashboard-actions";
+import {
+  optionGroupsValidationError,
+  type OptionGroupDraft,
+  type OptionValueDraft,
+} from "@/lib/menu-option-drafts";
 import type { InventoryItem } from "@/types";
 import { dashInputStyle as inputStyle } from "@/components/dashboard/system";
 import { formatRupiah } from "@/lib/format";

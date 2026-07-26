@@ -6,13 +6,12 @@ import Image from "next/image";
 import { Loader2, Trash2, Save, AlertCircle, Clock, Flame, ScanLine, ShoppingBag, ImageOff, Sparkles } from "lucide-react";
 import type { InventoryItem, Menu, MenuOptionGroup, MenuRecipe } from "@/types";
 import {
-  optionGroupsValidationError,
   saveMenuOptions,
   saveMenuRecipes,
   type ActionResult,
-  type OptionGroupDraft,
   type RecipeDraftInput,
 } from "@/lib/dashboard-actions";
+import { optionGroupsValidationError, type OptionGroupDraft } from "@/lib/menu-option-drafts";
 import { saveMenuAndRecipes } from "@/lib/menu-form-save";
 import { formatRupiah } from "@/lib/format";
 import FileUpload from "./FileUpload";

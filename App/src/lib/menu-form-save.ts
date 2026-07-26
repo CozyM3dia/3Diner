@@ -1,4 +1,5 @@
-import type { ActionResult, OptionGroupDraft, RecipeDraftInput } from "./dashboard-actions";
+import type { ActionResult, RecipeDraftInput } from "./dashboard-actions";
+import type { OptionGroupDraft } from "./menu-option-drafts";
 
 export type MenuSaveResult = ActionResult & {
   id_menu?: string;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { optionGroupsValidationError, type OptionGroupDraft } from "@/lib/dashboard-actions";
+import { optionGroupsValidationError, type OptionGroupDraft } from "@/lib/menu-option-drafts";
 import { cartLineKey } from "@/types";
 
 function group(overrides: Partial<OptionGroupDraft> = {}): OptionGroupDraft {

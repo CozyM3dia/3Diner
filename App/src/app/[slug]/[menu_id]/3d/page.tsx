@@ -34,6 +34,9 @@ export default async function Model3DPage({ params }: PageProps) {
       menuName={menu.nama_menu}
       backUrl={backUrl}
       modelScale={menu.model_scale ?? 1.0}
+      cafeName={cafe.nama_cafe}
+      cafeId={cafe.id_cafe}
+      menuId={menu.id_menu}
     />
   );
 }
