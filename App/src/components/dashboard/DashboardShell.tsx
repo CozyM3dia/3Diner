@@ -143,7 +143,7 @@ export default function DashboardShell({ cafe, children }: DashboardShellProps) 
             href={`/${cafe.slug_url}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="dash-btn flex items-center justify-center gap-2 px-3 rounded-[10px] text-[13px] font-semibold text-white"
+            className="dash-btn flex items-center justify-center gap-2 px-3 rounded-[10px] text-[13px] font-semibold dash-on-accent"
             style={{ background: "var(--orange)", height: "38px" }}
           >
             <ExternalLink size={14} strokeWidth={2} />

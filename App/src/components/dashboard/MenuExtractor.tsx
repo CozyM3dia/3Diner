@@ -347,7 +347,7 @@ export default function MenuExtractor() {
                 <button
                   onClick={save}
                   disabled={pending || drafts.length === 0}
-                  className="flex-[2] h-11 rounded-xl text-sm font-bold text-white inline-flex items-center justify-center gap-2 disabled:opacity-60"
+                  className="flex-[2] h-11 rounded-xl text-sm font-bold dash-on-accent inline-flex items-center justify-center gap-2 disabled:opacity-60"
                   style={{ background: C.orange }}
                 >
                   {pending ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
@@ -357,7 +357,7 @@ export default function MenuExtractor() {
             )}
             {stage === "done" && (
               <div className="px-5 py-4" style={{ borderTop: `1px solid ${C.border}` }}>
-                <button onClick={closeModal} className="w-full h-11 rounded-xl text-sm font-bold text-white" style={{ background: C.orange }}>
+                <button onClick={closeModal} className="w-full h-11 rounded-xl text-sm font-bold dash-on-accent" style={{ background: C.orange }}>
                   Selesai
                 </button>
               </div>

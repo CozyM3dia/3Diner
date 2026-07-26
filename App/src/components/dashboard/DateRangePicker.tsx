@@ -387,7 +387,7 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
               <button
                 onClick={() => applyDates(tempStart || undefined, tempEnd || undefined)}
                 disabled={!tempStart}
-                className="flex-1 py-2 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-50 cursor-pointer"
+                className="flex-1 py-2 rounded-xl text-xs font-bold dash-on-accent transition-all disabled:opacity-50 cursor-pointer"
                 style={{
                   background: "#FD5002",
                   boxShadow: "0 4px 12px rgba(253, 80, 2, 0.25)"

@@ -137,7 +137,7 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
               <h2 id="inventory-list-title" className="text-sm font-bold" style={{ color: "#E9EEF6" }}>Daftar Bahan</h2>
               <p className="mt-0.5 text-xs" style={{ color: "var(--dash-muted)" }}>{items.length} bahan terdaftar</p>
             </div>
-            <button onClick={(event) => openModal({ type: "create" }, event.currentTarget)} className="dash-btn inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-semibold text-white" style={{ background: "#FD5002" }}>
+            <button onClick={(event) => openModal({ type: "create" }, event.currentTarget)} className="dash-btn inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-semibold dash-on-accent" style={{ background: "#FD5002" }}>
               <Plus size={15} aria-hidden="true" />
               Tambah Bahan
             </button>
@@ -150,7 +150,7 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
               </span>
               <p className="mt-4 font-semibold" style={{ color: "#E9EEF6" }}>Belum ada bahan</p>
               <p className="mt-1 max-w-xs text-sm" style={{ color: "var(--dash-muted)" }}>Tambahkan bahan pertama untuk mulai memantau stok kafe.</p>
-              <button onClick={(event) => openModal({ type: "create" }, event.currentTarget)} className="dash-btn mt-5 inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold text-white" style={{ background: "#FD5002" }}>
+              <button onClick={(event) => openModal({ type: "create" }, event.currentTarget)} className="dash-btn mt-5 inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold dash-on-accent" style={{ background: "#FD5002" }}>
                 <Plus size={15} aria-hidden="true" />
                 Tambah Bahan
               </button>

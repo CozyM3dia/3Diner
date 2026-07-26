@@ -237,7 +237,7 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
         <button
           type="submit"
           disabled={saving}
-          className="dash-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
+          className="dash-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold dash-on-accent"
           style={{
             background: saved ? "#22D3A6" : "#FD5002",
             opacity: saving ? 0.7 : 1,

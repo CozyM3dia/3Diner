@@ -419,7 +419,7 @@ export default function MenuForm({
         <button
           type="submit"
           disabled={saving}
-          className="dash-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
+          className="dash-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold dash-on-accent"
           style={{ background: "#FD5002", opacity: saving ? 0.7 : 1 }}
         >
           {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
@@ -453,7 +453,7 @@ export default function MenuForm({
             </div>
           )}
           {discount > 0 && (
-            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-[11px] font-bold text-white" style={{ background: "#FD5002" }}>
+            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-[11px] font-bold dash-on-accent" style={{ background: "#FD5002" }}>
               -{discount}%
             </span>
           )}
@@ -514,7 +514,7 @@ export default function MenuForm({
           )}
 
           {/* CTAs */}
-          <button type="button" tabIndex={-1} className="w-full mt-4 h-11 rounded-xl flex items-center justify-center gap-2 text-[13px] font-bold text-white" style={{ background: "#FD5002", boxShadow: "0 6px 20px rgba(253,80,2,0.28)" }}>
+          <button type="button" tabIndex={-1} className="w-full mt-4 h-11 rounded-xl flex items-center justify-center gap-2 text-[13px] font-bold dash-on-accent" style={{ background: "#FD5002", boxShadow: "0 6px 20px rgba(253,80,2,0.28)" }}>
             <ScanLine size={16} /> Mulai AR (Tampilan 3D)
           </button>
           <button type="button" tabIndex={-1} className="w-full mt-2 h-11 rounded-xl flex items-center justify-center gap-2 text-[13px] font-semibold" style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.18)", color: "#E9EEF6" }}>

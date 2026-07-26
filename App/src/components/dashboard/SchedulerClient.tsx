@@ -394,7 +394,7 @@ function MenuRow({ menu, index }: { menu: Menu; index: number }) {
             <button
               onClick={save}
               disabled={pending || !dirty}
-              className="dash-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white"
+              className="dash-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold dash-on-accent"
               style={{
                 background: saved ? "#1DBF94" : "#FD5002",
                 opacity: pending || !dirty ? 0.65 : 1,
@@ -428,7 +428,7 @@ export default function SchedulerClient({ menus }: { menus: Menu[] }) {
           action={
             <Link
               href="/dashboard/menu/new"
-              className="dash-btn inline-flex items-center gap-2 px-3.5 py-2.5 rounded-[10px] text-[13px] font-semibold text-white"
+              className="dash-btn inline-flex items-center gap-2 px-3.5 py-2.5 rounded-[10px] text-[13px] font-semibold dash-on-accent"
               style={{ background: "var(--orange)" }}
             >
               <Plus size={15} /> Tambah Menu

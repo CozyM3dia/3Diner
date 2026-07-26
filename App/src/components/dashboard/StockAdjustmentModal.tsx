@@ -107,7 +107,7 @@ export default function StockAdjustmentModal({
             <button type="button" onClick={onClose} className="dash-press rounded-xl px-4 py-2.5 text-sm font-semibold" style={{ color: "var(--dash-secondary)", border: "1px solid rgba(255,255,255,0.1)" }}>
               Batal
             </button>
-            <button disabled={pending} className="dash-btn inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed" style={{ background: "#FD5002", opacity: pending ? 0.7 : 1 }}>
+            <button disabled={pending} className="dash-btn inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold dash-on-accent disabled:cursor-not-allowed" style={{ background: "#FD5002", opacity: pending ? 0.7 : 1 }}>
               {pending && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
               {pending ? "Menyimpan" : "Simpan"}
             </button>

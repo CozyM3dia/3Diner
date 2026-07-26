@@ -140,7 +140,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
           <>
             <Link
               href="/dashboard/orders"
-              className="dash-btn inline-flex items-center gap-2 px-3.5 rounded-[10px] text-[13px] font-semibold text-white"
+              className="dash-btn inline-flex items-center gap-2 px-3.5 rounded-[10px] text-[13px] font-semibold dash-on-accent"
               style={{ background: "var(--orange)", height: "38px" }}
             >
               <ShoppingBag size={14} strokeWidth={2.2} />

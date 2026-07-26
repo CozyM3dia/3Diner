@@ -296,7 +296,7 @@ function ReceiptModal({ order, cafeName, onClose }: { order: OrderRow; cafeName:
           </button>
           <button
             onClick={() => { triggerPrint(html); onClose(); }}
-            className="flex-1 h-10 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2"
+            className="flex-1 h-10 rounded-xl text-sm font-bold dash-on-accent flex items-center justify-center gap-2"
             style={{ background: "var(--orange)" }}
           >
             <Printer size={14} /> Cetak Sekarang
@@ -588,7 +588,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
             action={
               <Link
                 href="/dashboard/settings#qr-menu"
-                className="dash-btn inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+                className="dash-btn inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold dash-on-accent"
                 style={{ background: "var(--orange)" }}
               >
                 <QrCode size={15} aria-hidden="true" /> Bagikan QR Menu
@@ -680,7 +680,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
                     <button
                       onClick={() => advance(o)}
                       disabled={pending && busyId === o.id_order}
-                      className="dash-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white"
+                      className="dash-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold dash-on-accent"
                       style={{ background: o.status === "received" ? "#FD5002" : "#F59E0B" }}
                     >
                       {pending && busyId === o.id_order ? (
