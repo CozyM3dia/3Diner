@@ -1,0 +1,373 @@
+<title>Wireframe v2 — Konsol Kasir & Konsol Owner · 3Diner</title>
+<style>
+:root{
+  --ink:#14181D; --ink-2:#4A545E; --ink-3:#78838D;
+  --paper:#F7F8F9; --sheet:#FFFFFF; --edge:#DCE0E4;
+  --wire:#98A1A9; --wire-fill:#EDEFF1; --wire-deep:#DDE1E5;
+  --annot:#2F5FA8; --annot-bg:#EAF0F9;
+  --flag:#B4531A; --flag-bg:#FAEEE6;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --ink:#E8EBEE; --ink-2:#A7B0B8; --ink-3:#7A848D;
+  --paper:#0F1216; --sheet:#161A1F; --edge:#272D34;
+  --wire:#6B747C; --wire-fill:#1E242A; --wire-deep:#262D34;
+  --annot:#8FB4E8; --annot-bg:#18222F; --flag:#E08A52; --flag-bg:#2A1D14;
+}}
+:root[data-theme="dark"]{
+  --ink:#E8EBEE; --ink-2:#A7B0B8; --ink-3:#7A848D;
+  --paper:#0F1216; --sheet:#161A1F; --edge:#272D34;
+  --wire:#6B747C; --wire-fill:#1E242A; --wire-deep:#262D34;
+  --annot:#8FB4E8; --annot-bg:#18222F; --flag:#E08A52; --flag-bg:#2A1D14;
+}
+:root[data-theme="light"]{
+  --ink:#14181D; --ink-2:#4A545E; --ink-3:#78838D;
+  --paper:#F7F8F9; --sheet:#FFFFFF; --edge:#DCE0E4;
+  --wire:#98A1A9; --wire-fill:#EDEFF1; --wire-deep:#DDE1E5;
+  --annot:#2F5FA8; --annot-bg:#EAF0F9; --flag:#B4531A; --flag-bg:#FAEEE6;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:48px 24px 96px}
+.mast{border-bottom:2px solid var(--ink);padding-bottom:20px;margin-bottom:12px}
+.mast h1{font-size:clamp(28px,4vw,42px);line-height:1.05;margin:0 0 10px;
+  letter-spacing:-.022em;text-wrap:balance;font-weight:650}
+.mast p{margin:0;max-width:64ch;color:var(--ink-2)}
+.meta{display:flex;flex-wrap:wrap;gap:8px 28px;font-family:var(--mono);font-size:12px;
+  color:var(--ink-3);padding:12px 0 0;text-transform:uppercase;letter-spacing:.06em}
+.meta b{color:var(--ink);font-weight:600}
+.note{background:var(--annot-bg);border-left:3px solid var(--annot);
+  padding:14px 18px;margin:28px 0;font-size:14px;color:var(--ink-2)}
+.note b{color:var(--ink)}
+h2.sec{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);margin:52px 0 4px;font-weight:600}
+h3.scr{font-size:26px;margin:0 0 4px;letter-spacing:-.018em;font-weight:640}
+.scr-q{margin:0 0 24px;color:var(--ink-2);max-width:62ch}
+.plate{background:var(--sheet);border:1px solid var(--edge);margin:0 0 22px}
+.plate-hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  padding:11px 16px;border-bottom:1px solid var(--edge);font-family:var(--mono);font-size:12px}
+.pnum{color:var(--annot);font-weight:600;letter-spacing:.06em}
+.pttl{color:var(--ink);font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+.pwhen{color:var(--ink-3);margin-left:auto}
+.plate-body{display:grid;grid-template-columns:minmax(0,1fr) 268px}
+@media(max-width:900px){.plate-body{grid-template-columns:1fr}}
+.canvas{padding:20px;overflow-x:auto;border-right:1px solid var(--edge)}
+@media(max-width:900px){.canvas{border-right:none;border-bottom:1px solid var(--edge)}}
+.calls{padding:16px 18px;display:flex;flex-direction:column;gap:13px;background:var(--paper)}
+.call{font-size:13px;line-height:1.45;color:var(--ink-2)}
+.call em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--annot);
+  font-weight:600;letter-spacing:.05em;display:block;margin-bottom:2px}
+.call b{color:var(--ink);font-weight:600}
+.wf{min-width:560px;font-size:14px;color:var(--ink);background:var(--wire-fill);
+  border:1px solid var(--wire)}
+.wf.narrow{min-width:0;max-width:390px}
+.wf-bar{display:flex;align-items:center;gap:10px;padding:0 12px;height:44px;
+  border-bottom:1px solid var(--wire);background:var(--wire-deep)}
+.wf-h1{font-size:20px;font-weight:600;letter-spacing:-.01em}
+.wf-sub{font-size:12px;color:var(--ink-3);font-family:var(--mono)}
+.wf-push{margin-left:auto}
+.wf-grp{border-bottom:1px solid var(--wire)}
+.wf-grp:last-child{border-bottom:none}
+.wf-ghd{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--wire-deep);
+  font-family:var(--mono);font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.wf-ghd b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.wf-row{display:flex;align-items:center;gap:12px;height:44px;padding:0 12px;
+  border-bottom:1px solid var(--wire-deep);background:var(--sheet)}
+.wf-row:last-child{border-bottom:none}
+.wf-id{font-weight:600;min-width:78px}
+.wf-txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf-num{font-variant-numeric:tabular-nums;text-align:right;min-width:70px}
+.wf-st{font-size:12px;font-family:var(--mono);border:1px solid var(--wire);
+  padding:1px 7px;white-space:nowrap}
+.wf-act{display:flex;gap:6px;align-items:center}
+.wf-btn{border:1px solid var(--wire);background:var(--wire-fill);padding:4px 10px;
+  font-size:12px;font-family:var(--mono);white-space:nowrap}
+.wf-btn.solid{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.wf-more{border:1px solid var(--wire);width:28px;text-align:center;font-size:12px;
+  font-family:var(--mono);line-height:22px}
+.wf-fig{font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.wf-skel{height:12px;background:var(--wire);opacity:.32}
+.wf-empty{padding:28px 12px;text-align:center;background:var(--sheet)}
+.wf-empty .t{font-weight:600;margin:0 0 4px}
+.wf-empty .d{color:var(--ink-3);font-size:14px;margin:0}
+.wf-foot{display:flex;gap:32px;align-items:flex-end;padding:12px;background:var(--wire-deep);
+  border-top:1px solid var(--wire)}
+.wf-flag{font-family:var(--mono);font-size:11px;color:var(--flag);background:var(--flag-bg);
+  border:1px solid var(--flag);padding:1px 6px;letter-spacing:.04em;white-space:nowrap}
+.wf-ann{font-family:var(--mono);font-size:11px;color:var(--annot);letter-spacing:.04em}
+table.spec{width:100%;border-collapse:collapse;font-size:14px;margin:14px 0 0}
+table.spec th,table.spec td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--edge);vertical-align:top}
+table.spec th{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--ink-3);font-weight:600}
+table.spec td:first-child{font-family:var(--mono);font-size:12px;white-space:nowrap;color:var(--annot)}
+.scroll{overflow-x:auto}
+.flow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-family:var(--mono);
+  font-size:12px;color:var(--ink-2);margin:18px 0 0}
+.flow span{border:1px solid var(--wire);padding:5px 11px;background:var(--sheet)}
+.flow i{font-style:normal;color:var(--ink-3)}
+footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--edge);
+  font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+</style>
+
+<div class="wrap">
+
+<div class="mast">
+  <h1>Wireframe v2 — Konsol Kasir &amp; Konsol Owner</h1>
+  <p>Dua permukaan terpisah dengan login masing-masing. Konsol Kasir hanya mengurus pesanan; semua yang bukan pesanan pindah ke Konsol Owner. Seluruh pesanan masuk dari <b>QR meja</b> — kasir tidak menginput manual, jadi tidak ada grid menu dan tidak ada keranjang di layar ini.</p>
+</div>
+<div class="meta">
+  <span>Menggantikan <b>v1</b></span>
+  <span>Kontrak <b>KONTRAK-WIREFRAME.md v1</b></span>
+  <span>Plate <b>7</b></span>
+  <span>Status <b>Menunggu review</b></span>
+</div>
+
+<div class="note">
+  <b>Perubahan terbesar dari v1.</b> Satu pesanan tidak pernah berpindah rute. Ia bergerak turun antar kelompok <i>di layar yang sama</i>, satu ketuk per tahap, dan baru hilang saat benar-benar selesai. Bolak-balik antar rute akan membuat kasir mengerjakan navigasi alih-alih pesanan — dan membuat antrean tidak pernah bisa benar-benar kosong.
+</div>
+
+<div class="flow">
+  <span>QR meja</span><i>→</i><span>Masuk</span><i>→ terima →</i><span>Disiapkan</span><i>→ siap →</i><span>Siap</span><i>→ selesai →</i><span>hilang dari layar</span>
+</div>
+
+<h2 class="sec">Permukaan 01 · /kasir</h2>
+<h3 class="scr">Konsol Kasir</h3>
+<p class="scr-q">Login sendiri. Pertanyaan yang dijawab: <b>“Pesanan mana yang harus saya sentuh sekarang?”</b> Tidak ada omzet kumulatif, tidak ada analitik, tidak ada stok, tidak ada model 3D. Semua itu milik Konsol Owner.</p>
+
+<!-- 1.1 -->
+<div class="plate">
+  <div class="plate-hd"><span class="pnum">1.1</span><span class="pttl">Ada isi</span><span class="pwhen">jam ramai · satu kolom bergulir</span></div>
+  <div class="plate-body">
+    <div class="canvas">
+      <div class="wf">
+        <div class="wf-bar">
+          <span class="wf-h1">Kasir</span>
+          <span class="wf-sub">Senja Kopi · buka 07.00–22.00</span>
+          <span class="wf-push wf-sub">Rina · sejak 15.00</span>
+        </div>
+
+        <div class="wf-grp">
+          <div class="wf-ghd">Masuk <b>2</b> <span class="wf-ann" style="margin-left:auto;text-transform:none">dari QR meja · belum dikonfirmasi</span></div>
+          <div class="wf-row"><span class="wf-id">A-2</span><span class="wf-txt">2× Kopi Susu Gula Aren, 1× Butter Croissant · “Jangan terlalu manis”</span><span class="wf-st">Batal otomatis 18.55</span><span class="wf-act"><span class="wf-btn solid">Terima</span><span class="wf-more">⋯</span></span></div>
+          <div class="wf-row"><span class="wf-id">L-5</span><span class="wf-txt">1× Pasta Meatball</span><span class="wf-st">Batal otomatis 18.58</span><span class="wf-act"><span class="wf-btn solid">Terima</span><span class="wf-more">⋯</span></span></div>
+        </div>
+
+        <div class="wf-grp">
+          <div class="wf-ghd">Disiapkan <b>3</b></div>
+          <div class="wf-row"><span class="wf-id">A-1</span><span class="wf-txt">3× Es Teh Manis, 1× Steak Ayam</span><span class="wf-num">18 mnt</span><span class="wf-st">Terlambat</span><span class="wf-act"><span class="wf-btn solid">Siap</span><span class="wf-more">⋯</span></span></div>
+          <div class="wf-row"><span class="wf-id">B-3</span><span class="wf-txt">1× Nasi Goreng Kampung</span><span class="wf-num">11 mnt</span><span class="wf-st">Mendekati</span><span class="wf-act"><span class="wf-btn solid">Siap</span><span class="wf-more">⋯</span></span></div>
+          <div class="wf-row"><span class="wf-id">Bawa pulang</span><span class="wf-txt">2× Chocolate Milkshake</span><span class="wf-num">4 mnt</span><span class="wf-st">Disiapkan</span><span class="wf-act"><span class="wf-btn solid">Siap</span><span class="wf-more">⋯</span></span></div>
+        </div>
+
+        <div class="wf-grp">
+          <div class="wf-ghd">Siap <b>2</b></div>
+          <div class="wf-row"><span class="wf-id">A-4</span><span class="wf-txt">1× Croffle Original</span><span class="wf-st">Sudah bayar · QRIS</span><span class="wf-act"><span class="wf-btn solid">Selesai</span><span class="wf-more">⋯</span></span></div>
+          <div class="wf-row"><span class="wf-id">C-1</span><span class="wf-txt">2× Kopi Susu Gula Aren</span><span class="wf-st">Belum bayar · 36.000</span><span class="wf-act"><span class="wf-btn solid">Terima tunai</span><span class="wf-more">⋯</span></span></div>
+        </div>
+
+        <div class="wf-foot">
+          <div><div class="wf-fig">37</div><div class="wf-sub">Pesanan selesai hari ini</div></div>
+          <div><div class="wf-fig">1.480.000</div><div class="wf-sub">Diterima · Rp · tunai 620.000 · QRIS 860.000</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="calls">
+      <div class="call"><em>perubahan v1→v2</em>Baris “model 3D gagal” dan “stok di bawah minimum” <b>dibuang dari sini</b> dan pindah ke Konsol Owner. Kasir tidak bisa menindaklanjuti keduanya saat melayani.</div>
+      <div class="call"><em>§3 aksi terminal</em>Tiap baris punya <b>satu ketuk</b> yang memindahkannya ke kelompok berikutnya. Dari Siap, “Selesai” membuatnya <b>hilang</b>. Antrean bisa benar-benar kosong.</div>
+      <div class="call"><em>§1.1</em><b>Nol tombol primer tingkat halaman.</b> Pekerjaan layar ini sepenuhnya ada di baris — tidak ada aksi lain yang pantas jadi primer. Pesanan datang dari QR, bukan dibuat kasir.</div>
+      <div class="call"><em>pembayaran</em>Bayar itu <b>tegak lurus</b> terhadap tahap masak, jadi bukan kelompok sendiri — ia jadi penanda di baris, dan mengubah aksi terminal jadi “Terima tunai” saat belum lunas. Baris tidak pernah muncul dua kali.</div>
+      <div class="call"><em>§3 deadline</em>“Batal otomatis 18.55” hanya ada di kelompok Masuk, karena hanya di situ ada konsekuensi nyata dari menunda.</div>
+      <div class="call"><em>§2.7</em>Catatan pelanggan (“Jangan terlalu manis”) ikut di baris, dipotong dengan ellipsis. Ia mengubah cara memasak, jadi tidak boleh disembunyikan di lapis 2.</div>
+      <div class="call"><em>§1.1</em>Dua angka di footer, bukan tiga — dan keduanya soal uang &amp; pesanan yang <b>kasir</b> perlu untuk tutup shift.</div>
+      <div class="call"><em>ASUMSI</em><span class="wf-flag">ASUMSI-A1</span> Satu kolom bergulir dipilih karena jalan di HP <b>dan</b> tablet. Kalau observasi membuktikan tablet konter, tiga kelompok naik jadi tiga kolom — perubahan kecil.</div>
+      <div class="call"><em>ASUMSI</em><span class="wf-flag">ASUMSI-A4</span> Ambang Mendekati 10 mnt / Terlambat 15 mnt, dikonfigurasi per outlet.</div>
+    </div>
+  </div>
+</div>
+
+<!-- 1.2 -->
+<div class="plate">
+  <div class="plate-hd"><span class="pnum">1.2</span><span class="pttl">Kosong — semua beres</span><span class="pwhen">tidak ada pesanan tersisa</span></div>
+  <div class="plate-body">
+    <div class="canvas">
+      <div class="wf">
+        <div class="wf-bar"><span class="wf-h1">Kasir</span><span class="wf-sub">Senja Kopi · buka 07.00–22.00</span><span class="wf-push wf-sub">Rina · sejak 15.00</span></div>
+        <div class="wf-grp">
+          <div class="wf-empty">
+            <p class="t">Semua pesanan sudah ditangani</p>
+            <p class="d">Terakhir selesai 18.42. Pesanan baru dari QR meja akan muncul di sini.</p>
+          </div>
+        </div>
+        <div class="wf-foot">
+          <div><div class="wf-fig">37</div><div class="wf-sub">Pesanan selesai hari ini</div></div>
+          <div><div class="wf-fig">1.480.000</div><div class="wf-sub">Diterima · Rp · tunai 620.000 · QRIS 860.000</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="calls">
+      <div class="call"><em>§4 state bonus</em>Dinyatakan sebagai <b>hasil</b>, bukan kekosongan. Ketiga kelompok hilang total — bukan tiga header kosong bergaris.</div>
+      <div class="call"><em>§4 larangan</em><b>Tanpa CTA.</b> Ini kabar baik; menaruh tombol di sini membatalkan kabarnya.</div>
+      <div class="call"><em>§1.1</em>Footer tetap — kasir butuh angka itu untuk tutup shift, terlepas ada antrean atau tidak.</div>
+    </div>
+  </div>
+</div>
+
+<!-- 1.3 -->
+<div class="plate">
+  <div class="plate-hd"><span class="pnum">1.3</span><span class="pttl">Kosong — perdana</span><span class="pwhen">QR belum terpasang di meja</span></div>
+  <div class="plate-body">
+    <div class="canvas">
+      <div class="wf">
+        <div class="wf-bar"><span class="wf-h1">Kasir</span><span class="wf-sub">Senja Kopi</span><span class="wf-push wf-sub">Rina · sejak 15.00</span></div>
+        <div class="wf-grp">
+          <div class="wf-empty">
+            <p class="t">Belum ada pesanan masuk</p>
+            <p class="d">Pesanan muncul di sini begitu tamu memindai QR di meja. QR meja diatur pemilik di Konsol Owner.</p>
+          </div>
+        </div>
+        <div class="wf-foot">
+          <div><div class="wf-fig">0</div><div class="wf-sub">Pesanan selesai hari ini</div></div>
+          <div><div class="wf-fig">0</div><div class="wf-sub">Diterima · Rp</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="calls">
+      <div class="call"><em>§4 state 3</em>Tanpa CTA setup <b>di layar kasir</b> — kasir tidak punya wewenang mencetak QR. Kalimatnya menunjuk siapa yang bisa, bukan menawarkan tombol yang akan ditolak.</div>
+      <div class="call"><em>§4 kontrak angka</em>Nol di sini <b>nol yang benar</b>, ditulis apa adanya. Bandingkan plate 1.5.</div>
+    </div>
+  </div>
+</div>
+
+<!-- 1.4 -->
+<div class="plate">
+  <div class="plate-hd"><span class="pnum">1.4</span><span class="pttl">Memuat</span><span class="pwhen">muat pertama setelah login</span></div>
+  <div class="plate-body">
+    <div class="canvas">
+      <div class="wf">
+        <div class="wf-bar"><span class="wf-h1">Kasir</span><span class="wf-sub">Senja Kopi</span></div>
+        <div class="wf-grp">
+          <div class="wf-ghd">Masuk</div>
+          <div class="wf-row"><span class="wf-skel" style="width:74px"></span><span class="wf-skel" style="flex:1"></span><span class="wf-skel" style="width:118px"></span><span class="wf-skel" style="width:96px"></span></div>
+          <div class="wf-row"><span class="wf-skel" style="width:74px"></span><span class="wf-skel" style="flex:1"></span><span class="wf-skel" style="width:118px"></span><span class="wf-skel" style="width:96px"></span></div>
+        </div>
+        <div class="wf-grp">
+          <div class="wf-ghd">Disiapkan</div>
+          <div class="wf-row"><span class="wf-skel" style="width:74px"></span><span class="wf-skel" style="flex:1"></span><span class="wf-skel" style="width:66px"></span><span class="wf-skel" style="width:96px"></span></div>
+          <div class="wf-row"><span class="wf-skel" style="width:74px"></span><span class="wf-skel" style="flex:1"></span><span class="wf-skel" style="width:66px"></span><span class="wf-skel" style="width:96px"></span></div>
+          <div class="wf-row"><span class="wf-skel" style="width:74px"></span><span class="wf-skel" style="flex:1"></span><span class="wf-skel" style="width:66px"></span><span class="wf-skel" style="width:96px"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="calls">
+      <div class="call"><em>§4 state 1</em><b>Header kelompok sudah tampil</b> — ia tidak bergantung data. Struktur muncul lebih dulu, isi menyusul.</div>
+      <div class="call"><em>§4</em>Lebar skeleton = lebar kolom sebenarnya, tinggi baris 44px sama persis. Tidak ada lompatan saat data datang.</div>
+      <div class="call"><em>§4</em>Spinner halaman penuh dilarang.</div>
+    </div>
+  </div>
+</div>
+
+<!-- 1.5 -->
+<div class="plate">
+  <div class="plate-hd"><span class="pnum">1.5</span><span class="pttl">Realtime terputus</span><span class="pwhen">koneksi hilang saat melayani</span></div>
+  <div class="plate-body">
+    <div class="canvas">
+      <div class="wf">
+        <div class="wf-bar"><span class="wf-h1">Kasir</span><span class="wf-sub">Senja Kopi</span>
+          <span class="wf-push wf-st">Terputus · sinkron terakhir 18.31</span></div>
+        <div class="wf-grp">
+          <div class="wf-empty" style="text-align:left;padding:14px 12px">
+            <p class="t">Pesanan baru tidak akan muncul</p>
+            <p class="d">Koneksi terputus sejak 18.31. Pesanan yang tamu kirim setelah jam itu belum terlihat di sini.</p>
+            <p style="margin-top:12px"><span class="wf-btn solid">Coba sambungkan lagi</span></p>
+          </div>
+        </div>
+        <div class="wf-grp">
+          <div class="wf-ghd">Disiapkan <b>3</b> <span class="wf-ann" style="margin-left:auto;text-transform:none">mungkin usang</span></div>
+          <div class="wf-row"><span class="wf-id">A-1</span><span class="wf-txt">3× Es Teh Manis, 1× Steak Ayam</span><span class="wf-num">18 mnt</span><span class="wf-st">Terlambat</span><span class="wf-act"><span class="wf-btn solid">Siap</span><span class="wf-more">⋯</span></span></div>
+          <div class="wf-row"><span class="wf-id">B-3</span><span class="wf-txt">1× Nasi Goreng Kampung</span><span class="wf-num">11 mnt</span><span class="wf-st">Mendekati</span><span class="wf-act"><span class="wf-btn solid">Siap</span><span class="wf-more">⋯</span></span></div>
+        </div>
+        <div class="wf-foot">
+          <div><div class="wf-fig" style="color:var(--ink-3)">—</div><div class="wf-sub">Pesanan selesai · tidak tersedia sejak 18.31</div></div>
+          <div><div class="wf-fig" style="color:var(--ink-3)">—</div><div class="wf-sub">Diterima · tidak tersedia</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="calls">
+      <div class="call"><em>§4 kontrak angka</em>Angka jadi <b>“—”, bukan “0”.</b> Pasal paling penting di kontrak: nol saat query gagal tidak terlihat seperti gagal — kasir menyimpulkan sepi padahal koneksinya putus.</div>
+      <div class="call"><em>§4 state 5</em>Pesanan yang sudah ada <b>tetap bisa dikerjakan</b> — aksi baris tidak dimatikan. Yang hilang cuma pesanan <i>baru</i>, dan itulah yang dinyatakan.</div>
+      <div class="call"><em>§4</em>Status terputus jadi <b>state menetap di header</b>, bukan toast yang hilang setelah 4 detik.</div>
+      <div class="call"><em>§4 kosakata</em>Menyebut <b>konsekuensinya</b> — “pesanan yang tamu kirim setelah jam itu belum terlihat” — bukan “terjadi kesalahan”.</div>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec">Permukaan 02 · /dashboard-v2</h2>
+<h3 class="scr">Konsol Owner — beranda</h3>
+<p class="scr-q">Login sendiri. Menerima semua yang dibuang dari Konsol Kasir. Pertanyaan yang dijawab: <b>“Apa yang perlu saya urus di luar melayani tamu?”</b></p>
+
+<!-- 2.1 -->
+<div class="plate">
+  <div class="plate-hd"><span class="pnum">2.1</span><span class="pttl">Ada isi</span><span class="pwhen">pemilik membuka di luar jam sibuk</span></div>
+  <div class="plate-body">
+    <div class="canvas">
+      <div class="wf">
+        <div class="wf-bar"><span class="wf-h1">Beranda</span><span class="wf-sub">Senja Kopi</span><span class="wf-push wf-sub">Kasir sedang jalan · Rina</span></div>
+        <div class="wf-grp">
+          <div class="wf-ghd">Perlu diurus <b>3</b> <span class="wf-ann" style="margin-left:auto;text-transform:none">bukan pekerjaan melayani</span></div>
+          <div class="wf-row"><span class="wf-id">Stok</span><span class="wf-txt">Ayam fillet 0,4 kg — di bawah minimum 2 kg</span><span class="wf-st">2 menu terdampak</span><span class="wf-act"><span class="wf-btn solid">Matikan menu</span><span class="wf-more">⋯</span></span></div>
+          <div class="wf-row"><span class="wf-id">Model 3D</span><span class="wf-txt">6 model gagal diproses</span><span class="wf-st">Perlu file baru</span><span class="wf-act"><span class="wf-btn solid">Lihat</span><span class="wf-more">⋯</span></span></div>
+          <div class="wf-row"><span class="wf-id">Jadwal</span><span class="wf-txt">Promo “Happy Hour” berakhir hari ini 21.00</span><span class="wf-st">Berakhir 21.00</span><span class="wf-act"><span class="wf-btn solid">Perpanjang</span><span class="wf-more">⋯</span></span></div>
+        </div>
+        <div class="wf-grp">
+          <div class="wf-ghd">Hari ini</div>
+          <div style="display:flex;gap:32px;align-items:flex-end;padding:12px;background:var(--sheet)">
+            <div><div class="wf-fig">1.480.000</div><div class="wf-sub">Omzet · Rp · vs Sabtu lalu +12%</div></div>
+            <div><div class="wf-fig">37</div><div class="wf-sub">Pesanan selesai · vs Sabtu lalu +4</div></div>
+            <div><div class="wf-fig">64</div><div class="wf-sub">Scan QR · vs Sabtu lalu −3</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="calls">
+      <div class="call"><em>perubahan v1→v2</em>Dua baris yang dibuang dari Kasir <b>mendarat di sini</b> — inilah tempat pemilik bisa menindaklanjutinya. Tidak ada yang hilang, cuma pindah permukaan.</div>
+      <div class="call"><em>§0.3 uji tindakan</em>Ketiga baris lolos: stok habis → matikan menu; model gagal → unggah ulang; promo berakhir → perpanjang. Semua bisa dikerjakan sekarang.</div>
+      <div class="call"><em>§1.1</em>Tepat <b>3 angka besar</b>. “Scan QR” masuk karena hanya 3Diner yang punya datanya — itu yang tidak dimiliki POS mana pun.</div>
+      <div class="call"><em>header</em>“Kasir sedang jalan · Rina” — pemilik tahu lantai sedang dijaga tanpa membuka konsol kasir.</div>
+      <div class="call"><em>§4</em>Empat state sisanya (kosong-beres, perdana, memuat, gagal) mengikuti bentuk yang sama dengan plate 1.2–1.5. Digambar saat rute owner lain masuk.</div>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec">Rekap</h2>
+
+<div class="scroll">
+<table class="spec">
+  <thead><tr><th>Pasal</th><th>Anggaran</th><th>Konsol Kasir</th><th>Dashboard lama</th></tr></thead>
+  <tbody>
+    <tr><td>§1.1</td><td>Angka besar, maks 3</td><td>2, di footer</td><td>10, di zona teratas</td></tr>
+    <tr><td>§1.1</td><td>Tombol primer tingkat halaman, tepat 1</td><td>0 — pekerjaan seluruhnya di baris</td><td>—</td></tr>
+    <tr><td>§1.1</td><td><code>h1</code>, tepat 1</td><td>1</td><td>3</td></tr>
+    <tr><td>§1.2</td><td>Skala tipe, 5 langkah, lantai 12px</td><td>5</td><td>12, ada 8px</td></tr>
+    <tr><td>§1.3</td><td>Hue, maks 3</td><td>0 — abu murni</td><td>7</td></tr>
+    <tr><td>§2.2</td><td>Tinggi baris 44px seragam</td><td>44px</td><td>campur</td></tr>
+    <tr><td>§3</td><td>Aksi terminal per baris</td><td>ada, semua kelompok</td><td>tidak ada konsep antrean</td></tr>
+    <tr><td>§4</td><td>State per layar, wajib 5</td><td>5</td><td>1</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note" style="margin-top:32px">
+  <b>Dipindahkan, bukan dihapus.</b> Dari layar kasir: peringatan stok, kegagalan model 3D, dan status promo → <b>Konsol Owner beranda</b>. Seluruh analitik lama (LineChart, funnel, heatmap, weekday, donut, menu terpopuler, aktivitas, DateRangePicker) → <b>rute Analitik</b>. <code>InventoryWorkspace</code> tertanam → <b>rute Stok</b>. Rincian item, riwayat status, dan struk → <b>lapis 2</b>, dibuka dengan mengetuk baris.
+</div>
+
+<div class="note">
+  <b>Yang belum digambar dan menunggu review ini:</b> layar login kedua konsol · lapis 2 (detail pesanan + struk) · delapan rute Konsol Owner. Menggambar semuanya sebelum bentuk ini disetujui berarti menggambar dua kali.
+</div>
+
+<footer>
+  Wireframe v2 · 2026-07-27 · menggantikan v1 · abu-abu disengaja — token brand masuk setelah struktur dikunci
+</footer>
+
+</div>
