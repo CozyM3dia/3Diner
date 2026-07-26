@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   getOwnerCafeSlug: vi.fn(),
   getCafeBySlug: vi.fn(),
   from: vi.fn(),
+  rpc: vi.fn(),
 }));
 
 vi.mock("@/lib/dashboard-actions", () => ({
@@ -27,7 +28,7 @@ vi.mock("@/lib/analytics", () => ({
 }));
 
 vi.mock("@/lib/supabase-admin", () => ({
-  supabaseAdmin: { from: mocks.from },
+  supabaseAdmin: { from: mocks.from, rpc: mocks.rpc },
 }));
 
 const menus: Menu[] = [
@@ -105,6 +106,10 @@ describe("MenuTable inventory readiness", () => {
       logo_url: null,
     });
     mocks.from.mockReset();
+    mocks.rpc.mockResolvedValue({
+      data: { quota: 5, used: 1, remaining: 4, periodStart: "2026-07-01", subscriptionActive: true },
+      error: null,
+    });
   });
 
   it("renders compact, accessible readiness labels for each menu row", () => {

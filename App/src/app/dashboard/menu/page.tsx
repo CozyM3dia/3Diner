@@ -5,6 +5,8 @@ import { getDashboardCafeContext } from "@/lib/dashboard-context";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import MenuTable from "@/components/dashboard/MenuTable";
 import MenuExtractor from "@/components/dashboard/MenuExtractor";
+import AiCreditMeter from "@/components/dashboard/AiCreditMeter";
+import { getCreditStatus } from "@/lib/ai-credits";
 import type { Menu } from "@/types";
 
 type MenuInventoryState = "none" | "ready" | "low";
@@ -17,6 +19,8 @@ type MenuRecipeRow = {
 export default async function MenuListPage() {
   const { userId, cafeId } = await getDashboardCafeContext();
   if (!userId) redirect("/login");
+
+  const creditStatus = cafeId ? await getCreditStatus(cafeId) : null;
 
   const [menuResult, recipeResult] = cafeId
     ? await Promise.all([
@@ -73,6 +77,12 @@ export default async function MenuListPage() {
             <Plus size={15} /> Tambah Menu
           </Link>
         </div>
+      </div>
+
+      {/* Meteran jatah diletakkan di atas daftar menu karena di halaman inilah
+          tombol yang membakar credit berada. */}
+      <div className="mb-5 dash-reveal">
+        <AiCreditMeter status={creditStatus} />
       </div>
 
       {list.length === 0 ? (

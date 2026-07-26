@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthCafeId } from "@/lib/dashboard-actions";
+import { CREDIT_COST, claimAiCredit, refundAiCredit } from "@/lib/ai-credits";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -127,6 +128,9 @@ export async function POST(req: Request) {
 
     const base64 = Buffer.from(await file.arrayBuffer()).toString("base64");
 
+    const claim = await claimAiCredit(cafeId, CREDIT_COST.menuExtract);
+    if (!claim.ok) return claim.response!;
+
     // Model is env-overridable so a wrong/renamed model id can be fixed without redeploy.
     const model = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -151,7 +155,10 @@ export async function POST(req: Request) {
       }),
     });
 
+    // Setiap jalur keluar yang gagal mengembalikan credit — termasuk foto yang
+    // tidak terbaca, yang bukan salah kafe.
     if (!res.ok) {
+      await refundAiCredit(cafeId, CREDIT_COST.menuExtract);
       const errText = await res.text();
       let msg = `Gemini error (${res.status})`;
       try {
@@ -168,11 +175,13 @@ export async function POST(req: Request) {
       data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
 
     if (!rawText) {
+      await refundAiCredit(cafeId, CREDIT_COST.menuExtract);
       return NextResponse.json({ error: "AI tidak mengembalikan data." }, { status: 502 });
     }
 
     const menus = parseGeminiMenus(rawText);
     if (menus.length === 0) {
+      await refundAiCredit(cafeId, CREDIT_COST.menuExtract);
       return NextResponse.json(
         { error: "Tidak ada item menu terdeteksi. Coba foto yang lebih jelas." },
         { status: 422 }
