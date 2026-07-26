@@ -5,8 +5,9 @@ import { Box, Clock, Flame, Star } from "lucide-react";
 import { getCafeBySlug, getMenuById, logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
 import { effectivePrice, hasDiscount } from "@/lib/menu-availability";
+import { getMenuOptionsForCustomer } from "@/lib/menu-options";
 import DetailHeader from "@/components/DetailHeader";
-import AddToCartBar from "@/components/AddToCartBar";
+import MenuOrderPanel from "@/components/MenuOrderPanel";
 import Menu3DTransitionLink from "@/components/Menu3DTransitionLink";
 
 interface PageProps {
@@ -35,6 +36,8 @@ export default async function MenuDetailPage({ params }: PageProps) {
   if (!menu) notFound();
 
   logEvent({ cafe_id: cafe.id_cafe, menu_id: menu.id_menu, event_type: "view_3d", duration: 0 });
+
+  const optionGroups = await getMenuOptionsForCustomer(cafe.id_cafe, menu.id_menu);
 
   const has3d = Boolean(menu.model_3d_url);
   const ingredientList = menu.ingredients
@@ -202,7 +205,7 @@ export default async function MenuDetailPage({ params }: PageProps) {
         )}
       </div>
 
-      <AddToCartBar menu={menu} slug={slug} />
+      <MenuOrderPanel menu={menu} slug={slug} optionGroups={optionGroups} />
     </main>
   );
 }

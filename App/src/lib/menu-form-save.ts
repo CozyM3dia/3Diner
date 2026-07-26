@@ -1,4 +1,4 @@
-import type { ActionResult, RecipeDraftInput } from "./dashboard-actions";
+import type { ActionResult, OptionGroupDraft, RecipeDraftInput } from "./dashboard-actions";
 
 export type MenuSaveResult = ActionResult & {
   id_menu?: string;
@@ -9,8 +9,10 @@ export async function saveMenuAndRecipes({
   fd,
   menuId,
   rows,
+  optionGroups,
   onSave,
   saveRecipes,
+  saveOptions,
   navigate,
   refresh,
   skipMenuSave = false,
@@ -18,8 +20,10 @@ export async function saveMenuAndRecipes({
   fd: FormData;
   menuId?: string;
   rows: RecipeDraftInput[];
+  optionGroups?: OptionGroupDraft[];
   onSave: (fd: FormData) => Promise<MenuSaveResult>;
   saveRecipes: (menuId: string, rows: RecipeDraftInput[]) => Promise<ActionResult>;
+  saveOptions?: (menuId: string, groups: OptionGroupDraft[]) => Promise<ActionResult>;
   navigate: (href: string) => void;
   refresh: () => void;
   skipMenuSave?: boolean;
@@ -44,6 +48,21 @@ export async function saveMenuAndRecipes({
           error: `Menu tersimpan tetapi resep gagal: ${recipeResult.error}`,
           persistedMenuId,
         };
+  }
+
+  // Varian disimpan setelah resep dengan pola pemulihan yang sama: kalau menu
+  // baru sudah tersimpan, ID-nya dikembalikan supaya percobaan ulang tidak
+  // membuat menu duplikat.
+  if (saveOptions && optionGroups) {
+    const optionResult = await saveOptions(persistedMenuId, optionGroups);
+    if (optionResult.error) {
+      return menuId
+        ? optionResult
+        : {
+            error: `Menu tersimpan tetapi varian gagal: ${optionResult.error}`,
+            persistedMenuId,
+          };
+    }
   }
 
   navigate("/dashboard/menu");

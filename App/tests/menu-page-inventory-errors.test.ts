@@ -86,6 +86,7 @@ describe("menu page inventory query errors", () => {
       if (table === "Menus") return queryResult(menu);
       if (table === "Inventory_Items") return queryResult(null, new Error("inventory unavailable"));
       if (table === "Menu_Recipes") return queryResult([]);
+      if (table === "Menu_Option_Groups") return queryResult([]);
       throw new Error(`Unexpected table: ${table}`);
     });
 

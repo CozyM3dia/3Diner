@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -38,42 +38,40 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
   const [refreshing, setRefreshing] = useState(false);
 
   // Token boleh datang dari tautan (perangkat lain, cache terhapus) atau dari
-  // cache lokal perangkat yang membuat pesanan.
+  // cache lokal perangkat yang membuat pesanan. getStub menyentuh localStorage,
+  // jadi hanya boleh dibaca setelah komponen terpasang.
   const linkToken = searchParams.get("token");
-  const token = linkToken ?? getStub(orderId)?.customer_token ?? null;
-  const tokenRef = useRef<string | null>(token);
-  tokenRef.current = token;
+
+  /** Token dibaca saat dibutuhkan, bukan disimpan di state: getStub menyentuh
+   *  localStorage, yang tidak ada saat render di server. Semua pemanggil di
+   *  bawah ini berjalan setelah komponen terpasang. */
+  const resolveToken = useCallback(
+    () => linkToken ?? getStub(orderId)?.customer_token ?? null,
+    [linkToken, orderId]
+  );
 
   /** Satu-satunya jalan status masuk ke layar ini: dibaca dari server. */
   const load = useCallback(async (): Promise<Order | null> => {
-    const current = tokenRef.current;
-    if (!current) return null;
-    const fetched = await fetchOrder(orderId, current);
+    const token = resolveToken();
+    if (!token) return null;
+    const fetched = await fetchOrder(orderId, token);
     if (!fetched) return null;
     setOrder(fetched.order);
     setReviewUrl(fetched.reviewUrl);
     return fetched.order;
-  }, [orderId]);
+  }, [orderId, resolveToken]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!token) {
-        setView("missing");
-        return;
-      }
       const fresh = await load();
       if (cancelled) return;
-      if (!fresh) {
-        setView("missing");
-        return;
-      }
-      setView(viewForOrder(fresh));
+      setView(fresh ? viewForOrder(fresh) : "missing");
     })();
     return () => {
       cancelled = true;
     };
-  }, [token, load]);
+  }, [load]);
 
   // Polling menggantikan langganan Realtime anon: tabel Orders dicabut aksesnya
   // dari peran anon, jadi postgres_changes tidak pernah sampai ke pelanggan.
@@ -99,6 +97,7 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
   }
 
   async function chooseCash() {
+    const token = resolveToken();
     if (!order || !token) return;
     setCashLoading(true);
     setQrError(null);
@@ -114,6 +113,7 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
   }
 
   async function chooseQris() {
+    const token = resolveToken();
     if (!order || !token) return;
     if (qrUrl) {
       setView("qris");
