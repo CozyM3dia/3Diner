@@ -1,6 +1,33 @@
 import { describe, expect, it } from "vitest";
 import { optionGroupsValidationError, type OptionGroupDraft } from "@/lib/menu-option-drafts";
+import { shapeOptionGroups } from "@/lib/menu-options";
 import { cartLineKey } from "@/types";
+
+function rawValue(name: string, isActive: boolean) {
+  return {
+    id_option_value: `value-${name}`,
+    cafe_id: "cafe-1",
+    option_group_id: "group-1",
+    name,
+    price_delta: 0,
+    is_active: isActive,
+    sort_order: 0,
+    recipes: [],
+  };
+}
+
+function rawGroup(minSelect: number, maxSelect: number, values: ReturnType<typeof rawValue>[]) {
+  return {
+    id_option_group: "group-1",
+    cafe_id: "cafe-1",
+    menu_id: "menu-1",
+    name: "Ukuran",
+    min_select: minSelect,
+    max_select: maxSelect,
+    sort_order: 0,
+    values,
+  };
+}
 
 function group(overrides: Partial<OptionGroupDraft> = {}): OptionGroupDraft {
   return {
@@ -117,5 +144,48 @@ describe("optionGroupsValidationError", () => {
       max_select: 1,
     });
     expect(optionGroupsValidationError([fractional])).toMatch(/angka bulat/);
+  });
+});
+
+describe("shapeOptionGroups", () => {
+  // Regresi: hanya max_select yang dijepit, min_select dibiarkan apa adanya.
+  // Grup yang menuntut dua pilihan tapi tinggal satu yang aktif membuat
+  // MenuOrderPanel menganggap syaratnya tidak pernah terpenuhi, jadi tombol
+  // "Tambah" mati dan menunya tidak bisa dipesan sama sekali.
+  it("clamps min_select down to the number of choices still on offer", () => {
+    const [shaped] = shapeOptionGroups(
+      [rawGroup(2, 3, [rawValue("Regular", true), rawValue("Large", false)])],
+      true
+    );
+
+    expect(shaped.values).toHaveLength(1);
+    expect(shaped.min_select).toBe(1);
+    expect(shaped.max_select).toBe(1);
+    expect(shaped.min_select).toBeLessThanOrEqual(shaped.max_select);
+  });
+
+  it("leaves a satisfiable group untouched", () => {
+    const [shaped] = shapeOptionGroups(
+      [rawGroup(1, 2, [rawValue("Regular", true), rawValue("Large", true)])],
+      true
+    );
+
+    expect(shaped.min_select).toBe(1);
+    expect(shaped.max_select).toBe(2);
+  });
+
+  it("hides a group from the guest once every choice is deactivated", () => {
+    expect(
+      shapeOptionGroups([rawGroup(1, 1, [rawValue("Regular", false)])], true)
+    ).toHaveLength(0);
+  });
+
+  it("keeps deactivated choices for the owner so they can be switched back on", () => {
+    const [shaped] = shapeOptionGroups(
+      [rawGroup(1, 1, [rawValue("Regular", false)])],
+      false
+    );
+
+    expect(shaped.values).toHaveLength(1);
   });
 });

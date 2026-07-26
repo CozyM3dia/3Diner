@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "./supabase-admin";
+﻿import { supabaseAdmin } from "./supabase-admin";
 import type { MenuOptionGroup, MenuOptionValue } from "@/types";
 
 interface RawValue {
@@ -31,7 +31,9 @@ const GROUP_SELECT = `
   )
 `;
 
-function shape(rows: RawGroup[], activeOnly: boolean): MenuOptionGroup[] {
+/** Diekspor untuk pengujian: penjepitan min/max di sini yang menentukan apakah
+ *  tamu punya jalan keluar saat sebagian pilihan dinonaktifkan. */
+export function shapeOptionGroups(rows: RawGroup[], activeOnly: boolean): MenuOptionGroup[] {
   return rows
     .map((group) => {
       const values: MenuOptionValue[] = (group.values ?? [])
@@ -56,9 +58,11 @@ function shape(rows: RawGroup[], activeOnly: boolean): MenuOptionGroup[] {
         cafe_id: group.cafe_id,
         menu_id: group.menu_id,
         name: group.name,
-        min_select: group.min_select,
         // Grup yang sebagian pilihannya dinonaktifkan tidak boleh menuntut lebih
-        // banyak pilihan daripada yang tersisa, atau tamu terkunci tanpa jalan keluar.
+        // banyak pilihan daripada yang tersisa, atau tamu terkunci tanpa jalan
+        // keluar. Batas bawah ikut dijepit: grup dengan min_select 2 yang hanya
+        // menyisakan satu pilihan aktif membuat tombol "Tambah" mati selamanya.
+        min_select: Math.min(group.min_select, values.length),
         max_select: Math.max(1, Math.min(group.max_select, values.length || 1)),
         sort_order: group.sort_order,
         values,
@@ -83,7 +87,7 @@ export async function getMenuOptionsForOwner(
     .order("sort_order", { ascending: true });
 
   if (error) return { groups: [], error: error.message };
-  return { groups: shape((data ?? []) as unknown as RawGroup[], false), error: null };
+  return { groups: shapeOptionGroups((data ?? []) as unknown as RawGroup[], false), error: null };
 }
 
 /** Varian untuk halaman menu pelanggan: hanya yang aktif, dan tanpa resep —
@@ -101,7 +105,7 @@ export async function getMenuOptionsForCustomer(
 
   if (error) return [];
 
-  return shape((data ?? []) as unknown as RawGroup[], true).map((group) => ({
+  return shapeOptionGroups((data ?? []) as unknown as RawGroup[], true).map((group) => ({
     ...group,
     values: group.values?.map((value) => {
       const stripped = { ...value };

@@ -171,3 +171,33 @@ describe("rate limit migration", () => {
     expect(sql).toContain('create index if not exists "Rate_Limits_window_start_idx"');
   });
 });
+
+describe("option group min_select fix", () => {
+  const path = new URL(
+    "../migrations/2026-07-27b_option_group_min_select_fix.sql",
+    import.meta.url
+  );
+
+  // Regresi: server menuntut min_select penuh sementara
+  // getMenuOptionsForCustomer menyembunyikan grup yang seluruh pilihannya
+  // nonaktif. Tamu tidak punya cara memenuhinya, jadi tiap pesanan untuk menu
+  // itu ditolak menu_unavailable dan menunya mati tanpa penjelasan.
+  it("clamps the required minimum to the number of active choices", () => {
+    const sql = readFileSync(path, "utf8");
+
+    expect(sql).toContain("having count(lo.id_option_value) < least(");
+    expect(sql).toContain("and ov2.is_active = true");
+  });
+
+  it("keeps the upper bound and the service_role-only grant intact", () => {
+    const sql = readFileSync(path, "utf8");
+
+    expect(sql).toContain("or count(lo.id_option_value) > og.max_select");
+    expect(sql).toContain(
+      "grant execute on function public.create_order_with_inventory(uuid, text, jsonb, text) to service_role"
+    );
+    expect(sql).toContain(
+      "revoke all on function public.create_order_with_inventory(uuid, text, jsonb, text) from public, anon, authenticated"
+    );
+  });
+});

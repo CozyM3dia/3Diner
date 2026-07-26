@@ -32,12 +32,15 @@ export default async function MenuDetailPage({ params }: PageProps) {
   const cafe = await getCafeBySlug(slug);
   if (!cafe) notFound();
 
-  const menu = await getMenuById(cafe.id_cafe, menu_id);
+  // Keduanya hanya bergantung pada id kafe, jadi menunggunya berurutan menambah
+  // satu perjalanan bolak-balik ke Supabase Singapura di tiap tampilan menu.
+  const [menu, optionGroups] = await Promise.all([
+    getMenuById(cafe.id_cafe, menu_id),
+    getMenuOptionsForCustomer(cafe.id_cafe, menu_id),
+  ]);
   if (!menu) notFound();
 
   logEvent({ cafe_id: cafe.id_cafe, menu_id: menu.id_menu, event_type: "view_3d", duration: 0 });
-
-  const optionGroups = await getMenuOptionsForCustomer(cafe.id_cafe, menu.id_menu);
 
   const has3d = Boolean(menu.model_3d_url);
   const ingredientList = menu.ingredients

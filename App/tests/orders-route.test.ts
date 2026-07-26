@@ -48,12 +48,42 @@ describe("POST /api/orders", () => {
     expect(rpc).toHaveBeenCalledWith("create_order_with_inventory", {
       p_cafe_id: "cafe-1",
       p_table_number: "12",
-      p_items: [{ id_menu: "menu-1", qty: 2 }],
+      p_items: [{ id_menu: "menu-1", qty: 2, options: [] }],
       p_notes: "Tanpa acar",
     });
     // Rute juga memanggil consume_rate_limit lewat spy yang sama, jadi yang
     // dijaga di sini adalah pesanan dibuat tepat sekali — bukan total panggilan.
     expect(rpc.mock.calls.filter(([fn]) => fn === "create_order_with_inventory")).toHaveLength(1);
+  });
+
+  // Ini yang dulu bocor: rute menyusun ulang tiap item menjadi { id_menu, qty }
+  // sehingga varian yang dipilih tamu tidak pernah sampai ke RPC.
+  it("forwards the selected variant ids to the inventory RPC", async () => {
+    const { POST } = await import("@/app/api/orders/route");
+    const options = [
+      "22222222-2222-4222-8222-222222222222",
+      "33333333-3333-4333-8333-333333333333",
+    ];
+
+    const response = await POST(
+      new Request("http://localhost/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cafeId: "cafe-1",
+          table: "12",
+          items: [{ id_menu: "menu-1", qty: 1, options }],
+        }),
+      })
+    );
+
+    expect(response.status).toBe(201);
+    expect(rpc).toHaveBeenCalledWith("create_order_with_inventory", {
+      p_cafe_id: "cafe-1",
+      p_table_number: "12",
+      p_items: [{ id_menu: "menu-1", qty: 1, options }],
+      p_notes: null,
+    });
   });
 
   it.each([
@@ -69,6 +99,10 @@ describe("POST /api/orders", () => {
       },
     ],
     ["an out-of-range quantity", { cafeId: "cafe-1", table: "12", items: [{ id_menu: "menu-1", qty: 51 }] }],
+    [
+      "an option id that is not a uuid",
+      { cafeId: "cafe-1", table: "12", items: [{ id_menu: "menu-1", qty: 1, options: ["nope"] }] },
+    ],
   ])("rejects %s without calling the inventory RPC", async (_description, body) => {
     const { POST } = await import("@/app/api/orders/route");
     const response = await POST(
