@@ -11,11 +11,21 @@ interface GlbViewerProps {
   onGltfLoaded?: (gltf: any) => void;
   /** Admin-set default scale; customer slider multiplies on top of this. */
   modelScale?: number;
+  /** Menyerahkan fungsi pengambil frame ke induk setelah model siap. */
+  onCaptureReady?: (capture: (() => string | null) | null) => void;
 }
 
-export default function GlbViewer({ url, onReady, onError, onGltfLoaded, modelScale = 1.0 }: GlbViewerProps) {
+export default function GlbViewer({
+  url,
+  onReady,
+  onError,
+  onGltfLoaded,
+  modelScale = 1.0,
+  onCaptureReady,
+}: GlbViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<any>(null);
+  const captureRef = useRef<(() => string | null) | null>(null);
   const frameRef = useRef<number>(0);
   const [progress, setProgress] = useState(0);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -227,11 +237,27 @@ export default function GlbViewer({ url, onReady, onError, onGltfLoaded, modelSc
       };
       animate();
 
+      // Renderer dibuat tanpa preserveDrawingBuffer supaya tidak menanggung
+      // biaya salinan buffer di tiap frame. Konsekuensinya, isi canvas hanya
+      // terbaca kalau render dan pembacaan terjadi dalam satu task yang sama —
+      // karena itu render dipanggil ulang tepat sebelum toDataURL.
+      captureRef.current = () => {
+        try {
+          renderer.render(scene, camera);
+          return renderer.domElement.toDataURL("image/png");
+        } catch {
+          return null;
+        }
+      };
+      onCaptureReady?.(captureRef.current);
+
       setProgress(100);
       setState("ready");
       onReady?.();
 
       return () => {
+        captureRef.current = null;
+        onCaptureReady?.(null);
         window.removeEventListener("resize", onResize);
         renderer.domElement.removeEventListener("mousedown", onMouseDown);
         window.removeEventListener("mousemove", onMouseMove);
@@ -247,7 +273,7 @@ export default function GlbViewer({ url, onReady, onError, onGltfLoaded, modelSc
       setState("error");
       onError?.(msg);
     }
-  }, [url, onReady, onError]);
+  }, [url, onReady, onError, onCaptureReady]);
 
   useEffect(() => {
     init();

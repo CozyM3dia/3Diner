@@ -51,7 +51,17 @@ const useCartMock = vi.mocked(useCart);
 
 function mockCart() {
   useCartMock.mockReturnValue({
-    items: [{ id_menu: "menu-1", nama_menu: "Pasta Meatball", harga_menu: 50_000, image_url: null, qty: 2 }],
+    items: [
+      {
+        line_key: "menu-1:",
+        id_menu: "menu-1",
+        nama_menu: "Pasta Meatball",
+        harga_menu: 50_000,
+        image_url: null,
+        qty: 2,
+        options: [],
+      },
+    ],
     count: 2,
     total: 100_000,
     table: "7",
@@ -108,6 +118,7 @@ describe("CartView order recovery", () => {
 
     await waitFor(() => expect(createOrderMock).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(clearCart).toHaveBeenCalledTimes(1));
-    expect(routerPush).toHaveBeenCalledWith("/demo/pesanan/order-1");
+    // Token ikut di URL supaya halaman status bisa dibuka ulang tanpa localStorage.
+    expect(routerPush).toHaveBeenCalledWith("/demo/pesanan/order-1?token=token-1");
   });
 });

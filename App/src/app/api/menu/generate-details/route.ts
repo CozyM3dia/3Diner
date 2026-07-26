@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthCafeId } from "@/lib/dashboard-actions";
+import { CREDIT_COST, claimAiCredit, refundAiCredit } from "@/lib/ai-credits";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -87,6 +88,9 @@ export async function POST(req: Request) {
     if (!name) return NextResponse.json({ error: "Nama menu wajib diisi." }, { status: 400 });
     if (name.length > 120) return NextResponse.json({ error: "Nama menu terlalu panjang." }, { status: 400 });
 
+    const claim = await claimAiCredit(cafeId, CREDIT_COST.menuDetails);
+    if (!claim.ok) return claim.response!;
+
     const model = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
@@ -103,7 +107,10 @@ export async function POST(req: Request) {
       }),
     });
 
+    // Setiap jalur keluar yang gagal mengembalikan credit: kafe tidak boleh
+    // membayar jatah untuk hasil yang tidak pernah mereka terima.
     if (!res.ok) {
+      await refundAiCredit(cafeId, CREDIT_COST.menuDetails);
       const errText = await res.text();
       let msg = `Gemini error (${res.status})`;
       try { msg = JSON.parse(errText)?.error?.message ?? msg; } catch {}
@@ -113,11 +120,17 @@ export async function POST(req: Request) {
     const data = await res.json();
     const rawText: string =
       data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
-    if (!rawText) return NextResponse.json({ error: "AI tidak mengembalikan data." }, { status: 502 });
+    if (!rawText) {
+      await refundAiCredit(cafeId, CREDIT_COST.menuDetails);
+      return NextResponse.json({ error: "AI tidak mengembalikan data." }, { status: 502 });
+    }
 
     let parsed: unknown;
     try { parsed = JSON.parse(stripFences(rawText)); }
-    catch { return NextResponse.json({ error: "Respon AI bukan JSON valid." }, { status: 502 }); }
+    catch {
+      await refundAiCredit(cafeId, CREDIT_COST.menuDetails);
+      return NextResponse.json({ error: "Respon AI bukan JSON valid." }, { status: 502 });
+    }
 
     return NextResponse.json(normalizeDetails(parsed));
   } catch (err: unknown) {

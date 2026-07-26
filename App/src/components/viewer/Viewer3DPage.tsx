@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { fitCameraToModel } from "@/lib/fit-camera";
 import GlbViewer from "./GlbViewer";
+import CaptureShareButton from "./CaptureShareButton";
 import dynamic from "next/dynamic";
 
 gsap.registerPlugin(useGSAP);
@@ -19,11 +20,24 @@ interface Viewer3DPageProps {
   menuName: string;
   backUrl: string;
   modelScale?: number;
+  /** Dipakai untuk watermark pada foto yang dibagikan tamu. */
+  cafeName?: string;
+  cafeId?: string;
+  menuId?: string;
 }
 
 type ViewerState = "loading" | "ready" | "error";
 
-export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelScale = 1.0 }: Viewer3DPageProps) {
+export default function Viewer3DPage({
+  url,
+  usdzUrl,
+  menuName,
+  backUrl,
+  modelScale = 1.0,
+  cafeName,
+  cafeId,
+  menuId,
+}: Viewer3DPageProps) {
   const shellRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -41,6 +55,14 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
   const [showAR, setShowAR] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [preloadedGltf, setPreloadedGltf] = useState<any>(null);
+  // Disimpan terbungkus supaya setState tidak memperlakukan fungsi ini sebagai
+  // updater dan malah memanggilnya.
+  const [captureBox, setCaptureBox] = useState<{ fn: (() => string | null) | null }>({ fn: null });
+  const capture = captureBox.fn;
+
+  const setCapture = useCallback((fn: (() => string | null) | null) => {
+    setCaptureBox({ fn });
+  }, []);
 
   const isGlb = url.toLowerCase().endsWith(".glb");
 
@@ -284,6 +306,7 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
             onError={handleGlbError}
             onGltfLoaded={handleGltfLoaded}
             modelScale={modelScale}
+            onCaptureReady={setCapture}
           />
         ) : (
           <div ref={containerRef} className="absolute inset-0" />
@@ -332,14 +355,28 @@ export default function Viewer3DPage({ url, usdzUrl, menuName, backUrl, modelSca
           </p>
         )}
 
-        <button
-          onClick={() => setShowAR(true)}
-          disabled={state !== "ready"}
-          className="btn-primary press w-full h-[54px] rounded-2xl flex items-center justify-center gap-2.5 font-semibold text-[15px] text-white disabled:opacity-50 max-w-xl mx-auto"
-        >
-          <ScanLine size={20} strokeWidth={2.2} />
-          Lihat di Meja (AR)
-        </button>
+        <div className="flex items-stretch gap-2 max-w-xl mx-auto">
+          <button
+            onClick={() => setShowAR(true)}
+            disabled={state !== "ready"}
+            className="btn-primary press flex-1 h-[54px] rounded-2xl flex items-center justify-center gap-2.5 font-semibold text-[15px] text-white disabled:opacity-50"
+          >
+            <ScanLine size={20} strokeWidth={2.2} />
+            Lihat di Meja (AR)
+          </button>
+
+          {/* Shutter hanya tersedia untuk .glb: pipeline gaussian splat memakai
+              canvas terpisah yang tidak menyerahkan fungsi tangkapan. */}
+          {isGlb && cafeName && (
+            <CaptureShareButton
+              capture={capture}
+              menuName={menuName}
+              cafeName={cafeName}
+              cafeId={cafeId}
+              menuId={menuId}
+            />
+          )}
+        </div>
 
         <p className="text-[11px] text-center mt-2.5" style={{ color: "rgba(255,255,255,0.5)" }}>
           Tampilan nyata ukuran asli di mejamu

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Cafe, Menu, AnalyticsLog, Announcement } from "@/types";
 
 async function getSupabaseFns() {
@@ -9,10 +10,13 @@ export async function getActiveAnnouncement(cafeId: string): Promise<Announcemen
   return fn(cafeId);
 }
 
-export async function getCafeBySlug(slug: string): Promise<Cafe | null> {
+/** `generateMetadata` dan komponen halaman berjalan dalam satu request yang
+ *  sama dan memerlukan kafe serta menu yang persis sama. Tanpa cache(), tiap
+ *  halaman menu menembak Supabase dua kali untuk jawaban yang identik. */
+export const getCafeBySlug = cache(async (slug: string): Promise<Cafe | null> => {
   const { getCafeBySlug: fn } = await getSupabaseFns();
   return fn(slug);
-}
+});
 
 export async function getMenusByCafeId(cafeId: string): Promise<Menu[]> {
   const { getMenusByCafeId: fn } = await getSupabaseFns();
@@ -26,10 +30,10 @@ export async function logEvent(
   fn(payload).catch(() => {/* fire and forget */});
 }
 
-export async function getMenuById(
+export const getMenuById = cache(async (
   cafeId: string,
   menuId: string
-): Promise<Menu | null> {
+): Promise<Menu | null> => {
   const { supabase } = await getSupabaseFns();
   const { data, error } = await supabase
     .from("Menus")
@@ -39,4 +43,4 @@ export async function getMenuById(
     .single();
   if (error) return null;
   return data as Menu;
-}
+});

@@ -14,6 +14,9 @@ export async function POST(req: Request) {
     const taskId = String(body.task_id ?? "").trim();
     if (!taskId) return NextResponse.json({ error: "task_id wajib diisi." }, { status: 400 });
 
+    // Tidak menarik credit: konversi .usdz adalah langkah lanjutan dari model
+    // yang sudah dibayar di /api/tripo/generate. Menagih dua kali untuk satu
+    // dish akan membuat setiap menu iOS berbiaya ganda.
     const convertTaskId = await createConvertUsdzTask(taskId);
     return NextResponse.json({ task_id: convertTaskId });
   } catch (err: unknown) {

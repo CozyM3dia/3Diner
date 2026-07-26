@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { CartItem, Menu } from "@/types";
+import { cartLineKey, type CartItem, type Menu, type SelectedOption } from "@/types";
 
 interface CartState {
   items: CartItem[];
@@ -16,9 +16,11 @@ interface CartState {
   notes: string;
   count: number;
   total: number;
-  add: (menu: Menu, qty?: number) => void;
-  setQty: (id: string, qty: number) => void;
-  remove: (id: string) => void;
+  add: (menu: Menu, qty?: number, options?: SelectedOption[]) => void;
+  /** Baris diidentifikasi lewat `line_key`, bukan `id_menu` — satu menu bisa
+   *  muncul beberapa kali dengan varian berbeda. */
+  setQty: (lineKey: string, qty: number) => void;
+  remove: (lineKey: string) => void;
   setTable: (t: string) => void;
   setNotes: (n: string) => void;
   clear: () => void;
@@ -48,7 +50,16 @@ export function CartProvider({
       const raw = localStorage.getItem(storageKey(slug));
       if (raw) {
         const parsed = JSON.parse(raw) as { items?: CartItem[]; table?: string; notes?: string };
-        setItems(parsed.items ?? []);
+        // Keranjang yang disimpan sebelum varian ada tidak punya line_key.
+        setItems(
+          (parsed.items ?? []).map((item) => ({
+            ...item,
+            options: item.options ?? [],
+            line_key:
+              item.line_key ??
+              cartLineKey(item.id_menu, (item.options ?? []).map((o) => o.id_option_value)),
+          }))
+        );
         setTableState(parsed.table ?? "");
         setNotesState(parsed.notes ?? "");
       }
@@ -68,37 +79,46 @@ export function CartProvider({
     }
   }, [items, table, notes, slug, hydrated]);
 
-  function add(menu: Menu, qty = 1) {
+  function add(menu: Menu, qty = 1, options: SelectedOption[] = []) {
+    const lineKey = cartLineKey(
+      menu.id_menu,
+      options.map((o) => o.id_option_value)
+    );
+    // Harga satuan membekukan selisih varian saat item dimasukkan. Server tetap
+    // menghitung ulang dari harga kanonik saat pesanan dibuat.
+    const unitPrice =
+      menu.harga_menu + options.reduce((sum, o) => sum + o.price_delta, 0);
+
     setItems((prev) => {
-      const existing = prev.find((i) => i.id_menu === menu.id_menu);
+      const existing = prev.find((i) => i.line_key === lineKey);
       if (existing) {
-        return prev.map((i) =>
-          i.id_menu === menu.id_menu ? { ...i, qty: i.qty + qty } : i
-        );
+        return prev.map((i) => (i.line_key === lineKey ? { ...i, qty: i.qty + qty } : i));
       }
       return [
         ...prev,
         {
+          line_key: lineKey,
           id_menu: menu.id_menu,
           nama_menu: menu.nama_menu,
-          harga_menu: menu.harga_menu,
+          harga_menu: unitPrice,
           image_url: menu.image_url ?? null,
           qty,
+          options,
         },
       ];
     });
   }
 
-  function setQty(id: string, qty: number) {
+  function setQty(lineKey: string, qty: number) {
     setItems((prev) =>
       qty <= 0
-        ? prev.filter((i) => i.id_menu !== id)
-        : prev.map((i) => (i.id_menu === id ? { ...i, qty } : i))
+        ? prev.filter((i) => i.line_key !== lineKey)
+        : prev.map((i) => (i.line_key === lineKey ? { ...i, qty } : i))
     );
   }
 
-  function remove(id: string) {
-    setItems((prev) => prev.filter((i) => i.id_menu !== id));
+  function remove(lineKey: string) {
+    setItems((prev) => prev.filter((i) => i.line_key !== lineKey));
   }
 
   function setTable(t: string) {

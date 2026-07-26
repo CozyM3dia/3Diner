@@ -38,7 +38,11 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
         notes: notes.trim(),
       });
       clear();
-      router.push(`/${slug}/pesanan/${order.id_order}`);
+      // Token ikut di URL supaya tautan status bisa dibuka ulang atau dibagikan
+      // ke teman semeja tanpa bergantung pada localStorage perangkat ini.
+      router.push(
+        `/${slug}/pesanan/${order.id_order}?token=${encodeURIComponent(order.customer_token ?? "")}`
+      );
     } catch (error) {
       setOrderError(error instanceof Error ? error.message : "Gagal membuat pesanan. Silakan coba lagi.");
       requestAnimationFrame(() => orderErrorRef.current?.focus());
@@ -92,7 +96,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
           {/* Items */}
           <div className="space-y-3">
             {items.map((it) => (
-              <div key={it.id_menu} className="card flex items-center gap-3 p-3 fade-up">
+              <div key={it.line_key} className="card flex items-center gap-3 p-3 fade-up">
                 <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0">
                   {it.image_url ? (
                     <Image src={it.image_url} alt={it.nama_menu} fill sizes="64px" className="object-cover" />
@@ -106,13 +110,18 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                   <h3 className="font-display text-sm font-semibold truncate" style={{ color: "var(--navy)" }}>
                     {it.nama_menu}
                   </h3>
+                  {it.options && it.options.length > 0 && (
+                    <p className="text-[11px] mt-0.5 truncate" style={{ color: "var(--navy-muted)" }}>
+                      {it.options.map((o) => o.name).join(" · ")}
+                    </p>
+                  )}
                   <p className="text-sm font-bold mt-0.5" style={{ color: "var(--orange-ink)" }}>
                     {formatRupiah(it.harga_menu)}
                   </p>
                 </div>
                 <div className="shrink-0 inline-flex items-center gap-1">
                   <button
-                    onClick={() => setQty(it.id_menu, it.qty - 1)}
+                    onClick={() => setQty(it.line_key, it.qty - 1)}
                     aria-label={`Kurangi ${it.nama_menu}`}
                     className="press w-10 h-10 rounded-full inline-flex items-center justify-center"
                     style={{ background: "var(--surface)", color: "var(--navy)" }}
@@ -123,7 +132,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                     {it.qty}
                   </span>
                   <button
-                    onClick={() => setQty(it.id_menu, it.qty + 1)}
+                    onClick={() => setQty(it.line_key, it.qty + 1)}
                     aria-label={`Tambah ${it.nama_menu}`}
                     className="press w-10 h-10 rounded-full inline-flex items-center justify-center text-white"
                     style={{ background: "var(--orange)" }}

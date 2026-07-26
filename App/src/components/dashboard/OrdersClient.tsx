@@ -2,11 +2,11 @@
 
 import { useEffect, useState, useTransition, useRef, useCallback } from "react";
 import Link from "next/link";
-import { ShoppingBag, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer, X, BellRing, BellOff, QrCode } from "lucide-react";
+import { ShoppingBag, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer, X, BellRing, BellOff, QrCode, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
-import { updateOrderStatus } from "@/lib/dashboard-actions";
+import { markOrderCashPaid, updateOrderStatus } from "@/lib/dashboard-actions";
 import { escapeHtml, formatRupiah } from "@/lib/format";
 import {
   DashboardEmptyState,
@@ -16,13 +16,13 @@ import {
   getDashPortal,
   type StatusKind,
 } from "@/components/dashboard/system";
-import type { CartItem } from "@/types";
+import type { OrderItem } from "@/types";
 
 export interface OrderRow {
   id_order: string;
   cafe_id: string;
   table_number: string;
-  items: CartItem[];
+  items: OrderItem[];
   total: number;
   status: "received" | "preparing" | "ready";
   payment_method: string | null;
@@ -32,6 +32,72 @@ export interface OrderRow {
 }
 
 type Filter = "all" | "received" | "preparing" | "ready";
+
+/** Baris pembayaran: memisahkan pekerjaan kasir dari pekerjaan dapur.
+ *
+ *  Pesanan QRIS dilunasi webhook Midtrans, jadi tombolnya hanya muncul untuk
+ *  pesanan tunai atau pesanan yang metodenya belum dipilih pelanggan. */
+function PaymentRow({
+  order,
+  busy,
+  onMarkPaid,
+}: {
+  order: OrderRow;
+  busy: boolean;
+  onMarkPaid: () => void;
+}) {
+  const paid = order.payment_status === "paid";
+  const isQris = order.payment_method === "qris";
+  const methodLabel =
+    order.payment_method === "qris" ? "QRIS"
+    : order.payment_method === "cash" ? "Tunai"
+    : "Metode belum dipilih";
+
+  return (
+    <div
+      className="flex items-center justify-between gap-3 mb-3 px-3 py-2.5 rounded-xl"
+      style={{
+        background: paid ? "rgba(34,211,166,0.08)" : "rgba(255,255,255,0.03)",
+        border: `1px solid ${paid ? "rgba(34,211,166,0.22)" : "var(--dash-border)"}`,
+      }}
+    >
+      <span className="inline-flex items-center gap-2 min-w-0">
+        <Wallet size={14} strokeWidth={1.8} style={{ color: paid ? "#22D3A6" : "var(--dash-muted)" }} />
+        <span className="text-xs truncate" style={{ color: "var(--dash-secondary)" }}>
+          {methodLabel}
+        </span>
+        <span
+          className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0"
+          style={
+            paid
+              ? { background: "rgba(34,211,166,0.16)", color: "#22D3A6" }
+              : { background: "rgba(245,158,11,0.14)", color: "#F59E0B" }
+          }
+        >
+          {paid ? "Lunas" : "Belum"}
+        </span>
+      </span>
+
+      {!paid && !isQris && (
+        <button
+          onClick={onMarkPaid}
+          disabled={busy}
+          className="dash-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold shrink-0 disabled:opacity-60"
+          style={{ background: "rgba(34,211,166,0.14)", color: "#22D3A6", border: "1px solid rgba(34,211,166,0.3)" }}
+        >
+          {busy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+          Tandai Lunas
+        </button>
+      )}
+
+      {!paid && isQris && (
+        <span className="text-[11px] shrink-0" style={{ color: "var(--dash-muted)" }}>
+          Menunggu Midtrans
+        </span>
+      )}
+    </div>
+  );
+}
 
 /** Status pesanan memakai vocabulary StatusBadge system (label identik). */
 const STATUS_KIND: Record<OrderRow["status"], StatusKind> = {
@@ -255,6 +321,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
   const [filter, setFilter] = useState<Filter>("all");
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [payBusyId, setPayBusyId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [previewOrder, setPreviewOrder] = useState<OrderRow | null>(null);
 
@@ -437,6 +504,28 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
     });
   }
 
+  /** Kasir melunasi pesanan tunai. Tidak optimistis: uang yang berpindah tangan
+   *  tidak boleh terlihat lunas di layar sebelum database mengonfirmasi. */
+  function markPaid(o: OrderRow) {
+    setPayBusyId(o.id_order);
+    startTransition(async () => {
+      const result = await markOrderCashPaid(o.id_order);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        setOrders((prev) =>
+          prev.map((x) =>
+            x.id_order === o.id_order
+              ? { ...x, payment_status: "paid", payment_method: "cash" }
+              : x
+          )
+        );
+        toast.success(`Meja ${o.table_number} ditandai lunas`);
+      }
+      setPayBusyId(null);
+    });
+  }
+
   const counts = {
     all: orders.length,
     received: orders.filter((o) => o.status === "received").length,
@@ -554,14 +643,25 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
 
                 <ul className="space-y-1.5 mb-3">
                   {items.map((it, idx) => (
-                    <li key={idx} className="flex items-center justify-between text-sm">
-                      <span style={{ color: "var(--dash-secondary)" }}>
+                    <li key={idx} className="flex items-start justify-between gap-3 text-sm">
+                      <span className="min-w-0" style={{ color: "var(--dash-secondary)" }}>
                         <span style={{ color: "var(--dash-text)", fontWeight: 600 }}>{it.qty}×</span> {it.nama_menu}
+                        {it.options && it.options.length > 0 && (
+                          <span className="block text-[11px] mt-0.5 leading-snug" style={{ color: "var(--dash-muted)" }}>
+                            {it.options.map((opt) => opt.name).join(" · ")}
+                          </span>
+                        )}
                       </span>
-                      <span className="tabular-nums" style={{ color: "var(--dash-muted)" }}>{formatRupiah(it.harga_menu * it.qty)}</span>
+                      <span className="tabular-nums shrink-0" style={{ color: "var(--dash-muted)" }}>{formatRupiah(it.harga_menu * it.qty)}</span>
                     </li>
                   ))}
                 </ul>
+
+                <PaymentRow
+                  order={o}
+                  busy={pending && payBusyId === o.id_order}
+                  onMarkPaid={() => markPaid(o)}
+                />
 
                 {o.notes && (
                   <div className="mb-3 p-3 rounded-xl text-xs" style={{ background: "rgba(253,80,2,0.06)", border: "1px solid rgba(253,80,2,0.15)" }}>

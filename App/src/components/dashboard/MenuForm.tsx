@@ -4,21 +4,47 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Loader2, Trash2, Save, AlertCircle, Clock, Flame, ScanLine, ShoppingBag, ImageOff, Sparkles } from "lucide-react";
-import type { InventoryItem, Menu, MenuRecipe } from "@/types";
-import { saveMenuRecipes, type ActionResult, type RecipeDraftInput } from "@/lib/dashboard-actions";
+import type { InventoryItem, Menu, MenuOptionGroup, MenuRecipe } from "@/types";
+import {
+  saveMenuOptions,
+  saveMenuRecipes,
+  type ActionResult,
+  type RecipeDraftInput,
+} from "@/lib/dashboard-actions";
+import { optionGroupsValidationError, type OptionGroupDraft } from "@/lib/menu-option-drafts";
 import { saveMenuAndRecipes } from "@/lib/menu-form-save";
 import { formatRupiah } from "@/lib/format";
 import FileUpload from "./FileUpload";
 import PhoneMockup from "./PhoneMockup";
 import Tripo3DGenerator from "./Tripo3DGenerator";
 import RecipeEditor, { recipeRowsValidationError } from "./RecipeEditor";
+import MenuOptionsEditor from "./MenuOptionsEditor";
 
 interface MenuFormProps {
   menu?: Menu;
   inventoryItems?: InventoryItem[];
   recipes?: MenuRecipe[];
+  optionGroups?: MenuOptionGroup[];
   onSave: (fd: FormData) => Promise<ActionResult>;
   onDelete?: () => Promise<ActionResult>;
+}
+
+/** Bentuk baca dari database dipetakan ke bentuk draf yang diedit di form. */
+function toOptionDrafts(groups: MenuOptionGroup[]): OptionGroupDraft[] {
+  return groups.map((group) => ({
+    name: group.name,
+    min_select: group.min_select,
+    max_select: group.max_select,
+    values: (group.values ?? []).map((value) => ({
+      name: value.name,
+      price_delta: value.price_delta,
+      is_active: value.is_active,
+      recipes: (value.recipes ?? []).map((recipe) => ({
+        inventory_item_id: recipe.inventory_item_id,
+        qty_per_menu: recipe.qty_per_menu,
+      })),
+    })),
+  }));
 }
 
 const WEEKDAYS = [
@@ -48,7 +74,14 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export default function MenuForm({ menu, inventoryItems = [], recipes = [], onSave, onDelete }: MenuFormProps) {
+export default function MenuForm({
+  menu,
+  inventoryItems = [],
+  recipes = [],
+  optionGroups = [],
+  onSave,
+  onDelete,
+}: MenuFormProps) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -59,6 +92,9 @@ export default function MenuForm({ menu, inventoryItems = [], recipes = [], onSa
       inventory_item_id: recipe.inventory_item_id,
       qty_per_menu: recipe.qty_per_menu,
     }))
+  );
+  const [optionDrafts, setOptionDrafts] = useState<OptionGroupDraft[]>(() =>
+    toOptionDrafts(optionGroups)
   );
   const [days, setDays] = useState<Set<string>>(
     new Set((menu?.schedule_days ?? "").split(",").map((s) => s.trim()).filter(Boolean))
@@ -135,12 +171,20 @@ export default function MenuForm({ menu, inventoryItems = [], recipes = [], onSa
       setSaving(false);
       return;
     }
+    const optionError = optionGroupsValidationError(optionDrafts);
+    if (optionError) {
+      setError(optionError);
+      setSaving(false);
+      return;
+    }
     const res = await saveMenuAndRecipes({
       fd,
       menuId: menu?.id_menu ?? createdMenuId,
       rows: recipeRows,
+      optionGroups: optionDrafts,
       onSave,
       saveRecipes: saveMenuRecipes,
+      saveOptions: saveMenuOptions,
       navigate: router.push,
       refresh: router.refresh,
       skipMenuSave: !menu && Boolean(createdMenuId),
@@ -360,6 +404,13 @@ export default function MenuForm({ menu, inventoryItems = [], recipes = [], onSa
         inventoryItems={inventoryItems}
         rows={recipeRows}
         onRowsChange={setRecipeRows}
+        disabled={saving}
+      />
+
+      <MenuOptionsEditor
+        groups={optionDrafts}
+        onGroupsChange={setOptionDrafts}
+        inventoryItems={inventoryItems}
         disabled={saving}
       />
 

@@ -6,6 +6,7 @@ import { updateMenu, deleteMenu } from "@/lib/dashboard-actions";
 import { createClient } from "@/lib/supabase/server";
 import { getOwnerCafeSlug } from "@/lib/analytics";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getMenuOptionsForOwner } from "@/lib/menu-options";
 import type { InventoryItem, Menu, MenuRecipe } from "@/types";
 
 export default async function EditMenuPage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,7 +31,11 @@ export default async function EditMenuPage({ params }: { params: Promise<{ id: s
     .single();
   if (!menu) notFound();
 
-  const [{ data: inventoryItems, error: inventoryError }, { data: recipes, error: recipesError }] = await Promise.all([
+  const [
+    { data: inventoryItems, error: inventoryError },
+    { data: recipes, error: recipesError },
+    { groups: optionGroups },
+  ] = await Promise.all([
     supabaseAdmin
       .from("Inventory_Items")
       .select("*")
@@ -42,6 +47,7 @@ export default async function EditMenuPage({ params }: { params: Promise<{ id: s
       .eq("menu_id", id)
       .eq("cafe_id", cafe.id_cafe)
       .order("created_at", { ascending: true }),
+    getMenuOptionsForOwner(cafe.id_cafe, id),
   ]);
 
   if (inventoryError) {
@@ -109,6 +115,7 @@ export default async function EditMenuPage({ params }: { params: Promise<{ id: s
         menu={menu as Menu}
         inventoryItems={(inventoryItems ?? []) as InventoryItem[]}
         recipes={(recipes ?? []) as MenuRecipe[]}
+        optionGroups={optionGroups}
         onSave={onSave}
         onDelete={onDelete}
       />

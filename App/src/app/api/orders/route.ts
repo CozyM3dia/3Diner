@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
+import { parseItems } from "@/lib/order-request";
 
 /** Rute publik tanpa autentikasi: siapa pun yang tahu cafeId bisa membuat
  *  baris pesanan. Batas per-IP menahan banjir, batas per-kafe menjaga satu
@@ -15,11 +16,6 @@ interface CreateOrderBody {
   notes?: unknown;
 }
 
-interface RequestedOrderItem {
-  id_menu: string;
-  qty: number;
-}
-
 interface CreateOrderResult {
   error?: unknown;
   unavailableMenus?: unknown;
@@ -30,36 +26,6 @@ interface CreateOrderResult {
 interface RpcResponseEnvelope {
   data: unknown;
   error: unknown;
-}
-
-function parseItems(value: unknown): RequestedOrderItem[] | null {
-  if (!Array.isArray(value) || value.length === 0 || value.length > 50) return null;
-
-  const items = value.map((item) => {
-    if (!item || typeof item !== "object") return null;
-
-    const candidate = item as { id_menu?: unknown; qty?: unknown };
-    return {
-      id_menu: typeof candidate.id_menu === "string" ? candidate.id_menu : "",
-      qty: candidate.qty,
-    };
-  });
-
-  if (
-    items.some(
-      (item) =>
-        !item ||
-        !item.id_menu ||
-        typeof item.qty !== "number" ||
-        !Number.isInteger(item.qty) ||
-        item.qty < 1 ||
-        item.qty > 50
-    )
-  ) {
-    return null;
-  }
-
-  return items as RequestedOrderItem[];
 }
 
 function isInvalidOrderError(value: unknown): boolean {

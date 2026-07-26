@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "./supabase-admin";
 import { createClient } from "./supabase/server";
 import { getOwnerCafeSlug } from "./analytics";
+import { optionGroupsValidationError, type OptionGroupDraft } from "./menu-option-drafts";
 
 export interface ActionResult {
   error?: string;
@@ -439,6 +440,54 @@ export async function saveMenuRecipes(menuId: string, rows: RecipeDraftInput[]):
   return {};
 }
 
+// ── Varian & add-on menu ───────────────────────────────────────────────────
+
+export async function saveMenuOptions(
+  menuId: string,
+  groups: OptionGroupDraft[]
+): Promise<ActionResult> {
+  const cafeId = await getAuthCafeId();
+  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
+
+  const cleaned: OptionGroupDraft[] = groups.map((group) => ({
+    name: String(group.name ?? "").trim(),
+    min_select: Number(group.min_select),
+    max_select: Number(group.max_select),
+    values: (group.values ?? []).map((value) => ({
+      name: String(value.name ?? "").trim(),
+      price_delta: Math.trunc(Number(value.price_delta) || 0),
+      is_active: value.is_active !== false,
+      recipes: (value.recipes ?? [])
+        .map((recipe) => ({
+          inventory_item_id: String(recipe.inventory_item_id ?? "").trim(),
+          qty_per_menu: Number(recipe.qty_per_menu),
+        }))
+        .filter((recipe) => recipe.inventory_item_id !== ""),
+    })),
+  }));
+
+  const validationError = optionGroupsValidationError(cleaned);
+  if (validationError) return { error: validationError };
+
+  const { data, error } = await supabaseAdmin.rpc("replace_menu_options", {
+    p_cafe_id: cafeId,
+    p_menu_id: menuId,
+    p_groups: cleaned,
+  });
+  if (error) return { error: error.message };
+
+  const rpcError = (data as { error?: string } | null)?.error;
+  if (rpcError === "menu_not_found") return { error: "Menu tidak ditemukan." };
+  if (rpcError === "inventory_item_not_found") return { error: "Bahan tidak ditemukan." };
+  if (rpcError === "too_many_groups") return { error: "Maksimal 10 grup varian per menu." };
+  if (rpcError === "invalid_option_recipe") return { error: "Data bahan varian tidak valid." };
+  if (rpcError) return { error: "Data varian tidak valid." };
+
+  revalidatePath("/dashboard/menu");
+  revalidatePath("/dashboard/menu/" + menuId + "/edit");
+  return {};
+}
+
 // ── Announcements ──────────────────────────────────────────────────────────
 
 export async function saveAnnouncement(fd: FormData): Promise<ActionResult> {
@@ -524,5 +573,35 @@ export async function updateOrderStatus(
     .eq("cafe_id", cafeId);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/orders");
+  return {};
+}
+
+/** Kasir menandai pesanan tunai sudah dibayar.
+ *
+ *  Sebelumnya tidak ada jalan sama sekali untuk melunasi pesanan tunai: pilihan
+ *  "bayar di kasir" hanya hidup di localStorage pelanggan, jadi setiap pesanan
+ *  tunai tercatat selamanya sebagai belum dibayar dan laporan penjualan salah.
+ *
+ *  Pesanan QRIS sengaja ditolak di sini — hanya webhook Midtrans yang boleh
+ *  menyatakan QRIS lunas. */
+export async function markOrderCashPaid(orderId: string): Promise<ActionResult> {
+  const cafeId = await getAuthCafeId();
+  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
+
+  const { data, error } = await supabaseAdmin.rpc("mark_order_cash_paid", {
+    p_cafe_id: cafeId,
+    p_order_id: orderId,
+  });
+  if (error) return { error: error.message };
+
+  const result = data as { error?: string; ok?: boolean } | null;
+  if (result?.error === "order_not_found") return { error: "Pesanan tidak ditemukan." };
+  if (result?.error === "qris_settled_by_webhook") {
+    return { error: "Pesanan QRIS dilunasi otomatis oleh Midtrans." };
+  }
+  if (!result?.ok) return { error: "Gagal menandai pesanan lunas." };
+
+  revalidatePath("/dashboard/orders");
+  revalidatePath("/dashboard/revenue");
   return {};
 }
