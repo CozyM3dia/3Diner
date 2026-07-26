@@ -18,12 +18,14 @@ const META: Record<StatusKind, { label: string; color: string; bg?: string; outl
   "order-ready":     { label: "Siap",        color: "#22D3A6", bg: "rgba(34,211,166,0.12)" },
   "pay-cash":        { label: "Tunai",       color: "#22D3A6", bg: "rgba(34,211,166,0.12)" },
   "pay-qris":        { label: "QRIS",        color: "#00C2A8", bg: "rgba(0,194,168,0.12)" },
-  "pay-unpaid":      { label: "Belum Bayar", color: "#5A7898", outline: true },
+  "pay-unpaid":      { label: "Belum Bayar", color: "var(--dash-muted)", outline: true },
   "inv-ready":       { label: "Resep aktif", color: "#22D3A6", bg: "rgba(34,211,166,0.12)" },
   "inv-low":         { label: "Stok kurang", color: "#F59E0B", bg: "rgba(245,158,11,0.12)" },
-  "inv-none":        { label: "Tanpa resep", color: "#41557A", outline: true },
+  /* Dulu #41557A = 2.38:1, kontras terburuk di dashboard. Tiga kind netral di
+     bawah ini sengaja berbagi satu warna: maknanya dibawa label, bukan warna. */
+  "inv-none":        { label: "Tanpa resep", color: "var(--dash-muted)", outline: true },
   active:            { label: "Aktif",       color: "#22D3A6", bg: "rgba(34,211,166,0.12)" },
-  inactive:          { label: "Nonaktif",    color: "#5A7898", outline: true },
+  inactive:          { label: "Nonaktif",    color: "var(--dash-muted)", outline: true },
   threeD:            { label: "3D",          color: "#00C2A8", bg: "rgba(0,194,168,0.12)" },
 };
 

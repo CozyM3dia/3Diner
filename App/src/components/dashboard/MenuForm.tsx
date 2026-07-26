@@ -66,7 +66,7 @@ const inputStyle: React.CSSProperties = {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#5A7898" }}>
+      <label className="block text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--dash-muted)" }}>
         {label}
       </label>
       {children}
@@ -252,7 +252,7 @@ export default function MenuForm({
               <AlertCircle size={12} /> {aiError}
             </p>
           ) : (
-            <p className="text-[11px] mt-1.5" style={{ color: "#5A7898" }}>
+            <p className="text-[11px] mt-1.5" style={{ color: "var(--dash-muted)" }}>
               Ketik nama menu, lalu biarkan AI mengisi detail di bawah otomatis.
             </p>
           )}
@@ -283,7 +283,7 @@ export default function MenuForm({
 
       {/* Media */}
       <div className="rounded-2xl p-5 space-y-4" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
-        <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>Media & 3D</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>Media & 3D</p>
         <FileUpload
           name="image_url"
           kind="image"
@@ -336,7 +336,7 @@ export default function MenuForm({
               {modelScale.toFixed(1)}x
             </span>
           </div>
-          <p className="text-[11px] mt-1.5" style={{ color: "#5A7898" }}>
+          <p className="text-[11px] mt-1.5" style={{ color: "var(--dash-muted)" }}>
             Ukuran dasar model 3D saat pertama dimuat di 3D & AR. Pelanggan tetap bisa cubit untuk zoom.
           </p>
         </Field>
@@ -347,7 +347,7 @@ export default function MenuForm({
 
       {/* Availability */}
       <div className="rounded-2xl p-5 space-y-4" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }}>
-        <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>Ketersediaan</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>Ketersediaan</p>
 
         <button
           type="button"
@@ -365,7 +365,7 @@ export default function MenuForm({
         </Field>
 
         <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#5A7898" }}>Hari Tersedia</label>
+          <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--dash-muted)" }}>Hari Tersedia</label>
           <div className="flex flex-wrap gap-1.5">
             {WEEKDAYS.map((d) => {
               const on = days.has(d.v);
@@ -377,7 +377,7 @@ export default function MenuForm({
                   className="dash-chip px-3 py-1.5 rounded-lg text-xs font-medium"
                   style={{
                     background: on ? "rgba(253,80,2,0.14)" : "#132136",
-                    color: on ? "#FD5002" : "#5A7898",
+                    color: on ? "#FD5002" : "var(--dash-muted)",
                     border: `1px solid ${on ? "rgba(253,80,2,0.4)" : "rgba(255,255,255,0.08)"}`,
                     transition: "all 150ms ease-out",
                   }}
@@ -387,7 +387,7 @@ export default function MenuForm({
               );
             })}
           </div>
-          <p className="text-[11px] mt-1.5" style={{ color: "#5A7898" }}>Kosongkan = tersedia setiap hari</p>
+          <p className="text-[11px] mt-1.5" style={{ color: "var(--dash-muted)" }}>Kosongkan = tersedia setiap hari</p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -491,7 +491,7 @@ export default function MenuForm({
               {formatRupiah(promo || 0)}
             </span>
             {discount > 0 && harga > 0 && (
-              <span className="text-[13px] line-through tabular-nums" style={{ color: "#5A7898" }}>
+              <span className="text-[13px] line-through tabular-nums" style={{ color: "var(--dash-muted)" }}>
                 {formatRupiah(harga)}
               </span>
             )}

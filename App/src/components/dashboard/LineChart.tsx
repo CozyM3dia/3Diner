@@ -98,7 +98,9 @@ export default function LineChart({ data, color = "#FD5002", height = 180 }: Lin
             strokeWidth="1"
             strokeDasharray="2 5"
           />
-          <text x={PAD_L - 8} y={t.y + 3} textAnchor="end" fontSize="10" fill="#5A7898">
+          {/* Warna lewat style, bukan atribut `fill=` — var() tidak resolve di
+              atribut presentasi SVG. */}
+          <text x={PAD_L - 8} y={t.y + 3} textAnchor="end" fontSize="10" style={{ fill: "var(--dash-muted)" }}>
             {t.label}
           </text>
         </g>
@@ -174,7 +176,7 @@ export default function LineChart({ data, color = "#FD5002", height = 180 }: Lin
             y={H - 8}
             textAnchor="middle"
             fontSize="9.5"
-            fill="#5A7898"
+            style={{ fill: "var(--dash-muted)" }}
           >
             {d.label.split(" ")[0]}
           </text>

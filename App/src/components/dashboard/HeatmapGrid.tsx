@@ -70,7 +70,7 @@ export default function HeatmapGrid({ hourly, color = "#FD5002" }: HeatmapGridPr
       </div>
       <div className="flex justify-between mt-2">
         {[0, 3, 6, 9, 12, 15, 18, 21].map((h) => (
-          <span key={h} className="text-[9px]" style={{ color: "#5A7898" }}>
+          <span key={h} className="text-[9px]" style={{ color: "var(--dash-muted)" }}>
             {String(h).padStart(2, "0")}
           </span>
         ))}

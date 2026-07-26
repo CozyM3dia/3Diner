@@ -552,12 +552,12 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
                 className="dash-chip shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium"
                 style={{
                   background: on ? "rgba(253,80,2,0.12)" : "#0D1829",
-                  color: on ? "#FD5002" : "#5A7898",
+                  color: on ? "#FD5002" : "var(--dash-muted)",
                   border: `1px solid ${on ? "rgba(253,80,2,0.3)" : "rgba(255,255,255,0.07)"}`,
                 }}
               >
                 {t.l}
-                <span className="text-xs tabular-nums" style={{ color: on ? "#FD5002" : "#5A7898" }}>
+                <span className="text-xs tabular-nums" style={{ color: on ? "#FD5002" : "var(--dash-muted)" }}>
                   {counts[t.v]}
                 </span>
               </button>
@@ -569,7 +569,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
           className="dash-press shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors"
           style={{
             background: alertsOn ? "rgba(34,211,166,0.12)" : "#0D1829",
-            color: alertsOn ? "#22D3A6" : "#5A7898",
+            color: alertsOn ? "#22D3A6" : "var(--dash-muted)",
             border: `1px solid ${alertsOn ? "rgba(34,211,166,0.3)" : "rgba(255,255,255,0.07)"}`,
           }}
           title={alertsOn ? "Alarm pesanan aktif (suara + notifikasi)" : "Aktifkan alarm pesanan baru"}

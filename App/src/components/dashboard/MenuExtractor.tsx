@@ -29,7 +29,7 @@ const C = {
   card: "#132136",
   border: "rgba(255,255,255,0.07)",
   text: "#E9EEF6",
-  muted: "#5A7898",
+  muted: "var(--dash-muted)",
   orange: "#FD5002",
   green: "#22D3A6",
 };

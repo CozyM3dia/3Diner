@@ -192,7 +192,7 @@ export default function MenuTable({
               ? "Seret baris untuk atur urutan"
               : "Urutan tampilan (klik judul lagi untuk reset)"}
           </span>
-          <span className="text-[11px] font-medium inline-flex items-center gap-1.5" style={{ color: pending ? "var(--dash-muted)" : showSaved ? "#22D3A6" : "#41557A" }}>
+          <span className="text-[11px] font-medium inline-flex items-center gap-1.5" style={{ color: pending ? "var(--dash-muted)" : showSaved ? "#22D3A6" : "var(--dash-muted)" }}>
             {pending ? (
               <><Loader2 size={11} className="animate-spin" /> Menyimpan</>
             ) : showSaved ? (
@@ -246,7 +246,7 @@ export default function MenuTable({
                   <span
                     className="flex items-center justify-center transition-opacity"
                     style={{
-                      color: "#41557A",
+                      color: "var(--dash-muted)",
                       cursor: canDrag ? "grab" : "not-allowed",
                       opacity: canDrag ? 1 : 0.25,
                     }}
@@ -333,7 +333,7 @@ export default function MenuTable({
               }}
             >
               {canDrag && (
-                <span className="flex items-center shrink-0" style={{ color: "#41557A", cursor: "grab" }} title="Seret untuk pindah">
+                <span className="flex items-center shrink-0" style={{ color: "var(--dash-muted)", cursor: "grab" }} title="Seret untuk pindah">
                   <GripVertical size={15} />
                 </span>
               )}
@@ -388,7 +388,7 @@ export default function MenuTable({
 
 function Badge3D({ has }: { has: boolean }) {
   if (!has) {
-    return <span className="text-[11px]" style={{ color: "#41557A" }}>—</span>;
+    return <span className="text-[11px]" style={{ color: "var(--dash-muted)" }}>—</span>;
   }
   return <StatusBadge kind="threeD" className="text-[10px] font-bold tracking-wide" />;
 }

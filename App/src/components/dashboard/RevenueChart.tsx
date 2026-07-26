@@ -67,7 +67,7 @@ export default function RevenueChart({ data, color = "#FD5002" }: RevenueChartPr
       <div className="flex justify-between mt-2">
         {data.map((d, i) =>
           i % 2 === 0 ? (
-            <span key={i} className="text-[9px] flex-1 text-center" style={{ color: "#5A7898" }}>
+            <span key={i} className="text-[9px] flex-1 text-center" style={{ color: "var(--dash-muted)" }}>
               {d.label.split(" ")[0]}
             </span>
           ) : (
@@ -75,7 +75,7 @@ export default function RevenueChart({ data, color = "#FD5002" }: RevenueChartPr
           )
         )}
       </div>
-      <div className="flex items-center gap-3 mt-3 text-[10px]" style={{ color: "#5A7898" }}>
+      <div className="flex items-center gap-3 mt-3 text-[10px]" style={{ color: "var(--dash-muted)" }}>
         <span>Maks: Rp {shortRp(max)}</span>
       </div>
     </div>

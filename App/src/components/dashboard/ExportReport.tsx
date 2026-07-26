@@ -197,7 +197,7 @@ export default function ExportReport({ start, end }: { start?: string; end?: str
         style={{ background: "#132136", color: "#E9EEF6", border: "1px solid rgba(255,255,255,0.1)" }}
       >
         <Download size={15} /> Ekspor
-        <ChevronDown size={14} style={{ color: "#5A7898", transform: open ? "rotate(180deg)" : "none", transition: "transform 160ms ease-out" }} />
+        <ChevronDown size={14} style={{ color: "var(--dash-muted)", transform: open ? "rotate(180deg)" : "none", transition: "transform 160ms ease-out" }} />
       </button>
 
       {open && mounted && createPortal(
@@ -245,7 +245,7 @@ function MenuRow({ icon, title, desc, loading, onClick }: { icon: React.ReactNod
       </span>
       <span className="min-w-0">
         <span className="block text-sm font-semibold" style={{ color: "#E9EEF6" }}>{title}</span>
-        <span className="block text-[11px]" style={{ color: "#5A7898" }}>{desc}</span>
+        <span className="block text-[11px]" style={{ color: "var(--dash-muted)" }}>{desc}</span>
       </span>
     </button>
   );

@@ -67,7 +67,7 @@ export default function DonutChart({ segments, size = 150, centerLabel = "Total"
           <span className="text-xl font-bold tabular-nums" style={{ color: "#E9EEF6" }}>
             {total.toLocaleString("id-ID")}
           </span>
-          <span className="text-[10px] uppercase tracking-wider" style={{ color: "#5A7898" }}>
+          <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
             {centerLabel}
           </span>
         </div>
@@ -79,7 +79,7 @@ export default function DonutChart({ segments, size = 150, centerLabel = "Total"
           return (
             <div key={i} className="flex items-center gap-2.5">
               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
-              <span className="text-xs flex-1 truncate" style={{ color: "#5A7898" }}>
+              <span className="text-xs flex-1 truncate" style={{ color: "var(--dash-muted)" }}>
                 {s.label}
               </span>
               <span className="text-xs font-semibold tabular-nums" style={{ color: "#E9EEF6" }}>

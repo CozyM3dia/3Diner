@@ -86,7 +86,7 @@ export default function InventoryItemForm({
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>
+      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
         {label}
       </span>
       {children}

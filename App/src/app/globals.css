@@ -39,10 +39,24 @@
   --dash-panel:     #0D1829;
   --dash-raised:    #132136;
   --dash-text:      #E9EEF6;
-  --dash-muted:     #5A7898;
+  /* Kontras terhadap --dash-panel 4.88:1, terhadap --dash-canvas 5.27:1 (WCAG AA).
+     Nilai lama #5A7898 hanya 3.86:1 / 4.17:1 — gagal, padahal ini warna hampir
+     semua caption 11px di dashboard. Jangan diturunkan lagi. */
+  --dash-muted:     #6E88A8;
   --dash-secondary: #9FB6D1;
   --dash-border:    rgba(255,255,255,0.07);
   --dash-border-strong: rgba(255,255,255,0.12);
+
+  /* Teks gelap untuk dipasang DI ATAS --orange. Putih di atas #FD5002 cuma
+     3.34:1; navy kanvas di atas oranye 5.79:1 dan oranye tetap seterang brand.
+     --orange-ink dirancang untuk background terang, bukan untuk kasus ini. */
+  --dash-on-orange: #060E1B;
+
+  /* Warna seri data netral (arc donut, bar funnel). Sengaja TIDAK memakai
+     --dash-muted: ini objek grafis (ambang 3:1, #5A7898 = 3.86:1 lolos) dan
+     DonutChart memasangnya lewat atribut SVG `stroke=` yang tidak mengenal
+     var(). Kalau menyapu #5A7898 jadi token, lewati 5 titik warna data ini. */
+  --dash-series-neutral: #5A7898;
 
   --semantic-success: #22D3A6;
   --semantic-teal:    #00C2A8;

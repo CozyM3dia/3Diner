@@ -31,7 +31,7 @@ export default function InventoryWorkspace({
     <section className={embedded ? "dash-reveal dash-d5" : undefined} aria-labelledby="inventory-workspace-title">
       <div className={embedded ? "mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between" : "mb-7 dash-reveal"}>
         <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
             Operasional Stok
           </p>
           <h1
@@ -101,7 +101,7 @@ function InventoryLoadError({ failedLoads, embedded }: { failedLoads: string[]; 
       {!embedded && (
         <div className="mb-7 dash-reveal">
           <h1 className="font-display text-2xl font-bold" style={{ color: "#E9EEF6" }}>Inventory</h1>
-          <p className="mt-1 text-sm" style={{ color: "#5A7898" }}>Kelola bahan, stok minimum, dan riwayat mutasi.</p>
+          <p className="mt-1 text-sm" style={{ color: "var(--dash-muted)" }}>Kelola bahan, stok minimum, dan riwayat mutasi.</p>
         </div>
       )}
       <div className="flex min-h-72 flex-col items-center justify-center rounded-2xl px-5 py-12 text-center" style={{ background: "#0D1829", border: "1px solid rgba(239,68,68,0.28)" }}>

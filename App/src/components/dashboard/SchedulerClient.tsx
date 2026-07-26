@@ -203,7 +203,7 @@ function MenuRow({ menu, index }: { menu: Menu; index: number }) {
         <div className="flex items-center gap-2.5 mb-4">
           <span
             className="text-[10px] font-semibold uppercase tracking-wider shrink-0"
-            style={{ color: "#5A7898" }}
+            style={{ color: "var(--dash-muted)" }}
           >
             Tampil
           </span>
@@ -222,7 +222,7 @@ function MenuRow({ menu, index }: { menu: Menu; index: number }) {
                   st.mode === "always"
                     ? "rgba(253,80,2,0.16)"
                     : "transparent",
-                color: st.mode === "always" ? "#FD5002" : "#5A7898",
+                color: st.mode === "always" ? "#FD5002" : "var(--dash-muted)",
                 transition:
                   "background 150ms ease-out, color 150ms ease-out",
               }}
@@ -238,7 +238,7 @@ function MenuRow({ menu, index }: { menu: Menu; index: number }) {
                   st.mode === "scheduled"
                     ? "rgba(253,80,2,0.16)"
                     : "transparent",
-                color: st.mode === "scheduled" ? "#FD5002" : "#5A7898",
+                color: st.mode === "scheduled" ? "#FD5002" : "var(--dash-muted)",
                 transition:
                   "background 150ms ease-out, color 150ms ease-out",
               }}
@@ -264,7 +264,7 @@ function MenuRow({ menu, index }: { menu: Menu; index: number }) {
                 <button
                   onClick={toggleAllDays}
                   className="text-[10px] font-semibold"
-                  style={{ color: allDaysOn ? "#FD5002" : "#5A7898" }}
+                  style={{ color: allDaysOn ? "#FD5002" : "var(--dash-muted)" }}
                 >
                   {allDaysOn ? "Hapus semua" : "Pilih semua"}
                 </button>
@@ -282,7 +282,7 @@ function MenuRow({ menu, index }: { menu: Menu; index: number }) {
                       style={{
                         height: "36px",
                         background: on ? "rgba(253,80,2,0.13)" : "#0A1525",
-                        color: on ? "#FD5002" : "#5A7898",
+                        color: on ? "#FD5002" : "var(--dash-muted)",
                         border: `1.5px solid ${
                           on
                             ? "rgba(253,80,2,0.36)"
@@ -355,7 +355,7 @@ function MenuRow({ menu, index }: { menu: Menu; index: number }) {
             <Percent
               size={12}
               className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-              style={{ color: "#5A7898" }}
+              style={{ color: "var(--dash-muted)" }}
             />
           </div>
           {st.discount_pct > 0 && (

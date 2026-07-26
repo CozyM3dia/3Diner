@@ -308,14 +308,14 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
                 <button
                   onClick={() => changeMonth(-1)}
                   className="press p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
-                  style={{ color: "#5A7898" }}
+                  style={{ color: "var(--dash-muted)" }}
                 >
                   <ChevronLeft size={16} />
                 </button>
                 <button
                   onClick={() => changeMonth(1)}
                   className="press p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
-                  style={{ color: "#5A7898" }}
+                  style={{ color: "var(--dash-muted)" }}
                 >
                   <ChevronRight size={16} />
                 </button>
@@ -325,7 +325,7 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
             {/* Days of week */}
             <div className="grid grid-cols-7 gap-1 text-center mb-1">
               {WEEK_DAYS.map((d) => (
-                <span key={d} className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#5A7898" }}>
+                <span key={d} className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
                   {d}
                 </span>
               ))}
@@ -380,7 +380,7 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
               <button
                 onClick={() => setIsOpen(false)}
                 className="flex-1 py-2 rounded-xl text-xs font-bold hover:bg-white/5 transition-colors cursor-pointer"
-                style={{ color: "#5A7898" }}
+                style={{ color: "var(--dash-muted)" }}
               >
                 Batal
               </button>

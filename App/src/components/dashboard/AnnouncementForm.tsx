@@ -112,7 +112,7 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
                   }}
                 >
                   <Icon size={17} style={{ color: on ? "#FD5002" : "#7B95B6" }} />
-                  <span className="text-[11px] font-medium" style={{ color: on ? "#E9EEF6" : "#5A7898" }}>
+                  <span className="text-[11px] font-medium" style={{ color: on ? "#E9EEF6" : "var(--dash-muted)" }}>
                     {t.label}
                   </span>
                 </button>
@@ -157,7 +157,7 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
             />
             <span
               className="absolute bottom-2.5 right-3 text-[11px] tabular-nums font-medium"
-              style={{ color: near <= 15 ? "#F0A742" : "#41557A" }}
+              style={{ color: near <= 15 ? "#F0A742" : "var(--dash-muted)" }}
             >
               {message.length}/{MAX}
             </span>
@@ -200,7 +200,7 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
             </label>
-            <span className="text-[12px] tabular-nums ml-0.5" style={{ color: "#5A7898" }}>
+            <span className="text-[12px] tabular-nums ml-0.5" style={{ color: "var(--dash-muted)" }}>
               {color.toUpperCase()}
             </span>
           </div>
@@ -215,7 +215,7 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
             <span className="text-sm block font-medium" style={{ color: "#E9EEF6" }}>
               Tampilkan ke pelanggan
             </span>
-            <span className="text-[11px]" style={{ color: "#5A7898" }}>
+            <span className="text-[11px]" style={{ color: "var(--dash-muted)" }}>
               {active ? "Banner aktif di halaman menu" : "Banner disembunyikan saat ini"}
             </span>
           </div>
@@ -275,7 +275,7 @@ export default function AnnouncementForm({ announcement }: { announcement: Annou
         ) : (
           <div
             className="flex items-center justify-center gap-1.5 px-3 py-3 text-[11px] font-medium"
-            style={{ background: "#E0E7EE", color: "#5A7898" }}
+            style={{ background: "#E0E7EE", color: "var(--dash-muted)" }}
           >
             <EyeOff size={12} /> Banner nonaktif
           </div>
