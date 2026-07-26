@@ -39,6 +39,20 @@ export async function POST(req: Request) {
         .update({ payment_status: "paid", status: "preparing", payment_method: "qris" })
         .eq("id_order", order_id)
         .eq("payment_status", "pending");
+    } else if (
+      transaction_status === "expire" ||
+      transaction_status === "cancel" ||
+      transaction_status === "deny" ||
+      transaction_status === "failure"
+    ) {
+      // Tanpa cabang ini, QRIS yang kedaluwarsa membuat pesanan tersangkut di
+      // "pending" selamanya: pelanggan tidak bisa membuat QRIS baru maupun
+      // memilih bayar tunai, karena kedua jalur menuntut status "unpaid".
+      await supabaseAdmin
+        .from("Orders")
+        .update({ payment_status: "unpaid", payment_method: null })
+        .eq("id_order", order_id)
+        .eq("payment_status", "pending");
     }
 
     return NextResponse.json({ ok: true });

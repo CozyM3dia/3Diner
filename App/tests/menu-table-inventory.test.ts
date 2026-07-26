@@ -8,6 +8,7 @@ import type { Menu } from "../src/types";
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   getOwnerCafeSlug: vi.fn(),
+  getCafeBySlug: vi.fn(),
   from: vi.fn(),
 }));
 
@@ -22,6 +23,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock("@/lib/analytics", () => ({
   getOwnerCafeSlug: mocks.getOwnerCafeSlug,
+  getCafeBySlug: mocks.getCafeBySlug,
 }));
 
 vi.mock("@/lib/supabase-admin", () => ({
@@ -97,6 +99,11 @@ describe("MenuTable inventory readiness", () => {
   beforeEach(() => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: "owner-1" } } });
     mocks.getOwnerCafeSlug.mockResolvedValue("cafe-slug");
+    mocks.getCafeBySlug.mockResolvedValue({
+      id_cafe: "cafe-1",
+      nama_cafe: "Cafe Satu",
+      logo_url: null,
+    });
     mocks.from.mockReset();
   });
 

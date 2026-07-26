@@ -526,3 +526,33 @@ export async function updateOrderStatus(
   revalidatePath("/dashboard/orders");
   return {};
 }
+
+/** Kasir menandai pesanan tunai sudah dibayar.
+ *
+ *  Sebelumnya tidak ada jalan sama sekali untuk melunasi pesanan tunai: pilihan
+ *  "bayar di kasir" hanya hidup di localStorage pelanggan, jadi setiap pesanan
+ *  tunai tercatat selamanya sebagai belum dibayar dan laporan penjualan salah.
+ *
+ *  Pesanan QRIS sengaja ditolak di sini — hanya webhook Midtrans yang boleh
+ *  menyatakan QRIS lunas. */
+export async function markOrderCashPaid(orderId: string): Promise<ActionResult> {
+  const cafeId = await getAuthCafeId();
+  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
+
+  const { data, error } = await supabaseAdmin.rpc("mark_order_cash_paid", {
+    p_cafe_id: cafeId,
+    p_order_id: orderId,
+  });
+  if (error) return { error: error.message };
+
+  const result = data as { error?: string; ok?: boolean } | null;
+  if (result?.error === "order_not_found") return { error: "Pesanan tidak ditemukan." };
+  if (result?.error === "qris_settled_by_webhook") {
+    return { error: "Pesanan QRIS dilunasi otomatis oleh Midtrans." };
+  }
+  if (!result?.ok) return { error: "Gagal menandai pesanan lunas." };
+
+  revalidatePath("/dashboard/orders");
+  revalidatePath("/dashboard/revenue");
+  return {};
+}
