@@ -63,10 +63,22 @@ Blok ini **murah** — mayoritas biaya kecil, tidak butuh skema baru.
 
 Jujur: dari 5 yang saya sebut sebelumnya, hanya **2** yang benar-benar tidak dimiliki keduanya.
 
+> **KOREKSI 2026-07-27 (dari mining video demo Tantri).** Baris pertama tabel ini semula
+> menyatakan resep sebagai unik terhadap Tantri. **Salah.** Video "Live Demo Fitur Inventory"
+> memperlihatkan Tantri punya **Resep Produk** dengan gramasi: `Katalog → pilih produk →
+> Resep Produk → nyalakan → Tambah Bahan → jumlah` (contoh 200 ml sirup lemon per 1 Fruity Lemon),
+> plus integrasi ke kasir lewat `Pengaturan → Outlet → Integrasi Inventory`.
+>
+> Yang tersisa unik adalah **level varian** — resep yang menempel ke pilihan varian, bukan ke
+> produk. Tantri belum terbukti punya itu. Klaim penjualannya harus dipersempit.
+>
+> Video yang sama juga memperlihatkan **Produksi** (bahan setengah jadi: komposisi + gramasi +
+> harga produksi + pengingat stok menipis) — 3Diner **tidak punya** ini sama sekali.
+
 | Aset | Unik vs Tantri | Unik vs 4D | Catatan |
 |---|---|---|---|
-| **Inventory berbasis resep sampai level varian** (`Menu_Recipes` + `Menu_Option_Recipes`) | Ya | Ya | **Moat teknis terkuat.** Pindahkan utuh, jangan diringkas jadi "stok" biasa |
-| **Varian harga-delta yang menembus ke pengurangan stok** | Sebagian | Ya | Unik dalam kombinasinya |
+| ~~Inventory berbasis resep~~ → **resep sampai level VARIAN** (`Menu_Option_Recipes`) | Hanya di level varian | Ya | Tantri punya resep per-produk. Yang unik tinggal resep per-varian |
+| **Varian harga-delta yang menembus ke pengurangan stok** | Ya | Ya | **Ini moat teknis yang sesungguhnya**, bukan resepnya |
 | Corong pra-transaksi `click_menu → view_3d → click_order` | Ya | Sebagian | Corong bertahapnya unik; klaimnya harus tepat |
 | AI image-to-3D | Ya | **Tidak** | Jual sebagai "AR dengan harga warung", bukan "satu-satunya" |
 | Struk termal 80mm | **Tidak** | Ya | Paritas, dan sekarang belum benar (tanpa baris pajak) |
