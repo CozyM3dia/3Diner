@@ -18,6 +18,19 @@ export interface Cafe {
   cover_url?: string | null
   greeting?: string | null
   brand_color?: string | null
+  // ── Pajak & service charge (K4: satu-satunya pengaturan tanpa default diam) ──
+  tax_rate_pct?: number
+  service_charge_pct?: number
+  prices_include_tax?: boolean
+  /** null = belum pernah diatur. Struk tetap mencetak baris pajak 0%, tapi
+   *  dashboard menandainya sebagai "perlu dilengkapi". */
+  tax_configured_at?: string | null
+  /** Perubahan tarif berlaku terjadwal, tidak seketika: dua pesanan di hari
+   *  yang sama tidak boleh punya perhitungan berbeda. */
+  tax_pending_rate_pct?: number | null
+  tax_pending_service_pct?: number | null
+  tax_pending_include?: boolean | null
+  tax_pending_from?: string | null
   // ── External links ──
   google_maps_review_url?: string | null
 }
@@ -129,18 +142,53 @@ export interface CartItem {
   image_url?: string | null
   qty: number
   options?: SelectedOption[]
+  /** Permintaan tamu untuk baris ini saja — "tanpa gula", "pedas sedang".
+   *  Berbeda dari `Order.notes` yang berlaku untuk seluruh pesanan. Dua baris
+   *  menu yang sama dengan catatan berbeda tidak boleh digabung. */
+  notes?: string | null
 }
 
 /** Kunci baris kanonik. Urutan pilihan pelanggan tidak boleh menghasilkan dua
  *  baris berbeda, jadi id varian selalu diurutkan lebih dulu. Bentuknya harus
- *  sama dengan yang dipakai `create_order_with_inventory` di database. */
-export function cartLineKey(idMenu: string, optionIds: string[]): string {
-  return `${idMenu}:${[...new Set(optionIds)].sort().join(",")}`
+ *  sama dengan yang dipakai `create_order_with_inventory` di database.
+ *
+ *  Catatan per item ikut jadi bagian kunci dan ditaruh paling belakang: tanpa
+ *  itu "Kopi tanpa gula" dan "Kopi biasa" jadi satu baris qty 2 dengan satu
+ *  catatan, dan salah satu tamu menerima minuman yang salah. Karena ia ruas
+ *  terakhir, tanda baca di dalamnya tidak bisa menabrak batas ruas. */
+export function cartLineKey(
+  idMenu: string,
+  optionIds: string[],
+  notes?: string | null,
+): string {
+  const trimmed = (notes ?? "").trim().slice(0, 140)
+  return `${idMenu}:${[...new Set(optionIds)].sort().join(",")}:${trimmed}`
 }
 
 export type PaymentMethod = 'cash' | 'qris'
 export type PaymentStatus = 'unpaid' | 'pending' | 'paid'
-export type OrderStatus = 'received' | 'preparing' | 'ready'
+
+/** Siklus hidup pesanan.
+ *
+ *  `completed` dan `cancelled` adalah terminal — pesanan keluar dari antrean
+ *  kasir hanya lewat keduanya. Sebelum ini `ready` adalah akhir, sehingga
+ *  antrean tidak pernah bisa mencapai nol.
+ *
+ *  `ready` dipertahankan sebagai tahap opsional untuk kafe yang punya runner
+ *  terpisah (K1). Konsol Kasir default melompatinya: Masuk → Disiapkan → Selesai. */
+export type OrderStatus =
+  | 'received'
+  | 'preparing'
+  | 'ready'
+  | 'completed'
+  | 'cancelled'
+
+export const TERMINAL_ORDER_STATUSES = ['completed', 'cancelled'] as const
+export type TerminalOrderStatus = (typeof TERMINAL_ORDER_STATUSES)[number]
+
+export function isOrderOpen(status: OrderStatus): boolean {
+  return status !== 'completed' && status !== 'cancelled'
+}
 
 /** Baris pesanan sebagaimana disimpan database. Tidak punya `line_key` —
  *  penggabungan baris sudah selesai saat pesanan dibuat. */
@@ -151,6 +199,8 @@ export interface OrderItem {
   qty: number
   options?: SelectedOption[]
   image_url?: string | null
+  /** Catatan untuk baris ini saja, dibawa dari `CartItem.notes`. */
+  notes?: string | null
 }
 
 export interface Order {
@@ -160,13 +210,78 @@ export interface Order {
   cafe_name: string
   table_number: string
   items: OrderItem[]
+  /** Jumlah harga baris sebelum layanan dan pajak. */
+  subtotal: number
+  /** Tarif dipotret saat pesanan dibuat. Mengubah tarif kafe tidak boleh
+   *  menulis ulang sejarah — laporan bulan lalu harus tetap bisa direkonsiliasi. */
+  tax_pct: number
+  tax_amount: number
+  service_pct: number
+  service_amount: number
+  prices_include_tax: boolean
+  /** Yang dibayar tamu. Sudah termasuk layanan dan pajak. */
   total: number
   status: OrderStatus
   payment_method: PaymentMethod | null
   payment_status: PaymentStatus
   created_at: string
+  completed_at?: string | null
+  cancelled_at?: string | null
+  /** Wajib terisi kalau status `cancelled` — ditegakkan constraint database.
+   *  Pembatalan tanpa alasan tidak bisa diaudit. */
+  cancelled_reason?: string | null
+  cancelled_by?: string | null
   notes?: string | null
   customer_token?: string
+}
+
+// ── Staf & peran (memisahkan Konsol Kasir dari Konsol Owner) ──
+
+export const STAFF_ROLES = ['owner', 'cashier'] as const
+export type StaffRole = (typeof STAFF_ROLES)[number]
+
+export interface Staff {
+  id_staff: string
+  cafe_id: string
+  user_id: string
+  full_name: string
+  role: StaffRole
+  is_active: boolean
+  created_at: string
+  updated_at?: string | null
+}
+
+/** Hasil `get_staff_context()`. `role` null berarti user terautentikasi tapi
+ *  tidak terdaftar sebagai staf kafe mana pun — beda dari gagal memuat. */
+export interface StaffContext {
+  cafe_id?: string
+  cafe_name?: string
+  cafe_slug?: string
+  user_id?: string
+  full_name?: string
+  role: StaffRole | null
+  is_active?: boolean
+}
+
+/** Tujuan setelah login ditentukan peran, bukan pilihan di layar masuk.
+ *  Pemilih peran di layar login adalah pertanyaan yang jawabannya sudah
+ *  dimiliki sistem, dan setiap salah pilih jadi tiket dukungan. */
+export function homeRouteForRole(role: StaffRole | null): string | null {
+  if (role === 'owner') return '/dashboard'
+  if (role === 'cashier') return '/kasir'
+  return null
+}
+
+// ── Pajak & service charge per kafe ──
+
+export interface TaxSettings {
+  tax_pct: number
+  service_pct: number
+  /** Harga menu sudah termasuk pajak; pajak diekstrak, bukan ditambahkan. */
+  include: boolean
+  /** `false` = pemilik belum pernah memutuskan. Nol yang dipilih dan nol yang
+   *  kebetulan harus bisa dibedakan; hanya yang pertama boleh dicetak diam. */
+  configured: boolean
 }
 
 export const INVENTORY_UNITS = ["gram", "kg", "ml", "liter", "pcs", "pack", "botol"] as const;
