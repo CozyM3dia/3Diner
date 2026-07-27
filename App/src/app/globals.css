@@ -916,3 +916,154 @@ html:has(.dash-root), body:has(.dash-root) {
   border-top: 1px solid var(--dash-border);
 }
 .kasir-sheet-foot-right { display: flex; gap: 8px; align-items: center; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Konsol Owner v2 (/dashboard-v2) — dibangun berdampingan dengan
+   /dashboard, yang tidak disentuh sampai v2 terbukti lengkap.
+
+   Prefix .dv2- dipakai supaya tidak ada satu pun kelas yang dipakai
+   bersama dengan dashboard lama: kalau berbagi, memperbaiki v2 bisa
+   diam-diam mengubah v1 dan pembandingnya jadi tidak berarti.
+   ══════════════════════════════════════════════════════════════════ */
+
+.dv2-root {
+  min-height: 100dvh;
+  background: var(--dash-canvas);
+  color: var(--dash-text);
+  font-size: 14px;
+}
+
+.dv2-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 16px;
+  background: var(--dash-sidebar);
+  border-bottom: 1px solid var(--dash-border);
+}
+.dv2-h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.dv2-bar-right { margin-left: auto; }
+.dv2-sub { font-size: 12px; color: var(--dash-muted); }
+
+.dv2-nav {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  background: var(--dash-sidebar);
+  border-bottom: 1px solid var(--dash-border);
+}
+.dv2-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  min-height: 44px;
+  font-size: 14px;
+  white-space: nowrap;
+  color: var(--dash-muted);
+  border-bottom: 2px solid transparent;
+}
+.dv2-nav-item[aria-current="page"] {
+  color: var(--dash-text);
+  font-weight: 600;
+  border-bottom-color: var(--orange);
+}
+.dv2-nav-item:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+
+.dv2-badge {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--orange);
+  color: var(--dash-on-accent);
+  text-align: center;
+}
+
+.dv2-main { padding-bottom: 32px; }
+
+.dv2-group { border-bottom: 1px solid var(--dash-border); }
+.dv2-ghd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--dash-raised);
+  font-size: 12px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+}
+.dv2-ghd b { color: var(--dash-text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.dv2-ghd-note { margin-left: auto; text-transform: none; letter-spacing: 0; }
+
+.dv2-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding: 0 16px;
+  background: var(--dash-panel);
+  border-bottom: 1px solid var(--dash-border);
+}
+.dv2-row:last-child { border-bottom: none; }
+.dv2-kind { font-weight: 600; min-width: 84px; }
+.dv2-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dv2-state-chip { font-size: 12px; color: var(--dash-muted); white-space: nowrap; }
+
+.dv2-more {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--dash-muted);
+  background: var(--dash-panel);
+}
+
+.dv2-btn {
+  min-height: 32px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border-strong);
+  background: var(--dash-raised);
+  color: var(--dash-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dv2-btn-solid { background: var(--orange); border-color: var(--orange); color: var(--dash-on-accent); }
+.dv2-btn:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+.dv2-state { padding: 28px 16px; text-align: center; background: var(--dash-panel); }
+.dv2-state-title { font-weight: 600; margin: 0 0 4px; }
+.dv2-state-body { color: var(--dash-muted); margin: 0; }
+.dv2-state-cta { margin-top: 12px; }
+
+.dv2-figs {
+  display: flex;
+  gap: 32px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--dash-panel);
+}
+.dv2-fig {
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.dv2-fig-none { color: var(--dash-muted); }
+.dv2-placeholder { padding: 20px 16px; background: var(--dash-panel); }
+.dv2-placeholder code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--dash-text);
+}
+.dv2-list { margin: 8px 0 0; padding-left: 20px; color: var(--dash-muted); }
+.dv2-list li { margin-bottom: 4px; }
