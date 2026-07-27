@@ -206,7 +206,7 @@ export default function Tripo3DGenerator({ menuName, onDone }: Tripo3DGeneratorP
           )}
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold" style={{ color: "#E9EEF6" }}>{label}</p>
-            <p className="text-[11px] mt-0.5" style={{ color: "#5A7898" }}>
+            <p className="text-[11px] mt-0.5" style={{ color: "var(--dash-muted)" }}>
               {phase === "done"
                 ? "GLB + USDZ terpasang di kolom Model 3D & Model iOS di bawah."
                 : busy
@@ -259,12 +259,12 @@ export default function Tripo3DGenerator({ menuName, onDone }: Tripo3DGeneratorP
             {/* Header */}
             <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold" style={{ color: "#E9EEF6" }}>Upload Foto untuk Generate 3D</h3>
-              <button type="button" onClick={closeModal} className="p-1 rounded-lg" style={{ color: "#5A7898" }}>
+              <button type="button" onClick={closeModal} className="p-1 rounded-lg" style={{ color: "var(--dash-muted)" }}>
                 <X size={18} />
               </button>
             </div>
 
-            <p className="text-[12px]" style={{ color: "#5A7898" }}>
+            <p className="text-[12px]" style={{ color: "var(--dash-muted)" }}>
               Gunakan foto makanan dengan <span style={{ color: "#00C2A8" }}>background transparan (PNG)</span> untuk hasil model 3D terbaik. Bukan foto menu.
             </p>
 
@@ -285,7 +285,7 @@ export default function Tripo3DGenerator({ menuName, onDone }: Tripo3DGeneratorP
               ) : (
                 <>
                   <ImagePlus size={28} style={{ color: "rgba(0,194,168,0.5)" }} />
-                  <span className="text-xs" style={{ color: "#5A7898" }}>Klik untuk pilih foto PNG</span>
+                  <span className="text-xs" style={{ color: "var(--dash-muted)" }}>Klik untuk pilih foto PNG</span>
                 </>
               )}
             </button>
@@ -299,7 +299,7 @@ export default function Tripo3DGenerator({ menuName, onDone }: Tripo3DGeneratorP
             />
 
             {tripoFile && (
-              <p className="text-[11px] truncate" style={{ color: "#5A7898" }}>
+              <p className="text-[11px] truncate" style={{ color: "var(--dash-muted)" }}>
                 {tripoFile.name} · {(tripoFile.size / 1024).toFixed(0)} KB
               </p>
             )}
@@ -310,7 +310,7 @@ export default function Tripo3DGenerator({ menuName, onDone }: Tripo3DGeneratorP
                 type="button"
                 onClick={closeModal}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: "rgba(255,255,255,0.05)", color: "#5A7898" }}
+                style={{ background: "rgba(255,255,255,0.05)", color: "var(--dash-muted)" }}
               >
                 Batal
               </button>

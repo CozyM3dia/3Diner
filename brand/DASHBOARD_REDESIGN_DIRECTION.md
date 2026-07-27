@@ -1,3 +1,32 @@
+> # ⛔ DEPRECATED per 2026-07-27 — JANGAN DIPAKAI SEBAGAI ARAHAN
+>
+> Dokumen ini adalah **penyebab langsung** dashboard yang terasa generik.
+>
+> **Kesalahannya:** menyerahkan **STRUKTUR** ("Use Efferd dashboard 8 as the dashboard
+> foundation" — beserta page structure, metric hierarchy, chart and list composition,
+> right-side attention panel) sambil hanya melindungi **PERMUKAAN** (palette, logo,
+> language, data model, routes).
+>
+> Struktur adalah satu-satunya lapisan yang bisa dimodelkan mesin, jadi lapisan itu
+> otomatis terisi — oleh satu screenshot yang kebetulan ada. Perlindungan di lapisan
+> permukaan tidak pernah diuji, karena memang tidak ada yang mengancamnya.
+>
+> Bagian **"Required Homepage Sections"** di bawah berisi 10 butir wajib. **Itulah asal
+> 10 kartu KPI seragam** yang jadi keluhan utama.
+>
+> **Pengganti:** `brand/LAYOUT_CONTRACT.md` (belum ditulis — lihat metodologi B7 di
+> `docs/audit/2026-07-27-pos-rebuild-keputusan.md` §6).
+>
+> **Arahan yang berlaku sekarang:** `docs/audit/2026-07-27-usulan-ia-dashboard.md`.
+>
+> Isi di bawah dipertahankan sebagai catatan sejarah, bukan sebagai instruksi.
+> Dokumen sekerabat yang punya risiko sama dan perlu diaudit:
+> `brand/MASTER_DASHBOARD_REBUILD_PROMPT.md`, `App/docs/STITCH-DASHBOARD-REDESIGN-PROMPT.md`,
+> `docs/stitch-rebuild/STITCH-PROMPT.md` — cari kalimat berpola
+> "gunakan X sebagai fondasi/base/reference".
+
+---
+
 # 3Diner Dashboard Redesign Direction
 
 ## Base Reference

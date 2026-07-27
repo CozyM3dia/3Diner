@@ -71,7 +71,7 @@ export default async function MenuListPage() {
           <MenuExtractor />
           <Link
             href="/dashboard/menu/new"
-            className="dash-btn inline-flex items-center justify-center gap-2 px-3.5 rounded-[10px] text-[13px] font-semibold text-white"
+            className="dash-btn inline-flex items-center justify-center gap-2 px-3.5 rounded-[10px] text-[13px] font-semibold dash-on-accent"
             style={{ background: "var(--orange)", height: "38px" }}
           >
             <Plus size={15} /> Tambah Menu
@@ -90,7 +90,7 @@ export default async function MenuListPage() {
           <Box size={38} style={{ color: "var(--dash-muted)" }} strokeWidth={1.2} />
           <p className="mt-4 font-semibold" style={{ color: "var(--dash-text)" }}>Belum ada menu</p>
           <p className="text-sm mt-1 mb-6" style={{ color: "var(--dash-muted)" }}>Tambah menu pertama untuk kafe kamu</p>
-          <Link href="/dashboard/menu/new" className="dash-btn inline-flex items-center gap-2 px-3.5 py-2.5 rounded-[10px] text-[13px] font-semibold text-white" style={{ background: "var(--orange)" }}>
+          <Link href="/dashboard/menu/new" className="dash-btn inline-flex items-center gap-2 px-3.5 py-2.5 rounded-[10px] text-[13px] font-semibold dash-on-accent" style={{ background: "var(--orange)" }}>
             <Plus size={15} /> Tambah Menu
           </Link>
         </div>

@@ -135,9 +135,9 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
           <div className="flex items-center justify-between gap-4 px-4 py-3.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
             <div className="min-w-0">
               <h2 id="inventory-list-title" className="text-sm font-bold" style={{ color: "#E9EEF6" }}>Daftar Bahan</h2>
-              <p className="mt-0.5 text-xs" style={{ color: "#5A7898" }}>{items.length} bahan terdaftar</p>
+              <p className="mt-0.5 text-xs" style={{ color: "var(--dash-muted)" }}>{items.length} bahan terdaftar</p>
             </div>
-            <button onClick={(event) => openModal({ type: "create" }, event.currentTarget)} className="dash-btn inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-semibold text-white" style={{ background: "#FD5002" }}>
+            <button onClick={(event) => openModal({ type: "create" }, event.currentTarget)} className="dash-btn inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-semibold dash-on-accent" style={{ background: "#FD5002" }}>
               <Plus size={15} aria-hidden="true" />
               Tambah Bahan
             </button>
@@ -145,12 +145,12 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
 
           {items.length === 0 ? (
             <div className="flex min-h-80 flex-col items-center justify-center px-5 py-12 text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "#132136", color: "#5A7898" }}>
+              <span className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "#132136", color: "var(--dash-muted)" }}>
                 <PackageSearch size={23} strokeWidth={1.5} aria-hidden="true" />
               </span>
               <p className="mt-4 font-semibold" style={{ color: "#E9EEF6" }}>Belum ada bahan</p>
-              <p className="mt-1 max-w-xs text-sm" style={{ color: "#5A7898" }}>Tambahkan bahan pertama untuk mulai memantau stok kafe.</p>
-              <button onClick={(event) => openModal({ type: "create" }, event.currentTarget)} className="dash-btn mt-5 inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold text-white" style={{ background: "#FD5002" }}>
+              <p className="mt-1 max-w-xs text-sm" style={{ color: "var(--dash-muted)" }}>Tambahkan bahan pertama untuk mulai memantau stok kafe.</p>
+              <button onClick={(event) => openModal({ type: "create" }, event.currentTarget)} className="dash-btn mt-5 inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold dash-on-accent" style={{ background: "#FD5002" }}>
                 <Plus size={15} aria-hidden="true" />
                 Tambah Bahan
               </button>
@@ -178,7 +178,7 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
                 <thead>
                   <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
                     {['Bahan', 'Stok', 'Minimum', 'Harga / Unit', 'Status', 'Aksi'].map((heading, index) => (
-                      <th key={heading} className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider ${index === 5 ? 'text-right' : 'text-left'}`} style={{ color: "#5A7898" }}>
+                      <th key={heading} className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider ${index === 5 ? 'text-right' : 'text-left'}`} style={{ color: "var(--dash-muted)" }}>
                         {heading}
                       </th>
                     ))}
@@ -193,7 +193,7 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
                       <tr key={item.id_inventory_item} className="dash-row" style={{ borderBottom: index < items.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
                         <td className="max-w-[230px] px-4 py-3.5">
                           <p className="truncate text-sm font-semibold" style={{ color: "#E9EEF6" }} title={item.name}>{item.name}</p>
-                          {item.notes && <p className="mt-0.5 truncate text-xs" style={{ color: "#5A7898" }} title={item.notes}>{item.notes}</p>}
+                          {item.notes && <p className="mt-0.5 truncate text-xs" style={{ color: "var(--dash-muted)" }} title={item.notes}>{item.notes}</p>}
                         </td>
                         <td className="px-4 py-3.5 text-sm font-semibold tabular-nums" style={{ color: "#E9EEF6" }}>{formatQty(item.current_qty, item.unit)}</td>
                         <td className="px-4 py-3.5 text-sm tabular-nums" style={{ color: "#9FB6D1" }}>{formatQty(item.minimum_qty, item.unit)}</td>
@@ -227,13 +227,13 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
         <aside className="dash-reveal dash-d2 overflow-hidden rounded-2xl" style={{ background: "#0D1829", border: "1px solid rgba(255,255,255,0.07)" }} aria-labelledby="movement-title">
           <div className="px-4 py-3.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
             <h2 id="movement-title" className="text-sm font-bold" style={{ color: "#E9EEF6" }}>Mutasi Terbaru</h2>
-            <p className="mt-0.5 text-xs" style={{ color: "#5A7898" }}>12 aktivitas terakhir</p>
+            <p className="mt-0.5 text-xs" style={{ color: "var(--dash-muted)" }}>12 aktivitas terakhir</p>
           </div>
           {movements.length === 0 ? (
             <div className="flex min-h-48 flex-col items-center justify-center px-5 py-8 text-center">
-              <PackageSearch size={22} style={{ color: "#5A7898" }} strokeWidth={1.5} aria-hidden="true" />
+              <PackageSearch size={22} style={{ color: "var(--dash-muted)" }} strokeWidth={1.5} aria-hidden="true" />
               <p className="mt-3 text-sm font-semibold" style={{ color: "#E9EEF6" }}>Belum ada mutasi</p>
-              <p className="mt-1 text-xs" style={{ color: "#5A7898" }}>Penyesuaian stok akan tercatat di sini.</p>
+              <p className="mt-1 text-xs" style={{ color: "var(--dash-muted)" }}>Penyesuaian stok akan tercatat di sini.</p>
             </div>
           ) : (
             <ol className="divide-y divide-white/[0.05]">
@@ -250,7 +250,7 @@ export default function InventoryTable({ items, movements }: { items: InventoryI
                         <p className="truncate text-xs font-semibold" style={{ color: "#E9EEF6" }} title={movement.inventory_item?.name}>{movement.inventory_item?.name ?? "Bahan dihapus"}</p>
                         <span className="shrink-0 text-xs font-semibold tabular-nums" style={{ color: movement.delta_qty < 0 ? "#FCA5A5" : "#22D3A6" }}>{amount}</span>
                       </div>
-                      <p className="mt-0.5 text-[11px]" style={{ color: "#5A7898" }}>
+                      <p className="mt-0.5 text-[11px]" style={{ color: "var(--dash-muted)" }}>
                         {movementTypeLabel(movement.movement_type)}, <time dateTime={movement.created_at}>{movementDate.format(new Date(movement.created_at))}</time>
                       </p>
                       {movement.note && <p className="mt-1 line-clamp-2 text-[11px]" style={{ color: "#9FB6D1" }}>{movement.note}</p>}

@@ -259,7 +259,13 @@ export interface RevenueData {
   itemsSold: number;
   revenueDelta: number; // this-week vs last-week %
   dailyRevenue: { label: string; value: number }[]; // last 14 days
-  statusCounts: { received: number; preparing: number; ready: number };
+  statusCounts: {
+    received: number;
+    preparing: number;
+    ready: number;
+    completed: number;
+    cancelled: number;
+  };
   paymentCounts: { cash: number; qris: number; unpaid: number };
   topByRevenue: { name: string; qty: number; revenue: number }[];
   recentOrders: { id: string; table: string; total: number; status: string; at: string }[];
@@ -297,7 +303,10 @@ export async function getRevenueData(
 
   let totalRevenue = 0;
   let itemsSold = 0;
-  const statusCounts = { received: 0, preparing: 0, ready: 0 };
+  // Status terminal ikut dihitung sejak migrasi 2026-07-27c. Tanpa ini,
+  // pesanan selesai hilang diam-diam dari donut dan totalnya tidak lagi
+  // menjumlah ke jumlah pesanan yang dilaporkan di sebelahnya.
+  const statusCounts = { received: 0, preparing: 0, ready: 0, completed: 0, cancelled: 0 };
   const paymentCounts = { cash: 0, qris: 0, unpaid: 0 };
   const dayBuckets = new Map<string, number>();
   const perItem = new Map<string, { qty: number; revenue: number }>();

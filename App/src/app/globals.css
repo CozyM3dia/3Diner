@@ -39,10 +39,25 @@
   --dash-panel:     #0D1829;
   --dash-raised:    #132136;
   --dash-text:      #E9EEF6;
-  --dash-muted:     #5A7898;
+  /* Kontras terhadap --dash-panel 4.88:1, terhadap --dash-canvas 5.27:1 (WCAG AA).
+     Nilai lama #5A7898 hanya 3.86:1 / 4.17:1 — gagal, padahal ini warna hampir
+     semua caption 11px di dashboard. Jangan diturunkan lagi. */
+  --dash-muted:     #6E88A8;
   --dash-secondary: #9FB6D1;
   --dash-border:    rgba(255,255,255,0.07);
   --dash-border-strong: rgba(255,255,255,0.12);
+
+  /* Tinta untuk teks DI ATAS aksen terang (oranye maupun hijau sukses).
+     Putih gagal di ketiganya: #FD5002 3.34:1, #1DBF94 2.33:1, #22D3A6 1.92:1.
+     Navy kanvas lolos telak — 5.79 / 8.29 / 10.07 — dan aksen tetap seterang
+     brand. --orange-ink dirancang untuk background terang, bukan kasus ini. */
+  --dash-on-accent: #060E1B;
+
+  /* Warna seri data netral (arc donut, bar funnel). Sengaja TIDAK memakai
+     --dash-muted: ini objek grafis (ambang 3:1, #5A7898 = 3.86:1 lolos) dan
+     DonutChart memasangnya lewat atribut SVG `stroke=` yang tidak mengenal
+     var(). Kalau menyapu #5A7898 jadi token, lewati 5 titik warna data ini. */
+  --dash-series-neutral: #5A7898;
 
   --semantic-success: #22D3A6;
   --semantic-teal:    #00C2A8;
@@ -479,6 +494,11 @@ html:has(.dash-root), body:has(.dash-root) {
 .dash-nav.is-pending svg { animation: navPulse 0.9s ease-in-out infinite; }
 .dash-input { transition: border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out); }
 .dash-input:focus { border-color: rgba(253,80,2,0.6) !important; box-shadow: 0 0 0 3px rgba(253,80,2,0.13); outline: none; }
+/* Dipakai menggantikan `text-white` pada tombol/badge berlatar aksen terang.
+   Satu kelas, bukan warna inline, supaya tinta aksen bisa diaudit dari satu
+   tempat dan tidak diam-diam berbeda antar tombol. */
+.dash-on-accent { color: var(--dash-on-accent); }
+
 .dash-btn { transition: filter 0.15s var(--ease-out), transform 0.12s var(--ease-soft), box-shadow 0.18s var(--ease-out); }
 @media (hover: hover) { .dash-btn:hover { filter: brightness(1.08); } }
 .dash-btn:active { transform: scale(0.97); }

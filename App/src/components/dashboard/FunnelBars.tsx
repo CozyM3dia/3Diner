@@ -42,7 +42,7 @@ export default function FunnelBars({ stages }: { stages: Stage[] }) {
                   {s.value.toLocaleString("id-ID")}
                 </span>
                 {dropFromPrev !== null && (
-                  <span className="text-[10px] tabular-nums" style={{ color: "#5A7898" }}>
+                  <span className="text-[10px] tabular-nums" style={{ color: "var(--dash-muted)" }}>
                     {dropFromPrev}%
                   </span>
                 )}

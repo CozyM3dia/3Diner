@@ -75,7 +75,7 @@ export default function InventoryItemForm({
       <Field label="Catatan">
         <textarea name="notes" defaultValue={item?.notes ?? ""} rows={3} className="dash-input w-full resize-none rounded-xl px-3.5 py-2.5 text-sm outline-none" style={inputStyle} />
       </Field>
-      <button disabled={pending} className="dash-btn inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed" style={{ background: "#FD5002", opacity: pending ? 0.7 : 1 }}>
+      <button disabled={pending} className="dash-btn inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold dash-on-accent disabled:cursor-not-allowed" style={{ background: "#FD5002", opacity: pending ? 0.7 : 1 }}>
         {pending ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Save size={15} aria-hidden="true" />}
         {pending ? "Menyimpan" : "Simpan Bahan"}
       </button>
@@ -86,7 +86,7 @@ export default function InventoryItemForm({
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>
+      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
         {label}
       </span>
       {children}

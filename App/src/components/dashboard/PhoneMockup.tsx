@@ -15,7 +15,7 @@ interface PhoneMockupProps {
 export default function PhoneMockup({ children, statusColor = "#FFFFFF", onRefresh, label = "Pratinjau Langsung" }: PhoneMockupProps) {
   return (
     <div className="lg:sticky lg:top-6">
-      <p className="text-[11px] font-semibold uppercase tracking-wider mb-3 text-center lg:text-left" style={{ color: "#5A7898" }}>
+      <p className="text-[11px] font-semibold uppercase tracking-wider mb-3 text-center lg:text-left" style={{ color: "var(--dash-muted)" }}>
         {label}
       </p>
 

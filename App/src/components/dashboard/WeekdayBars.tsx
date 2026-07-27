@@ -40,7 +40,7 @@ export default function WeekdayBars({ data }: { data: number[] }) {
                 title={`${LABELS[i]}: ${v}`}
               />
             </div>
-            <span className="text-[10px]" style={{ color: isPeak ? "#FD5002" : "#5A7898" }}>
+            <span className="text-[10px]" style={{ color: isPeak ? "#FD5002" : "var(--dash-muted)" }}>
               {LABELS[i]}
             </span>
           </div>

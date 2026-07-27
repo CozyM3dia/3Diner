@@ -18,7 +18,7 @@ export default function LogoutButton() {
     <button
       onClick={handleLogout}
       className="flex items-center gap-2 text-sm font-medium w-full transition-colors duration-150 hover:opacity-80"
-      style={{ color: "#5A7898" }}
+      style={{ color: "var(--dash-muted)" }}
     >
       <LogOut size={15} strokeWidth={1.9} />
       Keluar

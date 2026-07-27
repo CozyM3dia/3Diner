@@ -58,7 +58,7 @@ export default function RecipeEditor({
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p id="recipe-editor-title" className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#5A7898" }}>
+          <p id="recipe-editor-title" className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
             Resep Inventory
           </p>
           <p className="mt-1 text-sm" style={{ color: "#9FB6D1" }}>
@@ -90,7 +90,7 @@ export default function RecipeEditor({
           <InventoryLink />
         </div>
       ) : rows.length === 0 ? (
-        <p className="text-sm" style={{ color: "#5A7898" }}>
+        <p className="text-sm" style={{ color: "var(--dash-muted)" }}>
           Menu ini belum memakai stok inventory.
         </p>
       ) : (
@@ -134,7 +134,7 @@ export default function RecipeEditor({
                       className="dash-input h-11 w-full rounded-xl px-3 pr-9 text-sm outline-none"
                       style={inputStyle}
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px]" style={{ color: "#5A7898" }}>
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px]" style={{ color: "var(--dash-muted)" }}>
                       {item?.unit}
                     </span>
                   </label>
@@ -169,7 +169,7 @@ function RecipeStockContext({ item }: { item: InventoryItem }) {
   }[status];
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]" style={{ color: "#5A7898" }}>
+    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]" style={{ color: "var(--dash-muted)" }}>
       <span>Stok {formatQty(item.current_qty, item.unit)}</span>
       <span aria-hidden="true">|</span>
       <span>Minimum {formatQty(item.minimum_qty, item.unit)}</span>

@@ -31,6 +31,8 @@ const STATUS_KIND: Record<string, StatusKind> = {
   received: "order-received",
   preparing: "order-preparing",
   ready: "order-ready",
+  completed: "order-completed",
+  cancelled: "order-cancelled",
 };
 
 interface PageProps {
@@ -111,6 +113,11 @@ export default async function RevenuePage({ searchParams }: PageProps) {
                 { label: "Baru", value: statusCounts.received, color: "#FD5002" },
                 { label: "Diproses", value: statusCounts.preparing, color: "#F59E0B" },
                 { label: "Siap", value: statusCounts.ready, color: "#22D3A6" },
+                /* Dua status terminal berbagi satu abu netral, bukan dapat hue
+                   sendiri-sendiri: donut ini sudah memakai tiga hue, dan
+                   menambah dua lagi membuat tidak ada yang menonjol. */
+                { label: "Selesai", value: statusCounts.completed, color: "#9FB6D1" },
+                { label: "Dibatalkan", value: statusCounts.cancelled, color: "#5A7898" },
               ]}
             />
           </div>

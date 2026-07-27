@@ -88,7 +88,7 @@ export default function FileUpload({ name, kind, label, accept, hint, variant = 
 
   return (
     <div>
-      <label className="block text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#5A7898" }}>
+      <label className="block text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--dash-muted)" }}>
         {label}
       </label>
 
@@ -121,7 +121,7 @@ export default function FileUpload({ name, kind, label, accept, hint, variant = 
           )}
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium truncate" style={{ color: "#E9EEF6" }}>{fileName(url)}</p>
-            <p className="text-[11px] inline-flex items-center gap-1" style={{ color: justDone ? "#22D3A6" : "#5A7898" }}>
+            <p className="text-[11px] inline-flex items-center gap-1" style={{ color: justDone ? "#22D3A6" : "var(--dash-muted)" }}>
               {justDone ? <><CheckCircle2 size={11} /> Terunggah</> : "Tersimpan"}
             </p>
           </div>
@@ -129,7 +129,7 @@ export default function FileUpload({ name, kind, label, accept, hint, variant = 
             <button type="button" onClick={() => inputRef.current?.click()} className="dash-press dash-icon-btn text-xs font-medium px-3 py-1.5 rounded-lg" style={{ background: "#0D1829", color: "#9FB6D1" }}>
               Ganti
             </button>
-            <button type="button" onClick={() => { setUrl(""); onChange?.(""); }} aria-label="Hapus" title="Hapus" className="dash-icon-btn p-1.5 rounded-lg" style={{ color: "#5A7898" }}>
+            <button type="button" onClick={() => { setUrl(""); onChange?.(""); }} aria-label="Hapus" title="Hapus" className="dash-icon-btn p-1.5 rounded-lg" style={{ color: "var(--dash-muted)" }}>
               <X size={15} />
             </button>
           </div>
@@ -162,7 +162,7 @@ export default function FileUpload({ name, kind, label, accept, hint, variant = 
               <span className="text-sm font-medium" style={{ color: "#E9EEF6" }}>
                 Tarik file ke sini atau <span style={{ color: "#FD5002" }}>pilih</span>
               </span>
-              {hint && <span className="text-[11px]" style={{ color: "#5A7898" }}>{hint}</span>}
+              {hint && <span className="text-[11px]" style={{ color: "var(--dash-muted)" }}>{hint}</span>}
             </>
           )}
         </button>

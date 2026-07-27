@@ -355,7 +355,7 @@ export default function QrSmartMenu({ menuUrl, cafeName, slug }: QrSmartMenuProp
                 type="button"
                 onClick={downloadPng}
                 disabled={busy || !previewSvg}
-                className="dash-btn inline-flex items-center justify-center gap-2 rounded-xl text-[13px] font-semibold text-white disabled:opacity-60"
+                className="dash-btn inline-flex items-center justify-center gap-2 rounded-xl text-[13px] font-semibold dash-on-accent disabled:opacity-60"
                 style={{ background: "var(--orange)", height: "44px" }}
               >
                 {exporting === "png" ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Download size={15} aria-hidden="true" />}

@@ -78,7 +78,7 @@ export default function MenuActiveToggle({ menuId, initialActive }: Props) {
         className="text-xs font-semibold"
         style={{
           minWidth: "2.5rem",
-          color: isPending ? "#5A7898" : active ? "#22D3A6" : "#5A7898",
+          color: isPending ? "var(--dash-muted)" : active ? "#22D3A6" : "var(--dash-muted)",
           transition: "color 0.2s ease",
         }}
       >

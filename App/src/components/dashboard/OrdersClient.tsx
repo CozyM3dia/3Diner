@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, useRef, useCallback } from "react";
 import Link from "next/link";
-import { ShoppingBag, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer, X, BellRing, BellOff, QrCode, Wallet } from "lucide-react";
+import { ShoppingBag, ChefHat, CheckCircle2, XCircle, Loader2, Copy, Check, Printer, X, BellRing, BellOff, QrCode, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
@@ -24,11 +24,18 @@ export interface OrderRow {
   table_number: string;
   items: OrderItem[];
   total: number;
-  status: "received" | "preparing" | "ready";
+  status: "received" | "preparing" | "ready" | "completed" | "cancelled";
   payment_method: string | null;
   payment_status: string;
   created_at: string;
   notes?: string | null;
+}
+
+/** Pesanan yang sudah terminal tidak bisa dimajukan lagi. Ini dashboard lama —
+ *  ia tidak punya tab untuk keduanya, tapi harus tetap menampilkannya dengan
+ *  benar sejak status terminal masuk ke database. */
+function isTerminal(status: OrderRow["status"]): boolean {
+  return status === "completed" || status === "cancelled";
 }
 
 type Filter = "all" | "received" | "preparing" | "ready";
@@ -104,6 +111,8 @@ const STATUS_KIND: Record<OrderRow["status"], StatusKind> = {
   received: "order-received",
   preparing: "order-preparing",
   ready: "order-ready",
+  completed: "order-completed",
+  cancelled: "order-cancelled",
 };
 
 const TABS: { v: Filter; l: string }[] = [
@@ -296,7 +305,7 @@ function ReceiptModal({ order, cafeName, onClose }: { order: OrderRow; cafeName:
           </button>
           <button
             onClick={() => { triggerPrint(html); onClose(); }}
-            className="flex-1 h-10 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2"
+            className="flex-1 h-10 rounded-xl text-sm font-bold dash-on-accent flex items-center justify-center gap-2"
             style={{ background: "var(--orange)" }}
           >
             <Printer size={14} /> Cetak Sekarang
@@ -494,6 +503,9 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
   }, [cafeId]);
 
   function advance(o: OrderRow) {
+    // Tanpa penjaga ini, pesanan yang sudah selesai atau dibatalkan akan
+    // dilempar balik ke "ready" — mundur dari status terminal.
+    if (isTerminal(o.status)) return;
     const next = o.status === "received" ? "preparing" : "ready";
     setBusyId(o.id_order);
     // optimistic
@@ -552,12 +564,12 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
                 className="dash-chip shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium"
                 style={{
                   background: on ? "rgba(253,80,2,0.12)" : "#0D1829",
-                  color: on ? "#FD5002" : "#5A7898",
+                  color: on ? "#FD5002" : "var(--dash-muted)",
                   border: `1px solid ${on ? "rgba(253,80,2,0.3)" : "rgba(255,255,255,0.07)"}`,
                 }}
               >
                 {t.l}
-                <span className="text-xs tabular-nums" style={{ color: on ? "#FD5002" : "#5A7898" }}>
+                <span className="text-xs tabular-nums" style={{ color: on ? "#FD5002" : "var(--dash-muted)" }}>
                   {counts[t.v]}
                 </span>
               </button>
@@ -569,7 +581,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
           className="dash-press shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors"
           style={{
             background: alertsOn ? "rgba(34,211,166,0.12)" : "#0D1829",
-            color: alertsOn ? "#22D3A6" : "#5A7898",
+            color: alertsOn ? "#22D3A6" : "var(--dash-muted)",
             border: `1px solid ${alertsOn ? "rgba(34,211,166,0.3)" : "rgba(255,255,255,0.07)"}`,
           }}
           title={alertsOn ? "Alarm pesanan aktif (suara + notifikasi)" : "Aktifkan alarm pesanan baru"}
@@ -588,7 +600,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
             action={
               <Link
                 href="/dashboard/settings#qr-menu"
-                className="dash-btn inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+                className="dash-btn inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold dash-on-accent"
                 style={{ background: "var(--orange)" }}
               >
                 <QrCode size={15} aria-hidden="true" /> Bagikan QR Menu
@@ -672,7 +684,11 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
 
                 <div className="flex items-center justify-between pt-3" style={{ borderTop: "1px solid var(--dash-border)" }}>
                   <span className="text-sm font-bold tabular-nums" style={{ color: "var(--dash-text)" }}>{formatRupiah(o.total)}</span>
-                  {o.status === "ready" ? (
+                  {o.status === "cancelled" ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--dash-muted)" }}>
+                      <XCircle size={14} /> Dibatalkan
+                    </span>
+                  ) : o.status === "ready" || o.status === "completed" ? (
                     <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: "#22D3A6" }}>
                       <CheckCircle2 size={14} /> Selesai
                     </span>
@@ -680,7 +696,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
                     <button
                       onClick={() => advance(o)}
                       disabled={pending && busyId === o.id_order}
-                      className="dash-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white"
+                      className="dash-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold dash-on-accent"
                       style={{ background: o.status === "received" ? "#FD5002" : "#F59E0B" }}
                     >
                       {pending && busyId === o.id_order ? (
