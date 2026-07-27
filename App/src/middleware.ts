@@ -37,7 +37,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirect);
   }
 
-  if (user && pathname === "/login") {
+  // Hanya navigasi yang dialihkan, bukan setiap permintaan.
+  //
+  // Server action dikirim sebagai POST ke URL halaman yang sedang terbuka. Tepat
+  // setelah masuk, cookie sesi sudah terpasang, sehingga POST ke /login ikut
+  // kena aturan ini dan dialihkan — dan redirect di tengah server action
+  // membuat responsnya bukan lagi respons yang dikenali klien. Gejalanya:
+  // "An unexpected response was received from the server" persis setelah
+  // kredensial yang benar dimasukkan.
+  if (user && pathname === "/login" && request.method === "GET") {
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/dashboard";
     return NextResponse.redirect(redirect);
