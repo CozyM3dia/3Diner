@@ -55,7 +55,11 @@ const totals: KasirTotals = {
   qrisAmount: 860_000,
 };
 
-function renderQueue(orders: KasirOrder[], t: KasirTotals | null = totals) {
+function renderQueue(
+  orders: KasirOrder[],
+  t: KasirTotals | null = totals,
+  taxConfigured = true
+) {
   return render(
     <KasirQueue
       initial={orders}
@@ -63,9 +67,16 @@ function renderQueue(orders: KasirOrder[], t: KasirTotals | null = totals) {
       cafeId="cafe-1"
       cafeName="Senja Kopi"
       staffName="Rina"
+      taxConfigured={taxConfigured}
       openingHours="07.00–22.00"
     />
   );
+}
+
+function openSheet(o: KasirOrder) {
+  renderQueue([o]);
+  fireEvent.click(screen.getByRole("button", { name: /Buka rincian pesanan/ }));
+  return screen.getByRole("dialog");
 }
 
 beforeEach(() => {
@@ -175,6 +186,14 @@ describe("antrean kasir", () => {
     expect(dialog.textContent).toContain("52.800");
   });
 
+  it("membuka rincian dari baris, tanpa berpindah rute", () => {
+    // Bolak-balik rute untuk satu pesanan membuat kasir mengerjakan navigasi,
+    // bukan pesanan. Rinciannya dibuka di atas antrean yang sama.
+    renderQueue([order({ table_number: "A-2" })]);
+    fireEvent.click(screen.getByRole("button", { name: /Buka rincian pesanan A-2/ }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
   it("menolak membatalkan tanpa alasan", async () => {
     renderQueue([order({})]);
     fireEvent.click(screen.getByRole("button", { name: /Tindakan lain/ }));
@@ -182,5 +201,62 @@ describe("antrean kasir", () => {
     fireEvent.click(screen.getByRole("button", { name: "Batalkan pesanan" }));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Alasan wajib diisi"));
     expect(cancelOrder).not.toHaveBeenCalled();
+  });
+});
+
+describe("rincian pesanan (lapis 2)", () => {
+  it("menampilkan rincian pembayaran, termasuk pajak nol", () => {
+    const sheet = openSheet(
+      order({ subtotal: 60000, tax_pct: 0, tax_amount: 0, total: 60000 })
+    );
+    expect(sheet.textContent).toContain("Subtotal");
+    expect(sheet.textContent).toContain("Pajak 0%");
+    expect(sheet.textContent).toContain("Total");
+  });
+
+  it("mengatakan kalau pemilik belum pernah mengatur pajak", () => {
+    renderQueue([order({})], totals, false);
+    fireEvent.click(screen.getByRole("button", { name: /Buka rincian pesanan/ }));
+    expect(screen.getByRole("dialog").textContent).toContain("belum diatur pemilik");
+  });
+
+  it("menampilkan varian dan catatan tiap item secara utuh", () => {
+    const sheet = openSheet(
+      order({
+        items: [
+          {
+            id_menu: "m1",
+            nama_menu: "Kopi Susu",
+            harga_menu: 23000,
+            qty: 1,
+            notes: "gula sedikit, es normal",
+            options: [{ id_option_value: "o1", group_name: "Ukuran", name: "Large", price_delta: 5000 }],
+          },
+        ],
+      })
+    );
+    // Lapis 1 memotong dengan ellipsis; lapis 2 tidak boleh memotong apa pun.
+    expect(sheet.textContent).toContain("gula sedikit, es normal");
+    expect(sheet.textContent).toContain("Large");
+  });
+
+  it("memisahkan aksi merusak dari aksi utama", () => {
+    const sheet = openSheet(order({ status: "preparing", payment_status: "paid" }));
+    const buttons = [...sheet.querySelectorAll("button")].map((b) => b.textContent);
+    expect(buttons).toContain("Batalkan pesanan");
+    expect(buttons).toContain("Selesai");
+    // Tepat satu tombol utama di lembar ini.
+    expect(sheet.querySelectorAll(".kasir-btn-solid")).toHaveLength(1);
+  });
+
+  it("menawarkan cetak struk", () => {
+    const sheet = openSheet(order({}));
+    expect([...sheet.querySelectorAll("button")].map((b) => b.textContent)).toContain("Cetak struk");
+  });
+
+  it("menutup dengan Escape", async () => {
+    openSheet(order({}));
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 });

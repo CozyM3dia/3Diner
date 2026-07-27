@@ -21,10 +21,10 @@ export default async function KasirPage() {
 
   const since = startOfTodayWib();
 
-  const [openResult, todayResult] = await Promise.all([
+  const [openResult, todayResult, cafeResult] = await Promise.all([
     supabaseAdmin
       .from("Orders")
-      .select("id_order,table_number,items,total,status,payment_method,payment_status,created_at,notes")
+      .select("id_order,table_number,items,total,status,payment_method,payment_status,created_at,notes,subtotal,tax_pct,tax_amount,service_pct,service_amount,prices_include_tax")
       .eq("cafe_id", cafeId)
       .in("status", ["received", "preparing", "ready"])
       .order("created_at", { ascending: true }),
@@ -33,6 +33,11 @@ export default async function KasirPage() {
       .select("total,status,payment_method,payment_status")
       .eq("cafe_id", cafeId)
       .gte("created_at", since),
+    supabaseAdmin
+      .from("Cafes")
+      .select("alamat_cafe,tax_configured_at")
+      .eq("id_cafe", cafeId)
+      .maybeSingle(),
   ]);
 
   const orders = (openResult.data ?? []) as KasirOrder[];
@@ -60,6 +65,8 @@ export default async function KasirPage() {
       totals={totals}
       cafeId={cafeId}
       cafeName={ctx.cafe_name ?? "Kafe"}
+      cafeAddress={cafeResult.data?.alamat_cafe ?? null}
+      taxConfigured={Boolean(cafeResult.data?.tax_configured_at)}
       staffName={ctx.full_name ?? "Kasir"}
     />
   );
