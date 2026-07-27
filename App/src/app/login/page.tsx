@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Loader2, LogIn } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { resolveHomeRoute } from "@/lib/auth-routing";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,7 +28,18 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    // Peran yang menentukan tujuan, bukan pilihan di layar ini: pemilik ke
+    // konsolnya, kasir ke antrean pesanan. Pemilih peran di layar masuk adalah
+    // pertanyaan yang jawabannya sudah dimiliki sistem.
+    const home = await resolveHomeRoute();
+    if (!home) {
+      await supabase.auth.signOut();
+      setError("Akun ini belum terdaftar sebagai staf kafe mana pun. Hubungi pemilik kafe.");
+      setLoading(false);
+      return;
+    }
+
+    router.push(home);
     router.refresh();
   }
 

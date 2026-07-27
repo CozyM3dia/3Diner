@@ -49,15 +49,23 @@ alter table public."Staff" enable row level security;
 
 -- Pemilik yang sudah ada jadi baris Staff berperan owner. Tanpa backfill ini,
 -- pemilik yang login besok pagi tidak punya peran dan tidak dibawa ke mana pun.
+-- Nama kafe BUKAN nama orang. Memakainya sebagai full_name membuat baris
+-- identitas di konsol menyebut kafe dua kali ("Kasir · Senja Kopi … Senja
+-- Kopi") dan tidak memberi tahu siapa yang sedang menjaga lantai. Label netral
+-- lebih jujur sampai pemilik mengisi namanya sendiri.
 insert into public."Staff" (cafe_id, user_id, full_name, role)
-select
-  c.id_cafe,
-  c.owner_id,
-  coalesce(nullif(trim(c.nama_cafe), ''), 'Pemilik'),
-  'owner'
+select c.id_cafe, c.owner_id, 'Pemilik', 'owner'
 from public."Cafes" c
 where c.owner_id is not null
 on conflict (cafe_id, user_id) do nothing;
+
+-- Memperbaiki baris yang sudah terlanjur dibuat dengan nama kafe.
+update public."Staff" s
+set full_name = 'Pemilik', updated_at = now()
+from public."Cafes" c
+where c.id_cafe = s.cafe_id
+  and s.role = 'owner'
+  and s.full_name = c.nama_cafe;
 
 /** Peran dan kafe untuk satu user auth.
  *
