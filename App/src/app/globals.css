@@ -1222,3 +1222,69 @@ html:has(.dash-root), body:has(.dash-root) {
 /* Latar diwarisi dari baris supaya kolom lengket tidak menjadi lubang tembus
    pandang saat baris di bawahnya lewat. */
 .dv2-row { background-clip: padding-box; }
+
+/* ── Tabel menu ────────────────────────────────────────────────────
+   Satu-satunya tabel dengan seleksi massal. Alasannya spesifik:
+   kehabisan satu bahan bisa mematikan delapan menu sekaligus, dan itu
+   pekerjaan nyata yang berulang. Tabel lain tidak punya pekerjaan
+   sejenis, jadi tidak mendapat kotak centang. */
+
+.dv2-table-menu .dv2-row { min-width: 820px; }
+.dv2-col-pick { width: 36px; flex: none; display: flex; align-items: center; }
+.dv2-col-pick input { width: 18px; height: 18px; accent-color: var(--orange); }
+.dv2-col-menu {
+  flex: 1;
+  min-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  position: sticky;
+  left: 36px;
+  z-index: 2;
+  background: inherit;
+}
+/* Harga plus diskonnya harus muat dalam SATU baris: membungkusnya ke baris
+   kedua menambah sumbu perataan ketiga di dalam satu kolom, dan angka yang
+   tidak sejajar berhenti bisa dibandingkan sekilas. */
+.dv2-col-price {
+  width: 136px;
+  flex: none;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.dv2-col-model { width: 120px; flex: none; font-size: 12px; color: var(--dash-muted); }
+.dv2-col-live { width: 150px; flex: none; font-size: 12px; }
+/* Yang tidak tayang diberi penekanan, bukan yang tayang: layar ini dibuka
+   untuk menemukan yang bermasalah, dan keadaan normal tidak boleh berteriak. */
+.dv2-col-live[data-live="tidak"] { color: var(--semantic-warning, #F59E0B); }
+.dv2-col-menu-act {
+  width: 104px;
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: inherit;
+}
+
+.dv2-bulk {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: var(--dash-raised);
+  border-bottom: 1px solid var(--dash-border-strong);
+}
+.dv2-bulk b { font-variant-numeric: tabular-nums; }
+.dv2-bulk-actions { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+
+.dv2-tab-note {
+  margin-left: auto;
+  border-right: none;
+  color: var(--dash-muted);
+  text-transform: none;
+  font-size: 12px;
+}
