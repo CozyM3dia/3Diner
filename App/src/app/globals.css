@@ -1067,3 +1067,97 @@ html:has(.dash-root), body:has(.dash-root) {
 }
 .dv2-list { margin: 8px 0 0; padding-left: 20px; color: var(--dash-muted); }
 .dv2-list li { margin-bottom: 4px; }
+
+/* ── Tabel riwayat Konsol Owner ────────────────────────────────────
+   Tinggi baris 44px seragam, teks dipotong bukan dibungkus, dan aksi
+   selalu terlihat — hover-reveal dilarang karena perangkat utamanya
+   bersentuhan, di mana hover tidak pernah terjadi. */
+
+.dv2-tabs {
+  display: flex;
+  overflow-x: auto;
+  background: var(--dash-raised);
+  border-bottom: 1px solid var(--dash-border);
+}
+.dv2-tab {
+  padding: 10px 14px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--dash-muted);
+  border-right: 1px solid var(--dash-border);
+  border-bottom: 2px solid transparent;
+}
+.dv2-tab b { font-variant-numeric: tabular-nums; color: var(--dash-text); }
+.dv2-tab[aria-current="page"] {
+  color: var(--dash-text);
+  font-weight: 600;
+  background: var(--dash-panel);
+  border-bottom-color: var(--dash-text);
+}
+.dv2-tab:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+
+.dv2-table { overflow-x: auto; }
+.dv2-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  min-width: 760px;
+  padding: 0 16px;
+  background: var(--dash-panel);
+  border-bottom: 1px solid var(--dash-border);
+}
+/* Zebra striping dilarang: latar baris harus tetap tersedia untuk menandai
+   keadaan nyata, bukan dihabiskan untuk hiasan bergaris. */
+.dv2-row-head {
+  background: var(--dash-raised);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+  position: sticky;
+  top: 0;
+}
+.dv2-row-foot {
+  background: var(--dash-raised);
+  font-weight: 600;
+  border-top: 1px solid var(--dash-border-strong);
+}
+
+/* Semua kolom SELAIN item punya lebar tetap.
+   Kalau kolom ikut melebar mengikuti isinya, posisi kolom bergeser antar baris
+   — dan mata yang sedang memindai ke bawah harus mencari ulang di tiap baris,
+   yang justru menghapus gunanya tabel. Hanya satu kolom yang boleh elastis. */
+.dv2-col-id { width: 92px; flex: none; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dv2-col-items { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dv2-col-time { width: 52px; flex: none; font-variant-numeric: tabular-nums; }
+.dv2-col-status { width: 84px; flex: none; font-size: 12px; }
+.dv2-col-pay {
+  width: 152px;
+  flex: none;
+  font-size: 12px;
+  color: var(--dash-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Angka rata kanan dengan tabular-nums, dan "Rp" ada di header kolom bukan di
+   tiap sel — kolom angka yang tidak sejajar tidak bisa dibandingkan sekilas. */
+.dv2-col-total { width: 96px; flex: none; text-align: right; font-variant-numeric: tabular-nums; }
+.dv2-col-act { width: 64px; flex: none; display: flex; justify-content: flex-end; }
+
+.dv2-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--dash-panel);
+}
+.dv2-pager-btns { display: flex; gap: 8px; align-items: center; }
