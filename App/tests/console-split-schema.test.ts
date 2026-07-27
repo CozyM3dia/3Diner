@@ -47,6 +47,26 @@ describe("migrasi pemisahan konsol — kontrak statis", () => {
     expect(migration).toContain("where status = 'ready'");
   });
 
+  it("memperlebar constraint sebelum memindahkan data ke status baru", () => {
+    // Urutan sebaliknya gagal di produksi dengan 23514: constraint lama hanya
+    // mengizinkan received/preparing/ready, jadi backfill ditolak sebelum
+    // aturannya sempat diganti.
+    const widened = migration.indexOf(
+      "check (status in ('received', 'preparing', 'ready', 'completed', 'cancelled'))",
+    );
+    const backfill = migration.indexOf("set status = 'completed'");
+    expect(widened).toBeGreaterThan(-1);
+    expect(backfill).toBeGreaterThan(-1);
+    expect(widened).toBeLessThan(backfill);
+  });
+
+  it("memperlebar daftar movement_type sebelum ada yang menulis nilai barunya", () => {
+    const widened = migration.indexOf("'order_deduction', 'order_cancellation'");
+    const firstWrite = migration.indexOf("'order_cancellation',");
+    expect(widened).toBeGreaterThan(-1);
+    expect(widened).toBeLessThan(firstWrite);
+  });
+
   it("mencari constraint lama lewat kolomnya, bukan lewat pencocokan teks", () => {
     // Pola '%status%' juga cocok dengan payment_status. Menjatuhkan constraint
     // itu akan membuka lubang yang tidak terlihat sampai ada data rusak.
