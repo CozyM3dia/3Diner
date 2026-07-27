@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, useRef, useCallback } from "react";
 import Link from "next/link";
-import { ShoppingBag, ChefHat, CheckCircle2, Loader2, Copy, Check, Printer, X, BellRing, BellOff, QrCode, Wallet } from "lucide-react";
+import { ShoppingBag, ChefHat, CheckCircle2, XCircle, Loader2, Copy, Check, Printer, X, BellRing, BellOff, QrCode, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
@@ -24,11 +24,18 @@ export interface OrderRow {
   table_number: string;
   items: OrderItem[];
   total: number;
-  status: "received" | "preparing" | "ready";
+  status: "received" | "preparing" | "ready" | "completed" | "cancelled";
   payment_method: string | null;
   payment_status: string;
   created_at: string;
   notes?: string | null;
+}
+
+/** Pesanan yang sudah terminal tidak bisa dimajukan lagi. Ini dashboard lama —
+ *  ia tidak punya tab untuk keduanya, tapi harus tetap menampilkannya dengan
+ *  benar sejak status terminal masuk ke database. */
+function isTerminal(status: OrderRow["status"]): boolean {
+  return status === "completed" || status === "cancelled";
 }
 
 type Filter = "all" | "received" | "preparing" | "ready";
@@ -104,6 +111,8 @@ const STATUS_KIND: Record<OrderRow["status"], StatusKind> = {
   received: "order-received",
   preparing: "order-preparing",
   ready: "order-ready",
+  completed: "order-completed",
+  cancelled: "order-cancelled",
 };
 
 const TABS: { v: Filter; l: string }[] = [
@@ -494,6 +503,9 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
   }, [cafeId]);
 
   function advance(o: OrderRow) {
+    // Tanpa penjaga ini, pesanan yang sudah selesai atau dibatalkan akan
+    // dilempar balik ke "ready" — mundur dari status terminal.
+    if (isTerminal(o.status)) return;
     const next = o.status === "received" ? "preparing" : "ready";
     setBusyId(o.id_order);
     // optimistic
@@ -672,7 +684,11 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
 
                 <div className="flex items-center justify-between pt-3" style={{ borderTop: "1px solid var(--dash-border)" }}>
                   <span className="text-sm font-bold tabular-nums" style={{ color: "var(--dash-text)" }}>{formatRupiah(o.total)}</span>
-                  {o.status === "ready" ? (
+                  {o.status === "cancelled" ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--dash-muted)" }}>
+                      <XCircle size={14} /> Dibatalkan
+                    </span>
+                  ) : o.status === "ready" || o.status === "completed" ? (
                     <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: "#22D3A6" }}>
                       <CheckCircle2 size={14} /> Selesai
                     </span>

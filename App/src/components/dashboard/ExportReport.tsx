@@ -20,7 +20,13 @@ function rangeLabel(start?: string, end?: string): string {
 }
 
 const PAY_LABEL: Record<string, string> = { qris: "QRIS", cash: "Tunai" };
-const STATUS_LABEL: Record<string, string> = { received: "Baru", preparing: "Diproses", ready: "Siap" };
+const STATUS_LABEL: Record<string, string> = {
+  received: "Baru",
+  preparing: "Diproses",
+  ready: "Siap",
+  completed: "Selesai",
+  cancelled: "Dibatalkan",
+};
 
 /** Excel & Google Sheets mengeksekusi sel teks yang diawali =, +, -, @, tab,
  *  atau CR sebagai formula saat file dibuka. table_number dan items_summary
