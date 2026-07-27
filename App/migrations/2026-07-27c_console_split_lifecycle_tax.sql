@@ -108,14 +108,10 @@ alter table public."Orders"
   add column if not exists cancelled_reason text,
   add column if not exists cancelled_by uuid references auth.users (id) on delete set null;
 
--- Semua baris 'ready' yang ada memang sudah selesai — UI lama tidak punya
--- langkah setelahnya, jadi 'ready' di data lama berarti terminal. Memindahkannya
--- ke 'completed' mempertahankan artinya, bukan mengubahnya.
-update public."Orders"
-set status = 'completed',
-    completed_at = coalesce(completed_at, created_at)
-where status = 'ready';
-
+-- Constraint diperlebar LEBIH DULU, baru datanya dipindahkan. Urutan sebaliknya
+-- gagal: constraint lama hanya mengizinkan received/preparing/ready, sehingga
+-- backfill ke 'completed' ditolak sebelum aturannya sempat diganti.
+--
 -- 'ready' tetap sah ke depan: K1 menyimpannya sebagai tahap opsional untuk kafe
 -- yang punya runner terpisah. Yang tidak dibangun adalah UI-nya, bukan statusnya.
 -- Constraint lama dicari lewat kolom yang dirujuknya, bukan lewat pencocokan
@@ -153,6 +149,14 @@ begin
       check (status in ('received', 'preparing', 'ready', 'completed', 'cancelled'));
   end if;
 end $$;
+
+-- Baru sekarang datanya dipindahkan. Semua baris 'ready' yang ada memang sudah
+-- selesai — UI lama tidak punya langkah setelahnya, jadi 'ready' di data lama
+-- berarti terminal. Memindahkannya mempertahankan artinya, bukan mengubahnya.
+update public."Orders"
+set status = 'completed',
+    completed_at = coalesce(completed_at, created_at)
+where status = 'ready';
 
 -- Pembatalan tanpa alasan tidak bisa diaudit, dan selisih kas yang tidak bisa
 -- ditelusuri adalah lubang paling klasik di kafe. Ditegakkan di database supaya
