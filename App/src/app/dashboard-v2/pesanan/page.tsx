@@ -95,24 +95,21 @@ export default async function OwnerOrdersPage({ searchParams }: PageProps) {
             cafeName={ctx.cafe_name ?? "Kafe"}
             cafeAddress={cafe.data?.alamat_cafe ?? null}
             taxConfigured={Boolean(cafe.data?.tax_configured_at)}
+            footer={
+              /* Ringkasan mengikuti saringan aktif dan hidup di kaki tabel,
+                 bukan sebagai kartu terpisah di atasnya. Dua angka berbeda di
+                 satu layar menghancurkan kepercayaan pada keduanya. */
+              <div className="dv2-row dv2-row-foot">
+                <span className="dv2-col-id">{page.filteredCount} pesanan</span>
+                <span className="dv2-col-items">saringan: {TAB_LABEL[tab].toLowerCase()}</span>
+                <span className="dv2-col-time" />
+                <span className="dv2-col-status" />
+                <span className="dv2-col-pay" />
+                <span className="dv2-col-total">{formatRupiah(page.filteredTotal)}</span>
+                <span className="dv2-col-act" />
+              </div>
+            }
           />
-
-          {/* Ringkasan mengikuti saringan aktif dan hidup di kaki tabel, bukan
-              sebagai kartu terpisah di atasnya. Dua angka berbeda di satu layar
-              menghancurkan kepercayaan pada keduanya. */}
-          <div className="dv2-row dv2-row-foot">
-            <span className="dv2-col-id">{page.filteredCount} pesanan</span>
-            {/* Ditulis pendek supaya muat di kolom yang sama dengan baris data.
-                Kalimat yang terpotong di kaki tabel justru menimbulkan
-                pertanyaan "total ini menghitung apa" — persis yang harus
-                dijawabnya. */}
-            <span className="dv2-col-items">saringan: {TAB_LABEL[tab].toLowerCase()}</span>
-            <span className="dv2-col-time" />
-            <span className="dv2-col-status" />
-            <span className="dv2-col-pay" />
-            <span className="dv2-col-total">{formatRupiah(page.filteredTotal)}</span>
-            <span className="dv2-col-act" />
-          </div>
 
           <div className="dv2-pager">
             <span className="dv2-sub">
