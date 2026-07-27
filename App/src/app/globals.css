@@ -1161,3 +1161,64 @@ html:has(.dash-root), body:has(.dash-root) {
   background: var(--dash-panel);
 }
 .dv2-pager-btns { display: flex; gap: 8px; align-items: center; }
+
+/* ── Tabel stok ────────────────────────────────────────────────────
+   Lebar tetap untuk semua kolom kecuali nama bahan, alasan yang sama
+   dengan tabel pesanan: kolom yang bergeser antar baris memaksa mata
+   mencari ulang di tiap baris. */
+
+/* Baris stok membawa dua tombol aksi, jadi lebar minimumnya lebih besar
+   daripada tabel pesanan. Tanpa ini nama bahan terpotong sejak karakter
+   keenam padahal layarnya masih lapang. */
+.dv2-table-stock .dv2-row, .dv2-row-stock { min-width: 880px; }
+.dv2-col-name {
+  flex: 1;
+  min-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dv2-col-num {
+  width: 84px;
+  flex: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.dv2-col-level { width: 88px; flex: none; font-size: 12px; }
+/* Kegentingan dibawa kata DAN warna. Warnanya menambah penekanan, bukan
+   menciptakan maknanya — barisnya harus tetap terbaca saat dicetak
+   hitam-putih atau di layar yang silau. */
+.dv2-col-level[data-level="menipis"] { color: var(--semantic-warning, #F59E0B); }
+.dv2-col-level[data-level="habis"] { color: var(--semantic-danger, #EF4444); font-weight: 600; }
+.dv2-col-impact {
+  width: 168px;
+  flex: none;
+  font-size: 12px;
+  color: var(--dash-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dv2-col-stock-act { width: 208px; flex: none; display: flex; gap: 6px; justify-content: flex-end; }
+
+.dv2-state-left { text-align: left; padding: 14px 16px; }
+
+/* Kolom identitas lengket di kiri, kolom aksi lengket di kanan.
+   Tanpa ini, baris jadi anonim setelah tabel digeser — orang menekan tombol
+   pada baris yang salah karena namanya sudah keluar layar, dan tombolnya
+   sendiri ikut hilang di balik gulir. */
+.dv2-col-id, .dv2-col-name {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: inherit;
+}
+.dv2-col-act, .dv2-col-stock-act {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: inherit;
+}
+/* Latar diwarisi dari baris supaya kolom lengket tidak menjadi lubang tembus
+   pandang saat baris di bawahnya lewat. */
+.dv2-row { background-clip: padding-box; }

@@ -12,6 +12,9 @@ import OrderDetailSheet from "@/components/dashboard-v2/OrderDetailSheet";
 
 interface Props {
   rows: OrderRowV2[];
+  /** Ringkasan dirender di dalam wadah gulir, sama seperti tabel stok:
+   *  di luar, lebar minimumnya membuat badan halaman menggulir ke samping. */
+  footer?: React.ReactNode;
   cafeName: string;
   cafeAddress?: string | null;
   taxConfigured: boolean;
@@ -22,7 +25,7 @@ interface Props {
  *  Baris adalah objek yang bisa dibuka; kolomnya hanya memuat yang dibutuhkan
  *  untuk MEMILIH baris, bukan untuk mengerjakannya. Semua yang lebih rinci ada
  *  di lapis 2. */
-export default function OrdersTable({ rows, cafeName, cafeAddress, taxConfigured }: Props) {
+export default function OrdersTable({ rows, footer, cafeName, cafeAddress, taxConfigured }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
   const open = openId ? rows.find((r) => r.id_order === openId) ?? null : null;
 
@@ -61,6 +64,7 @@ export default function OrdersTable({ rows, cafeName, cafeAddress, taxConfigured
             </span>
           </div>
         ))}
+        {footer}
       </div>
 
       {open && (
