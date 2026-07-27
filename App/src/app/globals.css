@@ -832,3 +832,87 @@ html:has(.dash-root), body:has(.dash-root) {
   .kasir-pay { display: none; }
   .kasir-id { min-width: 56px; }
 }
+
+/* ── Lapis 2 kasir: rincian pesanan ───────────────────────────────
+   Lapis 1 untuk MEMILIH baris, lapis 2 untuk MENGERJAKANNYA. Semua
+   yang dipotong dari baris 44px ada di sini utuh. */
+
+.kasir-open {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.kasir-open:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+
+.kasir-sheet {
+  width: 100%;
+  max-width: 520px;
+  max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--dash-panel);
+  border: 1px solid var(--dash-border-strong);
+}
+.kasir-sheet-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--dash-sidebar);
+  border-bottom: 1px solid var(--dash-border);
+}
+.kasir-sheet-title { font-size: 20px; font-weight: 600; margin: 0; }
+.kasir-sheet-body { overflow-y: auto; }
+
+/* Baris di lapis 2 BOLEH lebih tinggi dari 44px dan boleh membungkus:
+   di sini pekerjaannya membaca, bukan memindai puluhan baris. */
+.kasir-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--dash-border);
+}
+.kasir-line-qty { font-variant-numeric: tabular-nums; min-width: 32px; font-weight: 600; }
+.kasir-line-name { flex: 1; min-width: 0; }
+.kasir-line-note { font-weight: 600; }
+.kasir-line-price {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.kasir-line-total { background: var(--dash-raised); font-weight: 600; }
+
+.kasir-note-block {
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--dash-border);
+  white-space: pre-wrap;
+}
+
+/* Aksi merusak dan aksi utama ditaruh di ujung berlawanan. Jarak fisik
+   adalah pengaman termurah yang ada. */
+.kasir-sheet-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--dash-sidebar);
+  border-top: 1px solid var(--dash-border);
+}
+.kasir-sheet-foot-right { display: flex; gap: 8px; align-items: center; }

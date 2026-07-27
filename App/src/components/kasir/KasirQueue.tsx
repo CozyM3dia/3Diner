@@ -6,10 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import { formatRupiah } from "@/lib/format";
 import { acceptOrder, cancelOrder, completeOrder, markCashPaid } from "@/lib/kasir-actions";
 import CancelOrderDialog from "@/components/kasir/CancelOrderDialog";
+import KasirOrderSheet from "@/components/kasir/KasirOrderSheet";
 import {
   AGE_LABEL,
   ageLevel,
   belongsInQueue,
+  formatAge,
   itemSummary,
   minutesSince,
   needsCash,
@@ -26,6 +28,15 @@ export interface KasirOrder {
   payment_status: string;
   created_at: string;
   notes?: string | null;
+  /** Potret tarif saat pesanan dibuat. Struk dan rincian memakai angka ini,
+   *  bukan tarif kafe hari ini — kalau tidak, mengubah tarif akan menulis ulang
+   *  nilai pesanan yang sudah terjadi. */
+  subtotal?: number;
+  tax_pct?: number;
+  tax_amount?: number;
+  service_pct?: number;
+  service_amount?: number;
+  prices_include_tax?: boolean;
 }
 
 export interface KasirTotals {
@@ -40,7 +51,11 @@ interface Props {
   totals: KasirTotals | null;
   cafeId: string;
   cafeName: string;
+  cafeAddress?: string | null;
   staffName: string;
+  /** `false` = pemilik belum pernah memutuskan tarif pajak. Ditampilkan apa
+   *  adanya di rincian dan struk, bukan disembunyikan. */
+  taxConfigured?: boolean;
   /** Jam buka, untuk baris identitas. Kosong = belum diisi pemilik. */
   openingHours?: string | null;
 }
@@ -50,13 +65,16 @@ export default function KasirQueue({
   totals,
   cafeId,
   cafeName,
+  cafeAddress,
   staffName,
+  taxConfigured,
   openingHours,
 }: Props) {
   const [orders, setOrders] = useState<KasirOrder[]>(initial);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [cancelFor, setCancelFor] = useState<KasirOrder | null>(null);
+  const [openFor, setOpenFor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -64,12 +82,19 @@ export default function KasirQueue({
    *  layar ini mungkin usang — bukan sekadar "terjadi kesalahan". */
   const [lastSync, setLastSync] = useState<Date>(() => new Date());
   const [disconnected, setDisconnected] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  /** null sampai komponen ter-mount.
+   *
+   *  Jam server dan jam tablet tidak pernah sama persis, jadi umur yang dihitung
+   *  saat render server berbeda satu menit dari hitungan pertama di klien —
+   *  dan React membuang seluruh pohonnya karena teksnya tidak cocok. Umur baru
+   *  dirender setelah mount, di mana hanya ada satu jam yang berlaku. */
+  const [now, setNow] = useState<number | null>(null);
   const channelRef = useRef<ReturnType<typeof createClient>["channel"] extends never ? never : unknown>(null);
 
   // Umur baris dihitung ulang tiap 30 detik. Tidak lebih sering: satu-satunya
   // yang berubah adalah menit, dan render tiap detik membakar baterai tablet.
   useEffect(() => {
+    setNow(Date.now());
     const t = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(t);
   }, []);
@@ -151,21 +176,30 @@ export default function KasirQueue({
   const isBusy = (id: string) => pending && busyId === id;
 
   function renderRow(o: KasirOrder, group: "incoming" | "preparing") {
-    const mins = minutesSince(o.created_at, now);
-    const level = ageLevel(mins);
+    const mins = now === null ? null : minutesSince(o.created_at, now);
+    const level = mins === null ? "normal" : ageLevel(mins);
     const cash = needsCash(o);
 
     return (
       <div key={o.id_order} className="kasir-row">
-        <span className="kasir-id">{o.table_number || "Tanpa meja"}</span>
+        {/* Baris adalah objek yang bisa dibuka. Yang membuka hanya bagian
+            identitas dan isinya — tombol aksi tetap terpisah, supaya jari yang
+            meleset sedikit tidak membuka lembar alih-alih menerima pesanan. */}
+        <button
+          className="kasir-open"
+          onClick={() => setOpenFor(o.id_order)}
+          aria-label={`Buka rincian pesanan ${o.table_number}`}
+        >
+          <span className="kasir-id">{o.table_number || "Tanpa meja"}</span>
+          <span className="kasir-items" title={itemSummary(o.items)}>
+            {itemSummary(o.items)}
+          </span>
+        </button>
 
-        <span className="kasir-items" title={itemSummary(o.items)}>
-          {itemSummary(o.items)}
-        </span>
-
-        {group === "preparing" && (
+        {group === "preparing" && mins !== null && (
           <span className="kasir-age" data-level={level}>
-            {mins} mnt{level !== "normal" ? ` · ${AGE_LABEL[level]}` : ""}
+            {formatAge(mins)}
+            {level !== "normal" ? ` · ${AGE_LABEL[level]}` : ""}
           </span>
         )}
 
@@ -244,6 +278,9 @@ export default function KasirQueue({
   }
 
   const nothingLeft = orders.length === 0;
+  /** Lembar dibaca dari daftar, bukan disalin ke state sendiri: kalau realtime
+   *  mengubah pesanan sementara lembarnya terbuka, isinya ikut berubah. */
+  const openOrder = openFor ? (orders.find((o) => o.id_order === openFor) ?? null) : null;
 
   return (
     <>
@@ -324,6 +361,27 @@ export default function KasirQueue({
           </div>
         </div>
       </div>
+
+      {openOrder && (
+        <KasirOrderSheet
+          order={openOrder}
+          cafeName={cafeName}
+          cafeAddress={cafeAddress}
+          taxConfigured={taxConfigured}
+          busy={pending && busyId === openOrder.id_order}
+          onClose={() => setOpenFor(null)}
+          onAccept={() => run(openOrder.id_order, () => acceptOrder(openOrder.id_order), false)}
+          onCash={() => run(openOrder.id_order, () => markCashPaid(openOrder.id_order), false)}
+          onComplete={() => {
+            run(openOrder.id_order, () => completeOrder(openOrder.id_order), true);
+            setOpenFor(null);
+          }}
+          onCancel={() => {
+            setOpenFor(null);
+            setCancelFor(openOrder);
+          }}
+        />
+      )}
 
       {cancelFor && (
         <CancelOrderDialog

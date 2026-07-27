@@ -4,6 +4,7 @@ import {
   AGE_LABEL,
   ageLevel,
   belongsInQueue,
+  formatAge,
   itemSummary,
   LATE_MINUTES,
   minutesSince,
@@ -42,6 +43,24 @@ describe("tingkat umur pesanan", () => {
     const now = Date.now();
     expect(minutesSince(new Date(now - 90_000).toISOString(), now)).toBe(1);
     expect(minutesSince(new Date(now - 18 * 60_000).toISOString(), now)).toBe(18);
+  });
+
+  it("menulis umur dalam satuan yang masih terbaca sekilas", () => {
+    // "3883 mnt" secara teknis benar dan praktis tidak berarti apa-apa: mata
+    // harus membagi sendiri sebelum tahu itu hampir tiga hari.
+    expect(formatAge(0)).toBe("0 mnt");
+    expect(formatAge(59)).toBe("59 mnt");
+    expect(formatAge(60)).toBe("1 jam");
+    expect(formatAge(1439)).toBe("23 jam");
+    expect(formatAge(1440)).toBe("1 hari");
+    expect(formatAge(3883)).toBe("2 hari");
+  });
+
+  it("mempertahankan menit di rentang yang justru dipakai kasir", () => {
+    // Di bawah satu jam, menit adalah satuan yang berguna — di situlah ambang
+    // "mendekati" dan "terlambat" berada.
+    expect(formatAge(NEARING_MINUTES)).toBe("10 mnt");
+    expect(formatAge(LATE_MINUTES)).toBe("15 mnt");
   });
 });
 

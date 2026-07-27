@@ -28,6 +28,19 @@ export function minutesSince(iso: string, now: number): number {
   return Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60000));
 }
 
+/** Umur ditulis dalam satuan yang masih bisa dibaca sekilas.
+ *
+ *  "3883 mnt" secara teknis benar dan praktis tidak berarti apa-apa: mata harus
+ *  membagi sendiri sebelum tahu itu hampir tiga hari. Menit hanya berguna
+ *  selama masih di bawah satu jam, dan justru di rentang itulah kasir memakai
+ *  angkanya. */
+export function formatAge(minutes: number): string {
+  if (minutes < 60) return `${minutes} mnt`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} jam`;
+  return `${Math.floor(hours / 24)} hari`;
+}
+
 interface PayableOrder {
   payment_status: string;
   payment_method: string | null;
