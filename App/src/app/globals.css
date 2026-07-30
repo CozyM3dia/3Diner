@@ -1288,3 +1288,57 @@ html:has(.dash-root), body:has(.dash-root) {
   text-transform: none;
   font-size: 12px;
 }
+
+/* ── Editor item menu ──────────────────────────────────────────────
+   Lima tab, tiap tab menjawab satu pertanyaan. Satu formulir raksasa
+   memaksa pemilik memindai seluruhnya untuk mengubah satu harga. */
+
+.dv2-open { color: inherit; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.dv2-open:hover { text-decoration: underline; }
+.dv2-open:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+.dv2-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 16px;
+  background: var(--dash-panel);
+  max-width: 640px;
+}
+.dv2-field { display: flex; flex-direction: column; gap: 6px; border: none; padding: 0; margin: 0; }
+.dv2-field-row { flex-direction: row; align-items: flex-start; gap: 10px; }
+.dv2-field-row input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--orange); }
+.dv2-field-pair { display: flex; gap: 16px; flex-wrap: wrap; }
+.dv2-field-pair .dv2-field { flex: 1; min-width: 150px; }
+
+.dv2-label { display: block; font-size: 12px; font-weight: 600; color: var(--dash-muted); }
+/* Lantai keras 12px. Di bawah itu tidak terbaca di jarak konter maupun di
+   bawah silau, dan keterangan justru dibaca saat orang ragu. */
+.dv2-hint { display: block; font-size: 12px; color: var(--dash-muted); }
+
+.dv2-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border-strong);
+  background: var(--dash-raised);
+  color: var(--dash-text);
+}
+.dv2-input:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
+.dv2-input-num { text-align: right; font-variant-numeric: tabular-nums; }
+.dv2-textarea { min-height: 76px; resize: vertical; }
+
+.dv2-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.dv2-summary {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--dash-raised);
+  border-left: 3px solid var(--orange);
+  font-size: 14px;
+}
+
+.dv2-form-foot { display: flex; justify-content: flex-end; gap: 8px; }

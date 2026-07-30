@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
   liveState,
@@ -122,9 +123,14 @@ export default function MenuTableV2({ rows, footer }: Props) {
                 aria-label={`Pilih ${r.nama_menu}`}
               />
             </span>
-            <span className="dv2-col-menu" title={r.nama_menu}>
-              {r.nama_menu}
-              <span className="dv2-sub"> · {r.category?.trim() || "tanpa kategori"}</span>
+            {/* Baris adalah objek yang bisa dibuka. Namanya yang membuka, bukan
+                seluruh baris — jari yang meleset sedikit tidak boleh membuka
+                editor alih-alih mematikan menu. */}
+            <span className="dv2-col-menu">
+              <Link className="dv2-open" href={`/dashboard-v2/menu/${r.id_menu}`} title={r.nama_menu}>
+                {r.nama_menu}
+                <span className="dv2-sub"> · {r.category?.trim() || "tanpa kategori"}</span>
+              </Link>
             </span>
             {/* "Rp" hidup di header kolom, bukan di tiap sel: mengulanginya
                 memakan lebar yang dibutuhkan angkanya sendiri, dan kolom angka
