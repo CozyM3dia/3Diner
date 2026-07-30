@@ -4,9 +4,9 @@
     {
       "name": "3diner-dashboard-ux",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "cwd": "App",
-      "port": 3000
+      "runtimeArgs": ["--prefix", "C:\\Kerja\\3Diner\\.worktrees\\dashboard-ux\\App", "run", "dev"],
+      "port": 3001,
+      "autoPort": true
     }
   ]
 }

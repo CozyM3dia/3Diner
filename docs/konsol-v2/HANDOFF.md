@@ -128,8 +128,12 @@ ke tiap batang, dan grafik 30 hari mendorong halaman 255px lebih lebar dari laya
 
 ## 6. Cara memverifikasi
 
-Dev server: `.claude/launch.json` → nama **`3diner-dashboard-ux`**, port **3001**,
-menunjuk ke `C:\Kerja\3Diner\.worktrees\dashboard-ux\App`.
+Dev server: `preview_start` dengan nama **`3diner-dashboard-ux`** → port **3001**.
+
+Port 3001, bukan 3000: repo utama `C:\Kerja\3Diner\App` memakai 3000 lewat konfigurasi
+`3diner-app`, dan menjalankan keduanya di port yang sama membuat salah satu diam-diam
+menolak. Kalau nama itu tidak ditemukan, tambahkan ke `~/.claude/launch.json` —
+konfigurasi yang sama juga tersimpan di `.claude/launch.json` worktree ini.
 
 **Login butuh manusia.** Agent tidak boleh mengisi password. Minta pemilik login sekali
 di `http://localhost:3001/login`; sesinya bertahan di profil browser. Tanpa itu semua
