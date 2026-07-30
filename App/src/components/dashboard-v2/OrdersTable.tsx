@@ -58,7 +58,10 @@ export default function OrdersTable({ rows, footer, cafeName, cafeAddress, taxCo
             <span className="dv2-col-pay">{describePayment(o.payment_method, o.payment_status)}</span>
             <span className="dv2-col-total">{formatRupiah(o.total)}</span>
             <span className="dv2-col-act">
-              <button className="dv2-btn" onClick={() => setOpenId(o.id_order)}>
+              {/* Varian tenang: aksi ini berulang di tiap baris, dan
+                  dua puluh lima bingkai di tepi kanan menarik mata ke
+                  kolom yang paling tidak menentukan pilihan baris. */}
+              <button className="dv2-btn dv2-btn-quiet" onClick={() => setOpenId(o.id_order)}>
                 Buka
               </button>
             </span>

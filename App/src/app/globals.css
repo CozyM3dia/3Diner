@@ -431,8 +431,15 @@ model-viewer::part(default-ar-button) { display: none !important; }
   font-family: var(--font-poppins), system-ui, sans-serif;
 }
 
-/* Dark canvas covers full document + overscroll while dashboard is mounted */
-html:has(.dash-root), body:has(.dash-root) {
+/* Dark canvas covers full document + overscroll while dashboard is mounted.
+   Konsol v2 dan kasir ikut aturan yang sama: tanpa ini, dokumen di
+   belakangnya tetap #F6F8FB, dan tiap overscroll — juga tiap layar yang
+   isinya lebih pendek dari viewport — memperlihatkan pita putih terang
+   di bawah konsol gelap. Di layar konter yang dipakai berjam-jam, kilatan
+   putih itu bukan cacat kosmetik. */
+html:has(.dash-root), body:has(.dash-root),
+html:has(.dv2-root), body:has(.dv2-root),
+html:has(.kasir-root), body:has(.kasir-root) {
   background: var(--dash-canvas);
 }
 
@@ -624,12 +631,102 @@ html:has(.dash-root), body:has(.dash-root) {
    teks 12px, dan lima langkah skala tipe.
    ══════════════════════════════════════════════════════════════════ */
 
+/* ══════════════════════════════════════════════════════════════════
+   Token konsol — dipakai bersama /kasir dan /dashboard-v2
+   ══════════════════════════════════════════════════════════════════
+
+   Anggaran KONTRAK-WIREFRAME §1 ditulis di satu tempat supaya bisa
+   dilanggar hanya dengan sengaja. Sebelum ini tiap komponen memilih
+   ukurannya sendiri, dan hasilnya 13px di sebelah 14px, 6px di sebelah
+   8px — cukup untuk merusak hierarki, tidak cukup untuk terlihat
+   sebagai keputusan.
+
+   Skala bekerja sebagai KODE: pembaca belajar "ukuran ini artinya
+   label". Kode hanya bisa dipelajari kalau simbolnya sedikit, jadi
+   penambahan langkah keenam di sini bukan penyesuaian kecil —
+   ia melumpuhkan lima langkah yang sudah dipelajari. */
+
+.dv2-root, .kasir-root {
+  /* ── Tipe: 5 langkah, tidak boleh ke-6 ──────────────────────── */
+  --t-meta:   12px; /* label kolom, satuan, timestamp, helper       */
+  --t-body:   14px; /* fondasi: isi baris, paragraf, nilai field    */
+  --t-title:  20px; /* judul halaman — satu per halaman             */
+  --t-figure: 28px; /* angka utama — maks 3 per layar               */
+  /* Berat: tepat dua. 500/700 tidak bisa dibedakan andal dari
+     400/600 pada 14px, jadi menambahkannya menambah biaya render
+     tanpa menambah satu pun perbedaan yang terbaca. */
+  --w-reg: 400;
+  --w-str: 600;
+
+  /* ── Jarak: 6 langkah ───────────────────────────────────────── */
+  --s1:  4px;
+  --s2:  8px;  /* di dalam kelompok                                 */
+  --s3: 12px;
+  --s4: 16px;  /* padding tepi baku                                 */
+  --s5: 24px;  /* antar kelompok — rasio 3:1 terhadap s2            */
+  --s6: 32px;  /* antar seksi                                       */
+
+  /* ── Tangga abu teks: 4 tingkat ─────────────────────────────────
+     Hierarki di layar ini datang dari ukuran + berat + nilai terang,
+     bukan dari hue. Sebelumnya cuma ada dua tingkat, jadi tiap sel
+     dalam satu baris berteriak sama keras dan mata tidak punya titik
+     mendarat.
+
+     Kontras terhadap --dash-panel (#0D1829), latar baris:
+       ink-1 #E9EEF6 ≈ 13.4:1
+       ink-2 #9FB2C9 ≈  8.2:1
+       ink-3 #6E88A8 ≈  4.9:1  (lantai AA untuk teks)
+       ink-4 #4A6484 ≈  2.8:1  — HANYA untuk kontrol nonaktif, yang
+                                 memang tidak boleh terbaca sebagai
+                                 sesuatu yang bisa dikerjakan.
+
+     PENTING — panel bukan satu-satunya latar. Terhadap --dash-raised
+     (#132136), yang lebih TERANG, tangga yang sama menyusut:
+       ink-3 ≈ 4.4:1 — di bawah lantai AA.
+
+     Jadi aturannya: permukaan raised (kepala tabel, kepala kelompok,
+     pita seleksi) memakai ink-2, bukan ink-3. Kesalahan ini nyata dan
+     sempat lolos: tangga diverifikasi hanya terhadap panel, lalu
+     dipakai juga di raised, dan kepala kolom jadi nyaris tak terbaca
+     justru di baris yang menamai seluruh tabel. */
+  --ink-1: #E9EEF6;
+  --ink-2: #9FB2C9;
+  --ink-3: #6E88A8;
+  --ink-4: #4A6484;
+
+  /* ── Tangga permukaan: 3 tingkat ────────────────────────────────
+     Tingkat ketiga adalah latar baris tersorot. Ia sengaja dibuat
+     ada supaya latar baris TIDAK pernah dipakai untuk zebra: begitu
+     zebra memakainya, tidak tersisa apa pun untuk menandai keadaan
+     nyata seperti pesanan telat. */
+  --sf-canvas: var(--dash-canvas);
+  --sf-panel:  var(--dash-panel);
+  --sf-raised: var(--dash-raised);
+  --sf-hover:  #16253C;
+
+  /* ── Bentuk: 2 radius ───────────────────────────────────────────
+     Radius batang chart (2px) dan kerangka muat (4px) tidak ikut
+     tangga ini: keduanya primitif grafis, bukan kontrol maupun
+     panel, dan memberi mereka 8px mengubah garis 12px jadi pil. */
+  --r-ctl:   8px;
+  --r-panel: 14px;
+
+  /* ── Gerak: 3 durasi, 1 easing ──────────────────────────────────
+     Batas atas kontrak. Satu easing berarti seluruh konsol punya
+     satu kepribadian gerak; easing kedua terbaca sebagai dua produk
+     yang ditempel. */
+  --d-fast: 90ms;   /* umpan balik tekan          */
+  --d-base: 150ms;  /* hover, fokus, warna        */
+  --d-slow: 240ms;  /* masuk/keluar lapisan       */
+  --e: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .kasir-root {
   min-height: 100dvh;
   background: var(--dash-canvas);
   color: var(--dash-text);
-  font-size: 14px;
-  padding: 0 0 32px;
+  font-size: var(--t-body);
+  padding: 0 0 var(--s6);
 }
 
 .kasir-sr {
@@ -928,23 +1025,43 @@ html:has(.dash-root), body:has(.dash-root) {
 
 .dv2-root {
   min-height: 100dvh;
-  background: var(--dash-canvas);
-  color: var(--dash-text);
-  font-size: 14px;
+  background: var(--sf-canvas);
+  color: var(--ink-1);
+  font-size: var(--t-body);
 }
 
+/* Bilah judul membawa DUA baris: nama layar, dan satu kalimat yang
+   menyatakan cakupannya. Baris kedua itu yang membuat angka di
+   bawahnya bisa dipercaya tanpa tooltip — "Rp 4,2 jt" tidak berarti
+   apa-apa sampai diketahui itu hari ini, kotor, dan sudah termasuk
+   pajak. Sebelumnya keterangan cakupan cuma ada di rute Laporan. */
 .dv2-bar {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: baseline;
+  gap: var(--s3);
+  flex-wrap: wrap;
   min-height: 44px;
-  padding: 10px 16px;
+  padding: var(--s3) var(--s4);
   background: var(--dash-sidebar);
   border-bottom: 1px solid var(--dash-border);
 }
-.dv2-h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.dv2-h1 {
+  font-size: var(--t-title);
+  font-weight: var(--w-str);
+  margin: 0;
+  letter-spacing: -0.01em;
+  color: var(--ink-1);
+}
+.dv2-bar-note {
+  font-size: var(--t-meta);
+  color: var(--ink-3);
+  /* Turun ke barisnya sendiri di layar sempit, tapi tidak pernah
+     memaksa bilah lebih tinggi dari yang dibutuhkan. */
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .dv2-bar-right { margin-left: auto; }
-.dv2-sub { font-size: 12px; color: var(--dash-muted); }
+.dv2-sub { font-size: var(--t-meta); color: var(--ink-3); }
 
 .dv2-nav {
   display: flex;
@@ -956,147 +1073,286 @@ html:has(.dash-root), body:has(.dash-root) {
 .dv2-nav-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
+  gap: var(--s2);
+  padding: var(--s2) var(--s4);
   min-height: 44px;
-  font-size: 14px;
+  font-size: var(--t-body);
   white-space: nowrap;
-  color: var(--dash-muted);
+  color: var(--ink-3);
   border-bottom: 2px solid transparent;
+  transition: color var(--d-base) var(--e), background var(--d-base) var(--e);
 }
+/* Rute aktif ditandai putih + garis putih, BUKAN oranye.
+   Oranye adalah aksi primer dan satu sorotan per layar; dipakai juga
+   untuk "kamu di sini", ia muncul tiga kali di tiap layar dan berhenti
+   menunjuk apa pun. Penanda posisi tidak butuh hue — ia butuh kontras,
+   dan putih di antara abu sudah kontras paling kuat yang tersedia. */
 .dv2-nav-item[aria-current="page"] {
-  color: var(--dash-text);
-  font-weight: 600;
-  border-bottom-color: var(--orange);
+  color: var(--ink-1);
+  font-weight: var(--w-str);
+  border-bottom-color: var(--ink-1);
+  background: var(--sf-hover);
+}
+@media (hover: hover) {
+  .dv2-nav-item:hover { color: var(--ink-1); background: var(--sf-hover); }
 }
 .dv2-nav-item:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
 
+/* Satu-satunya badge berangka di seluruh aplikasi, dan satu-satunya
+   pemakaian oranye di shell. Ia menjanjikan "ada N hal menunggu
+   tindakanmu"; badge kedua yang tidak bisa dinolkan merusak
+   kepercayaan pada janji itu di semua tempat. */
 .dv2-badge {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--t-meta);
+  font-weight: var(--w-str);
   font-variant-numeric: tabular-nums;
   min-width: 20px;
-  padding: 0 6px;
-  border-radius: 10px;
+  padding: 0 var(--s2);
+  border-radius: var(--r-ctl);
   background: var(--orange);
   color: var(--dash-on-accent);
   text-align: center;
 }
 
-.dv2-main { padding-bottom: 32px; }
+.dv2-main { padding-bottom: var(--s6); }
 
+/* Kelompok dipisahkan oleh JARAK, bukan oleh bingkai. Rasio 3:1 antara
+   jarak di dalam kelompok (8) dan antar kelompok (24) sudah cukup untuk
+   mata mengelompokkan sendiri; menambah border di atasnya berarti
+   membayar dua kali untuk pemisahan yang sama, dan garis-garis itulah
+   yang membuat layar terlihat seperti formulir. */
 .dv2-group { border-bottom: 1px solid var(--dash-border); }
+.dv2-group + .dv2-group { margin-top: var(--s5); }
 .dv2-ghd {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--dash-raised);
-  font-size: 12px;
+  gap: var(--s2);
+  padding: var(--s2) var(--s4);
+  background: var(--sf-raised);
+  font-size: var(--t-meta);
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--dash-muted);
+  /* Latarnya raised — lihat catatan tangga abu: ink-3 gagal AA di sini. */
+  color: var(--ink-2);
 }
-.dv2-ghd b { color: var(--dash-text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.dv2-ghd b { color: var(--ink-1); font-weight: var(--w-str); font-variant-numeric: tabular-nums; }
 .dv2-ghd-note { margin-left: auto; text-transform: none; letter-spacing: 0; }
 
 .dv2-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--s3);
   height: 44px;
-  padding: 0 16px;
-  background: var(--dash-panel);
+  padding: 0 var(--s4);
+  background: var(--sf-panel);
   border-bottom: 1px solid var(--dash-border);
+  transition: background var(--d-base) var(--e);
 }
 .dv2-row:last-child { border-bottom: none; }
-.dv2-kind { font-weight: 600; min-width: 84px; }
+/* Latar tersorot HANYA di perangkat yang benar-benar punya hover.
+   Di tablet konter — perangkat utamanya — hover tidak pernah terjadi,
+   dan aturan hover yang tersangkut setelah ketukan meninggalkan baris
+   menyala pada objek yang sudah selesai dikerjakan. */
+@media (hover: hover) {
+  .dv2-row:not(.dv2-row-head):not(.dv2-row-foot):hover { background: var(--sf-hover); }
+}
+.dv2-kind { font-weight: var(--w-str); min-width: 84px; }
 .dv2-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dv2-state-chip { font-size: 12px; color: var(--dash-muted); white-space: nowrap; }
+.dv2-state-chip { font-size: var(--t-meta); color: var(--ink-3); white-space: nowrap; }
 
 .dv2-more {
   margin: 0;
-  padding: 10px 16px;
-  font-size: 12px;
-  color: var(--dash-muted);
-  background: var(--dash-panel);
+  padding: var(--s3) var(--s4);
+  font-size: var(--t-meta);
+  color: var(--ink-3);
+  background: var(--sf-panel);
 }
 
 .dv2-btn {
   min-height: 32px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: var(--s2) var(--s3);
+  font-size: var(--t-meta);
+  font-weight: var(--w-str);
   white-space: nowrap;
-  border-radius: 8px;
+  border-radius: var(--r-ctl);
   border: 1px solid var(--dash-border-strong);
-  background: var(--dash-raised);
-  color: var(--dash-text);
+  background: var(--sf-raised);
+  color: var(--ink-1);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--s2);
+  cursor: pointer;
+  transition:
+    background var(--d-base) var(--e),
+    border-color var(--d-base) var(--e),
+    transform var(--d-fast) var(--e);
+}
+@media (hover: hover) {
+  .dv2-btn:hover { background: var(--sf-hover); border-color: var(--ink-4); }
+}
+/* Umpan balik tekan ada karena layar sentuh tidak punya hover untuk
+   mengatakan "tanganmu sampai". Tanpa ini, ketukan yang menunggu
+   jaringan terasa seperti ketukan yang tidak terdaftar, dan orang
+   menekan dua kali. */
+.dv2-btn:active { transform: translateY(1px); }
+.dv2-btn:disabled { color: var(--ink-4); cursor: default; transform: none; }
+/* Varian tenang — untuk aksi yang berulang di TIAP baris.
+   Aksi baris wajib selalu terlihat (hover-reveal dilarang, perangkat
+   utamanya bersentuhan), tapi selalu-terlihat bukan berarti
+   selalu-berteriak: dua puluh lima tombol berbingkai di tepi kanan
+   adalah objek visual terberat di layar, dipakai untuk aksi paling
+   tidak penting yang ada di sana.
+
+   Bingkainya dilepas, label dan target sentuh 32px-nya tidak. Bingkai
+   kembali saat hover dan fokus — di situ ia berguna, karena menyatakan
+   "yang ini yang akan tertekan". */
+.dv2-btn-quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-2);
+}
+@media (hover: hover) {
+  .dv2-btn-quiet:hover {
+    background: var(--sf-raised);
+    border-color: var(--dash-border-strong);
+    color: var(--ink-1);
+  }
 }
 .dv2-btn-solid { background: var(--orange); border-color: var(--orange); color: var(--dash-on-accent); }
+@media (hover: hover) {
+  .dv2-btn-solid:hover { background: var(--orange-bright); border-color: var(--orange-bright); }
+}
 .dv2-btn:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
-.dv2-state { padding: 28px 16px; text-align: center; background: var(--dash-panel); }
-.dv2-state-title { font-weight: 600; margin: 0 0 4px; }
-.dv2-state-body { color: var(--dash-muted); margin: 0; }
-.dv2-state-cta { margin-top: 12px; }
+/* State kosong menempati panel, tidak diselipkan sebagai catatan kecil.
+   Kalimatnya sudah benar sejak awal ("Semua pesanan sudah ditangani");
+   yang membuatnya terbaca seperti kesalahan adalah tipografinya —
+   14px abu di tengah ruang sempit terlihat persis seperti pesan error.
+   Ukuran judul di sini sama dengan judul halaman karena, pada saat
+   state ini tampil, kalimat itu MEMANG isi seluruh layar. */
+.dv2-state {
+  padding: var(--s6) var(--s4);
+  text-align: center;
+  background: var(--sf-panel);
+}
+.dv2-state-title {
+  font-size: var(--t-title);
+  font-weight: var(--w-str);
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--s2);
+  color: var(--ink-1);
+}
+.dv2-state-body {
+  color: var(--ink-3);
+  margin: 0 auto;
+  max-width: 46ch;
+}
+.dv2-state-cta { margin-top: var(--s5); }
 
+/* KPI sebagai PITA BERGARIS, bukan deretan kartu.
+   Empat kartu berbingkai terbaca sebagai empat objek yang saling
+   berebut; rule vertikal tipis membuat angka-angka yang sama itu
+   terbaca sebagai satu pita dengan beberapa kolom. Bingkai dibuang,
+   yang tersisa cuma pemisahnya — dan itu sudah cukup. */
 .dv2-figs {
   display: flex;
-  gap: 32px;
-  align-items: flex-end;
+  gap: 0;
+  align-items: stretch;
   flex-wrap: wrap;
-  padding: 12px 16px;
-  background: var(--dash-panel);
+  padding: 0;
+  background: var(--sf-panel);
+}
+.dv2-fig-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: var(--s4);
+}
+.dv2-fig-cell + .dv2-fig-cell { border-left: 1px solid var(--dash-border); }
+.dv2-fig-label {
+  font-size: var(--t-meta);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .dv2-fig {
-  font-size: 28px;
-  font-weight: 600;
+  font-size: var(--t-figure);
+  font-weight: var(--w-str);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
+  color: var(--ink-1);
+  line-height: 1.15;
 }
-.dv2-fig-none { color: var(--dash-muted); }
-.dv2-placeholder { padding: 20px 16px; background: var(--dash-panel); }
+/* Angka tanpa pembanding tidak bisa ditindaklanjuti: "82 pesanan" baru
+   berarti sesuatu setelah diketahui pekan lalu 61. Pembandingnya tetap
+   abu — ia keterangan, bukan angkanya. */
+.dv2-fig-delta { font-size: var(--t-meta); color: var(--ink-3); }
+/* Tampilan ketiga tiap angka: tidak-tersedia. Merender "0" saat query
+   gagal adalah kegagalan yang tidak terlihat seperti kegagalan —
+   pemilik menyimpulkan kafenya sepi padahal integrasinya putus. */
+.dv2-fig-none { color: var(--ink-3); }
+
+.dv2-placeholder { padding: var(--s5) var(--s4); background: var(--sf-panel); }
 .dv2-placeholder code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
-  color: var(--dash-text);
+  font-size: var(--t-meta);
+  color: var(--ink-2);
 }
-.dv2-list { margin: 8px 0 0; padding-left: 20px; color: var(--dash-muted); }
-.dv2-list li { margin-bottom: 4px; }
+.dv2-list { margin: var(--s2) 0 0; padding-left: var(--s4); color: var(--ink-3); }
+.dv2-list li { margin-bottom: var(--s1); }
 
 /* ── Tabel riwayat Konsol Owner ────────────────────────────────────
    Tinggi baris 44px seragam, teks dipotong bukan dibungkus, dan aksi
    selalu terlihat — hover-reveal dilarang karena perangkat utamanya
    bersentuhan, di mana hover tidak pernah terjadi. */
 
+/* Pita tab duduk di KANVAS, bukan di raised.
+   Sebelumnya pita tab dan kepala kolom memakai nilai yang sama persis,
+   jadi dua pita dengan tugas berbeda — "saringan mana yang aktif" dan
+   "kolom ini namanya apa" — menempel jadi satu massa, dan kepala kolom
+   berhenti terbaca sebagai kepala.
+
+   Kanvas adalah nilai tergelap yang ada, jadi ia bekerja sebagai jeda
+   tanpa menambah satu pun garis: tabel terbaca mulai dari kepalanya,
+   dan tab terbaca sebagai milik shell di atasnya. */
 .dv2-tabs {
   display: flex;
   overflow-x: auto;
-  background: var(--dash-raised);
+  background: var(--sf-canvas);
   border-bottom: 1px solid var(--dash-border);
 }
 .dv2-tab {
-  padding: 10px 14px;
+  padding: var(--s2) var(--s4);
   min-height: 44px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: var(--s2);
+  font-size: var(--t-body);
   white-space: nowrap;
-  color: var(--dash-muted);
+  color: var(--ink-3);
   border-right: 1px solid var(--dash-border);
   border-bottom: 2px solid transparent;
+  transition: color var(--d-base) var(--e), background var(--d-base) var(--e);
 }
-.dv2-tab b { font-variant-numeric: tabular-nums; color: var(--dash-text); }
+/* Berat ditulis eksplisit: <b> tanpa aturan mewarisi 700 dari peramban,
+   dan 700 tidak ada di kontrak — dua berat yang berdekatan terbaca
+   sebagai ketidaksengajaan, bukan sebagai penekanan. */
+.dv2-tab b {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--w-str);
+  color: var(--ink-1);
+}
 .dv2-tab[aria-current="page"] {
-  color: var(--dash-text);
-  font-weight: 600;
-  background: var(--dash-panel);
-  border-bottom-color: var(--dash-text);
+  color: var(--ink-1);
+  font-weight: var(--w-str);
+  background: var(--sf-panel);
+  border-bottom-color: var(--ink-1);
+}
+@media (hover: hover) {
+  .dv2-tab:not([aria-current="page"]):hover { color: var(--ink-1); background: var(--sf-hover); }
 }
 .dv2-tab:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
 
@@ -1104,44 +1360,101 @@ html:has(.dash-root), body:has(.dash-root) {
 .dv2-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--s3);
   height: 44px;
-  min-width: 760px;
-  padding: 0 16px;
-  background: var(--dash-panel);
+  /* 92 id + 180 item + 52 waktu + 84 status + 192 bayar + 96 total +
+     64 aksi + 6 celah 12px + padding 32 = 872, dibulatkan ke 880.
+     Di bawah lebar ini tabel menggulir ke samping — dan itu memang
+     perilaku yang dipilih, karena kolom identitas dan kolom aksi
+     lengket di kedua ujungnya, jadi baris tidak pernah jadi anonim. */
+  min-width: 880px;
+  padding: 0 var(--s4);
+  background: var(--sf-panel);
   border-bottom: 1px solid var(--dash-border);
 }
 /* Zebra striping dilarang: latar baris harus tetap tersedia untuk menandai
    keadaan nyata, bukan dihabiskan untuk hiasan bergaris. */
+/* ink-2, bukan ink-3: latarnya raised, dan di sana ink-3 turun ke 4.4:1.
+   Baris ini yang menamai seluruh kolom di bawahnya — ia yang paling
+   tidak boleh jadi yang paling sulit dibaca. */
 .dv2-row-head {
-  background: var(--dash-raised);
-  font-weight: 600;
-  font-size: 12px;
+  background: var(--sf-raised);
+  font-weight: var(--w-str);
+  font-size: var(--t-meta);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--dash-muted);
+  color: var(--ink-2);
   position: sticky;
   top: 0;
+  z-index: 3;
 }
 .dv2-row-foot {
-  background: var(--dash-raised);
-  font-weight: 600;
+  background: var(--sf-raised);
+  font-weight: var(--w-str);
+  color: var(--ink-1);
   border-top: 1px solid var(--dash-border-strong);
 }
+
+/* ── Hierarki DI DALAM baris ───────────────────────────────────────
+   Cacat yang paling terasa sebelum ini: tiap sel dalam satu baris
+   punya warna dan berat yang sama, jadi baris terbaca sebagai enam
+   potong teks setara dan mata tidak punya titik mendarat. Deretan
+   abu seragam dari atas ke bawah itulah yang terbaca sebagai "belum
+   didesain".
+
+   Perbaikannya bukan menambah garis atau warna, tapi memakai tangga
+   abu yang sekarang ada: identitas dan angka di tingkat 1, isi di
+   tingkat 2, keterangan di tingkat 3. Pemindaian ke bawah jadi
+   mengikuti dua kolom terang, bukan seluruh lebar baris. */
+.dv2-row .dv2-col-id,
+.dv2-row .dv2-col-name,
+.dv2-row .dv2-col-menu,
+.dv2-row .dv2-col-kind,
+.dv2-row .dv2-col-setup-name { color: var(--ink-1); }
+
+.dv2-row .dv2-col-items,
+.dv2-row .dv2-col-promo,
+.dv2-row .dv2-col-total,
+.dv2-row .dv2-col-num,
+.dv2-row .dv2-col-price { color: var(--ink-2); }
+
+.dv2-row .dv2-col-time,
+.dv2-row .dv2-col-status { color: var(--ink-3); }
+
+/* Kolom angka utama tetap di tingkat 1: ia jawaban, bukan keterangan. */
+.dv2-row .dv2-col-total { color: var(--ink-1); font-weight: var(--w-str); }
+
+/* Baris kepala dan kaki mengabaikan semuanya — keduanya bukan objek,
+   dan mewarnai selnya seperti objek membuat total terbaca seperti
+   baris pesanan lain. Selektornya sengaja dua-kelas-plus-elemen
+   supaya menang tanpa !important atas aturan per-kolom di atas. */
+.dv2-row.dv2-row-head span,
+.dv2-row.dv2-row-foot span { color: inherit; }
 
 /* Semua kolom SELAIN item punya lebar tetap.
    Kalau kolom ikut melebar mengikuti isinya, posisi kolom bergeser antar baris
    — dan mata yang sedang memindai ke bawah harus mencari ulang di tiap baris,
    yang justru menghapus gunanya tabel. Hanya satu kolom yang boleh elastis. */
-.dv2-col-id { width: 92px; flex: none; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dv2-col-items { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dv2-col-time { width: 52px; flex: none; font-variant-numeric: tabular-nums; }
-.dv2-col-status { width: 84px; flex: none; font-size: 12px; }
+.dv2-col-id { width: 92px; flex: none; font-weight: var(--w-str); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Lantai 180px. Kolom ini satu-satunya yang elastis, jadi tiap kolom
+   tetap yang dilebarkan memakan jatahnya — dan pada lebar kecil ia
+   menyusut sampai "1× Butter …", yang membuat sepuluh baris berbeda
+   terbaca identik. Isi pesanan adalah alasan baris ini bisa dibedakan
+   dari baris di atasnya; ia menggulir ke samping sebelum menyerah. */
+.dv2-col-items { flex: 1; min-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dv2-col-time { width: 52px; flex: none; font-size: var(--t-meta); font-variant-numeric: tabular-nums; }
+.dv2-col-status { width: 84px; flex: none; font-size: var(--t-meta); }
+/* 192px, bukan 152px. Pada 152px kalimat terpanjang yang bisa muncul —
+   "Belum dipilih · belum bayar" — terpotong tepat di kata yang
+   menentukan, jadi baris satu-satunya yang butuh tindakan justru
+   membaca "belum ba…" sementara baris yang tidak butuh apa-apa
+   ("QRIS · menunggu") muat utuh. Pemotongan boleh memakan nama item;
+   ia tidak boleh memakan status pembayaran. */
 .dv2-col-pay {
-  width: 152px;
+  width: 192px;
   flex: none;
-  font-size: 12px;
-  color: var(--dash-muted);
+  font-size: var(--t-meta);
+  color: var(--ink-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1155,12 +1468,12 @@ html:has(.dash-root), body:has(.dash-root) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--s3);
   flex-wrap: wrap;
-  padding: 12px 16px;
-  background: var(--dash-panel);
+  padding: var(--s3) var(--s4);
+  background: var(--sf-panel);
 }
-.dv2-pager-btns { display: flex; gap: 8px; align-items: center; }
+.dv2-pager-btns { display: flex; gap: var(--s2); align-items: center; }
 
 /* ── Tabel stok ────────────────────────────────────────────────────
    Lebar tetap untuk semua kolom kecuali nama bahan, alasan yang sama

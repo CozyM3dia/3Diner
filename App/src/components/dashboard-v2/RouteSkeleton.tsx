@@ -27,8 +27,16 @@ export default function RouteSkeleton({ title, columns, rows = 5, figures = 0, t
       <header className="dv2-bar">
         {/* Judul dan nav TIDAK di-skeleton: keduanya tidak bergantung data, jadi
             menyembunyikannya justru membuat halaman terasa lebih kosong daripada
-            yang sebenarnya. */}
-        <h1 className="dv2-h1">{title}</h1>
+            yang sebenarnya.
+
+            Judulnya <p>, bukan <h1>: selama streaming, kerangka dan halaman
+            aslinya hidup berdampingan sesaat, dan dua <h1> di satu dokumen
+            membuat pembaca layar mengumumkan dua judul halaman untuk satu
+            layar. Rupanya identik — hanya perannya yang dilepas. */}
+        <p className="dv2-h1">{title}</p>
+        {/* Baris cakupan ikut dikerangkakan supaya bilah tidak berubah tinggi
+            saat kalimat aslinya datang. */}
+        <span className="dv2-skel" style={{ width: 240 }} />
       </header>
 
       <nav className="dv2-nav" aria-hidden="true">
@@ -52,9 +60,10 @@ export default function RouteSkeleton({ title, columns, rows = 5, figures = 0, t
       {figures > 0 && (
         <div className="dv2-figs" aria-hidden="true">
           {Array.from({ length: figures }).map((_, i) => (
-            <div key={i}>
+            <div className="dv2-fig-cell" key={i}>
+              <span className="dv2-skel" style={{ width: 82 }} />
               <span className="dv2-skel" style={{ width: 116, height: 26 }} />
-              <span className="dv2-skel" style={{ width: 82, marginTop: 8 }} />
+              <span className="dv2-skel" style={{ width: 96 }} />
             </div>
           ))}
         </div>
