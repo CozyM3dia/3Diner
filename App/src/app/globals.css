@@ -1460,3 +1460,55 @@ html:has(.dash-root), body:has(.dash-root) {
   font-weight: 600;
   background: var(--dash-panel);
 }
+
+/* ── Pengaturan ────────────────────────────────────────────────────
+   Daftar bagian, bukan satu formulir raksasa. Layar ini jarang dibuka
+   dan sebagian isinya merusak kalau salah, jadi yang pertama terlihat
+   adalah apa yang belum lengkap. */
+
+.dv2-row-setup { min-width: 0; height: auto; min-height: 52px; padding: 10px 16px; }
+.dv2-col-setup-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Akibat ditulis dengan warna peringatan, bukan abu: ia yang membuat baris ini
+   dikerjakan, dan kalimat abu di antara kalimat abu tidak dibaca. */
+.dv2-col-setup-why {
+  width: 300px;
+  flex: none;
+  font-size: 12px;
+  color: var(--semantic-warning, #F59E0B);
+}
+.dv2-col-setup-state {
+  width: 300px;
+  flex: none;
+  font-size: 12px;
+  color: var(--dash-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dv2-col-setup-act { width: 132px; flex: none; display: flex; justify-content: flex-end; }
+
+@media (max-width: 760px) {
+  .dv2-row-setup { flex-wrap: wrap; }
+  .dv2-col-setup-why, .dv2-col-setup-state { width: 100%; }
+}
+
+.dv2-preview-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 0;
+}
+.dv2-preview-total {
+  font-weight: 600;
+  border-top: 1px solid var(--dash-border-strong);
+  margin-top: 6px;
+  padding-top: 8px;
+}
