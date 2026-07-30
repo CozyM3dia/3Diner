@@ -28,7 +28,7 @@ export default function BarSeries({ points, caption, format, label }: Props) {
         {points.map((p, i) => (
           <span
             key={p.day}
-            className="dv2-bar"
+            className="dv2-chart-bar"
             data-peak={i === peak && p.value > 0 ? "true" : undefined}
             /* Tinggi adalah satu-satunya data yang dibawa elemen ini, jadi ia
                ditulis inline — memindahkannya ke kelas berarti membuat 100
