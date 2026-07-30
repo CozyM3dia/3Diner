@@ -116,8 +116,13 @@ export default async function OwnerPromoPage({ searchParams }: PageProps) {
               <span className="dv2-col-when" title={p.when}>
                 {p.when}
               </span>
-              <span className="dv2-col-nowlive" data-live={p.activeNow ? "ya" : "tidak"}>
-                {p.activeNow ? "Tampil" : p.enabled ? "Menunggu jadwal" : "Mati"}
+              {/* Yang menunggu diberi nada, bukan yang tampil: keadaan normal
+                  tidak boleh berteriak, dan yang menunggu itulah yang mungkin
+                  salah setel. */}
+              <span className="dv2-col-nowlive">
+                <span className="dv2-chip" data-tone={p.activeNow ? undefined : "warning"}>
+                  {p.activeNow ? "Tampil" : p.enabled ? "Menunggu jadwal" : "Mati"}
+                </span>
               </span>
               <span className="dv2-col-promo-act">
                 <Link className="dv2-btn" href={p.href}>

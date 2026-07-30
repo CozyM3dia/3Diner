@@ -760,13 +760,18 @@ html:has(.kasir-root), body:has(.kasir-root) {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: var(--dash-raised);
-  font-size: 12px;
+  background: var(--sf-raised);
+  font-size: var(--t-meta);
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--dash-muted);
+  /* ink-2, bukan ink-3. Latarnya raised, dan di sana ink-3 turun ke 4.4:1 —
+     di bawah lantai AA. Baris ini menamai seluruh kelompok di bawahnya;
+     ia yang paling tidak boleh jadi yang paling sulit dibaca. Bug yang
+     sama sudah diperbaiki di sisi dv2; kasir ketinggalan karena punya
+     blok aturannya sendiri. */
+  color: var(--ink-2);
 }
-.kasir-ghd b { color: var(--dash-text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.kasir-ghd b { color: var(--ink-1); font-weight: var(--w-str); font-variant-numeric: tabular-nums; }
 .kasir-ghd-note { margin-left: auto; text-transform: none; letter-spacing: 0; }
 
 /* Tinggi seragam 44px. Teks panjang DIPOTONG, tidak dibungkus: baris yang
@@ -1160,6 +1165,49 @@ html:has(.kasir-root), body:has(.kasir-root) {
 .dv2-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dv2-state-chip { font-size: var(--t-meta); color: var(--ink-3); white-space: nowrap; }
 
+/* ── Chip keadaan ──────────────────────────────────────────────────
+   Keadaan dibawa chip berbingkai, bukan teks abu polos. Tiga referensi
+   independen sampai pada bentuk yang sama — wireframe v3 yang disetujui,
+   `orders-data-table`, dan `table-reservation-grid`.
+
+   Alasannya bukan hiasan. Bingkai memberi keadaan sebuah BATAS, jadi ia
+   terbaca sebagai nilai dari himpunan tertutup: "salah satu dari beberapa
+   kemungkinan yang sudah ditentukan". Teks abu tanpa batas terbaca sebagai
+   keterangan yang kebetulan pendek — mata melewatinya seperti melewati
+   catatan kaki, padahal justru kolom inilah yang memberi tahu apakah baris
+   ini masih menunggu seseorang.
+
+   Chip TIDAK pernah membawa arti lewat warna saja: labelnya selalu kata
+   penuh, dan nada warna hanya menambah penekanan di atas kata itu. Dicetak
+   hitam-putih, seluruh kolom tetap terbaca. */
+.dv2-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 22px;
+  padding: 0 var(--s2);
+  border: 1px solid var(--dash-border-strong);
+  border-radius: var(--r-ctl);
+  font-size: var(--t-meta);
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Nada dipakai untuk yang perlu DIKERJAKAN, bukan untuk mengategorikan.
+   Keadaan normal sengaja tidak punya nada: layar ini dibuka untuk
+   menemukan yang bermasalah, dan kalau semua baris berwarna, tidak ada
+   yang menonjol. */
+.dv2-chip[data-tone="warning"] {
+  color: var(--semantic-warning, #F59E0B);
+  border-color: color-mix(in srgb, var(--semantic-warning, #F59E0B) 45%, transparent);
+}
+.dv2-chip[data-tone="danger"] {
+  color: var(--semantic-danger, #EF4444);
+  border-color: color-mix(in srgb, var(--semantic-danger, #EF4444) 50%, transparent);
+  font-weight: var(--w-str);
+}
+
 .dv2-more {
   margin: 0;
   padding: var(--s3) var(--s4);
@@ -1368,12 +1416,12 @@ html:has(.kasir-root), body:has(.kasir-root) {
   align-items: center;
   gap: var(--s3);
   height: 44px;
-  /* 92 id + 180 item + 52 waktu + 84 status + 192 bayar + 96 total +
-     64 aksi + 6 celah 12px + padding 32 = 872, dibulatkan ke 880.
+  /* 92 id + 180 item + 52 waktu + 104 status + 192 bayar + 96 total +
+     64 aksi + 6 celah 12px + padding 32 = 892, dibulatkan ke 900.
      Di bawah lebar ini tabel menggulir ke samping — dan itu memang
      perilaku yang dipilih, karena kolom identitas dan kolom aksi
      lengket di kedua ujungnya, jadi baris tidak pernah jadi anonim. */
-  min-width: 880px;
+  min-width: 900px;
   padding: 0 var(--s4);
   background: var(--sf-panel);
   border-bottom: 1px solid var(--dash-border);
@@ -1449,7 +1497,10 @@ html:has(.kasir-root), body:has(.kasir-root) {
    dari baris di atasnya; ia menggulir ke samping sebelum menyerah. */
 .dv2-col-items { flex: 1; min-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dv2-col-time { width: 52px; flex: none; font-size: var(--t-meta); font-variant-numeric: tabular-nums; }
-.dv2-col-status { width: 84px; flex: none; font-size: var(--t-meta); }
+/* 104px, bukan 84: chip menambah padding 8px di dua sisi plus bingkai, dan
+   label terpanjang ("Dibatalkan") tidak lagi muat di lebar lama. Kolom yang
+   memotong nama keadaan lebih buruk daripada tidak punya chip sama sekali. */
+.dv2-col-status { width: 104px; flex: none; font-size: var(--t-meta); }
 /* 192px, bukan 152px. Pada 152px kalimat terpanjang yang bisa muncul —
    "Belum dipilih · belum bayar" — terpotong tepat di kata yang
    menentukan, jadi baris satu-satunya yang butuh tindakan justru
@@ -1503,12 +1554,12 @@ html:has(.kasir-root), body:has(.kasir-root) {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.dv2-col-level { width: 88px; flex: none; font-size: 12px; }
-/* Kegentingan dibawa kata DAN warna. Warnanya menambah penekanan, bukan
-   menciptakan maknanya — barisnya harus tetap terbaca saat dicetak
-   hitam-putih atau di layar yang silau. */
-.dv2-col-level[data-level="menipis"] { color: var(--semantic-warning, #F59E0B); }
-.dv2-col-level[data-level="habis"] { color: var(--semantic-danger, #EF4444); font-weight: 600; }
+/* Kegentingan dibawa kata DAN warna — warnanya menambah penekanan, bukan
+   menciptakan maknanya, jadi baris tetap terbaca saat dicetak hitam-putih
+   atau di layar yang silau.
+   Nadanya sekarang hidup di `.dv2-chip[data-tone]`, bukan di kolom: yang
+   diwarnai adalah keadaannya, bukan selnya. */
+.dv2-col-level { width: 88px; flex: none; font-size: var(--t-meta); }
 .dv2-col-impact {
   width: 168px;
   flex: none;
@@ -1573,10 +1624,8 @@ html:has(.kasir-root), body:has(.kasir-root) {
   font-variant-numeric: tabular-nums;
 }
 .dv2-col-model { width: 120px; flex: none; font-size: 12px; color: var(--dash-muted); }
-.dv2-col-live { width: 150px; flex: none; font-size: 12px; }
-/* Yang tidak tayang diberi penekanan, bukan yang tayang: layar ini dibuka
-   untuk menemukan yang bermasalah, dan keadaan normal tidak boleh berteriak. */
-.dv2-col-live[data-live="tidak"] { color: var(--semantic-warning, #F59E0B); }
+/* Penekanan untuk yang tidak tayang sekarang dibawa `.dv2-chip[data-tone]`. */
+.dv2-col-live { width: 150px; flex: none; font-size: var(--t-meta); }
 .dv2-col-menu-act {
   width: 104px;
   flex: none;
@@ -1692,10 +1741,8 @@ html:has(.kasir-root), body:has(.kasir-root) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.dv2-col-nowlive { width: 132px; flex: none; font-size: 12px; }
-/* Yang menunggu diberi penekanan, bukan yang tampil: keadaan normal tidak
-   boleh berteriak, dan yang menunggu itulah yang mungkin salah setel. */
-.dv2-col-nowlive[data-live="tidak"] { color: var(--semantic-warning, #F59E0B); }
+/* Penekanan untuk yang menunggu sekarang dibawa `.dv2-chip[data-tone]`. */
+.dv2-col-nowlive { width: 132px; flex: none; font-size: var(--t-meta); }
 .dv2-col-promo-act {
   width: 140px;
   flex: none;
@@ -1797,13 +1844,13 @@ html:has(.kasir-root), body:has(.kasir-root) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* Akibat ditulis dengan warna peringatan, bukan abu: ia yang membuat baris ini
-   dikerjakan, dan kalimat abu di antara kalimat abu tidak dibaca. */
+/* Akibat ditulis dengan nada peringatan, bukan abu: ia yang membuat baris ini
+   dikerjakan, dan kalimat abu di antara kalimat abu tidak dibaca.
+   Nadanya sekarang dibawa `.dv2-chip[data-tone="warning"]` di dalamnya. */
 .dv2-col-setup-why {
   width: 300px;
   flex: none;
-  font-size: 12px;
-  color: var(--semantic-warning, #F59E0B);
+  font-size: var(--t-meta);
 }
 .dv2-col-setup-state {
   width: 300px;
@@ -1860,4 +1907,27 @@ html:has(.kasir-root), body:has(.kasir-root) {
 @keyframes dv2-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.55; }
+}
+
+/* ── Gerak dikurangi ───────────────────────────────────────────────
+   Transisi hover, fokus, dan tekan ditambahkan ke shell, baris, tab, dan
+   tombol tanpa jalan keluar — itu utang yang dibuat sesi ini, bukan
+   warisan. Kerangka muat sudah punya penjagaannya sejak awal; yang baru
+   tidak.
+
+   Ini bukan preferensi gaya. Bagi sebagian orang gerak antarmuka memicu
+   pusing dan mual, dan sistem operasinya sudah menyatakan itu — mengabaikan
+   pernyataan yang sudah dikirim adalah menolak menjawab.
+
+   Nol detik, bukan sekadar lebih pelan: `transition: none` menghapus
+   perubahannya, sementara durasi pendek tetap gerak. */
+@media (prefers-reduced-motion: reduce) {
+  .dv2-root *, .kasir-root *,
+  .dv2-root, .kasir-root {
+    transition: none !important;
+    animation: none !important;
+  }
+  /* Umpan balik tekan tetap ada, tapi lewat warna — layar sentuh tetap
+     butuh tanda "tanganmu sampai", dan itu tidak boleh ikut hilang. */
+  .dv2-btn:active { transform: none; }
 }
