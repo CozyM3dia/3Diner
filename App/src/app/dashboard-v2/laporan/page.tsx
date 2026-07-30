@@ -199,18 +199,17 @@ export default async function OwnerReportPage({ searchParams }: PageProps) {
 
 /** Satu kolom di pita angka.
  *
- *  Label di ATAS angka: angka tanpa nama belum bisa dibaca, dan mata yang
- *  turun dari judul panel bertemu namanya dulu, baru nilainya. Pemisah
- *  antar kolom adalah rule vertikal dari `.dv2-fig-cell`, bukan bingkai —
- *  tiga kartu berbingkai terbaca sebagai tiga objek yang saling berebut,
- *  satu pita bergaris terbaca sebagai satu angka dengan tiga sisi. */
+ *  Angka dulu, keterangannya di bawah — urutan dari wireframe v3 yang sudah
+ *  disetujui. Pemisah antar kolom adalah rule vertikal dari `.dv2-fig-cell`,
+ *  bukan bingkai: tiga kartu berbingkai terbaca sebagai tiga objek yang
+ *  saling berebut, satu pita bergaris terbaca sebagai satu pita berkolom. */
 function Figure({ value, label }: { value: string; label: string }) {
   return (
     <div className="dv2-fig-cell">
-      <div className="dv2-fig-label" title={label}>
+      <div className="dv2-fig">{value}</div>
+      <div className="dv2-fig-meta" title={label}>
         {label}
       </div>
-      <div className="dv2-fig">{value}</div>
     </div>
   );
 }

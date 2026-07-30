@@ -61,9 +61,11 @@ export default function RouteSkeleton({ title, columns, rows = 5, figures = 0, t
         <div className="dv2-figs" aria-hidden="true">
           {Array.from({ length: figures }).map((_, i) => (
             <div className="dv2-fig-cell" key={i}>
-              <span className="dv2-skel" style={{ width: 82 }} />
+              {/* Angka dulu, baris meta di bawah — bentuknya mengikuti pita
+                  yang akan menggantikannya, supaya tidak ada lompatan tata
+                  letak saat data datang. */}
               <span className="dv2-skel" style={{ width: 116, height: 26 }} />
-              <span className="dv2-skel" style={{ width: 96 }} />
+              <span className="dv2-skel" style={{ width: 148 }} />
             </div>
           ))}
         </div>

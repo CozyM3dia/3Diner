@@ -1196,28 +1196,19 @@ html:has(.kasir-root), body:has(.kasir-root) {
    menekan dua kali. */
 .dv2-btn:active { transform: translateY(1px); }
 .dv2-btn:disabled { color: var(--ink-4); cursor: default; transform: none; }
-/* Varian tenang — untuk aksi yang berulang di TIAP baris.
-   Aksi baris wajib selalu terlihat (hover-reveal dilarang, perangkat
-   utamanya bersentuhan), tapi selalu-terlihat bukan berarti
-   selalu-berteriak: dua puluh lima tombol berbingkai di tepi kanan
-   adalah objek visual terberat di layar, dipakai untuk aksi paling
-   tidak penting yang ada di sana.
+/* Sempat ada varian tenang tanpa bingkai di sini, dipakai untuk aksi yang
+   berulang di tiap baris. Dibatalkan.
 
-   Bingkainya dilepas, label dan target sentuh 32px-nya tidak. Bingkai
-   kembali saat hover dan fokus — di situ ia berguna, karena menyatakan
-   "yang ini yang akan tertekan". */
-.dv2-btn-quiet {
-  background: transparent;
-  border-color: transparent;
-  color: var(--ink-2);
-}
-@media (hover: hover) {
-  .dv2-btn-quiet:hover {
-    background: var(--sf-raised);
-    border-color: var(--dash-border-strong);
-    color: var(--ink-1);
-  }
-}
+   Alasan aslinya masih benar — dua puluh lima bingkai identik di tepi kanan
+   memang objek visual terberat di layar, dipakai untuk kolom yang paling
+   tidak menentukan pilihan baris. Yang salah adalah jawabannya: wireframe
+   yang disetujui menggambar `Buka` berbingkai, dan tidak satu pun dari dua
+   puluh referensi yang dibuka memakai tombol baris tanpa bingkai. Nol
+   sumber melawan satu persetujuan.
+
+   Wireframe menjawab masalah yang sama dengan cara lain: kolom aksi dibuat
+   SEMPIT dan lebarnya TETAP (`.dv2-col-act`, 64px), sehingga bingkainya
+   berhenti terbaca sebagai deretan dan mulai terbaca sebagai satu kolom. */
 .dv2-btn-solid { background: var(--orange); border-color: var(--orange); color: var(--dash-on-accent); }
 @media (hover: hover) {
   .dv2-btn-solid:hover { background: var(--orange-bright); border-color: var(--orange-bright); }
@@ -1271,13 +1262,6 @@ html:has(.kasir-root), body:has(.kasir-root) {
   padding: var(--s4);
 }
 .dv2-fig-cell + .dv2-fig-cell { border-left: 1px solid var(--dash-border); }
-.dv2-fig-label {
-  font-size: var(--t-meta);
-  color: var(--ink-3);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .dv2-fig {
   font-size: var(--t-figure);
   font-weight: var(--w-str);
@@ -1286,10 +1270,32 @@ html:has(.kasir-root), body:has(.kasir-root) {
   color: var(--ink-1);
   line-height: 1.15;
 }
-/* Angka tanpa pembanding tidak bisa ditindaklanjuti: "82 pesanan" baru
-   berarti sesuatu setelah diketahui pekan lalu 61. Pembandingnya tetap
-   abu — ia keterangan, bukan angkanya. */
-.dv2-fig-delta { font-size: var(--t-meta); color: var(--ink-3); }
+/* Angka DULU, keterangannya di bawah — urutan ini datang dari wireframe v3
+   yang sudah disetujui pemilik, bukan dari referensi.
+   Sempat dibalik jadi label-di-atas karena tiga referensi produk memakai
+   bentuk itu (Efferd, live-sales, usage-dashboard). Tiga sumber cukup untuk
+   MENGUSULKAN, tidak pernah cukup untuk membatalkan sesuatu yang sudah
+   disetujui. Urutan wewenangnya: wireframe disetujui > kontrak berangka >
+   referensi produk > penalaran sendiri.
+
+   Satu baris meta membawa label DAN pembanding sekaligus, juga mengikuti
+   wireframe: "Omzet · Rp · +11%". Angka tanpa pembanding tidak bisa
+   ditindaklanjuti — "82 pesanan" baru berarti sesuatu setelah diketahui
+   pekan lalu 61. */
+/* Baris ini BOLEH membungkus, dan itu bukan pelanggaran §2.2: larangan
+   bungkus berlaku untuk baris tabel, di mana tinggi yang berubah menggeser
+   posisi tombol antar baris. Di sel angka tidak ada tombol dan tidak ada
+   baris berikutnya yang ikut bergeser.
+
+   Wireframe menulisnya satu baris karena teksnya pendek ("Omzet · Rp ·
+   +11%"). Label kita panjang, dan dipotong dengan elipsis berarti memakan
+   justru pembandingnya — "sama seperti pekan l…". Pembanding itu satu-
+   satunya alasan angkanya bisa ditindaklanjuti. */
+.dv2-fig-meta {
+  font-size: var(--t-meta);
+  color: var(--ink-3);
+  line-height: 1.35;
+}
 /* Tampilan ketiga tiap angka: tidak-tersedia. Merender "0" saat query
    gagal adalah kegagalan yang tidak terlihat seperti kegagalan —
    pemilik menyimpulkan kafenya sepi padahal integrasinya putus. */

@@ -82,14 +82,15 @@ export default async function OwnerHomePage() {
               <span>Hari ini</span>
               <span className="dv2-ghd-note">dibanding hari yang sama pekan lalu</span>
             </div>
-            {/* Pita bergaris, bukan tiga kartu. Kartu berbingkai terbaca
-                sebagai objek yang saling berebut; rule vertikal tipis
+            {/* Pita bergaris, bukan tiga kartu berbingkai: kartu terbaca
+                sebagai objek yang saling berebut, rule vertikal tipis
                 membuat ketiganya terbaca sebagai satu pita berkolom.
 
-                Urutan di tiap kolom: label · angka · pembanding. Label
-                di ATAS angka karena angka tanpa nama belum bisa dibaca,
-                dan pembanding di bawah karena ia keterangan — bukan
-                jawabannya. */}
+                Urutan di tiap kolom mengikuti wireframe v3 yang disetujui —
+                angka dulu, lalu SATU baris meta berisi label dan
+                pembandingnya. Sempat dibalik jadi label-di-atas mengikuti
+                tiga referensi produk; dikembalikan karena referensi tidak
+                mengalahkan persetujuan. */}
             <div className="dv2-figs">
               {data.figures === null
                 ? (
@@ -100,29 +101,22 @@ export default async function OwnerHomePage() {
 
                           Alasannya ikut ditulis: "—" yang diam menyembunyikan
                           kegagalan alih-alih menyatakannya. */}
-                      <div className="dv2-fig-label">Hari ini</div>
                       <div className="dv2-fig dv2-fig-none">—</div>
-                      <div className="dv2-fig-delta">
+                      <div className="dv2-fig-meta">
                         Angka hari ini tidak bisa dibaca · {data.figuresError ?? "sebab tidak diketahui"}
                       </div>
                     </div>
                   )
-                : data.figures.map((f) => {
-                    const isRupiah = f.label.endsWith("Rp");
-                    return (
-                      <div className="dv2-fig-cell" key={f.label}>
-                        {/* Satuan hidup di label, bukan di sel — sama seperti
-                            "Rp" yang ditaruh di header kolom tabel. */}
-                        <div className="dv2-fig-label" title={f.label}>
-                          {isRupiah ? f.label.replace(" · Rp", "") : f.label}
-                        </div>
-                        <div className="dv2-fig">
-                          {isRupiah ? formatRupiah(f.value ?? 0) : (f.value ?? 0)}
-                        </div>
-                        <div className="dv2-fig-delta">{f.comparison}</div>
+                : data.figures.map((f) => (
+                    <div className="dv2-fig-cell" key={f.label}>
+                      <div className="dv2-fig">
+                        {f.label.endsWith("Rp") ? formatRupiah(f.value ?? 0) : (f.value ?? 0)}
                       </div>
-                    );
-                  })}
+                      <div className="dv2-fig-meta" title={`${f.label} · ${f.comparison}`}>
+                        {f.label} · {f.comparison}
+                      </div>
+                    </div>
+                  ))}
             </div>
           </section>
         </>
