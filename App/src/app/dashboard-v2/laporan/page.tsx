@@ -4,7 +4,9 @@ import { formatRupiah } from "@/lib/format";
 import {
   buildDailySeries,
   buildFunnel,
+  buildLedger,
   completedOrders,
+  type LedgerRow,
   describeFunnel,
   describePeak,
   getReportPage,
@@ -116,19 +118,29 @@ export default async function OwnerReportPage({ searchParams }: PageProps) {
         <>
           {mode === "penjualan" && (
             <section className="dv2-report" aria-label="Penjualan">
-              <div className="dv2-figs">
-                {/* Uang yang DITERIMA, bukan yang dipesan: pesanan belum bayar
-                    bukan omzet, dan menjumlahkannya membuat laporan selalu
-                    lebih besar dari isi laci. */}
-                <Figure value={formatRupiah(paid.reduce((s, o) => s + o.total, 0))} label={`Diterima · ${paid.length} pesanan lunas`} />
-                <Figure value={String(done.length)} label="Pesanan selesai" />
-                <Figure
-                  value={formatRupiah(paid.length ? Math.round(paid.reduce((s, o) => s + o.total, 0) / paid.length) : 0)}
-                  label="Rata-rata per pesanan lunas"
-                />
-              </div>
+              {/* Buku besar, bukan tiga kartu angka.
+                  Uang yang DITERIMA, bukan yang dipesan: pesanan belum bayar
+                  bukan omzet, dan menjumlahkannya membuat laporan selalu lebih
+                  besar dari isi laci. Lalu turun sampai bagian yang benar-benar
+                  tinggal di kafe — pajak dan service charge memang masuk ke
+                  laci, tapi keduanya terutang ke pihak lain. */}
+              <Panel
+                title="Dari yang masuk sampai yang tinggal"
+                note={
+                  paid.length
+                    ? `${days} hari terakhir · rata-rata ${formatRupiah(
+                        Math.round(paid.reduce((s, o) => s + o.total, 0) / paid.length)
+                      )} per pesanan lunas`
+                    : `${days} hari terakhir · belum ada pesanan lunas`
+                }
+              >
+                <Ledger rows={buildLedger(summarizeTax(paid))} />
+              </Panel>
 
-              <Panel title="Omzet harian" note="hanya pesanan yang sudah dibayar">
+              <Panel
+                title="Omzet harian"
+                note={`hanya pesanan yang sudah dibayar · ${done.length} pesanan selesai di periode ini`}
+              >
                 <BarSeries
                   label={`Omzet harian ${days} hari terakhir`}
                   points={revenueSeries}
@@ -199,6 +211,38 @@ export default async function OwnerReportPage({ searchParams }: PageProps) {
         </>
       )}
     </OwnerShell>
+  );
+}
+
+/** Buku besar — deret pengurangan bernama, bukan deret kartu.
+ *
+ *  Potongan ditulis dalam kurung DAN diberi nada, dua penyandian untuk satu
+ *  arti: konvensi akuntansi diambil dari `tantri/summary-report-per-shift`,
+ *  dan penyandian gandanya memenuhi §1.3 — dicetak hitam-putih, tanda kurung
+ *  tetap memberi tahu mana yang mengurangi.
+ *
+ *  Keterangan tiap baris menempel di bawah labelnya, bukan di tooltip: ambang
+ *  yang disembunyikan di balik sentuhan membuat layar tidak bisa dipindai,
+ *  dan itu jebakan yang terlihat langsung di `tantri/daftar-stok`. */
+function Ledger({ rows }: { rows: LedgerRow[] }) {
+  return (
+    <dl className="dv2-ledger">
+      {rows.map((r) => (
+        <div
+          className="dv2-ledger-row"
+          key={r.label}
+          data-total={r.total ? "true" : undefined}
+        >
+          <dt className="dv2-ledger-label">
+            {r.label}
+            {r.note ? <span className="dv2-ledger-note">{r.note}</span> : null}
+          </dt>
+          <dd className="dv2-ledger-value" data-tone={r.deduction ? "deduction" : undefined}>
+            {r.deduction ? `(${formatRupiah(r.value)})` : formatRupiah(r.value)}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

@@ -112,8 +112,14 @@ export default async function OwnerHomePage() {
                       <div className="dv2-fig">
                         {f.label.endsWith("Rp") ? formatRupiah(f.value ?? 0) : (f.value ?? 0)}
                       </div>
-                      <div className="dv2-fig-meta" title={`${f.label} · ${f.comparison}`}>
+                      {/* Nama pemenang menempel di baris meta yang sama:
+                          angka memberi ukuran, nama memberi tindakan. */}
+                      <div
+                        className="dv2-fig-meta"
+                        title={[f.label, f.comparison, f.detail].filter(Boolean).join(" · ")}
+                      >
                         {f.label} · {f.comparison}
+                        {f.detail ? ` · ${f.detail}` : ""}
                       </div>
                     </div>
                   ))}

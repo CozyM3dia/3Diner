@@ -1818,6 +1818,57 @@ html:has(.kasir-root), body:has(.kasir-root) {
   color: var(--dash-text);
 }
 
+/* ── Buku besar ────────────────────────────────────────────────────
+   Label kiri, nilai kanan, satu baris hasil dipisahkan garis. Bentuknya
+   sengaja seperti struk: pemilik kafe sudah membaca ratusan struk, dan
+   susunan yang sudah dikenal tidak perlu dipelajari.
+
+   Dua sumbu perataan, persis batas §1.4 — teks rata kiri, angka rata
+   kanan dengan `tabular-nums` supaya digitnya sejajar ke bawah dan
+   selisih antar baris bisa dilihat tanpa dihitung. */
+.dv2-ledger { margin: 0; padding: 0 var(--s4) var(--s4); }
+.dv2-ledger-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s4);
+  padding: var(--s2) 0;
+}
+.dv2-ledger-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  color: var(--ink-2);
+}
+/* Keterangan menempel di bawah labelnya, bukan di tooltip. */
+.dv2-ledger-note { font-size: var(--t-meta); color: var(--ink-3); }
+.dv2-ledger-value {
+  margin: 0;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+/* Potongan dibawa tanda kurung DAN nada — konvensi akuntansi plus warna.
+   Dicetak hitam-putih, kurungnya tetap memberi tahu mana yang mengurangi. */
+.dv2-ledger-value[data-tone="deduction"] { color: var(--semantic-warning, #F59E0B); }
+
+/* Baris hasil: satu-satunya yang memakai ukuran angka utama. Ia jawaban
+   dari seluruh panel, dan sisanya jalan menuju ke sana. */
+.dv2-ledger-row[data-total="true"] {
+  margin-top: var(--s2);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--dash-border-strong);
+}
+.dv2-ledger-row[data-total="true"] .dv2-ledger-label { color: var(--ink-1); font-weight: var(--w-str); }
+.dv2-ledger-row[data-total="true"] .dv2-ledger-value {
+  color: var(--ink-1);
+  font-size: var(--t-figure);
+  font-weight: var(--w-str);
+  letter-spacing: -0.02em;
+}
+
 .dv2-funnel { display: flex; flex-direction: column; gap: 8px; padding: 0 16px 4px; }
 .dv2-funnel-row { display: flex; align-items: center; gap: 12px; }
 .dv2-funnel-label { width: 150px; flex: none; font-size: 13px; }

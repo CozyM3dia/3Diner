@@ -155,6 +155,19 @@ export async function getSettingsPage(cafeId: string | null): Promise<SettingsPa
   const activeStaff = staff.filter((s) => s.is_active).length;
   const cashiers = staff.filter((s) => s.is_active && s.role === "cashier").length;
   const creditsLeft = Math.max(0, cafe.ai_credits_quota - cafe.ai_credits_used);
+  /* Kuota dinyatakan TIGA cara sekaligus, mengikuti `needmcp/usage-dashboard`.
+     Bukan pengulangan: "78% terpakai" menjawab "seberapa cepat saya
+     menghabiskannya", sedangkan "22 tersisa" menjawab "cukup sampai akhir
+     bulan?". Keduanya pertanyaan berbeda, dan memilih salah satu berarti
+     membuang separuh jawabannya.
+
+     Pembagi nol dijaga: kafe tanpa kuota sama sekali bukan kafe yang sudah
+     memakai 0% — ia kafe yang fiturnya belum ada, dan dua keadaan itu tidak
+     boleh terbaca sama. */
+  const creditsPct =
+    cafe.ai_credits_quota > 0
+      ? Math.round((cafe.ai_credits_used / cafe.ai_credits_quota) * 100)
+      : null;
 
   const sections: SettingsSection[] = [
     {
@@ -204,7 +217,10 @@ export async function getSettingsPage(cafeId: string | null): Promise<SettingsPa
         {
           label: "Kredit AI",
           detail: "Pembuatan model 3D dan ekstraksi menu dari foto",
-          state: `${creditsLeft} dari ${cafe.ai_credits_quota} tersisa bulan ini`,
+          state:
+            creditsPct === null
+              ? "belum ada kuota bulan ini"
+              : `${creditsPct}% terpakai · ${cafe.ai_credits_used} dari ${cafe.ai_credits_quota} · ${creditsLeft} tersisa`,
           href: "/dashboard/settings",
           moved: false,
         },
