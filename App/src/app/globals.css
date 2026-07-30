@@ -1103,6 +1103,21 @@ html:has(.kasir-root), body:has(.kasir-root) {
 }
 .dv2-nav-item:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
 
+/* Scope outlet — satu tempat tetap, tidak ikut menggulir bersama rute.
+   `flex: none` supaya ia tidak menyusut saat nav digulir di layar sempit;
+   `margin-left: auto` mendorongnya ke ujung, jauh dari rute terakhir supaya
+   tidak terbaca sebagai rute kedelapan. */
+.dv2-nav-cafe {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--s4);
+  font-size: var(--t-meta);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
 /* Satu-satunya badge berangka di seluruh aplikasi, dan satu-satunya
    pemakaian oranye di shell. Ia menjanjikan "ada N hal menunggu
    tindakanmu"; badge kedua yang tidak bisa dinolkan merusak

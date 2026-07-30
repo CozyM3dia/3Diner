@@ -19,7 +19,11 @@ export default async function OwnerSettingsPage() {
   const page = await getSettingsPage(ctx.cafe_id ?? null);
 
   return (
-    <OwnerShell title="Pengaturan" right={<span className="dv2-sub">{page.cafeName}</span>}>
+    <OwnerShell
+      title="Pengaturan"
+      note="Daftar bagian, bukan satu formulir raksasa — yang punya akibat kalau dibiarkan ada di paling atas."
+      cafe={page.cafeName}
+    >
       {page.error ? (
         <div className="dv2-state">
           <p className="dv2-state-title">Gagal memuat pengaturan</p>

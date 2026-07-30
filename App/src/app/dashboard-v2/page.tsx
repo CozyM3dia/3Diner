@@ -22,7 +22,7 @@ export default async function OwnerHomePage() {
       title="Beranda"
       note="Hal yang perlu diputuskan di luar melayani tamu, plus tiga angka hari ini."
       badges={{ "/dashboard-v2": data.tasks.length + data.hiddenTasks }}
-      right={<span className="dv2-sub">{ctx.cafe_name ?? "Kafe"}</span>}
+      cafe={ctx.cafe_name ?? "Kafe"}
     >
       {belumPernahJualan ? (
         <section className="dv2-state">

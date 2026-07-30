@@ -60,7 +60,12 @@ export default async function OwnerReportPage({ searchParams }: PageProps) {
   );
 
   return (
-    <OwnerShell title="Laporan" right={<span className="dv2-sub">{days} hari terakhir</span>}>
+    <OwnerShell
+      title="Laporan"
+      note="Hanya pesanan yang sudah dibayar yang dihitung — pesanan belum lunas bukan omzet."
+      cafe={ctx.cafe_name ?? "Kafe"}
+      right={<span className="dv2-sub">{days} hari terakhir</span>}
+    >
       <nav className="dv2-tabs" aria-label="Mode laporan">
         {REPORT_MODES.map((m) => (
           <Link

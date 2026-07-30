@@ -47,7 +47,7 @@ export default async function OwnerOrdersPage({ searchParams }: PageProps) {
     <OwnerShell
       title="Pesanan"
       note="Riwayat, bukan antrean kerja — memajukan pesanan dilakukan di Konsol Kasir."
-      right={<span className="dv2-sub">{ctx.cafe_name ?? "Kafe"}</span>}
+      cafe={ctx.cafe_name ?? "Kafe"}
     >
       <nav className="dv2-tabs" aria-label="Saringan pesanan">
         {ORDER_TABS.map((t) => (
