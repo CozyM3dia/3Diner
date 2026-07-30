@@ -1342,3 +1342,57 @@ html:has(.dash-root), body:has(.dash-root) {
 }
 
 .dv2-form-foot { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ── Tabel promo ───────────────────────────────────────────────────
+   Tiga jenis dalam satu daftar. Kolom Jenis yang membedakan, bukan
+   tiga rute yang harus diingat mana isinya apa. */
+
+.dv2-table-promo .dv2-row { min-width: 900px; }
+.dv2-col-kind {
+  width: 104px;
+  flex: none;
+  font-weight: 600;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: inherit;
+}
+.dv2-col-promo {
+  flex: 1;
+  min-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dv2-col-when {
+  width: 290px;
+  flex: none;
+  font-size: 12px;
+  color: var(--dash-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dv2-col-nowlive { width: 132px; flex: none; font-size: 12px; }
+/* Yang menunggu diberi penekanan, bukan yang tampil: keadaan normal tidak
+   boleh berteriak, dan yang menunggu itulah yang mungkin salah setel. */
+.dv2-col-nowlive[data-live="tidak"] { color: var(--semantic-warning, #F59E0B); }
+.dv2-col-promo-act {
+  width: 140px;
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: inherit;
+}
+
+.dv2-note {
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 12px;
+  color: var(--dash-muted);
+  background: var(--dash-panel);
+  border-top: 1px solid var(--dash-border);
+}
