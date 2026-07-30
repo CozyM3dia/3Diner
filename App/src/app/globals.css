@@ -1396,3 +1396,67 @@ html:has(.dash-root), body:has(.dash-root) {
   background: var(--dash-panel);
   border-top: 1px solid var(--dash-border);
 }
+
+/* ── Laporan ───────────────────────────────────────────────────────
+   Chart pertama di konsol baru. Monokrom, satu batang disorot —
+   tiga referensi berbeda sampai pada bentuk yang sama, dan alasannya
+   sama: seri berwarna membuat mata mencari arti pada hue yang tidak
+   membawa arti apa pun. */
+
+.dv2-report { display: flex; flex-direction: column; }
+
+.dv2-panel { border-bottom: 1px solid var(--dash-border); background: var(--dash-panel); }
+.dv2-panel-head { padding: 14px 16px 10px; }
+.dv2-panel-title { margin: 0; font-size: 14px; font-weight: 600; }
+/* Subjudul per panel: memberi tahu CAKUPAN angkanya tanpa tooltip. */
+.dv2-panel-note { margin: 2px 0 0; font-size: 12px; color: var(--dash-muted); }
+
+.dv2-chart { margin: 0; padding: 0 16px 16px; }
+.dv2-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 132px;
+  padding-top: 8px;
+}
+.dv2-bar {
+  flex: 1;
+  min-width: 2px;
+  background: var(--dash-raised);
+  border-radius: 2px 2px 0 0;
+}
+/* Sorotan bukan kategori: ia menjawab "mana yang paling menonjol" tanpa
+   menambah satu pun hue baru. */
+.dv2-bar[data-peak="true"] { background: var(--dash-secondary); }
+.dv2-chart-caption {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--dash-text);
+}
+
+.dv2-funnel { display: flex; flex-direction: column; gap: 8px; padding: 0 16px 4px; }
+.dv2-funnel-row { display: flex; align-items: center; gap: 12px; }
+.dv2-funnel-label { width: 150px; flex: none; font-size: 13px; }
+.dv2-funnel-bar {
+  height: 20px;
+  background: var(--dash-raised);
+  border-radius: 3px;
+  min-width: 2px;
+}
+.dv2-funnel-value {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+.dv2-period {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: var(--dash-muted);
+}
+.dv2-period[aria-current="page"] {
+  color: var(--dash-text);
+  font-weight: 600;
+  background: var(--dash-panel);
+}
