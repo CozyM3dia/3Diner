@@ -1083,7 +1083,11 @@ html:has(.kasir-root), body:has(.kasir-root) {
 .kasir-input:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
 
 /* Di layar sempit, kolom pembayaran turun ke lapis kedua lewat penyingkatan,
-   bukan lewat pembungkusan baris — tinggi 44px dipertahankan di semua lebar. */
+   bukan lewat pembungkusan baris — tinggi 44px dipertahankan di semua lebar.
+
+   ASUMSI-A2 — titik henti diturunkan ke rentang 720–768px karena 768–1023
+   diasumsikan tablet konter, perangkat kerja utama. Kalau A1 terbantah dan
+   perangkatnya ternyata HP, titik ini sia-sia tapi tidak merusak. */
 @media (max-width: 720px) {
   .kasir-pay { display: none; }
   .kasir-id { min-width: 56px; }
@@ -1331,6 +1335,12 @@ html:has(.kasir-root), body:has(.kasir-root) {
 .dv2-ghd b { color: var(--ink-1); font-weight: var(--w-str); font-variant-numeric: tabular-nums; }
 .dv2-ghd-note { margin-left: auto; text-transform: none; letter-spacing: 0; }
 
+/* ASUMSI-A1 — perangkat utama diasumsikan tablet konter 768–1024 landscape,
+   dan itu BELUM diverifikasi lapangan. Tinggi 44px, lantai teks 12px, dan
+   target sentuh 32px semuanya turunan dari asumsi itu. Kalau ternyata
+   perangkatnya HP 390px, ketiga angka ini bergeser bersamaan — ia penentu
+   tunggal terbesar di seluruh kontrak. Satu observasi 90 menit di konter
+   menjawabnya lebih baik daripada seratus referensi berikutnya. */
 .dv2-row {
   display: flex;
   align-items: center;
@@ -1710,6 +1720,10 @@ html:has(.kasir-root), body:has(.kasir-root) {
    Kalau kolom ikut melebar mengikuti isinya, posisi kolom bergeser antar baris
    — dan mata yang sedang memindai ke bawah harus mencari ulang di tiap baris,
    yang justru menghapus gunanya tabel. Hanya satu kolom yang boleh elastis. */
+/* ASUMSI-A3 — meja diperlakukan sebagai LABEL TEKS BEBAS, bukan nomor.
+   Lebar 92px dipilih untuk menampung label seperti "Bawa pulang" atau "L-5",
+   dan kolomnya tidak disortir numerik. Kalau ternyata semua kafe menomori
+   mejanya, kolom ini bisa mengecil dan mulai disortir sebagai angka. */
 .dv2-col-id { width: 92px; flex: none; font-weight: var(--w-str); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Lantai 180px. Kolom ini satu-satunya yang elastis, jadi tiap kolom
    tetap yang dilebarkan memakan jatahnya — dan pada lebar kecil ia
@@ -1889,13 +1903,22 @@ html:has(.kasir-root), body:has(.kasir-root) {
 .dv2-open:hover { text-decoration: underline; }
 .dv2-open:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
+/* Panel membentang penuh; yang dibatasi 640px adalah ISINYA.
+   Sebelumnya batas itu dipasang di panelnya, jadi latar panel berhenti
+   mendadak di tengah layar dan meninggalkan tepi vertikal keras terhadap
+   kanvas — terbaca sebagai layout yang rusak, bukan sebagai ukuran baris
+   yang dipilih. Batas panjang baris tetap ditegakkan, cuma dipindahkan ke
+   tempat yang benar. */
 .dv2-form {
   display: flex;
   flex-direction: column;
   gap: var(--s5);
   padding: var(--s5) var(--s4);
   background: var(--sf-panel);
+}
+.dv2-form > * {
   max-width: 640px;
+  width: 100%;
 }
 .dv2-field { display: flex; flex-direction: column; gap: var(--s2); border: none; padding: 0; margin: 0; }
 .dv2-field-row { flex-direction: row; align-items: flex-start; gap: var(--s3); }
