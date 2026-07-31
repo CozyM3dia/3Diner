@@ -37,7 +37,7 @@ export default function MenuCard({ menu, cafeId, slug, index }: MenuCardProps) {
           src={menu.image_url}
           alt={menu.nama_menu}
           fill
-          sizes="(max-width:768px) 50vw, 300px"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 256px"
           className="card-img object-cover"
         />
       ) : (

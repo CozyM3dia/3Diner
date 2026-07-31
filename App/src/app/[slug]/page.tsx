@@ -37,9 +37,9 @@ export default async function CafeMenuPage({ params }: PageProps) {
         <AnnouncementBanner message={announcement.message} bgColor={announcement.bg_color} type={announcement.type} />
       )}
       {/* Immersive hero — cafe identity over cover photo */}
-      <header className="relative w-full overflow-hidden grain" style={{ height: "280px" }}>
+      <header className="relative w-full overflow-hidden grain md:mx-auto md:max-w-5xl md:rounded-b-3xl" style={{ height: "280px" }}>
         {cafe.cover_url ? (
-          <Image src={cafe.cover_url} alt={cafe.nama_cafe} fill priority sizes="100vw" className="object-cover" />
+          <Image src={cafe.cover_url} alt={cafe.nama_cafe} fill priority sizes="(max-width: 1024px) 100vw, 1024px" className="object-cover" />
         ) : (
           <div className="absolute inset-0 dish-mesh" />
         )}
@@ -97,7 +97,7 @@ export default async function CafeMenuPage({ params }: PageProps) {
         </div>
       </header>
 
-      <section className="px-4 pt-5 pb-10">
+      <section className="mx-auto w-full max-w-5xl px-4 pt-5 pb-10">
         <MenuBrowser menus={menus} cafeId={cafe.id_cafe} slug={slug} />
       </section>
 

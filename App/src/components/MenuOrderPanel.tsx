@@ -112,7 +112,7 @@ export default function MenuOrderPanel({
   return (
     <>
       {optionGroups.length > 0 && isActive && (
-        <div className="px-4 pb-2 space-y-5">
+        <div className="mx-auto max-w-2xl px-4 pb-2 space-y-5">
           {optionGroups.map((group) => (
             <OptionGroupPicker
               key={group.id_option_group}

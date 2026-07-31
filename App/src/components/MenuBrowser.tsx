@@ -226,7 +226,7 @@ export default function MenuBrowser({ menus, cafeId, slug }: MenuBrowserProps) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4">
           {filtered.map((m, i) => (
             <MenuCard key={m.id_menu} menu={m} cafeId={cafeId} slug={slug} index={i} />
           ))}
@@ -236,7 +236,7 @@ export default function MenuBrowser({ menus, cafeId, slug }: MenuBrowserProps) {
       {/* Offline banner */}
       {!isOnline && (
         <div
-          className="fixed bottom-4 left-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl"
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex w-[calc(100%-2rem)] max-w-md items-center gap-3 px-4 py-3 rounded-2xl"
           style={{
             background: "rgba(2,44,96,0.92)",
             backdropFilter: "blur(16px)",

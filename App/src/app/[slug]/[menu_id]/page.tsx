@@ -52,14 +52,14 @@ export default async function MenuDetailPage({ params }: PageProps) {
       <DetailHeader cafeName={cafe.nama_cafe} slug={slug} />
 
       {/* Hero image */}
-      <div id="menu-detail-hero" className="relative w-full overflow-hidden" style={{ height: "300px" }}>
+      <div id="menu-detail-hero" className="relative w-full overflow-hidden md:mx-auto md:max-w-3xl md:rounded-b-3xl" style={{ height: "300px" }}>
         {menu.image_url ? (
           <Image
             src={menu.image_url}
             alt={menu.nama_menu}
             fill
             priority
-            sizes="100vw"
+            sizes="(max-width: 768px) 100vw, 768px"
             className="object-cover"
           />
         ) : (
@@ -76,7 +76,7 @@ export default async function MenuDetailPage({ params }: PageProps) {
 
       {/* Content card — overlaps hero */}
       <div
-        className="-mt-8 relative rounded-t-3xl px-4 pt-5 pb-4"
+        className="-mt-8 relative mx-auto max-w-2xl rounded-t-3xl px-4 pt-5 pb-4"
         style={{ background: "var(--white)" }}
       >
         {/* Category + name */}

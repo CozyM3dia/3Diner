@@ -269,7 +269,7 @@ function PaymentChoice({
     <main className="min-h-dvh" style={{ background: "var(--paper)" }}>
       <ConfirmBanner order={order} />
 
-      <div className="px-4">
+      <div className="mx-auto max-w-xl px-4">
         <div className="card flex items-center justify-between p-4 -mt-4 relative z-10">
           <span className="text-[13px]" style={{ color: "var(--navy-muted)" }}>
             {order.items.reduce((n, i) => n + i.qty, 0)} item · Total
@@ -581,7 +581,7 @@ function StatusView({
         </div>
       </header>
 
-      <div className="px-4 pt-5">
+      <div className="mx-auto max-w-xl px-4 pt-5">
         {/* Status bayar diambil apa adanya dari server. Sebelumnya layar ini bisa
             menampilkan "LUNAS" hanya karena tombol lokal ditekan. */}
         {!paid && (

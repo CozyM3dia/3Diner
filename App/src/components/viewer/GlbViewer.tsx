@@ -66,9 +66,10 @@ export default function GlbViewer({
       const w = container.clientWidth;
       const h = container.clientHeight;
 
-      // Scene
+      // Scene — tanpa background: renderer alpha membiarkan gradient shell
+      // (CSS di Viewer3DPage) terlihat, jadi model tidak mengambang di atas
+      // bidang navy datar.
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x002355);
 
       // Camera
       const camera = new THREE.PerspectiveCamera(45, w / h, 0.01, 1000);
@@ -135,8 +136,32 @@ export default function GlbViewer({
       const base = modelScale && modelScale > 0 ? modelScale : 1;
       pivot.scale.setScalar(base);
 
+      // Blob shadow — bayangan kontak murah (canvas radial gradient, tanpa
+      // shadow map) supaya model "berdiri" di permukaan, bukan mengambang.
       const maxDim = Math.max(size.x, size.y, size.z);
-      let dist = maxDim * 2.2;
+      const shadowCanvas = document.createElement("canvas");
+      shadowCanvas.width = shadowCanvas.height = 256;
+      const shadowCtx = shadowCanvas.getContext("2d")!;
+      const shadowGrad = shadowCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
+      shadowGrad.addColorStop(0, "rgba(0,10,30,0.5)");
+      shadowGrad.addColorStop(0.6, "rgba(0,10,30,0.25)");
+      shadowGrad.addColorStop(1, "rgba(0,10,30,0)");
+      shadowCtx.fillStyle = shadowGrad;
+      shadowCtx.fillRect(0, 0, 256, 256);
+      const shadow = new THREE.Mesh(
+        new THREE.CircleGeometry(0.5, 48),
+        new THREE.MeshBasicMaterial({
+          map: new THREE.CanvasTexture(shadowCanvas),
+          transparent: true,
+          depthWrite: false,
+        })
+      );
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.scale.setScalar(Math.max(size.x, size.z) * 1.35);
+      shadow.position.y = -size.y / 2 - maxDim * 0.01;
+      pivot.add(shadow);
+
+      let dist = maxDim * 1.6;
       camera.near = maxDim * 0.001;
       camera.far = maxDim * 100;
       camera.updateProjectionMatrix();
@@ -251,8 +276,13 @@ export default function GlbViewer({
       // karena itu render dipanggil ulang tepat sebelum toDataURL.
       captureRef.current = () => {
         try {
+          // Foto share memakai latar navy brand — frame live transparan akan
+          // jadi abu terang setelah dicompose di atas backdrop kertas.
+          scene.background = new THREE.Color(0x002355);
           renderer.render(scene, camera);
-          return renderer.domElement.toDataURL("image/png");
+          const dataUrl = renderer.domElement.toDataURL("image/png");
+          scene.background = null;
+          return dataUrl;
         } catch {
           return null;
         }

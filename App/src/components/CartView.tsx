@@ -93,7 +93,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
           </Link>
         </div>
       ) : (
-        <div className="px-4 pt-4">
+        <div className="mx-auto w-full max-w-xl px-4 pt-4">
           {/* Items */}
           <div className="space-y-3">
             {items.map((it) => (
