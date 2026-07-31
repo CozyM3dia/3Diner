@@ -1685,7 +1685,10 @@ html:has(.kasir-root), body:has(.kasir-root) {
 }
 .dv2-col-stock-act { width: 208px; flex: none; display: flex; gap: 6px; justify-content: flex-end; }
 
-.dv2-state-left { text-align: left; padding: 14px 16px; }
+.dv2-state-left { text-align: left; padding: var(--s3) var(--s4); }
+/* Varian kiri hidup di dalam kelompok yang sudah punya kepala sendiri; judul
+   seukuran judul halaman di situ akan bersaing dengan kepalanya. */
+.dv2-state-left .dv2-state-title { font-size: var(--t-body); }
 
 /* Kolom identitas lengket di kiri, kolom aksi lengket di kanan.
    Tanpa ini, baris jadi anonim setelah tabel digeser — orang menekan tombol
@@ -1754,10 +1757,10 @@ html:has(.kasir-root), body:has(.kasir-root) {
 .dv2-bulk {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--s3);
   flex-wrap: wrap;
-  padding: 10px 16px;
-  background: var(--dash-raised);
+  padding: var(--s3) var(--s4);
+  background: var(--sf-raised);
   border-bottom: 1px solid var(--dash-border-strong);
 }
 .dv2-bulk b { font-variant-numeric: tabular-nums; }
@@ -1782,15 +1785,15 @@ html:has(.kasir-root), body:has(.kasir-root) {
 .dv2-form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 20px 16px;
-  background: var(--dash-panel);
+  gap: var(--s5);
+  padding: var(--s5) var(--s4);
+  background: var(--sf-panel);
   max-width: 640px;
 }
-.dv2-field { display: flex; flex-direction: column; gap: 6px; border: none; padding: 0; margin: 0; }
-.dv2-field-row { flex-direction: row; align-items: flex-start; gap: 10px; }
-.dv2-field-row input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--orange); }
-.dv2-field-pair { display: flex; gap: 16px; flex-wrap: wrap; }
+.dv2-field { display: flex; flex-direction: column; gap: var(--s2); border: none; padding: 0; margin: 0; }
+.dv2-field-row { flex-direction: row; align-items: flex-start; gap: var(--s3); }
+.dv2-field-row input { margin-top: var(--s1); width: 18px; height: 18px; accent-color: var(--orange); }
+.dv2-field-pair { display: flex; gap: var(--s4); flex-wrap: wrap; }
 .dv2-field-pair .dv2-field { flex: 1; min-width: 150px; }
 
 .dv2-label { display: block; font-size: 12px; font-weight: 600; color: var(--dash-muted); }
@@ -1816,11 +1819,12 @@ html:has(.kasir-root), body:has(.kasir-root) {
 
 .dv2-summary {
   margin: 0;
-  padding: 12px 14px;
-  border-radius: 8px;
-  background: var(--dash-raised);
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-ctl);
+  background: var(--sf-raised);
   border-left: 3px solid var(--orange);
-  font-size: 14px;
+  font-size: var(--t-body);
+  color: var(--ink-1);
 }
 
 .dv2-form-foot { display: flex; justify-content: flex-end; gap: 8px; }
@@ -1870,10 +1874,10 @@ html:has(.kasir-root), body:has(.kasir-root) {
 
 .dv2-note {
   margin: 0;
-  padding: 14px 16px;
-  font-size: 12px;
-  color: var(--dash-muted);
-  background: var(--dash-panel);
+  padding: var(--s4);
+  font-size: var(--t-meta);
+  color: var(--ink-3);
+  background: var(--sf-panel);
   border-top: 1px solid var(--dash-border);
 }
 
@@ -1885,11 +1889,11 @@ html:has(.kasir-root), body:has(.kasir-root) {
 
 .dv2-report { display: flex; flex-direction: column; }
 
-.dv2-panel { border-bottom: 1px solid var(--dash-border); background: var(--dash-panel); }
-.dv2-panel-head { padding: 14px 16px 10px; }
-.dv2-panel-title { margin: 0; font-size: 14px; font-weight: 600; }
+.dv2-panel { border-bottom: 1px solid var(--dash-border); background: var(--sf-panel); }
+.dv2-panel-head { padding: var(--s4) var(--s4) var(--s3); }
+.dv2-panel-title { margin: 0; font-size: var(--t-body); font-weight: var(--w-str); color: var(--ink-1); }
 /* Subjudul per panel: memberi tahu CAKUPAN angkanya tanpa tooltip. */
-.dv2-panel-note { margin: 2px 0 0; font-size: 12px; color: var(--dash-muted); }
+.dv2-panel-note { margin: var(--s1) 0 0; font-size: var(--t-meta); color: var(--ink-3); }
 
 .dv2-chart { margin: 0; padding: 0 16px 16px; }
 .dv2-bars {
@@ -1912,9 +1916,9 @@ html:has(.kasir-root), body:has(.kasir-root) {
    menambah satu pun hue baru. */
 .dv2-chart-bar[data-peak="true"] { background: var(--dash-secondary); }
 .dv2-chart-caption {
-  margin: 10px 0 0;
-  font-size: 14px;
-  color: var(--dash-text);
+  margin: var(--s3) 0 0;
+  font-size: var(--t-body);
+  color: var(--ink-1);
 }
 
 /* ── Buku besar ────────────────────────────────────────────────────
@@ -1968,9 +1972,10 @@ html:has(.kasir-root), body:has(.kasir-root) {
   letter-spacing: -0.02em;
 }
 
-.dv2-funnel { display: flex; flex-direction: column; gap: 8px; padding: 0 16px 4px; }
-.dv2-funnel-row { display: flex; align-items: center; gap: 12px; }
-.dv2-funnel-label { width: 150px; flex: none; font-size: 13px; }
+.dv2-funnel { display: flex; flex-direction: column; gap: var(--s2); padding: 0 var(--s4) var(--s1); }
+.dv2-funnel-row { display: flex; align-items: center; gap: var(--s3); }
+/* 14px, bukan 13px — 13 tidak ada di lima langkah skala. */
+.dv2-funnel-label { width: 150px; flex: none; font-size: var(--t-body); color: var(--ink-2); }
 .dv2-funnel-bar {
   height: 20px;
   background: var(--dash-raised);
@@ -1980,7 +1985,8 @@ html:has(.kasir-root), body:has(.kasir-root) {
 .dv2-funnel-value {
   margin-left: auto;
   font-variant-numeric: tabular-nums;
-  font-size: 13px;
+  font-size: var(--t-body);
+  color: var(--ink-1);
 }
 
 .dv2-period {
@@ -2000,7 +2006,7 @@ html:has(.kasir-root), body:has(.kasir-root) {
    dan sebagian isinya merusak kalau salah, jadi yang pertama terlihat
    adalah apa yang belum lengkap. */
 
-.dv2-row-setup { min-width: 0; height: auto; min-height: 52px; padding: 10px 16px; }
+.dv2-row-setup { min-width: 0; height: auto; min-height: 52px; padding: var(--s3) var(--s4); }
 .dv2-col-setup-name {
   flex: 1;
   min-width: 0;
@@ -2036,15 +2042,15 @@ html:has(.kasir-root), body:has(.kasir-root) {
 .dv2-preview-row {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--s4);
   font-variant-numeric: tabular-nums;
-  padding: 3px 0;
+  padding: var(--s1) 0;
 }
 .dv2-preview-total {
-  font-weight: 600;
+  font-weight: var(--w-str);
   border-top: 1px solid var(--dash-border-strong);
-  margin-top: 6px;
-  padding-top: 8px;
+  margin-top: var(--s2);
+  padding-top: var(--s2);
 }
 
 /* Kerangka rute. Warnanya sengaja dekat dengan latar baris: kerangka yang
