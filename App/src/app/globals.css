@@ -689,8 +689,16 @@ html:has(.kasir-root), body:has(.kasir-root) {
      sempat lolos: tangga diverifikasi hanya terhadap panel, lalu
      dipakai juga di raised, dan kepala kolom jadi nyaris tak terbaca
      justru di baris yang menamai seluruh tabel. */
+  /* Nilai diambil dari `brand/UI_TOKENS.md` → Dashboard Dark Tokens:
+     ink-1 = Dashboard Text, ink-2 = Dashboard Secondary.
+
+     Satu penyimpangan yang disengaja: brand menetapkan Dashboard Muted
+     `#5A7898`, dan nilai itu hanya 3.86:1 terhadap panel — gagal AA untuk
+     teks. ink-3 dinaikkan ke #6E88A8 (4.9:1), perubahan sekecil mungkin
+     yang membuatnya lolos. ink-4 turunan untuk kontrol nonaktif, yang
+     memang tidak boleh terbaca sebagai sesuatu yang bisa dikerjakan. */
   --ink-1: #E9EEF6;
-  --ink-2: #9FB2C9;
+  --ink-2: #9FB6D1;
   --ink-3: #6E88A8;
   --ink-4: #4A6484;
 
@@ -708,8 +716,11 @@ html:has(.kasir-root), body:has(.kasir-root) {
      Radius batang chart (2px) dan kerangka muat (4px) tidak ikut
      tangga ini: keduanya primitif grafis, bukan kontrol maupun
      panel, dan memberi mereka 8px mengubah garis 12px jadi pil. */
+  /* Dua nilai dari tangga radius brand: `--radius-xs` 8px untuk kontrol
+     kompak, `--radius-md` 16px untuk panel dan kartu dashboard. Sempat
+     dipakai 14px di sini, angka yang tidak ada di tangga mana pun. */
   --r-ctl:   8px;
-  --r-panel: 14px;
+  --r-panel: 16px;
 
   /* ── Gerak: 3 durasi, 1 easing ──────────────────────────────────
      Batas atas kontrak. Satu easing berarti seluruh konsol punya
@@ -719,6 +730,61 @@ html:has(.kasir-root), body:has(.kasir-root) {
   --d-base: 150ms;  /* hover, fokus, warna        */
   --d-slow: 240ms;  /* masuk/keluar lapisan       */
   --e: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── Elevasi: satu bayangan, dan hanya untuk yang benar-benar mengambang
+     ────────────────────────────────────────────────────────────────────
+     Kedalaman di konsol ini dibawa tangga luminансi permukaan, bukan
+     bayangan. Bayangan yang dipakai untuk memisahkan panel dari latarnya
+     adalah kedalaman yang dipalsukan: ia menambah kabut ke seluruh layar
+     tanpa menambah satu pun tingkat yang bisa dibaca.
+
+     Yang berhak: dialog dan menu — benda yang memang menutupi benda lain,
+     dan penglihatan memang mengharapkan bayangan di sana. */
+  --shadow-float: var(--shadow-dashboard, 0 18px 48px rgba(0, 0, 0, 0.22));
+  /* Pemisahan kepala tabel lengket saat isi menggulir di bawahnya.
+     Jauh lebih tipis daripada bayangan lapisan mengambang — tugasnya cuma
+     mengatakan "ada yang lewat di bawah sini", bukan "aku melayang". */
+  --shadow-sticky: 0 1px 0 rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.28);
+
+  /* ── Cincin fokus ───────────────────────────────────────────────────
+     Dua lapis: garis pekat yang menyatakan batas persis, dan halo tipis
+     yang membuatnya terlihat sebelum mata sempat mencari. Satu lapis saja
+     hilang di atas latar gelap; dua lapis terbaca tanpa menambah tebal. */
+  --ring: 0 0 0 2px var(--orange), 0 0 0 6px rgba(253, 80, 2, 0.18);
+}
+
+/* ── Angka ────────────────────────────────────────────────────────────
+   `tabular-nums` membuat digit sejajar ke bawah sehingga selisih antar
+   baris bisa DILIHAT, bukan dihitung.
+
+   `slashed-zero` bukan kehalusan tipografi di sini: layar ini memajang
+   nomor meja dan nominal rupiah berdampingan, dan nol yang bisa tertukar
+   dengan huruf O adalah kesalahan pembacaan yang nyata di konter. */
+.dv2-root, .kasir-root {
+  font-variant-numeric: tabular-nums slashed-zero;
+
+  /* ── Huruf: Poppins, sesuai kontrak brand ────────────────────────────
+     `brand/UI_TOKENS.md` menyatakan Poppins berlaku untuk brand, DASHBOARD,
+     dan permukaan tamu — satu keluarga untuk ketiganya — dan melarang
+     memperkenalkan default baru.
+
+     Sempat diganti tumpukan huruf sistem di sini dengan alasan Poppins
+     terlalu membulat untuk tabel padat. Alasannya masih bisa didiskusikan;
+     wewenangnya tidak. Huruf adalah keputusan brand, dan konsol pemilik
+     memakai logo serta warna yang sama dengan permukaan tamu — memberinya
+     huruf berbeda memecah satu produk jadi dua yang kebetulan sewarna.
+
+     Kalau kepadatan angka nanti terbukti bermasalah, jalannya lewat
+     `font-feature-settings` dan tracking, bukan lewat mengganti keluarga. */
+  font-family: var(--font-poppins), "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Judul dirapatkan lebih jauh: makin besar ukuran, makin lebar jarak antar
+   huruf terlihat, dan judul yang renggang membaca sebagai poster bukan
+   sebagai kepala layar kerja. */
+.dv2-h1, .kasir-h1, .dv2-fig, .kasir-fig, .dv2-state-title, .kasir-state-title {
+  letter-spacing: -0.02em;
 }
 
 .kasir-root {
@@ -885,7 +951,7 @@ html:has(.kasir-root), body:has(.kasir-root) {
   border-radius: var(--r-panel);
   border: 1px solid var(--dash-border-strong);
   background: var(--sf-raised);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+  box-shadow: var(--shadow-float);
 }
 .kasir-menu-item {
   text-align: left;
@@ -960,7 +1026,12 @@ html:has(.kasir-root), body:has(.kasir-root) {
   align-items: center;
   justify-content: center;
   padding: var(--s4);
-  background: rgba(0,0,0,0.6);
+  /* Latar digelapkan DAN diburamkan. Buram di sini bukan hiasan: dialog ini
+     muncul saat pesanan dibatalkan, dan daftar di belakangnya penuh angka
+     yang masih terbaca. Membiarkannya tajam berarti mata terus menarik diri
+     ke belakang persis saat keputusan tidak boleh salah. */
+  background: rgba(3, 8, 16, 0.72);
+  backdrop-filter: blur(6px);
 }
 .kasir-dialog {
   width: 100%;
@@ -969,6 +1040,9 @@ html:has(.kasir-root), body:has(.kasir-root) {
   border-radius: var(--r-panel);
   background: var(--sf-panel);
   border: 1px solid var(--dash-border-strong);
+  /* Satu-satunya tempat bayangan diizinkan: benda ini memang menutupi benda
+     lain, dan penglihatan mengharapkan bayangan di sana. */
+  box-shadow: var(--shadow-float);
 }
 /* 20px, bukan 16px: 16 tidak ada di lima langkah skala. Dialog ini menutup
    seluruh layar saat terbuka, jadi judulnya memang judul halaman sesaat. */
@@ -1300,8 +1374,13 @@ html:has(.kasir-root), body:has(.kasir-root) {
   max-width: 100%;
   min-height: 22px;
   padding: 0 var(--s2);
-  border: 1px solid var(--dash-border-strong);
+  border: 1px solid var(--dash-border);
   border-radius: var(--r-ctl);
+  /* Isian sangat tipis di atas bingkai. Bingkai sendirian membuat chip
+     terbaca sebagai kotak kosong berisi teks; isian setipis ini membuatnya
+     terbaca sebagai satu benda utuh — tanpa menambah satu tingkat permukaan
+     baru yang harus ikut diverifikasi kontrasnya. */
+  background: rgba(255, 255, 255, 0.04);
   font-size: var(--t-meta);
   color: var(--ink-2);
   white-space: nowrap;
@@ -1314,11 +1393,13 @@ html:has(.kasir-root), body:has(.kasir-root) {
    yang menonjol. */
 .dv2-chip[data-tone="warning"] {
   color: var(--semantic-warning, #F59E0B);
-  border-color: color-mix(in srgb, var(--semantic-warning, #F59E0B) 45%, transparent);
+  border-color: color-mix(in srgb, var(--semantic-warning, #F59E0B) 40%, transparent);
+  background: color-mix(in srgb, var(--semantic-warning, #F59E0B) 10%, transparent);
 }
 .dv2-chip[data-tone="danger"] {
   color: var(--semantic-danger, #EF4444);
-  border-color: color-mix(in srgb, var(--semantic-danger, #EF4444) 50%, transparent);
+  border-color: color-mix(in srgb, var(--semantic-danger, #EF4444) 45%, transparent);
+  background: color-mix(in srgb, var(--semantic-danger, #EF4444) 12%, transparent);
   font-weight: var(--w-str);
 }
 
@@ -1357,7 +1438,17 @@ html:has(.kasir-root), body:has(.kasir-root) {
    jaringan terasa seperti ketukan yang tidak terdaftar, dan orang
    menekan dua kali. */
 .dv2-btn:active { transform: translateY(1px); }
-.dv2-btn:disabled { color: var(--ink-4); cursor: default; transform: none; }
+/* Nonaktif dinyatakan lewat teks dan bingkai yang mundur, BUKAN lewat
+   opacity: menurunkan opacity seluruh tombol ikut menurunkan kontras
+   latarnya terhadap baris, dan hasilnya kotak keruh yang tetap terlihat
+   bisa ditekan. Yang harus mundur cuma isinya. */
+.dv2-btn:disabled {
+  color: var(--ink-4);
+  border-color: var(--dash-border);
+  background: transparent;
+  cursor: default;
+  transform: none;
+}
 /* Sempat ada varian tenang tanpa bingkai di sini, dipakai untuk aksi yang
    berulang di tiap baris. Dibatalkan.
 
@@ -1375,7 +1466,17 @@ html:has(.kasir-root), body:has(.kasir-root) {
 @media (hover: hover) {
   .dv2-btn-solid:hover { background: var(--orange-bright); border-color: var(--orange-bright); }
 }
-.dv2-btn:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+/* Cincin fokus dua lapis, dipakai identik di seluruh konsol. Kontrol yang
+   fokusnya berbeda-beda memaksa pemakai keyboard mencari ulang di tiap
+   layar; satu bentuk yang sama membuatnya berhenti mencari. */
+.dv2-btn:focus-visible,
+.dv2-open:focus-visible,
+.dv2-input:focus-visible,
+.dv2-chips .dv2-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-color: var(--orange);
+}
 
 /* State kosong menempati panel, tidak diselipkan sebagai catatan kecil.
    Kalimatnya sudah benar sejak awal ("Semua pesanan sudah ditangani");
@@ -1555,6 +1656,12 @@ html:has(.kasir-root), body:has(.kasir-root) {
   position: sticky;
   top: 0;
   z-index: 3;
+  /* Pemisahan setipis mungkin, hanya cukup untuk mengatakan "ada baris yang
+     lewat di bawah sini". Tanpa ini kepala lengket dan baris pertama
+     menyatu jadi satu blok saat tabel digulir, dan kolom kehilangan
+     namanya persis ketika daftarnya jadi panjang — satu-satunya saat nama
+     kolom benar-benar dibutuhkan. */
+  box-shadow: var(--shadow-sticky);
 }
 .dv2-row-foot {
   background: var(--sf-raised);
