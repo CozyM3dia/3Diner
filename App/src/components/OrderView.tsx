@@ -32,6 +32,7 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
   const [reviewUrl, setReviewUrl] = useState<string | null>(null);
   const [view, setView] = useState<View>("loading");
   const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [qrExpiry, setQrExpiry] = useState<number | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
   const [cashLoading, setCashLoading] = useState(false);
@@ -112,13 +113,9 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
     setView("status");
   }
 
-  async function chooseQris() {
+  const chooseQris = useCallback(async () => {
     const token = resolveToken();
     if (!order || !token) return;
-    if (qrUrl) {
-      setView("qris");
-      return;
-    }
 
     setQrLoading(true);
     setQrError(null);
@@ -134,6 +131,7 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
       const url: string = data.actions?.[0]?.url ?? null;
       if (!url) throw new Error("QR URL tidak ditemukan dari Midtrans");
       setQrUrl(url);
+      setQrExpiry(parseQrisExpiry(data.expiry_time));
       await load();
       setView("qris");
     } catch (e: unknown) {
@@ -141,6 +139,23 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
     } finally {
       setQrLoading(false);
     }
+  }, [order, resolveToken, load]);
+
+  // Layar QRIS dibuka ulang (refresh / tautan dibagikan): qrUrl tidak tersimpan
+  // di perangkat, jadi ambil ulang QR yang sama — server bersifat idempoten.
+  useEffect(() => {
+    if (view !== "qris" || qrUrl || qrLoading || qrError) return;
+    const t = setTimeout(() => void chooseQris(), 0);
+    return () => clearTimeout(t);
+  }, [view, qrUrl, qrLoading, qrError, chooseQris]);
+
+  /** Buang QR lama (kedaluwarsa) lalu minta yang baru. Server membuka kunci
+   *  pesanan yang transaksi Midtrans-nya sudah mati. */
+  function regenerateQris() {
+    setQrUrl(null);
+    setQrExpiry(null);
+    setQrError(null);
+    void chooseQris();
   }
 
   if (view === "loading") {
@@ -192,8 +207,10 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
       <QrisView
         order={order}
         qrUrl={qrUrl}
+        expiry={qrExpiry}
         refreshing={refreshing}
         onRefresh={refreshNow}
+        onRegenerate={regenerateQris}
         onBack={() => setView("choose")}
       />
     );
@@ -368,16 +385,34 @@ function PaymentChoice({
 function QrisView({
   order,
   qrUrl,
+  expiry,
   refreshing,
   onRefresh,
+  onRegenerate,
   onBack,
 }: {
   order: Order;
   qrUrl: string | null;
+  expiry: number | null;
   refreshing: boolean;
   onRefresh: () => void;
+  onRegenerate: () => void;
   onBack: () => void;
 }) {
+  // Ticking ringan untuk countdown masa berlaku QR.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!expiry) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [expiry]);
+
+  const remaining = expiry !== null ? Math.max(0, expiry - now) : null;
+  const expired = remaining !== null && remaining <= 0;
+  const mmss = remaining !== null
+    ? `${Math.floor(remaining / 60000)}:${String(Math.floor((remaining % 60000) / 1000)).padStart(2, "0")}`
+    : null;
+
   return (
     <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "120px" }}>
       <style>{`
@@ -454,12 +489,12 @@ function QrisView({
                 width={240}
                 height={240}
                 unoptimized
-                className="w-full h-auto block"
+                className={`w-full h-auto block ${expired ? "opacity-30 grayscale" : ""}`}
               />
             ) : (
               <div className="w-full aspect-square skeleton rounded-lg" />
             )}
-            {qrUrl && <div className="qr-scan-line" />}
+            {qrUrl && !expired && <div className="qr-scan-line" />}
 
             {[
               ["top-0 left-0", "border-t-2 border-l-2 rounded-tl-lg"],
@@ -479,26 +514,44 @@ function QrisView({
             Scan pakai GoPay, OVO, DANA, ShopeePay, atau m-banking
           </p>
 
-          {qrUrl && <DownloadQris qrUrl={qrUrl} orderId={order.id_order} />}
+          {qrUrl && !expired && <DownloadQris qrUrl={qrUrl} orderId={order.id_order} />}
         </div>
       </div>
 
       <div className="text-center mt-5 px-4">
-        <div
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full"
-          style={{ background: "var(--orange-blush)" }}
-        >
-          <span className="dot-1 w-1.5 h-1.5 rounded-full inline-block" style={{ background: "var(--orange)" }} />
-          <span className="dot-2 w-1.5 h-1.5 rounded-full inline-block" style={{ background: "var(--orange)" }} />
-          <span className="dot-3 w-1.5 h-1.5 rounded-full inline-block" style={{ background: "var(--orange)" }} />
-          <span className="text-[13px] font-semibold ml-1" style={{ color: "var(--orange-ink)" }}>
-            Menunggu pembayaran
-          </span>
-        </div>
-        <p className="text-xs mt-2 max-w-[34ch] mx-auto" style={{ color: "var(--navy-muted)" }}>
-          Layar ini memeriksa status ke server tiap beberapa detik dan berpindah sendiri begitu
-          pembayaran masuk.
-        </p>
+        {expired ? (
+          <>
+            <div
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full"
+              style={{ background: "var(--surface)" }}
+            >
+              <span className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>
+                QR kedaluwarsa
+              </span>
+            </div>
+            <p className="text-xs mt-2 max-w-[34ch] mx-auto" style={{ color: "var(--navy-muted)" }}>
+              Kode QRIS punya masa berlaku. Buat yang baru untuk melanjutkan pembayaran.
+            </p>
+          </>
+        ) : (
+          <>
+            <div
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full"
+              style={{ background: "var(--orange-blush)" }}
+            >
+              <span className="dot-1 w-1.5 h-1.5 rounded-full inline-block" style={{ background: "var(--orange)" }} />
+              <span className="dot-2 w-1.5 h-1.5 rounded-full inline-block" style={{ background: "var(--orange)" }} />
+              <span className="dot-3 w-1.5 h-1.5 rounded-full inline-block" style={{ background: "var(--orange)" }} />
+              <span className="text-[13px] font-semibold ml-1" style={{ color: "var(--orange-ink)" }}>
+                Menunggu pembayaran{mmss ? ` · ${mmss}` : ""}
+              </span>
+            </div>
+            <p className="text-xs mt-2 max-w-[34ch] mx-auto" style={{ color: "var(--navy-muted)" }}>
+              Layar ini memeriksa status ke server tiap beberapa detik dan berpindah sendiri begitu
+              pembayaran masuk.
+            </p>
+          </>
+        )}
       </div>
 
       <div
@@ -509,15 +562,25 @@ function QrisView({
           borderTop: "1px solid var(--border)",
         }}
       >
-        <button
-          onClick={onRefresh}
-          disabled={refreshing}
-          className="press w-full h-[52px] rounded-2xl font-semibold text-[15px] max-w-xl mx-auto flex items-center justify-center gap-2 disabled:opacity-60"
-          style={{ border: "1.5px solid var(--border)", color: "var(--navy-muted)" }}
-        >
-          <RefreshCw size={16} className={refreshing ? "animate-spin" : undefined} />
-          {refreshing ? "Memeriksa…" : "Periksa Status Sekarang"}
-        </button>
+        {expired ? (
+          <button
+            onClick={onRegenerate}
+            className="btn-primary press w-full h-[52px] rounded-2xl font-semibold text-[15px] text-white max-w-xl mx-auto flex items-center justify-center gap-2"
+          >
+            <QrCode size={16} />
+            Buat QR Baru
+          </button>
+        ) : (
+          <button
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="press w-full h-[52px] rounded-2xl font-semibold text-[15px] max-w-xl mx-auto flex items-center justify-center gap-2 disabled:opacity-60"
+            style={{ border: "1.5px solid var(--border)", color: "var(--navy-muted)" }}
+          >
+            <RefreshCw size={16} className={refreshing ? "animate-spin" : undefined} />
+            {refreshing ? "Memeriksa…" : "Periksa Status Sekarang"}
+          </button>
+        )}
       </div>
     </main>
   );
@@ -818,4 +881,15 @@ function timeOf(iso: string): string {
   } catch {
     return "";
   }
+}
+
+/** Midtrans mengembalikan `expiry_time` sebagai "YYYY-MM-DD HH:mm:ss" (WIB).
+ *  Fallback ke 15 menit dari sekarang — masa berlaku default QRIS — kalau
+ *  field-nya tidak disertakan. */
+function parseQrisExpiry(raw: unknown): number {
+  if (typeof raw === "string") {
+    const t = new Date(raw.replace(" ", "T")).getTime();
+    if (!Number.isNaN(t)) return t;
+  }
+  return Date.now() + 15 * 60 * 1000;
 }

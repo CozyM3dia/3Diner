@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Camera, Check, Download, Loader2 } from "lucide-react";
 import { composeShareImage, shareFileName, shareImage } from "@/lib/capture-share";
-import { logEvent } from "@/lib/data";
 
 type Phase = "idle" | "working" | "shared" | "downloaded" | "failed";
 
@@ -25,12 +24,11 @@ export default function CaptureShareButton({
   capture,
   menuName,
   cafeName,
-  cafeId,
-  menuId,
 }: {
   capture: (() => string | null) | null;
   menuName: string;
   cafeName: string;
+  /** Disimpan untuk event "share_photo" kelak — lihat catatan di run(). */
   cafeId?: string;
   menuId?: string;
 }) {
@@ -60,11 +58,9 @@ export default function CaptureShareButton({
       `${menuName} · ${cafeName}`
     );
 
-    if (outcome !== "failed" && cafeId && menuId) {
-      // Dicatat sebagai click_order supaya masuk corong analytics yang sudah ada
-      // tanpa menambah tipe event baru ke skema.
-      logEvent({ cafe_id: cafeId, menu_id: menuId, event_type: "click_order", duration: 0 });
-    }
+    // Sengaja tidak dicatat ke Analytics_Logs: sebelumnya share di-log sebagai
+    // "click_order" yang mengotori corong order. Event "share_photo" layak
+    // ditambahkan setelah constraint event_type di database diverifikasi.
 
     setPhase(outcome === "failed" ? "failed" : outcome);
     resetSoon(setPhase);

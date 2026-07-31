@@ -34,8 +34,49 @@ export async function POST(req: Request) {
     if (orderError || !order) {
       return NextResponse.json({ error: "Pesanan tidak ditemukan" }, { status: 403 });
     }
-    if (order.payment_status !== "unpaid") {
-      return NextResponse.json({ error: "QRIS sudah dibuat" }, { status: 409 });
+    if (order.payment_status === "paid") {
+      return NextResponse.json({ error: "Pembayaran pesanan ini sudah lunas" }, { status: 409 });
+    }
+
+    const serverKey = process.env.MIDTRANS_SERVER_KEY;
+    if (!serverKey) return NextResponse.json({ error: "Pembayaran belum dikonfigurasi" }, { status: 503 });
+    const isProduction = process.env.MIDTRANS_IS_PRODUCTION === "true";
+    const baseUrl = isProduction
+      ? "https://api.midtrans.com"
+      : "https://api.sandbox.midtrans.com";
+    const authHeader = `Basic ${Buffer.from(serverKey + ":").toString("base64")}`;
+
+    if (order.payment_status === "pending") {
+      // Jangan menolak membabi buta: tanyakan keadaan sebenarnya ke Midtrans.
+      // QR yang masih hidup dikembalikan apa adanya (idempoten — ini jalur
+      // pemulihan saat pelanggan me-refresh layar QRIS dan qrUrl-nya hilang
+      // dari memori). QR yang sudah mati membuka jalan untuk membuat QR baru.
+      const statusRes = await fetch(`${baseUrl}/v2/${order.id_order}/status`, {
+        headers: { Authorization: authHeader },
+      });
+      const st = (await statusRes.json().catch(() => null)) as {
+        transaction_status?: string;
+        actions?: { url?: string }[];
+      } | null;
+      const ts = st?.transaction_status;
+
+      if (ts === "pending" && st?.actions?.[0]?.url) {
+        return NextResponse.json(st);
+      }
+      if (ts === "settlement" || ts === "capture") {
+        return NextResponse.json({ error: "Pembayaran sudah diterima" }, { status: 409 });
+      }
+      if (ts === "expire" || ts === "cancel" || ts === "deny" || ts === "failure") {
+        await supabaseAdmin
+          .from("Orders")
+          .update({ payment_status: "unpaid", payment_method: null })
+          .eq("id_order", order.id_order)
+          .eq("payment_status", "pending");
+        // Jatuh terus ke alur charge baru di bawah.
+      } else {
+        // Status tak dikenal atau query gagal — jangan buka kunci sembarangan.
+        return NextResponse.json({ error: "QRIS sudah dibuat" }, { status: 409 });
+      }
     }
 
     // Atomically claim the order before calling Midtrans — prevents concurrent
@@ -48,13 +89,6 @@ export async function POST(req: Request) {
     if (claimError) {
       return NextResponse.json({ error: "QRIS sudah dibuat" }, { status: 409 });
     }
-
-    const serverKey = process.env.MIDTRANS_SERVER_KEY;
-    if (!serverKey) return NextResponse.json({ error: "Pembayaran belum dikonfigurasi" }, { status: 503 });
-    const isProduction = process.env.MIDTRANS_IS_PRODUCTION === "true";
-    const baseUrl = isProduction
-      ? "https://api.midtrans.com"
-      : "https://api.sandbox.midtrans.com";
 
     const body = {
       payment_type: "qris",
@@ -74,7 +108,7 @@ export async function POST(req: Request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Basic ${Buffer.from(serverKey + ":").toString("base64")}`,
+        Authorization: authHeader,
       },
       body: JSON.stringify(body),
     });

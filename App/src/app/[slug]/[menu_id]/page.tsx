@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Box, Clock, Flame, Star } from "lucide-react";
-import { getCafeBySlug, getMenuById, logEvent } from "@/lib/data";
+import { getCafeBySlug, getMenuById } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
 import { effectivePrice, hasDiscount } from "@/lib/menu-availability";
 import { getMenuOptionsForCustomer } from "@/lib/menu-options";
@@ -39,8 +39,6 @@ export default async function MenuDetailPage({ params }: PageProps) {
     getMenuOptionsForCustomer(cafe.id_cafe, menu_id),
   ]);
   if (!menu) notFound();
-
-  logEvent({ cafe_id: cafe.id_cafe, menu_id: menu.id_menu, event_type: "view_3d", duration: 0 });
 
   const has3d = Boolean(menu.model_3d_url);
   const ingredientList = menu.ingredients

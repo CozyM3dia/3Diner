@@ -65,4 +65,71 @@ describe("POST /api/payment/charge", () => {
     );
     expect(denied.status).toBe(400);
   });
+
+  it("returns the existing QR when the order is pending and Midtrans still has it live", async () => {
+    single.mockResolvedValue({
+      data: { id_order: "order-1", customer_token: "token-1", total: 40_000, payment_status: "pending", items: [] },
+      error: null,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ transaction_status: "pending", actions: [{ url: "https://api.sandbox.midtrans.com/qr-existing" }] }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      )
+    );
+
+    const { POST } = await import("@/app/api/payment/charge/route");
+    const res = await POST(
+      new Request("http://localhost/api/payment/charge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: "order-1", orderToken: "token-1" }),
+      })
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.actions[0].url).toBe("https://api.sandbox.midtrans.com/qr-existing");
+    // Hanya panggil /status — tidak membuat transaksi baru.
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
+    expect(String(vi.mocked(fetch).mock.calls[0][0])).toContain("/status");
+  });
+
+  it("re-charges when the previous Midtrans transaction expired", async () => {
+    single.mockResolvedValue({
+      data: { id_order: "order-1", customer_token: "token-1", total: 40_000, payment_status: "pending", items: [] },
+      error: null,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ transaction_status: "expire" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ status_code: "201", actions: [{ url: "https://api.sandbox.midtrans.com/qr-new" }] }), {
+            status: 201,
+            headers: { "Content-Type": "application/json" },
+          })
+        )
+    );
+
+    const { POST } = await import("@/app/api/payment/charge/route");
+    const res = await POST(
+      new Request("http://localhost/api/payment/charge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: "order-1", orderToken: "token-1" }),
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(2);
+    expect(String(vi.mocked(fetch).mock.calls[1][0])).toContain("/charge");
+  });
 });

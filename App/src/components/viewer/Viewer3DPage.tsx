@@ -379,7 +379,7 @@ export default function Viewer3DPage({
         </div>
 
         <p className="text-[11px] text-center mt-2.5" style={{ color: "rgba(255,255,255,0.5)" }}>
-          Tampilan nyata ukuran asli di mejamu
+          Lihat porsinya langsung di atas mejamu
         </p>
       </div>
 
