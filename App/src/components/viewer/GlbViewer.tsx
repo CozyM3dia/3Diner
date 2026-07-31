@@ -27,6 +27,10 @@ export default function GlbViewer({
   const rendererRef = useRef<any>(null);
   const captureRef = useRef<(() => string | null) | null>(null);
   const frameRef = useRef<number>(0);
+  // Listener window (mousemove/mouseup/resize) didaftarkan di dalam init().
+  // Cleanup-nya disimpan di sini supaya effect cleanup — dan re-init lewat
+  // tombol Coba Lagi — benar-benar melepasnya, bukan menumpuknya.
+  const listenersCleanupRef = useRef<(() => void) | null>(null);
   const [progress, setProgress] = useState(0);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
@@ -43,6 +47,10 @@ export default function GlbViewer({
       rendererRef.current = null;
       containerRef.current.innerHTML = "";
     }
+    // Lepas listener dari init sebelumnya (mis. tombol Coba Lagi) supaya
+    // tidak menumpuk — handler lama memegang kamera/renderer usang.
+    listenersCleanupRef.current?.();
+    listenersCleanupRef.current = null;
 
     try {
       const THREE = await import("three");
@@ -255,7 +263,7 @@ export default function GlbViewer({
       setState("ready");
       onReady?.();
 
-      return () => {
+      listenersCleanupRef.current = () => {
         captureRef.current = null;
         onCaptureReady?.(null);
         window.removeEventListener("resize", onResize);
@@ -279,6 +287,8 @@ export default function GlbViewer({
     init();
     return () => {
       cancelAnimationFrame(frameRef.current);
+      listenersCleanupRef.current?.();
+      listenersCleanupRef.current = null;
       if (rendererRef.current) {
         try { rendererRef.current.forceContextLoss(); } catch { /* noop */ }
         rendererRef.current.dispose();

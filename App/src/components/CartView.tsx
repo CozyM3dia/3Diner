@@ -57,6 +57,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
       <header
         className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3"
         style={{
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)",
           background: "rgba(246,248,251,0.92)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",

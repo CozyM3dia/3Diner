@@ -19,7 +19,10 @@ export default function DetailHeader({ cafeName, slug }: DetailHeaderProps) {
   const circleStyle = { background: "rgba(0,35,85,0.5)", backdropFilter: "blur(6px)" };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 pt-3">
+    <header
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4"
+      style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
+    >
       <button onClick={() => router.push(`/${slug}`)} aria-label="Kembali ke menu" className={circle} style={circleStyle}>
         <ArrowLeft size={18} color="#fff" strokeWidth={2.5} />
       </button>
