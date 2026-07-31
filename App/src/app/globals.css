@@ -739,18 +739,24 @@ html:has(.kasir-root), body:has(.kasir-root) {
 .kasir-bar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--s3);
   flex-wrap: wrap;
   min-height: 44px;
-  padding: 8px 16px;
+  padding: var(--s3) var(--s4);
   background: var(--dash-sidebar);
   border-bottom: 1px solid var(--dash-border);
   position: sticky;
   top: 0;
   z-index: 5;
 }
-.kasir-h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
-.kasir-sub { font-size: 12px; color: var(--dash-muted); }
+.kasir-h1 {
+  font-size: var(--t-title);
+  font-weight: var(--w-str);
+  margin: 0;
+  letter-spacing: -0.01em;
+  color: var(--ink-1);
+}
+.kasir-sub { font-size: var(--t-meta); color: var(--ink-3); }
 .kasir-push { margin-left: auto; }
 
 .kasir-group { border-bottom: 1px solid var(--dash-border); }
@@ -758,8 +764,8 @@ html:has(.kasir-root), body:has(.kasir-root) {
 .kasir-ghd {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: var(--s2);
+  padding: var(--s2) var(--s4);
   background: var(--sf-raised);
   font-size: var(--t-meta);
   letter-spacing: 0.07em;
@@ -780,55 +786,78 @@ html:has(.kasir-root), body:has(.kasir-root) {
 .kasir-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--s3);
   height: 44px;
-  padding: 0 16px;
-  background: var(--dash-panel);
+  padding: 0 var(--s4);
+  background: var(--sf-panel);
   border-bottom: 1px solid var(--dash-border);
+  transition: background var(--d-base) var(--e);
 }
 .kasir-row:last-child { border-bottom: none; }
+@media (hover: hover) {
+  .kasir-row:hover { background: var(--sf-hover); }
+}
 
-.kasir-id { font-weight: 600; min-width: 78px; }
+/* Hierarki DI DALAM baris, sama seperti sisi owner: identitas di tingkat 1,
+   isi pesanan di tingkat 2, keterangan di tingkat 3. Tanpa ini deretan abu
+   seragam membuat mata tidak punya titik mendarat. */
+.kasir-id { font-weight: var(--w-str); min-width: 78px; color: var(--ink-1); }
 .kasir-items {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.kasir-age {
-  font-variant-numeric: tabular-nums;
-  font-size: 12px;
-  white-space: nowrap;
-  color: var(--dash-muted);
+  color: var(--ink-2);
 }
 /* Kegentingan dibawa kata DAN warna, tidak pernah warna saja — baris ini tetap
-   terbaca di layar yang silau maupun saat dicetak hitam-putih. */
+   terbaca di layar yang silau maupun saat dicetak hitam-putih.
+   Umur dibiarkan telanjang, bukan di dalam chip: ia angka yang BERJALAN, dan
+   bingkai di sekeliling angka yang berubah tiap menit menarik mata ke
+   perubahan yang tidak menuntut tindakan apa pun. Chip dipakai untuk keadaan
+   yang diam. */
+.kasir-age {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-meta);
+  white-space: nowrap;
+  color: var(--ink-3);
+}
 .kasir-age[data-level="nearing"] { color: var(--semantic-warning, #F59E0B); }
-.kasir-age[data-level="late"] { color: var(--semantic-danger, #EF4444); font-weight: 600; }
+.kasir-age[data-level="late"] { color: var(--semantic-danger, #EF4444); font-weight: var(--w-str); }
 
-.kasir-pay { font-size: 12px; color: var(--dash-muted); white-space: nowrap; }
+.kasir-pay { font-size: var(--t-meta); color: var(--ink-3); white-space: nowrap; }
 
-.kasir-actions { display: flex; gap: 6px; align-items: center; }
+.kasir-actions { display: flex; gap: var(--s2); align-items: center; }
 
 /* Aksi baris SELALU terlihat. Hover-reveal dilarang: perangkat utamanya
    bersentuhan, dan di sana hover tidak pernah terjadi. */
 .kasir-btn {
   min-height: 32px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: var(--s2) var(--s3);
+  font-size: var(--t-meta);
+  font-weight: var(--w-str);
   white-space: nowrap;
-  border-radius: 8px;
+  border-radius: var(--r-ctl);
   border: 1px solid var(--dash-border-strong);
-  background: var(--dash-raised);
-  color: var(--dash-text);
+  background: var(--sf-raised);
+  color: var(--ink-1);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--s2);
   cursor: pointer;
+  transition:
+    background var(--d-base) var(--e),
+    border-color var(--d-base) var(--e),
+    transform var(--d-fast) var(--e);
 }
-.kasir-btn:disabled { opacity: 0.6; cursor: default; }
+@media (hover: hover) {
+  .kasir-btn:hover { background: var(--sf-hover); border-color: var(--ink-4); }
+}
+/* Umpan balik tekan — di layar sentuh tidak ada hover yang mengatakan
+   "tanganmu sampai", dan ketukan yang menunggu jaringan tanpa tanda apa pun
+   ditekan dua kali. Di konsol kasir itu berarti dua pesanan maju. */
+.kasir-btn:active { transform: translateY(1px); }
+.kasir-btn:disabled { color: var(--ink-4); cursor: default; transform: none; }
 .kasir-btn:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 .kasir-btn[data-selected="true"] { border-color: var(--orange); }
 
@@ -837,58 +866,90 @@ html:has(.kasir-root), body:has(.kasir-root) {
   border-color: var(--orange);
   color: var(--dash-on-accent);
 }
+@media (hover: hover) {
+  .kasir-btn-solid:hover { background: var(--orange-bright); border-color: var(--orange-bright); }
+}
 
-.kasir-more { padding: 6px 8px; }
+.kasir-more { padding: var(--s2); }
 .kasir-more-wrap { position: relative; display: inline-flex; }
 
 .kasir-menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--s1));
   z-index: 20;
   display: flex;
   flex-direction: column;
-  min-width: 190px;
-  padding: 4px;
-  border-radius: 10px;
+  min-width: 192px;
+  padding: var(--s1);
+  border-radius: var(--r-panel);
   border: 1px solid var(--dash-border-strong);
-  background: var(--dash-raised);
+  background: var(--sf-raised);
   box-shadow: 0 12px 32px rgba(0,0,0,0.45);
 }
 .kasir-menu-item {
   text-align: left;
-  padding: 8px 10px;
-  font-size: 13px;
-  border-radius: 6px;
+  padding: var(--s2) var(--s3);
+  font-size: var(--t-body);
+  border-radius: var(--r-ctl);
   background: transparent;
   border: none;
-  color: var(--dash-text);
+  color: var(--ink-1);
   cursor: pointer;
 }
-.kasir-menu-item:hover, .kasir-menu-item:focus-visible { background: var(--dash-panel); }
+.kasir-menu-item:hover, .kasir-menu-item:focus-visible { background: var(--sf-panel); }
 
-.kasir-state { padding: 28px 16px; text-align: center; background: var(--dash-panel); }
-.kasir-state-left { text-align: left; padding: 14px 16px; }
-.kasir-state-title { font-weight: 600; margin: 0 0 4px; }
-.kasir-state-body { color: var(--dash-muted); margin: 0; }
-.kasir-state-cta { margin-top: 12px; }
+/* State kosong menempati panel dan dinyatakan sebagai HASIL. Di layar ini
+   kosong adalah kabar baik — antrean habis — dan tipografi yang kecil membuat
+   kabar baik terbaca seperti kesalahan. */
+.kasir-state {
+  padding: var(--s6) var(--s4);
+  text-align: center;
+  background: var(--sf-panel);
+}
+.kasir-state-left { text-align: left; padding: var(--s3) var(--s4); }
+.kasir-state-title {
+  font-size: var(--t-title);
+  font-weight: var(--w-str);
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--s2);
+  color: var(--ink-1);
+}
+.kasir-state-body { color: var(--ink-3); margin: 0 auto; max-width: 46ch; }
+.kasir-state-cta { margin-top: var(--s5); }
+/* Varian kiri dipakai di dalam kelompok yang sudah punya kepala sendiri —
+   di sana judul sebesar judul halaman akan bersaing dengan kepalanya. */
+.kasir-state-left .kasir-state-title { font-size: var(--t-body); }
 
-.kasir-skel { height: 12px; border-radius: 4px; background: var(--dash-raised); }
+.kasir-skel { height: 12px; border-radius: 4px; background: var(--sf-raised); }
 
+/* Angka kaki sebagai pita bergaris, sama seperti Beranda: rule vertikal tipis,
+   nol bingkai kartu. */
 .kasir-foot {
   display: flex;
-  gap: 32px;
-  align-items: flex-end;
+  gap: 0;
+  align-items: stretch;
   flex-wrap: wrap;
-  padding: 12px 16px;
+  padding: 0;
   background: var(--dash-sidebar);
   border-top: 1px solid var(--dash-border);
 }
+.kasir-fig-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: var(--s4);
+}
+.kasir-fig-cell + .kasir-fig-cell { border-left: 1px solid var(--dash-border); }
 .kasir-fig {
-  font-size: 28px;
-  font-weight: 600;
+  font-size: var(--t-figure);
+  font-weight: var(--w-str);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
+  color: var(--ink-1);
+  line-height: 1.15;
 }
 
 .kasir-overlay {
@@ -898,33 +959,52 @@ html:has(.kasir-root), body:has(.kasir-root) {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: var(--s4);
   background: rgba(0,0,0,0.6);
 }
 .kasir-dialog {
   width: 100%;
   max-width: 440px;
-  padding: 20px;
-  border-radius: 14px;
-  background: var(--dash-panel);
+  padding: var(--s5);
+  border-radius: var(--r-panel);
+  background: var(--sf-panel);
   border: 1px solid var(--dash-border-strong);
 }
-.kasir-dialog-title { font-size: 16px; font-weight: 600; margin: 0 0 8px; }
-.kasir-dialog-body { font-size: 13px; color: var(--dash-muted); margin: 0 0 16px; }
-.kasir-dialog-error { font-size: 13px; margin: 12px 0 0; color: var(--semantic-danger, #EF4444); }
-.kasir-dialog-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 20px; }
+/* 20px, bukan 16px: 16 tidak ada di lima langkah skala. Dialog ini menutup
+   seluruh layar saat terbuka, jadi judulnya memang judul halaman sesaat. */
+.kasir-dialog-title {
+  font-size: var(--t-title);
+  font-weight: var(--w-str);
+  margin: 0 0 var(--s2);
+  color: var(--ink-1);
+}
+.kasir-dialog-body { font-size: var(--t-body); color: var(--ink-3); margin: 0 0 var(--s4); }
+.kasir-dialog-error {
+  font-size: var(--t-body);
+  margin: var(--s3) 0 0;
+  color: var(--semantic-danger, #EF4444);
+}
+/* Aksi merusak dan aksi utama di ujung berlawanan — jarak fisik adalah
+   pengaman termurah yang ada. Empat referensi memakai bentuk yang sama. */
+.kasir-dialog-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-top: var(--s5);
+}
 
-.kasir-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.kasir-label { display: block; font-size: 12px; color: var(--dash-muted); margin-bottom: 6px; }
+.kasir-presets { display: flex; flex-wrap: wrap; gap: var(--s2); margin-bottom: var(--s4); }
+.kasir-label { display: block; font-size: var(--t-meta); color: var(--ink-3); margin-bottom: var(--s2); }
 .kasir-input {
   width: 100%;
   min-height: 40px;
-  padding: 8px 12px;
-  font-size: 14px;
-  border-radius: 8px;
+  padding: var(--s2) var(--s3);
+  font-size: var(--t-body);
+  border-radius: var(--r-ctl);
   border: 1px solid var(--dash-border-strong);
-  background: var(--dash-raised);
-  color: var(--dash-text);
+  background: var(--sf-raised);
+  color: var(--ink-1);
+  transition: border-color var(--d-base) var(--e);
 }
 .kasir-input:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
 
@@ -942,7 +1022,7 @@ html:has(.kasir-root), body:has(.kasir-root) {
 .kasir-open {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--s3);
   flex: 1;
   min-width: 0;
   height: 100%;
@@ -962,21 +1042,26 @@ html:has(.kasir-root), body:has(.kasir-root) {
   max-height: 90dvh;
   display: flex;
   flex-direction: column;
-  border-radius: 14px;
+  border-radius: var(--r-panel);
   overflow: hidden;
-  background: var(--dash-panel);
+  background: var(--sf-panel);
   border: 1px solid var(--dash-border-strong);
 }
 .kasir-sheet-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--s3);
   flex-wrap: wrap;
-  padding: 12px 16px;
+  padding: var(--s3) var(--s4);
   background: var(--dash-sidebar);
   border-bottom: 1px solid var(--dash-border);
 }
-.kasir-sheet-title { font-size: 20px; font-weight: 600; margin: 0; }
+.kasir-sheet-title {
+  font-size: var(--t-title);
+  font-weight: var(--w-str);
+  margin: 0;
+  color: var(--ink-1);
+}
 .kasir-sheet-body { overflow-y: auto; }
 
 /* Baris di lapis 2 BOLEH lebih tinggi dari 44px dan boleh membungkus:
@@ -984,25 +1069,39 @@ html:has(.kasir-root), body:has(.kasir-root) {
 .kasir-line {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
   border-bottom: 1px solid var(--dash-border);
 }
-.kasir-line-qty { font-variant-numeric: tabular-nums; min-width: 32px; font-weight: 600; }
-.kasir-line-name { flex: 1; min-width: 0; }
-.kasir-line-note { font-weight: 600; }
+.kasir-line-qty {
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+  font-weight: var(--w-str);
+  color: var(--ink-1);
+}
+.kasir-line-name { flex: 1; min-width: 0; color: var(--ink-2); }
+/* Catatan tamu naik ke tingkat 1: ia satu-satunya isi baris yang bisa
+   membuat pesanan dibuat ULANG kalau terlewat. */
+.kasir-line-note { font-weight: var(--w-str); color: var(--ink-1); }
 .kasir-line-price {
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
+  color: var(--ink-2);
 }
-.kasir-line-total { background: var(--dash-raised); font-weight: 600; }
+.kasir-line-total {
+  background: var(--sf-raised);
+  font-weight: var(--w-str);
+}
+.kasir-line-total .kasir-line-name,
+.kasir-line-total .kasir-line-price { color: var(--ink-1); }
 
 .kasir-note-block {
   margin: 0;
-  padding: 10px 16px;
+  padding: var(--s3) var(--s4);
   border-bottom: 1px solid var(--dash-border);
   white-space: pre-wrap;
+  color: var(--ink-1);
 }
 
 /* Aksi merusak dan aksi utama ditaruh di ujung berlawanan. Jarak fisik
@@ -1011,13 +1110,13 @@ html:has(.kasir-root), body:has(.kasir-root) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: var(--s3);
   flex-wrap: wrap;
-  padding: 12px 16px;
+  padding: var(--s3) var(--s4);
   background: var(--dash-sidebar);
   border-top: 1px solid var(--dash-border);
 }
-.kasir-sheet-foot-right { display: flex; gap: 8px; align-items: center; }
+.kasir-sheet-foot-right { display: flex; gap: var(--s2); align-items: center; }
 
 /* ══════════════════════════════════════════════════════════════════
    Konsol Owner v2 (/dashboard-v2) — dibangun berdampingan dengan
