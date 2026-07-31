@@ -35,10 +35,10 @@ export default function AnnouncementBanner({ message, bgColor, type }: Announcem
       <button
         onClick={() => setShow(false)}
         aria-label="Tutup"
-        className="shrink-0 transition-opacity hover:opacity-100"
+        className="shrink-0 -my-1.5 -mr-2 inline-flex h-10 w-10 items-center justify-center transition-opacity hover:opacity-100"
         style={{ color: soft }}
       >
-        <X size={15} />
+        <X size={16} />
       </button>
       <style>{`@keyframes ann-slide { from { transform: translateY(-100%); opacity: 0 } to { transform: translateY(0); opacity: 1 } }`}</style>
     </div>

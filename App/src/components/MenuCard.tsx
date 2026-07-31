@@ -102,17 +102,17 @@ export default function MenuCard({ menu, cafeId, slug, index }: MenuCardProps) {
 
   const bodySection = (
     <div className="p-3">
+      {/* Judul dua baris + slot deskripsi/meta dengan tinggi cadangan — kartu
+          dalam satu baris grid jadi rata, tidak bergerigi. */}
       <h3
-        className="font-display text-sm font-semibold leading-snug line-clamp-1"
+        className="font-display text-sm font-semibold leading-snug line-clamp-2 min-h-[2.5rem]"
         style={{ color: "var(--navy)" }}
       >
         {menu.nama_menu}
       </h3>
-      {menu.description_menu && (
-        <p className="text-xs mt-0.5 line-clamp-1" style={{ color: "var(--navy-muted)" }}>
-          {menu.description_menu}
-        </p>
-      )}
+      <p className="text-xs mt-0.5 line-clamp-1 min-h-[1rem]" style={{ color: "var(--navy-muted)" }}>
+        {menu.description_menu ?? ""}
+      </p>
       <div className="flex items-baseline gap-1.5 mt-1.5 min-w-0">
         <p className="text-sm font-bold" style={{ color: isActive ? "var(--orange-ink)" : "var(--navy-muted)" }}>
           {formatRupiah(price)}
@@ -125,22 +125,20 @@ export default function MenuCard({ menu, cafeId, slug, index }: MenuCardProps) {
       </div>
 
       {/* Meta row — Swiggy-style time + calories */}
-      {isActive && (menu.prep_time_minutes || menu.calories) && (
-        <div className="flex items-center gap-2.5 mt-1.5">
-          {menu.prep_time_minutes && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium" style={{ color: "var(--navy-muted)" }}>
-              <Clock size={10} strokeWidth={2.2} />
-              {menu.prep_time_minutes} mnt
-            </span>
-          )}
-          {menu.calories && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium" style={{ color: "var(--navy-muted)" }}>
-              <Flame size={10} style={{ color: "var(--orange)" }} />
-              {menu.calories} kal
-            </span>
-          )}
-        </div>
-      )}
+      <div className="mt-1.5 flex min-h-[1rem] items-center gap-2.5">
+        {isActive && menu.prep_time_minutes && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium" style={{ color: "var(--navy-muted)" }}>
+            <Clock size={10} strokeWidth={2.2} />
+            {menu.prep_time_minutes} mnt
+          </span>
+        )}
+        {isActive && menu.calories && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium" style={{ color: "var(--navy-muted)" }}>
+            <Flame size={10} style={{ color: "var(--orange)" }} />
+            {menu.calories} kal
+          </span>
+        )}
+      </div>
     </div>
   );
 

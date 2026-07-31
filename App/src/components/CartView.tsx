@@ -208,10 +208,16 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
               <span style={{ color: "var(--navy-muted)" }}>Subtotal</span>
               <span style={{ color: "var(--navy)" }}>{formatRupiah(total)}</span>
             </div>
-            <div className="flex items-center justify-between text-sm mt-2">
-              <span style={{ color: "var(--navy-muted)" }}>Pajak &amp; Layanan</span>
-              <span style={{ color: "var(--navy)" }}>{formatRupiah(0)}</span>
-            </div>
+            {/* Tarif pajak/layanan hidup di database (RPC) — menampilkan angka
+                hasil tebakan di sini berisiko beda dengan total akhir. Cukup
+                beri tahu tamu apakah harganya sudah termasuk. */}
+            {((cafe.tax_rate_pct ?? 0) > 0 || (cafe.service_charge_pct ?? 0) > 0) && (
+              <p className="text-[11px] mt-2" style={{ color: "var(--navy-muted)" }}>
+                {cafe.prices_include_tax
+                  ? "Harga sudah termasuk pajak & layanan"
+                  : "Belum termasuk pajak & layanan"}
+              </p>
+            )}
             <div className="w-full h-px my-3" style={{ background: "var(--border)" }} />
             <div className="flex items-center justify-between">
               <span className="font-bold" style={{ color: "var(--navy)" }}>Total</span>

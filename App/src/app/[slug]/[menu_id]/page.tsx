@@ -104,7 +104,7 @@ export default async function MenuDetailPage({ params }: PageProps) {
               <p className="text-base line-through" style={{ color: "var(--navy-muted)" }}>
                 {formatRupiah(menu.harga_menu)}
               </p>
-              <span className="text-xs font-bold px-1.5 py-0.5 rounded-md text-white" style={{ background: "var(--orange)" }}>
+              <span className="text-xs font-bold px-1.5 py-0.5 rounded-md text-white" style={{ background: "var(--orange-ink)" }}>
                 -{menu.discount_pct}%
               </span>
             </>

@@ -15,7 +15,7 @@ export default function DetailHeader({ cafeName, slug }: DetailHeaderProps) {
   const { count } = useCart();
 
   const circle =
-    "press w-9 h-9 rounded-full inline-flex items-center justify-center shrink-0";
+    "press w-11 h-11 rounded-full inline-flex items-center justify-center shrink-0";
   const circleStyle = { background: "rgba(0,35,85,0.5)", backdropFilter: "blur(6px)" };
 
   return (

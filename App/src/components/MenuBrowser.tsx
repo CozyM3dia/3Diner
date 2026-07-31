@@ -50,6 +50,15 @@ export default function MenuBrowser({ menus, cafeId, slug }: MenuBrowserProps) {
 
   const isFiltering = Boolean(q.trim()) || cat !== ALL || only3d;
 
+  // Item promo sudah tampil di rail "Promo Hari Ini" — jangan ulangi di grid
+  // tepat di bawahnya. Saat memfilter, rail hilang dan grid menampilkan semua
+  // yang cocok (termasuk item promo).
+  const dealIds = useMemo(() => new Set(deals.map((d) => d.id_menu)), [deals]);
+  const gridItems = useMemo(
+    () => (!isFiltering && deals.length > 0 ? filtered.filter((m) => !dealIds.has(m.id_menu)) : filtered),
+    [filtered, deals.length, dealIds, isFiltering]
+  );
+
   return (
     <>
       {/* Sticky toolbar: search + 3D toggle + category chips */}
@@ -115,7 +124,7 @@ export default function MenuBrowser({ menus, cafeId, slug }: MenuBrowserProps) {
                   key={c}
                   onClick={() => setCat(c)}
                   aria-pressed={active}
-                  className="chip shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wide"
+                  className="chip shrink-0 inline-flex min-h-[40px] items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wide"
                   style={
                     active
                       ? { background: "var(--navy)", color: "#fff" }
@@ -203,13 +212,13 @@ export default function MenuBrowser({ menus, cafeId, slug }: MenuBrowserProps) {
       <div className="h-4" />
 
       {/* Section label for main grid */}
-      {filtered.length > 0 && (
+      {gridItems.length > 0 && (
         <div className="flex items-center justify-between mb-2.5">
           <h2 className="font-display text-[15px] font-bold" style={{ color: "var(--navy)" }}>
             {cat === ALL ? "Semua Hidangan" : cat}
           </h2>
           <span className="text-xs tabular-nums" style={{ color: "var(--navy-muted)" }}>
-            {filtered.length} menu
+            {gridItems.length} menu
           </span>
         </div>
       )}
@@ -227,7 +236,7 @@ export default function MenuBrowser({ menus, cafeId, slug }: MenuBrowserProps) {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4">
-          {filtered.map((m, i) => (
+          {gridItems.map((m, i) => (
             <MenuCard key={m.id_menu} menu={m} cafeId={cafeId} slug={slug} index={i} />
           ))}
         </div>
