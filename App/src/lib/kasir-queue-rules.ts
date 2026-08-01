@@ -18,6 +18,17 @@ export const AGE_LABEL: Record<AgeLevel, string> = {
   late: "Terlambat",
 };
 
+/** ASUMSI-A5 — jam buka kafe TIDAK tersimpan di database, jadi jam SLA di sini
+ *  berjalan dua puluh empat jam penuh.
+ *
+ *  Akibatnya nyata dan belum ditangani: pesanan yang masuk sebelum tutup akan
+ *  terus menua semalaman, dan pagi berikutnya kasir membuka layar yang penuh
+ *  label "Terlambat" untuk hal yang tidak seorang pun bisa kerjakan jam tiga
+ *  pagi. Kontrak §3 menyebutnya sebagai cara tercepat membuat pemilik mematikan
+ *  notifikasi.
+ *
+ *  Kalau kolom jam buka ditambahkan, yang berubah cuma sumber `now` dan
+ *  pengurang jam tutup — tingkat, label, dan urutannya tetap. */
 export function ageLevel(minutes: number): AgeLevel {
   if (minutes >= LATE_MINUTES) return "late";
   if (minutes >= NEARING_MINUTES) return "nearing";

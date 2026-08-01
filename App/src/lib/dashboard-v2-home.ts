@@ -24,6 +24,48 @@ export interface HomeFigure {
   label: string;
   /** Pembanding wajib: angka tanpa pembanding tidak bisa dinilai. */
   comparison: string;
+  /** Nama pemenang di balik angkanya, kalau ada.
+   *
+   *  "Menu dibuka tamu · 64" tidak menyuruh siapa pun mengerjakan apa pun —
+   *  ia lolos sebagai fakta dan gagal uji tindakan §0.3. "Paling sering
+   *  dibuka: Es Kopi Susu" langsung memberi tahu apa yang layak difoto
+   *  ulang, dinaikkan harganya, atau dijadikan promo.
+   *
+   *  Bentuknya diambil dari Admin Console 4D Smart Menu, yang menampilkan
+   *  MOST VIEWED / MOST ORDERED / HIGHEST REVENUE sebagai tiga nama hidangan,
+   *  bukan tiga angka. */
+  detail?: string;
+}
+
+/** Menu yang paling sering dibuka hari ini, disebut namanya.
+ *
+ *  Mengembalikan `undefined` — bukan kalimat pengganti — kalau tidak ada
+ *  pemenang yang jelas. Tiga keadaan sengaja diam: belum ada yang membuka
+ *  menu, log tidak menyimpan `menu_id`, dan menu yang menang sudah dihapus
+ *  dari katalog. Menyebut "tidak diketahui" di tiga keadaan itu menambah
+ *  baris yang tidak membawa tindakan apa pun.
+ *
+ *  Seri terikat juga diam: kalau dua menu sama-sama teratas, tidak ada satu
+ *  nama yang benar untuk disebut, dan memilih salah satunya diam-diam
+ *  membuat pemilik mengejar menu yang keliru. */
+export function topOpenedMenu(
+  rows: { menu_id: string | null }[] | null,
+  menus: { id_menu: string; nama_menu: string }[] | null
+): string | undefined {
+  if (!rows?.length || !menus?.length) return undefined;
+
+  const tally = new Map<string, number>();
+  for (const r of rows) {
+    if (!r.menu_id) continue;
+    tally.set(r.menu_id, (tally.get(r.menu_id) ?? 0) + 1);
+  }
+  if (tally.size === 0) return undefined;
+
+  const ranked = [...tally.entries()].sort((a, b) => b[1] - a[1]);
+  if (ranked.length > 1 && ranked[0][1] === ranked[1][1]) return undefined;
+
+  const name = menus.find((m) => m.id_menu === ranked[0][0])?.nama_menu;
+  return name ? `paling sering dibuka: ${name}` : undefined;
 }
 
 export interface HomeData {
@@ -98,8 +140,18 @@ export async function getHomeData(cafeId: string | null): Promise<HomeData> {
   const weekAgoStart = daysAgoIso(7);
   const weekAgoEnd = daysAgoIso(6);
 
-  const [inventory, recipes, menus, cafe, ordersToday, ordersLastWeek, viewsToday, viewsLastWeek, everOrder] =
-    await Promise.all([
+  const [
+    inventory,
+    recipes,
+    menus,
+    cafe,
+    ordersToday,
+    ordersLastWeek,
+    viewsToday,
+    viewsLastWeek,
+    everOrder,
+    viewRowsToday,
+  ] = await Promise.all([
       supabaseAdmin
         .from("Inventory_Items")
         .select("id_inventory_item,name,current_qty,minimum_qty")
@@ -135,6 +187,18 @@ export async function getHomeData(cafeId: string | null): Promise<HomeData> {
         .from("Orders")
         .select("id_order", { count: "exact", head: true })
         .eq("cafe_id", cafeId),
+      /* Baris mentah hari ini, hanya kolom menu_id, untuk menemukan menu yang
+         paling sering dibuka. Dibatasi supaya kafe ramai tidak menarik puluhan
+         ribu baris cuma untuk menyebut satu nama; kalau batas ini terlampaui,
+         pemenangnya tetap benar untuk potongan yang terbaca dan angka
+         hitungannya tetap datang dari query `count` yang terpisah. */
+      supabaseAdmin
+        .from("Analytics_Logs")
+        .select("menu_id")
+        .eq("cafe_id", cafeId)
+        .eq("event_type", "click_menu")
+        .gte("created_at", todayStart)
+        .limit(2000),
     ]);
 
   const tasks: HomeTask[] = [];
@@ -232,6 +296,7 @@ export async function getHomeData(cafeId: string | null): Promise<HomeData> {
           value: viewsToday.count ?? 0,
           label: "Menu dibuka tamu",
           comparison: describeDelta(viewsToday.count ?? 0, viewsLastWeek.count ?? 0, "count"),
+          detail: topOpenedMenu(viewRowsToday.data, menus.data),
         },
       ];
 

@@ -20,8 +20,9 @@ export default async function OwnerHomePage() {
   return (
     <OwnerShell
       title="Beranda"
+      note="Hal yang perlu diputuskan di luar melayani tamu, plus tiga angka hari ini."
       badges={{ "/dashboard-v2": data.tasks.length + data.hiddenTasks }}
-      right={<span className="dv2-sub">{ctx.cafe_name ?? "Kafe"}</span>}
+      cafe={ctx.cafe_name ?? "Kafe"}
     >
       {belumPernahJualan ? (
         <section className="dv2-state">
@@ -81,10 +82,19 @@ export default async function OwnerHomePage() {
               <span>Hari ini</span>
               <span className="dv2-ghd-note">dibanding hari yang sama pekan lalu</span>
             </div>
+            {/* Pita bergaris, bukan tiga kartu berbingkai: kartu terbaca
+                sebagai objek yang saling berebut, rule vertikal tipis
+                membuat ketiganya terbaca sebagai satu pita berkolom.
+
+                Urutan di tiap kolom mengikuti wireframe v3 yang disetujui —
+                angka dulu, lalu SATU baris meta berisi label dan
+                pembandingnya. Sempat dibalik jadi label-di-atas mengikuti
+                tiga referensi produk; dikembalikan karena referensi tidak
+                mengalahkan persetujuan. */}
             <div className="dv2-figs">
               {data.figures === null
                 ? (
-                    <div>
+                    <div className="dv2-fig-cell">
                       {/* "—", bukan "0". Nol saat query gagal tidak terlihat
                           seperti kegagalan, dan pemilik menyimpulkan kafenya
                           sepi padahal datanya tidak sampai.
@@ -92,18 +102,24 @@ export default async function OwnerHomePage() {
                           Alasannya ikut ditulis: "—" yang diam menyembunyikan
                           kegagalan alih-alih menyatakannya. */}
                       <div className="dv2-fig dv2-fig-none">—</div>
-                      <div className="dv2-sub">
+                      <div className="dv2-fig-meta">
                         Angka hari ini tidak bisa dibaca · {data.figuresError ?? "sebab tidak diketahui"}
                       </div>
                     </div>
                   )
                 : data.figures.map((f) => (
-                    <div key={f.label}>
+                    <div className="dv2-fig-cell" key={f.label}>
                       <div className="dv2-fig">
                         {f.label.endsWith("Rp") ? formatRupiah(f.value ?? 0) : (f.value ?? 0)}
                       </div>
-                      <div className="dv2-sub">
+                      {/* Nama pemenang menempel di baris meta yang sama:
+                          angka memberi ukuran, nama memberi tindakan. */}
+                      <div
+                        className="dv2-fig-meta"
+                        title={[f.label, f.comparison, f.detail].filter(Boolean).join(" · ")}
+                      >
                         {f.label} · {f.comparison}
+                        {f.detail ? ` · ${f.detail}` : ""}
                       </div>
                     </div>
                   ))}

@@ -20,6 +20,28 @@ export const OWNER_ROUTES = [
 
 interface Props {
   title: string;
+  /** Satu kalimat yang menyatakan CAKUPAN layar ini.
+   *
+   *  Angka tanpa cakupan tidak bisa dipercaya: "Rp 4,2 jt" bisa berarti
+   *  hari ini atau bulan ini, kotor atau bersih, dan pembacanya tidak
+   *  punya cara tahu. Sebelumnya keterangan cakupan hanya ada di rute
+   *  Laporan, jadi enam rute lain memajang angka yang harus ditebak
+   *  artinya — dan tebakan yang salah lebih buruk daripada tidak tahu. */
+  note?: string;
+  /** Nama kafe — scope outlet, dirender sekali di shell.
+   *
+   *  Sebelumnya tiap rute menaruhnya sendiri di slot `right`, bersaing
+   *  dengan hitungan dan timestamp yang ingin duduk di sana juga. Nama kafe
+   *  sama di ketujuh layar, jadi mengulangnya tujuh kali membawa nol
+   *  informasi per layar sambil memakan tempat yang seharusnya diisi
+   *  cakupan yang benar-benar berubah.
+   *
+   *  Tiga referensi menaruh scope outlet di kepala shell dan
+   *  mempertahankannya di semua layar: `tantri/daftar-stok`,
+   *  `tantri/dashboard-backoffice`, `tantri/daftar-pemasok`. K6 juga minta
+   *  tempatnya disediakan sejak awal supaya menambah cabang nanti bukan
+   *  refactor yang menyentuh tiap query. */
+  cafe?: string;
   /** Satu-satunya tempat badge berangka di seluruh aplikasi.
    *
    *  Badge angka adalah janji "ada N hal yang menunggu tindakanmu". Satu badge
@@ -30,7 +52,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-export default function OwnerShell({ title, badges, right, children }: Props) {
+export default function OwnerShell({ title, note, cafe, badges, right, children }: Props) {
   const pathname = usePathname();
 
   const isActive = (href: string, exact?: boolean) =>
@@ -40,6 +62,7 @@ export default function OwnerShell({ title, badges, right, children }: Props) {
     <div className="dv2-root">
       <header className="dv2-bar">
         <h1 className="dv2-h1">{title}</h1>
+        {note ? <span className="dv2-bar-note">{note}</span> : null}
         {right ? <span className="dv2-bar-right">{right}</span> : null}
       </header>
 
@@ -58,6 +81,7 @@ export default function OwnerShell({ title, badges, right, children }: Props) {
             </Link>
           );
         })}
+        {cafe ? <span className="dv2-nav-cafe">{cafe}</span> : null}
       </nav>
 
       <main className="dv2-main">{children}</main>

@@ -54,7 +54,11 @@ export default function OrdersTable({ rows, footer, cafeName, cafeAddress, taxCo
                 minute: "2-digit",
               })}
             </span>
-            <span className="dv2-col-status">{STATUS_TEXT[o.status]}</span>
+            <span className="dv2-col-status">
+              {/* Chip, bukan teks abu: keadaan adalah nilai dari himpunan
+                  tertutup, dan bingkainya yang mengatakan itu. */}
+              <span className="dv2-chip">{STATUS_TEXT[o.status]}</span>
+            </span>
             <span className="dv2-col-pay">{describePayment(o.payment_method, o.payment_status)}</span>
             <span className="dv2-col-total">{formatRupiah(o.total)}</span>
             <span className="dv2-col-act">

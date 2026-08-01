@@ -211,6 +211,62 @@ export function summarizeTax(
  *  dibangun dari cuplikan. */
 export const EVENT_ROW_CAP = 5000;
 
+export interface LedgerRow {
+  label: string;
+  value: number;
+  /** Dirender dalam kurung dengan nada peringatan. */
+  deduction?: boolean;
+  /** Baris hasil — dipisahkan garis dan ditebalkan. */
+  total?: boolean;
+  /** Keterangan yang menempel di bawah labelnya. */
+  note?: string;
+}
+
+/** Buku besar: dari uang yang masuk sampai bagian yang benar-benar tinggal.
+ *
+ *  Pemilik kafe tidak bertanya "berapa omzet". Ia bertanya **"berapa yang jadi
+ *  milik saya"** — dan jarak antara keduanya seluruhnya terdiri dari potongan
+ *  yang punya nama. Menampilkan angka teratas lalu berhenti berarti menjawab
+ *  pertanyaan yang tidak ditanyakan.
+ *
+ *  Bentuknya diambil dari `tantri/laporan-penjualan`, satu-satunya referensi
+ *  yang menyusun laporan sebagai deret pengurangan alih-alih deret kartu.
+ *
+ *  Tiap baris dihitung dari POTRET tarif tiap pesanan, bukan dari tarif kafe
+ *  hari ini — itu sebabnya potretnya ada, dan itu yang membuat laporan bulan
+ *  lalu tetap menjumlah ke angka yang sama walau tarifnya berubah minggu ini.
+ *
+ *  `subtotal` sudah sama dengan `total − pajak − service` menurut potretnya,
+ *  jadi baris hasil bukan hitungan baru: ia angka yang sama dibaca dari sisi
+ *  yang berbeda, dan itu sebabnya ia tidak bisa selisih. */
+export function buildLedger(s: TaxSummary): LedgerRow[] {
+  return [
+    {
+      label: "Uang masuk dari pesanan lunas",
+      value: s.total,
+      note: `${s.orders} pesanan`,
+    },
+    {
+      label: "Pajak",
+      value: s.tax,
+      deduction: true,
+      // Nol yang dipilih harus bisa dibedakan dari nol yang kebetulan.
+      note:
+        s.untaxedOrders > 0
+          ? `${s.untaxedOrders} pesanan tercatat tanpa tarif sama sekali`
+          : undefined,
+    },
+    { label: "Service charge", value: s.service, deduction: true },
+    {
+      label: "Estimasi bagian kafe",
+      value: s.subtotal,
+      total: true,
+      // Tanpa kalimat ini, angka terakhir terbaca sebagai laba. Ia bukan.
+      note: "sebelum bahan, sewa, gaji, dan biaya lain di luar sistem ini",
+    },
+  ];
+}
+
 export interface ReportRow {
   created_at: string;
   total: number;

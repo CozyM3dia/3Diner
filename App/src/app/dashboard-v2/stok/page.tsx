@@ -48,6 +48,8 @@ export default async function OwnerStockPage({ searchParams }: PageProps) {
   return (
     <OwnerShell
       title="Stok"
+      note="Bahan yang paling mendesak naik ke atas — urutannya rasio sisa terhadap ambang, bukan abjad."
+      cafe={ctx.cafe_name ?? "Kafe"}
       right={
         <span className="dv2-sub">
           {page.rows.length} bahan

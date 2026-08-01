@@ -44,7 +44,11 @@ export default async function OwnerOrdersPage({ searchParams }: PageProps) {
   const belumPernah = page.counts.semua === 0 && !page.error;
 
   return (
-    <OwnerShell title="Pesanan" right={<span className="dv2-sub">{ctx.cafe_name ?? "Kafe"}</span>}>
+    <OwnerShell
+      title="Pesanan"
+      note="Riwayat, bukan antrean kerja — memajukan pesanan dilakukan di Konsol Kasir."
+      cafe={ctx.cafe_name ?? "Kafe"}
+    >
       <nav className="dv2-tabs" aria-label="Saringan pesanan">
         {ORDER_TABS.map((t) => (
           <Link

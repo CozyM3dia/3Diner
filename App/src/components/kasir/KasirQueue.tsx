@@ -345,14 +345,17 @@ export default function KasirQueue({
         </>
       )}
 
+      {/* Pita bergaris, bukan dua blok melayang — bentuk yang sama dengan
+          Beranda, supaya satu bentuk dipelajari sekali dan berlaku di kedua
+          konsol. Angka dulu, keterangannya di bawah. */}
       <div className="kasir-foot">
-        <div>
+        <div className="kasir-fig-cell">
           <div className="kasir-fig">{totals ? totals.completedCount : "—"}</div>
           <div className="kasir-sub">
             {totals ? "Pesanan selesai hari ini" : `Tidak tersedia sejak ${lastSync.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`}
           </div>
         </div>
-        <div>
+        <div className="kasir-fig-cell">
           <div className="kasir-fig">{totals ? formatRupiah(totals.receivedAmount) : "—"}</div>
           <div className="kasir-sub">
             {totals

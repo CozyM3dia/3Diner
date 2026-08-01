@@ -41,6 +41,8 @@ export default async function OwnerMenuPage({ searchParams }: PageProps) {
   return (
     <OwnerShell
       title="Menu"
+      note="Urutan di layar ini adalah urutan yang tamu lihat — ia data, bukan preferensi tampilan."
+      cafe={ctx.cafe_name ?? "Kafe"}
       right={
         <span className="dv2-sub">
           {page.counts.semua} item · {page.categories} kategori

@@ -139,12 +139,20 @@ export default function MenuTableV2({ rows, footer }: Props) {
               {r.harga_menu.toLocaleString("id-ID")}
               {r.discount_pct ? <span className="dv2-sub"> · −{r.discount_pct}%</span> : null}
             </span>
-            <span className="dv2-col-model">{MODEL_STATE_LABEL[modelState(r)]}</span>
+            <span className="dv2-col-model">
+              <span className="dv2-chip">{MODEL_STATE_LABEL[modelState(r)]}</span>
+            </span>
             {/* Keadaan tayang menyebut SEBABNYA. "Nonaktif" saja tidak memberi
                 tahu kenapa tamu tidak melihatnya, dan itu justru pertanyaan
-                yang membawa pemilik ke layar ini. */}
-            <span className="dv2-col-live" data-live={r.liveNow ? "ya" : "tidak"}>
-              {liveState(r)}
+                yang membawa pemilik ke layar ini.
+
+                Nada hanya dipasang pada yang TIDAK tayang: layar ini dibuka
+                untuk menemukan yang bermasalah, dan keadaan normal tidak
+                boleh berteriak. */}
+            <span className="dv2-col-live">
+              <span className="dv2-chip" data-tone={r.liveNow ? undefined : "warning"}>
+                {liveState(r)}
+              </span>
             </span>
             <span className="dv2-col-menu-act">
               <button

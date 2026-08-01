@@ -19,7 +19,11 @@ export default async function OwnerSettingsPage() {
   const page = await getSettingsPage(ctx.cafe_id ?? null);
 
   return (
-    <OwnerShell title="Pengaturan" right={<span className="dv2-sub">{page.cafeName}</span>}>
+    <OwnerShell
+      title="Pengaturan"
+      note="Daftar bagian, bukan satu formulir raksasa — yang punya akibat kalau dibiarkan ada di paling atas."
+      cafe={page.cafeName}
+    >
       {page.error ? (
         <div className="dv2-state">
           <p className="dv2-state-title">Gagal memuat pengaturan</p>
@@ -38,14 +42,23 @@ export default async function OwnerSettingsPage() {
                 </span>
                 <span className="dv2-ghd-note">yang punya akibat kalau dibiarkan</span>
               </div>
-              {page.tasks.map((t) => (
+              {page.tasks.map((t, i) => (
                 <div className="dv2-row dv2-row-setup" key={t.id}>
                   <span className="dv2-col-setup-name">{t.label}</span>
                   {/* Akibatnya yang membuat orang mengerjakannya. Daftar
                       pengaturan kosong tanpa akibat tidak pernah disentuh. */}
-                  <span className="dv2-col-setup-why">{t.consequence}</span>
+                  <span className="dv2-col-setup-why">
+                    <span className="dv2-chip" data-tone="warning">
+                      {t.consequence}
+                    </span>
+                  </span>
                   <span className="dv2-col-setup-act">
-                    <Link className="dv2-btn dv2-btn-solid" href={t.href}>
+                    {/* HANYA baris pertama yang solid. Daftar ini sudah urut
+                        menurut kegentingan, jadi yang teratas adalah aksi
+                        primer layar ini — dan dua tombol terisi berarti tidak
+                        ada yang primer. Sisanya tetap terlihat dan tetap bisa
+                        ditekan; yang dilepas cuma penekanannya. */}
+                    <Link className={i === 0 ? "dv2-btn dv2-btn-solid" : "dv2-btn"} href={t.href}>
                       {t.actionLabel}
                     </Link>
                   </span>
@@ -77,7 +90,9 @@ export default async function OwnerSettingsPage() {
                     {row.label}
                     <span className="dv2-sub"> · {row.detail}</span>
                   </span>
-                  <span className="dv2-col-setup-state">{row.state}</span>
+                  <span className="dv2-col-setup-state">
+                    <span className="dv2-chip">{row.state}</span>
+                  </span>
                   <span className="dv2-col-setup-act">
                     <Link className="dv2-btn" href={row.href}>
                       {/* Rute yang belum pindah dikatakan apa adanya, bukan

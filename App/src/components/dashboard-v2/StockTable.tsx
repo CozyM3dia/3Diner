@@ -68,9 +68,16 @@ export default function StockTable({ rows, footer }: Props) {
               </span>
               <span className="dv2-col-num">{qtyLabel(r.current_qty)}</span>
               <span className="dv2-col-num">{qtyLabel(r.minimum_qty)}</span>
-              {/* Keadaan dibawa kata, bukan warna saja. */}
-              <span className="dv2-col-level" data-level={level}>
-                {STOCK_LEVEL_LABEL[level]}
+              {/* Keadaan dibawa kata, bukan warna saja — dan chip memberi kata
+                  itu sebuah batas, sehingga terbaca sebagai nilai dari
+                  himpunan tertutup, bukan sebagai keterangan lewat. */}
+              <span className="dv2-col-level">
+                <span
+                  className="dv2-chip"
+                  data-tone={level === "habis" ? "danger" : level === "menipis" ? "warning" : undefined}
+                >
+                  {STOCK_LEVEL_LABEL[level]}
+                </span>
               </span>
               {/* "Sisa 0,4 kg" tidak memberi tahu apa pun sampai kita tahu
                   berapa menu yang ikut mati karenanya. */}
