@@ -56,7 +56,9 @@ describe("inventory dashboard actions", () => {
         return {
           select: () => ({
             eq: () => ({
-              single: vi.fn().mockResolvedValue({ data: { id_cafe: "cafe-1" } }),
+              limit: () => ({
+                maybeSingle: vi.fn().mockResolvedValue({ data: { id_cafe: "cafe-1" } }),
+              }),
             }),
           }),
         };
@@ -90,7 +92,7 @@ describe("inventory dashboard actions", () => {
       if (table === "Cafes") {
         return {
           select: () => ({
-            eq: () => ({ single: vi.fn().mockResolvedValue({ data: { id_cafe: "cafe-1" } }) }),
+            eq: () => ({ limit: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { id_cafe: "cafe-1" } }) }) }),
           }),
         };
       }
@@ -120,7 +122,7 @@ describe("inventory dashboard actions", () => {
       if (table === "Cafes") {
         return {
           select: () => ({
-            eq: () => ({ single: vi.fn().mockResolvedValue({ data: { id_cafe: "cafe-1" } }) }),
+            eq: () => ({ limit: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { id_cafe: "cafe-1" } }) }) }),
           }),
         };
       }
@@ -152,7 +154,7 @@ describe("inventory dashboard actions", () => {
       if (table === "Cafes") {
         return {
           select: () => ({
-            eq: () => ({ single: vi.fn().mockResolvedValue({ data: { id_cafe: "cafe-1" } }) }),
+            eq: () => ({ limit: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { id_cafe: "cafe-1" } }) }) }),
           }),
         };
       }
@@ -191,7 +193,7 @@ describe("inventory dashboard actions", () => {
       if (table === "Cafes") {
         return {
           select: () => ({
-            eq: () => ({ single: vi.fn().mockResolvedValue({ data: { id_cafe: "cafe-1" } }) }),
+            eq: () => ({ limit: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { id_cafe: "cafe-1" } }) }) }),
           }),
         };
       }
@@ -304,7 +306,7 @@ describe("inventory dashboard actions", () => {
       if (table === "Cafes") {
         return {
           select: () => ({
-            eq: () => ({ single: vi.fn().mockResolvedValue({ data: { id_cafe: "cafe-1" } }) }),
+            eq: () => ({ limit: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { id_cafe: "cafe-1" } }) }) }),
           }),
         };
       }

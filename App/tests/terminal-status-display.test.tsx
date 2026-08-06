@@ -15,7 +15,8 @@ const src = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 const ORDERS_CLIENT = src("../src/components/dashboard/OrdersClient.tsx");
 const EXPORT_REPORT = src("../src/components/dashboard/ExportReport.tsx");
 const REVENUE_PAGE = src("../src/app/dashboard/revenue/page.tsx");
-const ANALYTICS = src("../src/lib/analytics.ts");
+// Agregasi status kini di Postgres (revenue_analytics), bukan di analytics.ts.
+const RPC_MIGRATION = src("../supabase/migrations/20260807120002_analytics_aggregation.sql");
 
 afterEach(() => cleanup());
 
@@ -59,9 +60,10 @@ describe("pemetaan status di dashboard lama", () => {
   });
 
   it("menghitung status terminal, bukan membuangnya diam-diam", () => {
-    // `if (st in statusCounts)` membuang status yang tidak dikenal tanpa error,
-    // jadi donut akan berkurang tanpa ada yang menyadarinya.
-    expect(ANALYTICS).toContain("completed: 0, cancelled: 0");
+    // Agregasi status dipindah ke Postgres (revenue_analytics): `group by status`
+    // tanpa filter menjamin completed/cancelled ikut dijumlahkan, bukan dibuang.
+    expect(RPC_MIGRATION).toContain("group by status");
+    expect(RPC_MIGRATION).toContain("'status_counts'");
     expect(REVENUE_PAGE).toContain("statusCounts.completed");
     expect(REVENUE_PAGE).toContain("statusCounts.cancelled");
   });
