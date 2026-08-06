@@ -351,7 +351,7 @@ export default function Viewer3DPage({
       >
         {state === "ready" && (
           <p className="flex items-center justify-center gap-1.5 text-xs mb-3" style={{ color: "rgba(255,255,255,0.7)" }}>
-            <Move3d size={14} /> Putar dengan jari, cubit untuk perbesar
+            <Move3d size={14} /> Putar dengan jari, cubit untuk perbesar, ketuk 2× untuk reset
           </p>
         )}
 

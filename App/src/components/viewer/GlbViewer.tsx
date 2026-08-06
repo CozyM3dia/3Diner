@@ -167,9 +167,13 @@ export default function GlbViewer({
       camera.updateProjectionMatrix();
 
       // Spherical coords for manual rotation
+      const initialDist = dist;
       let theta = 0;       // horizontal angle
       let phi = 1.1;       // vertical angle (radians from top)
       let autoRotating = true;
+      let idleTimer: number | undefined;
+      let dragMoved = false;
+      let lastTapAt = 0;
 
       const updateCamera = () => {
         camera.position.set(
@@ -181,6 +185,20 @@ export default function GlbViewer({
       };
       updateCamera();
 
+      const resetView = () => {
+        theta = 0;
+        phi = 1.1;
+        dist = initialDist;
+        autoRotating = true;
+        updateCamera();
+      };
+
+      // Rotasi otomatis hidup lagi setelah tamu berhenti memutar beberapa detik.
+      const scheduleAutoRotate = () => {
+        window.clearTimeout(idleTimer);
+        idleTimer = window.setTimeout(() => { autoRotating = true; }, 4000);
+      };
+
       // Drag handler (mouse + touch)
       let dragging = false;
       let lastX = 0;
@@ -188,7 +206,9 @@ export default function GlbViewer({
 
       const onDragStart = (x: number, y: number) => {
         dragging = true;
+        dragMoved = false;
         autoRotating = false;
+        window.clearTimeout(idleTimer);
         lastX = x;
         lastY = y;
       };
@@ -196,6 +216,7 @@ export default function GlbViewer({
         if (!dragging) return;
         const dx = x - lastX;
         const dy = y - lastY;
+        if (Math.abs(dx) + Math.abs(dy) > 2) dragMoved = true;
         lastX = x;
         lastY = y;
         theta -= dx * 0.012;
@@ -203,7 +224,10 @@ export default function GlbViewer({
         phi = Math.max(0.15, Math.min(Math.PI - 0.15, phi));
         updateCamera();
       };
-      const onDragEnd = () => { dragging = false; };
+      const onDragEnd = () => {
+        dragging = false;
+        scheduleAutoRotate();
+      };
 
       // Mouse
       const onMouseDown = (e: MouseEvent) => onDragStart(e.clientX, e.clientY);
@@ -223,6 +247,7 @@ export default function GlbViewer({
           onDragStart(e.touches[0].clientX, e.touches[0].clientY);
         } else if (e.touches.length === 2) {
           dragging = false;
+          lastTapAt = 0; // cubit bukan ketukan ganda
           pinchDist0 = getPinchDist(e.touches);
           distAtPinch = dist;
         }
@@ -238,11 +263,24 @@ export default function GlbViewer({
         }
       };
       const onTouchEnd = (e: TouchEvent) => {
-        if (e.touches.length === 0) onDragEnd();
+        if (e.touches.length === 0) {
+          // Ketukan ganda tanpa geser = kembalikan sudut pandang awal.
+          if (!dragMoved) {
+            const now = performance.now();
+            if (now - lastTapAt < 300) {
+              resetView();
+              lastTapAt = 0;
+            } else {
+              lastTapAt = now;
+            }
+          }
+          onDragEnd();
+        }
         if (e.touches.length < 2) pinchDist0 = 0;
       };
 
       renderer.domElement.addEventListener("mousedown", onMouseDown);
+      renderer.domElement.addEventListener("dblclick", resetView);
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
       renderer.domElement.addEventListener("touchstart", onTouchStart, { passive: false });
@@ -296,8 +334,10 @@ export default function GlbViewer({
       listenersCleanupRef.current = () => {
         captureRef.current = null;
         onCaptureReady?.(null);
+        window.clearTimeout(idleTimer);
         window.removeEventListener("resize", onResize);
         renderer.domElement.removeEventListener("mousedown", onMouseDown);
+        renderer.domElement.removeEventListener("dblclick", resetView);
         window.removeEventListener("mousemove", onMouseMove);
         window.removeEventListener("mouseup", onMouseUp);
         renderer.domElement.removeEventListener("touchstart", onTouchStart);

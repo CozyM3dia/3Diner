@@ -66,7 +66,7 @@ export default function MenuCard({ menu, cafeId, slug, index }: MenuCardProps) {
               textTransform: "uppercase",
             }}
           >
-            Stok Habis
+            Tidak Tersedia
           </span>
         </div>
       )}

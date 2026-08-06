@@ -611,7 +611,10 @@ function StatusView({
 
   const steps = [
     { key: "received", label: "Pesanan Diterima", sub: timeOf(order.created_at) },
-    { key: "preparing", label: "Sedang Disiapkan", sub: "Estimasi 10–15 menit" },
+    // Tanpa estimasi menit karangan — prep_time hidup per menu dan tidak
+    // dikembalikan RPC pesanan; angka pasti yang salah lebih buruk daripada
+    // tidak ada angka.
+    { key: "preparing", label: "Sedang Disiapkan", sub: "" },
     { key: "ready", label: "Siap Diantar", sub: ready ? "Silakan dinikmati" : "" },
   ];
 

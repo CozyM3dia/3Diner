@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, SearchX, WifiOff, Box, BadgePercent } from "lucide-react";
+import { Search, SearchX, WifiOff, Box, BadgePercent, X } from "lucide-react";
 import MenuCard from "./MenuCard";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { formatRupiah } from "@/lib/format";
@@ -78,9 +78,19 @@ export default function MenuBrowser({ menus, cafeId, slug }: MenuBrowserProps) {
               onChange={(e) => setQ(e.target.value)}
               placeholder="Cari hidangan..."
               aria-label="Cari hidangan"
-              className="w-full h-12 pl-11 pr-4 rounded-full text-sm bg-transparent outline-none"
+              className={`w-full h-12 pl-11 rounded-full text-sm bg-transparent outline-none ${q ? "pr-11" : "pr-4"}`}
               style={{ color: "var(--navy)" }}
             />
+            {q && (
+              <button
+                onClick={() => setQ("")}
+                aria-label="Hapus pencarian"
+                className="press absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-full"
+                style={{ background: "var(--surface)", color: "var(--navy-muted)" }}
+              >
+                <X size={15} />
+              </button>
+            )}
           </div>
 
           {/* 3D-only filter — Swiggy VEG-toggle style */}
@@ -256,7 +266,7 @@ export default function MenuBrowser({ menus, cafeId, slug }: MenuBrowserProps) {
         >
           <WifiOff size={16} style={{ color: "#FD5002", flexShrink: 0 }} strokeWidth={2} />
           <p className="text-sm font-medium text-white leading-snug">
-            Anda sedang offline. Menampilkan menu dari memori lokal.
+            Anda sedang offline. Menu yang tampil mungkin sudah tidak terbarui.
           </p>
         </div>
       )}

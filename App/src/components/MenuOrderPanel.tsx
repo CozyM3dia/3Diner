@@ -24,7 +24,7 @@ export default function MenuOrderPanel({
   slug: string;
   optionGroups: MenuOptionGroup[];
 }) {
-  const { items, add, setQty } = useCart();
+  const { items, count, total, add, setQty } = useCart();
   const isActive = menu.is_active !== false;
   const basePrice = effectivePrice(menu);
 
@@ -136,7 +136,7 @@ export default function MenuOrderPanel({
               }}
             >
               <ShoppingBag size={16} strokeWidth={1.5} />
-              <span className="font-semibold text-sm">Stok Habis</span>
+              <span className="font-semibold text-sm">Tidak Tersedia</span>
             </div>
           </div>
         </div>
@@ -191,9 +191,11 @@ export default function MenuOrderPanel({
                   href={`/${slug}/keranjang`}
                   className="btn-primary press flex-1 min-w-0 inline-flex items-center justify-between gap-2 h-[52px] px-4 rounded-2xl text-white"
                 >
-                  <span className="font-semibold text-sm whitespace-nowrap">Pesanan</span>
+                  <span className="font-semibold text-sm whitespace-nowrap">
+                    Pesanan{count > qty ? ` (${count})` : ""}
+                  </span>
                   <span className="font-bold text-sm whitespace-nowrap tabular-nums">
-                    {formatRupiah(unitPrice * qty)}
+                    {formatRupiah(total)}
                   </span>
                 </Link>
               </>
