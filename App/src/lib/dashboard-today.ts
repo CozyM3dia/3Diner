@@ -30,23 +30,19 @@ export async function getTodayOps(slug: string | null): Promise<TodayOps> {
   const cafeId = cafe?.id_cafe;
   if (!cafeId) return EMPTY;
 
-  const [todayResult, activeResult] = await Promise.all([
-    supabaseAdmin
-      .from("Orders")
-      .select("total")
-      .eq("cafe_id", cafeId)
-      .gte("created_at", startOfTodayWIB()),
-    supabaseAdmin
-      .from("Orders")
-      .select("id_order", { count: "exact", head: true })
-      .eq("cafe_id", cafeId)
-      .in("status", ["received", "preparing"]),
-  ]);
+  // Agregat omzet & status hari ini dihitung di Postgres (today_orders_summary),
+  // bukan dengan menarik semua baris Orders hari ini ke Node.
+  const { data, error } = await supabaseAdmin.rpc("today_orders_summary", {
+    p_cafe_id: cafeId,
+    p_today_start: startOfTodayWIB(),
+  });
+  if (error) return EMPTY;
 
-  const rows = (todayResult.data ?? []) as { total: number }[];
+  const a = (data ?? {}) as Record<string, unknown>;
+  const num = (v: unknown): number => Number(v) || 0;
   return {
-    revenueToday: rows.reduce((sum, r) => sum + (r.total ?? 0), 0),
-    ordersToday: rows.length,
-    activeOrders: activeResult.count ?? 0,
+    revenueToday: num(a.total_revenue),
+    ordersToday: num(a.orders_today),
+    activeOrders: num(a.active_orders),
   };
 }

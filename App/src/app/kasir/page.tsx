@@ -21,18 +21,16 @@ export default async function KasirPage() {
 
   const since = startOfTodayWib();
 
-  const [openResult, todayResult, cafeResult] = await Promise.all([
+  const [openResult, todaySummary, cafeResult] = await Promise.all([
     supabaseAdmin
       .from("Orders")
       .select("id_order,table_number,items,total,status,payment_method,payment_status,created_at,notes,subtotal,tax_pct,tax_amount,service_pct,service_amount,prices_include_tax")
       .eq("cafe_id", cafeId)
       .in("status", ["received", "preparing", "ready"])
       .order("created_at", { ascending: true }),
-    supabaseAdmin
-      .from("Orders")
-      .select("total,status,payment_method,payment_status")
-      .eq("cafe_id", cafeId)
-      .gte("created_at", since),
+    // Angka "hari ini" di-agregasi di Postgres (today_orders_summary), bukan
+    // dengan menarik semua baris Orders hari ini ke Node untuk dijumlahkan.
+    supabaseAdmin.rpc("today_orders_summary", { p_cafe_id: cafeId, p_today_start: since }),
     supabaseAdmin
       .from("Cafes")
       .select("alamat_cafe,tax_configured_at")
@@ -48,14 +46,14 @@ export default async function KasirPage() {
    *  kafenya sepi padahal datanya tidak sampai. Itu sebabnya `null` di sini
    *  dibedakan dari nol yang benar. */
   let totals: KasirTotals | null = null;
-  if (!todayResult.error) {
-    const rows = todayResult.data ?? [];
-    const paid = rows.filter((r) => r.payment_status === "paid");
+  if (!todaySummary.error) {
+    const a = (todaySummary.data ?? {}) as Record<string, unknown>;
+    const num = (v: unknown): number => Number(v) || 0;
     totals = {
-      completedCount: rows.filter((r) => r.status === "completed").length,
-      receivedAmount: paid.reduce((s, r) => s + (r.total ?? 0), 0),
-      cashAmount: paid.filter((r) => r.payment_method === "cash").reduce((s, r) => s + (r.total ?? 0), 0),
-      qrisAmount: paid.filter((r) => r.payment_method === "qris").reduce((s, r) => s + (r.total ?? 0), 0),
+      completedCount: num(a.completed_count),
+      receivedAmount: num(a.received_amount),
+      cashAmount: num(a.cash_amount),
+      qrisAmount: num(a.qris_amount),
     };
   }
 
