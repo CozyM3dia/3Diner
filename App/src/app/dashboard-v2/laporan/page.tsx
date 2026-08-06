@@ -4,18 +4,15 @@ import { formatRupiah } from "@/lib/format";
 import {
   buildDailySeries,
   buildFunnel,
-  completedOrders,
   describeFunnel,
   describePeak,
   getReportPage,
   MODE_LABEL,
-  paidOrders,
   parseMode,
   parsePeriod,
   PERIODS,
   REPORT_MODES,
-  summarizeTax,
-  tallyMenus,
+  type TaxSummary,
 } from "@/lib/dashboard-v2-reports";
 import OwnerShell from "@/components/dashboard-v2/OwnerShell";
 import BarSeries from "@/components/dashboard-v2/BarSeries";
@@ -45,19 +42,25 @@ export default async function OwnerReportPage({ searchParams }: PageProps) {
 
   const hrefFor = (m: string, d: number = days) => `/dashboard-v2/laporan?mode=${m}&hari=${d}`;
 
-  const paid = paidOrders(page.orders);
-  const done = completedOrders(page.orders);
-
   // Deret dihitung sekali, dipakai untuk grafik DAN untuk kalimatnya — kalau
   // dihitung dua kali, keduanya bisa menyimpulkan puncak yang berbeda.
+  // RPC sudah mengembalikan deret per hari (WIB); buildDailySeries mengisi hari
+  // kosong supaya bentuk grafik tidak memadatkan waktu.
   const revenueSeries = buildDailySeries(
-    paid.map((o) => ({ created_at: o.created_at, value: o.total })),
+    page.dailyRevenue.map((d) => ({ created_at: d.day + "T12:00:00+07:00", value: d.value })),
     days
   );
   const openSeries = buildDailySeries(
     page.openTimestamps.map((t) => ({ created_at: t, value: 1 })),
     days
   );
+
+  // Menu teratas dari agregat RPC (urutan sudah menurun omzet); share dihitung
+  // terhadap total omzet seluruh item, konsisten dengan perilaku tallyMenus.
+  const tally = (() => {
+    const total = page.perItem.reduce((s, m) => s + m.revenue, 0);
+    return page.perItem.slice(0, 5).map((m) => ({ ...m, share: total > 0 ? m.revenue / total : 0 }));
+  })();
 
   return (
     <OwnerShell title="Laporan" right={<span className="dv2-sub">{days} hari terakhir</span>}>
@@ -95,7 +98,7 @@ export default async function OwnerReportPage({ searchParams }: PageProps) {
             Coba lagi
           </Link>
         </div>
-      ) : page.orders.length === 0 && page.events.open === 0 ? (
+      ) : !page.hasOrders && page.events.open === 0 ? (
         <div className="dv2-state">
           <p className="dv2-state-title">Belum ada aktivitas di {days} hari terakhir</p>
           {/* Dinyatakan sebagai keadaan, bukan sebagai kegagalan — dan menawarkan
@@ -115,10 +118,10 @@ export default async function OwnerReportPage({ searchParams }: PageProps) {
                 {/* Uang yang DITERIMA, bukan yang dipesan: pesanan belum bayar
                     bukan omzet, dan menjumlahkannya membuat laporan selalu
                     lebih besar dari isi laci. */}
-                <Figure value={formatRupiah(paid.reduce((s, o) => s + o.total, 0))} label={`Diterima · ${paid.length} pesanan lunas`} />
-                <Figure value={String(done.length)} label="Pesanan selesai" />
+                <Figure value={formatRupiah(page.paidRevenue)} label={`Diterima · ${page.paidCount} pesanan lunas`} />
+                <Figure value={String(page.completedCount)} label="Pesanan selesai" />
                 <Figure
-                  value={formatRupiah(paid.length ? Math.round(paid.reduce((s, o) => s + o.total, 0) / paid.length) : 0)}
+                  value={formatRupiah(page.paidCount ? Math.round(page.paidRevenue / page.paidCount) : 0)}
                   label="Rata-rata per pesanan lunas"
                 />
               </div>
@@ -177,7 +180,7 @@ export default async function OwnerReportPage({ searchParams }: PageProps) {
                     <span className="dv2-col-price">Rp</span>
                     <span className="dv2-col-num">% omzet</span>
                   </div>
-                  {tallyMenus(page.orders).map((m) => (
+                  {tally.map((m) => (
                     <div className="dv2-row" role="row" key={m.name}>
                       <span className="dv2-col-menu">{m.name}</span>
                       <span className="dv2-col-num">{m.qty}</span>
@@ -190,7 +193,7 @@ export default async function OwnerReportPage({ searchParams }: PageProps) {
             </section>
           )}
 
-          {mode === "pajak" && <TaxPanel orders={page.orders} />}
+          {mode === "pajak" && <TaxPanel tax={page.tax} />}
         </>
       )}
     </OwnerShell>
@@ -230,8 +233,8 @@ function Panel({
   );
 }
 
-function TaxPanel({ orders }: { orders: Parameters<typeof summarizeTax>[0] }) {
-  const t = summarizeTax(orders);
+function TaxPanel({ tax }: { tax: TaxSummary }) {
+  const t = tax;
   return (
     <section className="dv2-report" aria-label="Pajak">
       <div className="dv2-figs">

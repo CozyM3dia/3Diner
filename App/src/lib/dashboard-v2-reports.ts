@@ -211,26 +211,20 @@ export function summarizeTax(
  *  dibangun dari cuplikan. */
 export const EVENT_ROW_CAP = 5000;
 
-export interface ReportRow {
-  created_at: string;
-  total: number;
-  status: string;
-  payment_status: string;
-  payment_method: string | null;
-  items: OrderItem[];
-  subtotal?: number;
-  service_amount?: number;
-  tax_amount?: number;
-  tax_pct?: number;
-}
-
 export interface ReportPage {
-  orders: ReportRow[];
+  /** Uang yang DITERIMA (pesanan lunas) dan jumlahnya. */
+  paidRevenue: number;
+  paidCount: number;
+  completedCount: number;
+  hasOrders: boolean;
+  /** Ringkasan pajak dari potret tiap pesanan. */
+  tax: TaxSummary;
+  /** Deret omzet harian (WIB), hanya hari yang punya data — pemanggil mengisi hari kosong. */
+  dailyRevenue: { day: string; value: number }[];
+  /** Kontribusi per menu (harga dari baris pesanan), urut menurun omzet. */
+  perItem: { name: string; qty: number; revenue: number }[];
   events: { open: number; view3d: number; order: number };
-  /** Waktu tiap kali menu dibuka, untuk deret harian.
-   *
-   *  Dibatasi supaya kafe ramai tidak menarik puluhan ribu baris hanya untuk
-   *  menggambar tiga puluh batang. */
+  /** Waktu tiap kali menu dibuka, untuk deret harian. */
   openTimestamps: string[];
   error: string | null;
 }
@@ -241,7 +235,13 @@ export async function getReportPage(
   now = new Date()
 ): Promise<ReportPage> {
   const empty: ReportPage = {
-    orders: [],
+    paidRevenue: 0,
+    paidCount: 0,
+    completedCount: 0,
+    hasOrders: false,
+    tax: { subtotal: 0, service: 0, tax: 0, total: 0, untaxedOrders: 0, orders: 0 },
+    dailyRevenue: [],
+    perItem: [],
     events: { open: 0, view3d: 0, order: 0 },
     openTimestamps: [],
     error: null,
@@ -260,14 +260,11 @@ export async function getReportPage(
       .eq("event_type", type)
       .gte("created_at", since);
 
+  // Agregasi omzet, pajak, tally menu, dan deret harian dihitung di Postgres
+  // (report_analytics) — tidak lagi menarik semua baris Orders (termasuk items)
+  // ke Node. Cacah & waktu buka menu tetap dari Analytics_Logs.
   const [ordersResult, open, view3d, order, openRows] = await Promise.all([
-    supabaseAdmin
-      .from("Orders")
-      .select(
-        "created_at,total,status,payment_status,payment_method,items,subtotal,service_amount,tax_amount,tax_pct"
-      )
-      .eq("cafe_id", cafeId)
-      .gte("created_at", since),
+    supabaseAdmin.rpc("report_analytics", { p_cafe_id: cafeId, p_start: since, p_end: null }),
     countEvents("click_menu"),
     countEvents("view_3d"),
     countEvents("click_order"),
@@ -283,8 +280,33 @@ export async function getReportPage(
 
   if (ordersResult.error) return { ...empty, error: ordersResult.error.message };
 
+  const agg = (ordersResult.data ?? {}) as Record<string, unknown>;
+  const num = (v: unknown): number => Number(v) || 0;
+  const asArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+  const taxRaw = (agg.tax && typeof agg.tax === "object" ? agg.tax : {}) as Record<string, unknown>;
+  const orderCount = num(agg.order_count);
+
   return {
-    orders: (ordersResult.data ?? []) as ReportRow[],
+    paidRevenue: num(agg.paid_revenue),
+    paidCount: num(agg.paid_count),
+    completedCount: num(agg.completed_count),
+    hasOrders: orderCount > 0,
+    tax: {
+      subtotal: num(taxRaw.subtotal),
+      service: num(taxRaw.service),
+      tax: num(taxRaw.tax),
+      total: num(taxRaw.total),
+      untaxedOrders: num(taxRaw.untaxed_orders),
+      orders: orderCount,
+    },
+    dailyRevenue: asArray(agg.daily_revenue).map((d) => {
+      const r = d as Record<string, unknown>;
+      return { day: r.day as string, value: num(r.value) };
+    }),
+    perItem: asArray(agg.per_item).map((p) => {
+      const r = p as Record<string, unknown>;
+      return { name: r.name as string, qty: num(r.qty), revenue: num(r.revenue) };
+    }),
     events: {
       open: open.count ?? 0,
       view3d: view3d.count ?? 0,
@@ -293,16 +315,4 @@ export async function getReportPage(
     openTimestamps: (openRows.data ?? []).map((r) => r.created_at as string),
     error: null,
   };
-}
-
-/** Uang yang benar-benar diterima, bukan yang dipesan.
- *
- *  Pesanan yang belum dibayar bukan omzet. Menjumlahkannya membuat laporan
- *  selalu lebih besar dari isi laci, dan selisihnya tidak pernah bisa dijelaskan. */
-export function paidOrders(orders: ReportRow[]): ReportRow[] {
-  return orders.filter((o) => o.payment_status === "paid");
-}
-
-export function completedOrders(orders: ReportRow[]): ReportRow[] {
-  return orders.filter((o) => o.status === "completed");
 }
