@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getCafeBySlug, getMenuById, logEvent } from "@/lib/data";
+import { getCafeBySlug, getMenuById } from "@/lib/data";
 import Viewer3DPage from "@/components/viewer/Viewer3DPage";
+import Viewer3DAnalytics from "@/components/viewer/Viewer3DAnalytics";
 
 interface PageProps {
   params: Promise<{ slug: string; menu_id: string }>;
@@ -25,22 +26,21 @@ export default async function Model3DPage({ params }: PageProps) {
   const menu = await getMenuById(cafe.id_cafe, menu_id);
   if (!menu) notFound();
 
-  // Dicatat di sini, bukan di halaman detail: "view_3d" berarti tamu benar-benar
-  // membuka model 3D, bukan sekadar membaca detail hidangan.
-  logEvent({ cafe_id: cafe.id_cafe, menu_id: menu.id_menu, event_type: "view_3d", duration: 0 });
-
   const backUrl = `/${slug}/${menu_id}`;
 
   return (
-    <Viewer3DPage
-      url={menu.model_3d_url}
-      usdzUrl={menu.usdz_url ?? undefined}
-      menuName={menu.nama_menu}
-      backUrl={backUrl}
-      modelScale={menu.model_scale ?? 1.0}
-      cafeName={cafe.nama_cafe}
-      cafeId={cafe.id_cafe}
-      menuId={menu.id_menu}
-    />
+    <>
+      <Viewer3DAnalytics cafeId={cafe.id_cafe} menuId={menu.id_menu} />
+      <Viewer3DPage
+        url={menu.model_3d_url}
+        usdzUrl={menu.usdz_url ?? undefined}
+        menuName={menu.nama_menu}
+        backUrl={backUrl}
+        modelScale={menu.model_scale ?? 1.0}
+        cafeName={cafe.nama_cafe}
+        cafeId={cafe.id_cafe}
+        menuId={menu.id_menu}
+      />
+    </>
   );
 }

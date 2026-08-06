@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "./supabase-admin";
 import { createClient } from "./supabase/server";
@@ -29,22 +30,25 @@ function nonnegativeNumber(fd: FormData, key: string): number | null {
   return value;
 }
 
-/** Resolve the cafe_id owned by the authenticated user, or null. */
-export async function getAuthCafeId(): Promise<string | null> {
+/** Resolve the cafe_id owned by the authenticated user, or null.
+ *
+ *  Sebelumnya dua query Cafes (satu by owner_id, satu by slug) ditambah auth.
+ *  Kolom id_cafe bisa diambil langsung by owner_id — satu query, satu roundtrip.
+ *  Dibungkus cache() agar dedupe dalam satu proses request. */
+export const getAuthCafeId = cache(async (): Promise<string | null> => {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-  const slug = await getOwnerCafeSlug(user.id);
-  if (!slug) return null;
   const { data } = await supabaseAdmin
     .from("Cafes")
     .select("id_cafe")
-    .eq("slug_url", slug)
-    .single();
+    .eq("owner_id", user.id)
+    .limit(1)
+    .maybeSingle();
   return (data?.id_cafe as string) ?? null;
-}
+});
 
 function str(fd: FormData, k: string): string | null {
   const v = fd.get(k);
@@ -183,17 +187,17 @@ export async function setMenuAvailability(
 }
 
 /** Persist a new display order. `orderedIds` is the full list of menu ids in
- *  the desired order; each gets sort_order = its index. Scoped to the cafe. */
+ *  the desired order; each gets sort_order = its index. Scoped to the cafe.
+ *  Delegated to a single RPC (atomic, one roundtrip) instead of N updates. */
 export async function reorderMenus(orderedIds: string[]): Promise<ActionResult> {
   const cafeId = await getAuthCafeId();
   if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
   if (!Array.isArray(orderedIds) || orderedIds.length === 0) return {};
-  const updates = orderedIds.map((id, i) =>
-    supabaseAdmin.from("Menus").update({ sort_order: i }).eq("id_menu", id).eq("cafe_id", cafeId)
-  );
-  const results = await Promise.all(updates);
-  const failed = results.find((r) => r.error);
-  if (failed?.error) return { error: failed.error.message };
+  const { error } = await supabaseAdmin.rpc("reorder_menus", {
+    p_cafe_id: cafeId,
+    p_menu_ids: orderedIds,
+  });
+  if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
   revalidatePath("/[slug]", "page");
   return {};
