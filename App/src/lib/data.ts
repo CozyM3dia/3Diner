@@ -18,10 +18,10 @@ export const getCafeBySlug = cache(async (slug: string): Promise<Cafe | null> =>
   return fn(slug);
 });
 
-export async function getMenusByCafeId(cafeId: string): Promise<Menu[]> {
+export const getMenusByCafeId = cache(async (cafeId: string): Promise<Menu[]> => {
   const { getMenusByCafeId: fn } = await getSupabaseFns();
   return fn(cafeId);
-}
+});
 
 export async function logEvent(
   payload: Pick<AnalyticsLog, "cafe_id" | "menu_id" | "event_type" | "duration">

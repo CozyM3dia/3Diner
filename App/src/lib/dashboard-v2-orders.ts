@@ -104,16 +104,15 @@ export async function getOrdersPage(
   if (statuses) query = query.in("status", statuses);
   if (cursor) query = query.lt("created_at", cursor);
 
-  const summaryBase = () => {
-    let q = supabaseAdmin.from("Orders").select("total,status").eq("cafe_id", cafeId);
-    if (statuses) q = q.in("status", statuses);
-    return q;
-  };
-
-  const [pageResult, summaryResult, allResult] = await Promise.all([
+  // Agregasi counts + total dipindah ke Postgres (orders_dashboard_summary).
+  // Sebelumnya dua full scan Orders (semua total,status + semua status) dibawa
+  // ke Node; RPC ini mengembalikan lima angka dalam satu roundtrip.
+  const [pageResult, summaryResult] = await Promise.all([
     query,
-    summaryBase(),
-    supabaseAdmin.from("Orders").select("status").eq("cafe_id", cafeId),
+    supabaseAdmin.rpc("orders_dashboard_summary", {
+      p_cafe_id: cafeId,
+      p_statuses: statuses ?? null,
+    }),
   ]);
 
   if (pageResult.error) return { ...EMPTY, error: pageResult.error.message };
@@ -122,22 +121,21 @@ export async function getOrdersPage(
   const hasMore = fetched.length > PAGE_SIZE;
   const rows = hasMore ? fetched.slice(0, PAGE_SIZE) : fetched;
 
-  const summaryRows = (summaryResult.data ?? []) as { total: number | null }[];
-  const allRows = (allResult.data ?? []) as { status: OrderStatus }[];
-
+  const summary = (summaryResult.data ?? {}) as Record<string, unknown>;
   const counts: Record<OrderTab, number> = {
-    semua: allRows.length,
-    berjalan: allRows.filter((r) => ["received", "preparing", "ready"].includes(r.status)).length,
-    dibatalkan: allRows.filter((r) => r.status === "cancelled").length,
+    semua: Number(summary.count_all ?? 0),
+    berjalan: Number(summary.count_running ?? 0),
+    dibatalkan: Number(summary.count_cancelled ?? 0),
   };
 
-  const filteredCount = summaryRows.length;
+  const filteredCount = Number(summary.filtered_count ?? 0);
+  const filteredTotal = Number(summary.filtered_total ?? 0);
   const from = cursor ? null : 1;
 
   return {
     rows,
     filteredCount,
-    filteredTotal: summaryRows.reduce((s, r) => s + (r.total ?? 0), 0),
+    filteredTotal,
     counts,
     nextCursor: hasMore ? rows[rows.length - 1]?.created_at ?? null : null,
     offsetLabel: from === null ? null : { from, to: rows.length },

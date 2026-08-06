@@ -4,25 +4,10 @@ import { createClient } from "./supabase/server";
 
 export type EventType = "click_menu" | "view_3d" | "click_order";
 
-/** ISO timestamp N days ago (start of window for queries). */
-function sinceDays(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString();
-}
-
 const WIB = "Asia/Jakarta";
 // Returns "YYYY-MM-DD" in WIB timezone for a UTC ISO timestamp.
 const wibDateKey = (ts: string): string =>
   new Intl.DateTimeFormat("en-CA", { timeZone: WIB }).format(new Date(ts));
-// Returns 0-23 (WIB hour) for a UTC ISO timestamp.
-const wibHour = (ts: string): number =>
-  parseInt(new Intl.DateTimeFormat("en-US", { timeZone: WIB, hour: "numeric", hour12: false, hourCycle: "h23" }).format(new Date(ts)), 10);
-// Returns 0=Mon..6=Sun (WIB weekday) for a UTC ISO timestamp.
-const wibWeekday = (ts: string): number =>
-  ({ Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 } as Record<string, number>)[
-    new Intl.DateTimeFormat("en-US", { timeZone: WIB, weekday: "short" }).format(new Date(ts))
-  ] ?? 0;
 
 export interface DashboardData {
   cafe: { nama_cafe: string; slug_url: string };
@@ -108,29 +93,52 @@ export async function getDashboardData(
   const endDay = new Date(queryEnd); endDay.setHours(0, 0, 0, 0);
   const rangeDays = Math.max(1, Math.round((endDay.getTime() - startDay.getTime()) / 86400000) + 1);
 
-  const [{ data: menus }, { data: logs }] = await Promise.all([
+  const [{ data: menus }, analytics] = await Promise.all([
     supabaseAdmin.from("Menus").select("id_menu, nama_menu").eq("cafe_id", cafe.id_cafe),
-    supabaseAdmin
-      .from("Analytics_Logs")
-      .select("menu_id, event_type, created_at")
-      .eq("cafe_id", cafe.id_cafe)
-      .gte("created_at", queryStart.toISOString())
-      .lte("created_at", queryEnd.toISOString()),
+    supabaseAdmin.rpc("dashboard_analytics", {
+      p_cafe_id: cafe.id_cafe,
+      p_start: queryStart.toISOString(),
+      p_end: queryEnd.toISOString(),
+    }),
   ]);
+
+  // Agregasi terjadi di Postgres (dashboard_analytics); di sisi ini hanya
+  // merangkai nilai turunan. helper ini menormalisasi jsonb → nilai JS.
+  const agg = (analytics.data ?? {}) as Record<string, unknown>;
+  const asObject = (v: unknown): Record<string, number> =>
+    v && typeof v === "object" ? (v as Record<string, number>) : {};
+  const asArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+  const num = (v: unknown): number => Number(v) || 0;
 
   const menuName = new Map<string, string>(
     (menus ?? []).map((m) => [m.id_menu as string, m.nama_menu as string])
   );
 
   const totals: Record<EventType, number> = { click_menu: 0, view_3d: 0, click_order: 0 };
+  const aTotals = asObject(agg.totals);
+  for (const k of Object.keys(totals) as EventType[]) totals[k] = num(aTotals[k]);
+
+  const aThis = asObject(agg.this_week);
+  const aLast = asObject(agg.last_week);
   const thisWeek: Record<EventType, number> = { click_menu: 0, view_3d: 0, click_order: 0 };
   const lastWeek: Record<EventType, number> = { click_menu: 0, view_3d: 0, click_order: 0 };
-  const perDish = new Map<string, { clicks: number; views: number; orders: number }>();
-  const dayBuckets = new Map<string, number>();
-  const hourly = new Array<number>(24).fill(0);
-  const weekday = new Array<number>(7).fill(0); // 0=Mon..6=Sun
+  for (const k of Object.keys(thisWeek) as EventType[]) {
+    thisWeek[k] = num(aThis[k]);
+    lastWeek[k] = num(aLast[k]);
+  }
 
-  // Build day skeleton from queryStart → queryEnd
+  const perDish = new Map<string, { clicks: number; views: number; orders: number }>();
+  for (const row of asArray(agg.per_dish)) {
+    const d = row as Record<string, unknown>;
+    perDish.set(d.menu_id as string, {
+      clicks: num(d.clicks),
+      views: num(d.views),
+      orders: num(d.orders),
+    });
+  }
+
+  // Build day skeleton from queryStart → queryEnd, lalu isi dari RPC.
+  const dayBuckets = new Map<string, number>();
   const cur = new Date(startDay);
   let dCount = 0;
   while (cur <= endDay && dCount < 366) {
@@ -138,36 +146,17 @@ export async function getDashboardData(
     cur.setDate(cur.getDate() + 1);
     dCount++;
   }
-
-  const now = Date.now();
-  const WEEK = 7 * 24 * 60 * 60 * 1000;
-
-  for (const log of logs ?? []) {
-    const type = log.event_type as EventType;
-    if (type in totals) totals[type]++;
-
-    const id = log.menu_id as string;
-    const dish = perDish.get(id) ?? { clicks: 0, views: 0, orders: 0 };
-    if (type === "click_menu") dish.clicks++;
-    else if (type === "view_3d") dish.views++;
-    else if (type === "click_order") dish.orders++;
-    perDish.set(id, dish);
-
-    const ts = new Date(log.created_at as string);
-    const dayKey = wibDateKey(log.created_at as string);
-    if (dayBuckets.has(dayKey)) dayBuckets.set(dayKey, (dayBuckets.get(dayKey) ?? 0) + 1);
-
-    const h = wibHour(log.created_at as string);
-    if (h >= 0 && h < 24) hourly[h]++;
-
-    weekday[wibWeekday(log.created_at as string)]++;
-
-    const age = now - ts.getTime();
-    if (type in totals) {
-      if (age <= WEEK) thisWeek[type]++;
-      else if (age <= 2 * WEEK) lastWeek[type]++;
-    }
+  for (const row of asArray(agg.daily)) {
+    const d = row as Record<string, unknown>;
+    if (dayBuckets.has(d.day as string)) dayBuckets.set(d.day as string, num(d.count));
   }
+
+  const hourly = asArray(agg.hourly).map(num);
+  while (hourly.length < 24) hourly.push(0);
+  const weekday = asArray(agg.weekday).map(num);
+  while (weekday.length < 7) weekday.push(0); // 0=Mon..6=Sun
+
+  const totalEvents = Object.values(totals).reduce((s, n) => s + n, 0);
 
   const pctDelta = (cur: number, prev: number): number => {
     if (prev === 0) return cur > 0 ? 100 : 0;
@@ -189,14 +178,14 @@ export async function getDashboardData(
     count,
   }));
 
-  const recent = [...(logs ?? [])]
-    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-    .slice(0, 8)
-    .map((l) => ({
-      name: menuName.get(l.menu_id as string) ?? "—",
-      type: l.event_type as EventType,
-      at: l.created_at as string,
-    }));
+  const recent = asArray(agg.recent).map((l) => {
+    const row = l as Record<string, unknown>;
+    return {
+      name: menuName.get(row.menu_id as string) ?? "—",
+      type: row.event_type as EventType,
+      at: row.created_at as string,
+    };
+  });
 
   const conversion =
     totals.click_menu > 0 ? (totals.click_order / totals.click_menu) * 100 : 0;
@@ -204,7 +193,6 @@ export async function getDashboardData(
     totals.click_menu > 0 ? (totals.view_3d / totals.click_menu) * 100 : 0;
 
   // ── Derived insights (plain-language, real data) ──
-  const totalEvents = (logs ?? []).length;
   const hourMax = Math.max(...hourly);
   const peakHour = hourMax > 0 ? hourly.indexOf(hourMax) : null;
   const wdMax = Math.max(...weekday);
@@ -246,12 +234,6 @@ export async function getDashboardData(
 
 // ── Revenue / Sales analytics (from Orders) ────────────────────────────────
 
-interface OrderItemShape {
-  nama_menu?: string;
-  harga_menu?: number;
-  qty?: number;
-}
-
 export interface RevenueData {
   totalRevenue: number;
   orderCount: number;
@@ -279,49 +261,61 @@ export async function getRevenueData(
   const cafe = await getCafeBySlug(slug);
   if (!cafe) return null;
 
-  let query = supabaseAdmin
-    .from("Orders")
-    .select("id_order, table_number, items, total, status, created_at, payment_method, payment_status")
-    .eq("cafe_id", cafe.id_cafe);
-
+  let queryStart: string | null = null;
+  let queryEnd: string | null = null;
   if (startDate) {
     const start = new Date(startDate);
     start.setHours(0, 0, 0, 0);
-    query = query.gte("created_at", start.toISOString());
-  } else {
-    query = query.gte("created_at", sinceDays(DAYS));
+    queryStart = start.toISOString();
   }
-
   if (endDate) {
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
-    query = query.lte("created_at", end.toISOString());
+    queryEnd = end.toISOString();
   }
 
-  const { data: orders } = await query;
-  const list = orders ?? [];
+  // Agregasi omzet, status, metode bayar, deret harian, dan kontribusi per menu
+  // dipindah ke Postgres (revenue_analytics) — tidak lagi menarik semua baris
+  // Orders ke Node. Nilai turunan (delta, avg, rangking) dihitung di sini.
+  const { data } = await supabaseAdmin.rpc("revenue_analytics", {
+    p_cafe_id: cafe.id_cafe,
+    p_start: queryStart,
+    p_end: queryEnd,
+  });
+  const agg = (data ?? {}) as Record<string, unknown>;
+  const asObject = (v: unknown): Record<string, number> =>
+    v && typeof v === "object" ? (v as Record<string, number>) : {};
+  const asArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+  const num = (v: unknown): number => Number(v) || 0;
 
-  let totalRevenue = 0;
-  let itemsSold = 0;
-  // Status terminal ikut dihitung sejak migrasi 2026-07-27c. Tanpa ini,
-  // pesanan selesai hilang diam-diam dari donut dan totalnya tidak lagi
-  // menjumlah ke jumlah pesanan yang dilaporkan di sebelahnya.
-  const statusCounts = { received: 0, preparing: 0, ready: 0, completed: 0, cancelled: 0 };
-  const paymentCounts = { cash: 0, qris: 0, unpaid: 0 };
-  const dayBuckets = new Map<string, number>();
-  const perItem = new Map<string, { qty: number; revenue: number }>();
+  const totalRevenue = num(agg.total_revenue);
+  const orderCount = num(agg.order_count);
+  const itemsSold = num(agg.items_sold);
+  const statusCounts = {
+    received: num(asObject(agg.status_counts).received),
+    preparing: num(asObject(agg.status_counts).preparing),
+    ready: num(asObject(agg.status_counts).ready),
+    completed: num(asObject(agg.status_counts).completed),
+    cancelled: num(asObject(agg.status_counts).cancelled),
+  };
+  const p = asObject(agg.payment_counts);
+  const paymentCounts = { cash: num(p.cash), qris: num(p.qris), unpaid: num(p.unpaid) };
 
+  const avgOrder = orderCount > 0 ? Math.round(totalRevenue / orderCount) : 0;
+  const thisWeekRev = num(agg.this_week_rev);
+  const lastWeekRev = num(agg.last_week_rev);
+  const revenueDelta =
+    lastWeekRev === 0 ? (thisWeekRev > 0 ? 100 : 0) : Math.round(((thisWeekRev - lastWeekRev) / lastWeekRev) * 100);
+
+  // Skeleton hari + isi dari RPC.
   const today = new Date();
   const startDay = startDate ? new Date(startDate) : new Date(today.getTime() - (DAYS - 1) * 24 * 60 * 60 * 1000);
   let endDay = endDate ? new Date(endDate) : new Date(today);
-
   startDay.setHours(0, 0, 0, 0);
   endDay.setHours(0, 0, 0, 0);
+  if (startDay > endDay) endDay = new Date(startDay);
 
-  if (startDay > endDay) {
-    endDay = new Date(startDay);
-  }
-
+  const dayBuckets = new Map<string, number>();
   const cur = new Date(startDay);
   let count = 0;
   while (cur <= endDay && count < 366) {
@@ -329,75 +323,27 @@ export async function getRevenueData(
     cur.setDate(cur.getDate() + 1);
     count++;
   }
-
-  const now = Date.now();
-  const WEEK = 7 * 24 * 60 * 60 * 1000;
-  let thisWeekRev = 0;
-  let lastWeekRev = 0;
-
-  for (const o of list) {
-    const total = (o.total as number) ?? 0;
-    totalRevenue += total;
-
-    const st = o.status as keyof typeof statusCounts;
-    if (st in statusCounts) statusCounts[st]++;
-
-    // Aggregasi metode & status pembayaran
-    const pm = o.payment_method as string | null;
-    const ps = o.payment_status as string;
-    if (ps !== "paid") {
-      paymentCounts.unpaid++;
-    } else if (pm === "qris") {
-      paymentCounts.qris++;
-    } else {
-      paymentCounts.cash++;
-    }
-
-    const dayKey = wibDateKey(o.created_at as string);
-    if (dayBuckets.has(dayKey)) dayBuckets.set(dayKey, (dayBuckets.get(dayKey) ?? 0) + total);
-
-    const age = now - new Date(o.created_at as string).getTime();
-    if (age <= WEEK) thisWeekRev += total;
-    else if (age <= 2 * WEEK) lastWeekRev += total;
-
-    const items = (Array.isArray(o.items) ? o.items : []) as OrderItemShape[];
-    for (const it of items) {
-      const qty = it.qty ?? 0;
-      const rev = (it.harga_menu ?? 0) * qty;
-      itemsSold += qty;
-      const name = it.nama_menu ?? "—";
-      const cur = perItem.get(name) ?? { qty: 0, revenue: 0 };
-      cur.qty += qty;
-      cur.revenue += rev;
-      perItem.set(name, cur);
-    }
+  for (const row of asArray(agg.daily_revenue)) {
+    const d = row as Record<string, unknown>;
+    if (dayBuckets.has(d.day as string)) dayBuckets.set(d.day as string, num(d.value));
   }
-
-  const orderCount = list.length;
-  const avgOrder = orderCount > 0 ? Math.round(totalRevenue / orderCount) : 0;
-  const revenueDelta =
-    lastWeekRev === 0 ? (thisWeekRev > 0 ? 100 : 0) : Math.round(((thisWeekRev - lastWeekRev) / lastWeekRev) * 100);
 
   const dailyRevenue = [...dayBuckets.entries()].map(([date, value]) => ({
     label: new Date(date).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
     value,
   }));
 
-  const topByRevenue = [...perItem.entries()]
-    .map(([name, v]) => ({ name, ...v }))
-    .sort((a, b) => b.revenue - a.revenue)
+  const topByRevenue = (asArray(agg.per_item) as Record<string, unknown>[])
+    .map((r) => ({ name: r.name as string, qty: num(r.qty), revenue: num(r.revenue) }))
     .slice(0, 6);
 
-  const recentOrders = [...list]
-    .sort((a, b) => ((a.created_at as string) < (b.created_at as string) ? 1 : -1))
-    .slice(0, 8)
-    .map((o) => ({
-      id: o.id_order as string,
-      table: o.table_number as string,
-      total: (o.total as number) ?? 0,
-      status: o.status as string,
-      at: o.created_at as string,
-    }));
+  const recentOrders = (asArray(agg.recent_orders) as Record<string, unknown>[]).map((o) => ({
+    id: o.id_order as string,
+    table: o.table_number as string,
+    total: num(o.total),
+    status: o.status as string,
+    at: o.created_at as string,
+  }));
 
   return { totalRevenue, orderCount, avgOrder, itemsSold, revenueDelta, dailyRevenue, statusCounts, paymentCounts, topByRevenue, recentOrders };
 }
