@@ -11,11 +11,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Cafe queries
 // ─────────────────────────────────────────────
 
-/** Fetch a single cafe by its URL slug */
+/** Fetch a single cafe by its URL slug.
+ *
+ *  Kolom dipersempit ke yang dipakai halaman menu pelanggan; status_lunas
+ *  dipakai sebagai filter WHERE, tidak perlu ditarik ulang. */
 export async function getCafeBySlug(slug: string): Promise<Cafe | null> {
   const { data, error } = await supabase
     .from("Cafes")
-    .select("*")
+    .select("id_cafe, slug_url, nama_cafe, cover_url, logo_url, greeting, alamat_cafe, google_maps_review_url")
     .eq("slug_url", slug)
     .eq("status_lunas", true)
     .single();
@@ -56,7 +59,7 @@ export async function getMenusByCafeId(cafeId: string): Promise<Menu[]> {
 export async function getActiveAnnouncement(cafeId: string): Promise<Announcement | null> {
   const { data, error } = await supabase
     .from("Announcements")
-    .select("*")
+    .select("id, cafe_id, message, bg_color, type, is_active")
     .eq("cafe_id", cafeId)
     .eq("is_active", true)
     .order("updated_at", { ascending: false })
