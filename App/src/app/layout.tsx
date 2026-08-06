@@ -1,19 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins, Plus_Jakarta_Sans } from "next/font/google";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 
 
 // Poppins — 3Diner consumer brand face (customer-facing menu).
 const poppins = Poppins({
   variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
-
-// Plus Jakarta Sans — admin dashboard (fintech-grade command center).
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   display: "swap",
@@ -45,7 +37,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" className={`${poppins.variable} ${jakarta.variable}`}>
+    <html lang="id" className={poppins.variable}>
       <body className="min-h-dvh">{children}</body>
     </html>
   );

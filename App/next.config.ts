@@ -51,6 +51,10 @@ const nextConfig: NextConfig = {
   },
 
   images: {
+    formats: ["image/avif", "image/webp"],
+    // URL gambar menu menyertakan timestamp per upload, jadi tiap file unik —
+    // hasil optimasi bisa di-cache setahun tanpa risiko basi.
+    minimumCacheTTL: 31536000,
     remotePatterns: [
       {
         protocol: "https",
