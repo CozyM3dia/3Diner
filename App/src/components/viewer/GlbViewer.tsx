@@ -74,9 +74,11 @@ export default function GlbViewer({
       // Camera
       const camera = new THREE.PerspectiveCamera(45, w / h, 0.01, 1000);
 
-      // Renderer
+      // Renderer — pixel ratio dibatasi 2. DPR 3 pada HP flagship = 9× piksel
+      // per frame; memotongnya ke 2 menjaga tampilan tetap tajam tapi hampir
+      // separuh beban GPU, yang membuat scroll/putar model jauh lebih halus.
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setSize(w, h);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
