@@ -28,11 +28,18 @@ export async function getCafeBySlug(slug: string): Promise<Cafe | null> {
 // Menu queries
 // ─────────────────────────────────────────────
 
-/** Fetch all customer-visible menus (active + within schedule) for a cafe. */
+/** Fetch all customer-visible menus (active + within schedule) for a cafe.
+ *
+ *  Kolom dipersempit ke yang dipakai daftar menu pelanggan (MenuBrowser/MenuCard +
+ *  isMenuAvailableNow). Sisa kolom (redirect_link, usdz, ingredients, model_scale,
+ *  sort_order, created_at) hanya dibutuhkan halaman detail/editor, bukan di sini —
+ *  mengurangi transfer ketika daftar menu panjang. */
 export async function getMenusByCafeId(cafeId: string): Promise<Menu[]> {
   const { data, error } = await supabase
     .from("Menus")
-    .select("*")
+    .select(
+      "id_menu, cafe_id, nama_menu, harga_menu, description_menu, category, image_url, model_3d_url, is_active, discount_pct, prep_time_minutes, calories, schedule_days, schedule_start, schedule_end"
+    )
     .eq("cafe_id", cafeId)
     .order("sort_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
