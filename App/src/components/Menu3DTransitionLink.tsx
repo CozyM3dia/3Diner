@@ -2,12 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Box } from "lucide-react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-
-gsap.registerPlugin(useGSAP);
 
 const TRANSITION_MARKER = "3diner:viewer-transition";
 
@@ -25,19 +21,23 @@ export default function Menu3DTransitionLink({
   heroId,
 }: Menu3DTransitionLinkProps) {
   const router = useRouter();
-  const linkRef = useRef<HTMLAnchorElement>(null);
   const portalRef = useRef<HTMLDivElement | null>(null);
-  const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const timelineRef = useRef<any | null>(null);
   const navigatingRef = useRef(false);
+  const mountedRef = useRef(true);
 
-  const { contextSafe } = useGSAP(
-    () => () => {
+  // Bersih-bersih saat komponen lepas. GSAP dimuat on-demand (baru ada kalau
+  // pengguna mengetuk), jadi cukup hentikan timeline + buang portal yang ada.
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
       timelineRef.current?.kill();
       portalRef.current?.remove();
       portalRef.current = null;
-    },
-    { scope: linkRef },
-  );
+    };
+  }, []);
 
   const navigate = () => {
     try {
@@ -49,7 +49,7 @@ export default function Menu3DTransitionLink({
     }
   };
 
-  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleClick = async (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (
       event.button !== 0 ||
       event.metaKey ||
@@ -123,6 +123,11 @@ export default function Menu3DTransitionLink({
     document.body.appendChild(portal);
     portalRef.current = portal;
 
+    // GSAP dimuat hanya saat animasi benar-benar diminta, bukan saat halaman
+    // detail menu dibuka — menghemat ~70KB dari bundle pelanggan.
+    const [{ default: gsap }] = await Promise.all([import("gsap")]);
+    if (!mountedRef.current || !portalRef.current) return;
+
     timelineRef.current = gsap
       .timeline()
       .fromTo(
@@ -153,15 +158,10 @@ export default function Menu3DTransitionLink({
       .call(navigate, undefined, "-=0.12");
   };
 
-  const handleSafeClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    contextSafe(handleClick)(event);
-  };
-
   return (
     <Link
-      ref={linkRef}
       href={href}
-      onClick={handleSafeClick}
+      onClick={handleClick}
       className="btn-navy press w-full h-[52px] rounded-2xl inline-flex items-center justify-center gap-2.5 font-semibold text-[15px]"
     >
       <Box size={18} strokeWidth={2} />
