@@ -31,6 +31,16 @@ const GROUP_SELECT = `
   )
 `;
 
+/** Untuk tamu: komposisi bahan (recipes) bukan urusan mereka, jadi subquery
+ *  Menu_Option_Recipes tidak ditarik sama sekali — menghemat transfer data dan
+ *  query join di tiap halaman detail menu yang dibuka pelanggan. */
+const CUSTOMER_GROUP_SELECT = `
+  id_option_group, cafe_id, menu_id, name, min_select, max_select, sort_order,
+  values:Menu_Option_Values(
+    id_option_value, cafe_id, option_group_id, name, price_delta, is_active, sort_order
+  )
+`;
+
 /** Diekspor untuk pengujian: penjepitan min/max di sini yang menentukan apakah
  *  tamu punya jalan keluar saat sebagian pilihan dinonaktifkan. */
 export function shapeOptionGroups(rows: RawGroup[], activeOnly: boolean): MenuOptionGroup[] {
@@ -91,26 +101,19 @@ export async function getMenuOptionsForOwner(
 }
 
 /** Varian untuk halaman menu pelanggan: hanya yang aktif, dan tanpa resep —
- *  komposisi bahan bukan urusan tamu. */
+ *  komposisi bahan bukan urusan tamu. Subquery resep tidak pernah ditarik. */
 export async function getMenuOptionsForCustomer(
   cafeId: string,
   menuId: string
 ): Promise<MenuOptionGroup[]> {
   const { data, error } = await supabaseAdmin
     .from("Menu_Option_Groups")
-    .select(GROUP_SELECT)
+    .select(CUSTOMER_GROUP_SELECT)
     .eq("cafe_id", cafeId)
     .eq("menu_id", menuId)
     .order("sort_order", { ascending: true });
 
   if (error) return [];
 
-  return shapeOptionGroups((data ?? []) as unknown as RawGroup[], true).map((group) => ({
-    ...group,
-    values: group.values?.map((value) => {
-      const stripped = { ...value };
-      delete stripped.recipes;
-      return stripped;
-    }),
-  }));
+  return shapeOptionGroups((data ?? []) as unknown as RawGroup[], true);
 }
