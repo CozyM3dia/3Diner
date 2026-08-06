@@ -99,6 +99,7 @@ export async function createMenu(fd: FormData): Promise<ActionResult> {
     .single();
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
+  revalidatePath("/[slug]", "page");
   return { id_menu: (data?.id_menu as string | undefined) };
 }
 
@@ -137,6 +138,7 @@ export async function bulkCreateMenus(
   const { error } = await supabaseAdmin.from("Menus").insert(rows);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
+  revalidatePath("/[slug]", "page");
   return { inserted: rows.length };
 }
 
@@ -153,6 +155,7 @@ export async function updateMenu(menuId: string, fd: FormData): Promise<ActionRe
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
   revalidatePath("/dashboard/scheduler");
+  revalidatePath("/[slug]", "page");
   return {};
 }
 
@@ -166,6 +169,7 @@ export async function deleteMenu(menuId: string): Promise<ActionResult> {
     .eq("cafe_id", cafeId);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
+  revalidatePath("/[slug]", "page");
   return {};
 }
 
@@ -183,6 +187,7 @@ export async function setMenuAvailability(
   if (error) return { error: error.message };
   revalidatePath("/dashboard/scheduler");
   revalidatePath("/dashboard/menu");
+  revalidatePath("/[slug]", "page");
   return {};
 }
 
@@ -441,6 +446,7 @@ export async function saveMenuRecipes(menuId: string, rows: RecipeDraftInput[]):
 
   revalidatePath("/dashboard/menu");
   revalidatePath("/dashboard/menu/" + menuId + "/edit");
+  revalidatePath("/[slug]", "page");
   return {};
 }
 
@@ -489,6 +495,7 @@ export async function saveMenuOptions(
 
   revalidatePath("/dashboard/menu");
   revalidatePath("/dashboard/menu/" + menuId + "/edit");
+  revalidatePath("/[slug]", "page");
   return {};
 }
 
@@ -515,6 +522,7 @@ export async function saveAnnouncement(fd: FormData): Promise<ActionResult> {
     : await supabaseAdmin.from("Announcements").insert([payload]);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/announcements");
+  revalidatePath("/[slug]", "page");
   return {};
 }
 

@@ -6,6 +6,11 @@ import { getCafeBySlug, getMenusByCafeId, getActiveAnnouncement } from "@/lib/da
 import MenuBrowser from "@/components/MenuBrowser";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 
+// Menu publik jarang berubah dan dibaca banyak pelanggan secara bersamaan.
+// ISR 60s + revalidatePath on-demand (saat admin mengubah menu) mengubah halaman
+// ini dari refetch-ke-Singapura tiap request menjadi mayoritas terlayani CDN.
+export const revalidate = 60;
+
 interface PageProps {
   params: Promise<{ slug: string }>;
 }

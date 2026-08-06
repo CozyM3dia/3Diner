@@ -4,6 +4,9 @@ import { getCafeBySlug, getMenuById } from "@/lib/data";
 import Viewer3DPage from "@/components/viewer/Viewer3DPage";
 import Viewer3DAnalytics from "@/components/viewer/Viewer3DAnalytics";
 
+// ISR 60s: model 3D dirujuk berkali-kali; halaman ini hampir statis.
+export const revalidate = 60;
+
 interface PageProps {
   params: Promise<{ slug: string; menu_id: string }>;
 }

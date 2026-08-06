@@ -10,6 +10,11 @@ import DetailHeader from "@/components/DetailHeader";
 import MenuOrderPanel from "@/components/MenuOrderPanel";
 import Menu3DTransitionLink from "@/components/Menu3DTransitionLink";
 
+// ISR 60s + on-demand revalidatePath saat admin mengubah menu (lihat
+// dashboard-actions). Detail menu hampir statis; sebagian besar tampilan
+// terlayani dari cache CDN, bukan roundtrip Supabase.
+export const revalidate = 60;
+
 interface PageProps {
   params: Promise<{ slug: string; menu_id: string }>;
 }
