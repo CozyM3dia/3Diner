@@ -66,3 +66,33 @@ export function tooManyRequests(retryAfterSeconds: number): Response {
     { status: 429, headers: { "Retry-After": String(Math.max(1, retryAfterSeconds)) } }
   );
 }
+
+/** Memeriksa beberapa bucket rate limit dalam SATU panggilan RPC.
+ *
+ *  Mengembalikan kegagalan pertama (atau allowed jika semuanya lolos). Dipakai
+ *  POST /api/orders supaya per-IP + per-kafe dicek dalam satu roundtrip, bukan
+ *  dua. Fail-open sama seperti consumeRateLimit. */
+export async function consumeRateLimits(
+  entries: { key: string; limit: number }[],
+  windowSeconds: number
+): Promise<RateLimitResult> {
+  try {
+    const { data, error } = await supabaseAdmin.rpc("consume_rate_limits", {
+      p_keys: entries.map((e) => e.key),
+      p_limits: entries.map((e) => e.limit),
+      p_window_seconds: windowSeconds,
+    });
+
+    if (error || !data || typeof data !== "object") {
+      return { allowed: true, retryAfterSeconds: 0 };
+    }
+
+    const row = data as ConsumeRateLimitRow;
+    if (row.allowed === false) {
+      return { allowed: false, retryAfterSeconds: secondsUntil(row.reset_at) };
+    }
+    return { allowed: true, retryAfterSeconds: 0 };
+  } catch {
+    return { allowed: true, retryAfterSeconds: 0 };
+  }
+}

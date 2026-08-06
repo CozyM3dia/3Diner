@@ -89,6 +89,47 @@ describe("consumeRateLimit", () => {
   });
 });
 
+describe("consumeRateLimits", () => {
+  it("checks several buckets in one RPC call", async () => {
+    rpc.mockResolvedValue(allowed());
+    const { consumeRateLimits } = await import("@/lib/rate-limit");
+
+    const result = await consumeRateLimits(
+      [
+        { key: "orders:ip:203.0.113.9", limit: 10 },
+        { key: "orders:cafe:cafe-1", limit: 120 },
+      ],
+      60
+    );
+
+    expect(rpc).toHaveBeenCalledWith("consume_rate_limits", {
+      p_keys: ["orders:ip:203.0.113.9", "orders:cafe:cafe-1"],
+      p_limits: [10, 120],
+      p_window_seconds: 60,
+    });
+    expect(result.allowed).toBe(true);
+  });
+
+  it("reports the blocking bucket's retry hint", async () => {
+    rpc.mockResolvedValue(blocked());
+    const { consumeRateLimits } = await import("@/lib/rate-limit");
+
+    const result = await consumeRateLimits([{ key: "orders:ip:203.0.113.9", limit: 10 }], 60);
+
+    expect(result.allowed).toBe(false);
+    expect(result.retryAfterSeconds).toBeGreaterThan(0);
+  });
+
+  it("fails open when the limiter is unavailable", async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: "relation does not exist" } });
+    const { consumeRateLimits } = await import("@/lib/rate-limit");
+
+    await expect(consumeRateLimits([{ key: "orders:ip:1.2.3.4", limit: 10 }], 60)).resolves.toMatchObject({
+      allowed: true,
+    });
+  });
+});
+
 describe("POST /api/orders rate limiting", () => {
   const validBody = {
     cafeId: "cafe-1",
@@ -106,7 +147,7 @@ describe("POST /api/orders rate limiting", () => {
 
   it("returns 429 and never reaches the order RPC when over the limit", async () => {
     rpc.mockImplementation((fn: string) => {
-      if (fn === "consume_rate_limit") return Promise.resolve(blocked());
+      if (fn === "consume_rate_limits") return Promise.resolve(blocked());
       throw new Error(`unexpected RPC: ${fn}`);
     });
     const { POST } = await import("@/app/api/orders/route");
@@ -120,7 +161,7 @@ describe("POST /api/orders rate limiting", () => {
 
   it("creates the order when under the limit", async () => {
     rpc.mockImplementation((fn: string) => {
-      if (fn === "consume_rate_limit") return Promise.resolve(allowed());
+      if (fn === "consume_rate_limits") return Promise.resolve(allowed());
       return Promise.resolve({
         data: {
           order: {

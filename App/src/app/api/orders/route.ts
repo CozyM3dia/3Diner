@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
+import { clientIp, consumeRateLimits, tooManyRequests } from "@/lib/rate-limit";
 import { parseItems } from "@/lib/order-request";
 
 /** Rute publik tanpa autentikasi: siapa pun yang tahu cafeId bisa membuat
@@ -85,15 +85,14 @@ export async function POST(req: Request) {
   // Validasi murah dijalankan lebih dulu supaya permintaan cacat tidak
   // membebani limiter dengan roundtrip database.
   const ip = clientIp(req);
-  const perIp = await consumeRateLimit(`orders:ip:${ip}`, ORDERS_PER_IP.limit, ORDERS_PER_IP.windowSeconds);
-  if (!perIp.allowed) return tooManyRequests(perIp.retryAfterSeconds);
-
-  const perCafe = await consumeRateLimit(
-    `orders:cafe:${cafeId}`,
-    ORDERS_PER_CAFE.limit,
-    ORDERS_PER_CAFE.windowSeconds
+  const limit = await consumeRateLimits(
+    [
+      { key: `orders:ip:${ip}`, limit: ORDERS_PER_IP.limit },
+      { key: `orders:cafe:${cafeId}`, limit: ORDERS_PER_CAFE.limit },
+    ],
+    ORDERS_PER_IP.windowSeconds
   );
-  if (!perCafe.allowed) return tooManyRequests(perCafe.retryAfterSeconds);
+  if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
 
   let rpcResponse;
   try {
