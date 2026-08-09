@@ -67,7 +67,8 @@ describe("tingkat umur pesanan", () => {
 describe("uang yang masih harus diterima kasir", () => {
   it("meminta terima tunai untuk pesanan yang belum lunas", () => {
     expect(needsCash({ payment_status: "unpaid", payment_method: "cash" })).toBe(true);
-    expect(needsCash({ payment_status: "unpaid", payment_method: null })).toBe(true);
+    // null method = pesanan online (belum ada method tercatat) — bukan tagihan kasir
+    expect(needsCash({ payment_status: "unpaid", payment_method: null })).toBe(false);
   });
 
   it("tidak pernah meminta kasir melunasi QRIS", () => {

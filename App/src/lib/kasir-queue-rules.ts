@@ -46,14 +46,14 @@ interface PayableOrder {
   payment_method: string | null;
 }
 
-const ONLINE_PAYMENT_METHODS = new Set(["qris", "gopay", "shopeepay", "bank_transfer"]);
-
-/** Uang tunai ditagih untuk pesanan bermetode 'cash' atau yang belum punya
- *  metode tercatat (null — belum pernah lewat channel online). Semua metode
- *  online (qris/gopay/shopeepay/bank_transfer) dilunasi webhook Midtrans,
- *  bukan kasir. */
+/** Uang tunai hanya ditagih untuk pesanan bermetode 'cash'. Setiap pesanan
+ *  pay-at-cashier lahir dengan payment_method='cash' (lihat create_order), jadi
+ *  payment_method null selalu berarti pesanan online — yang dilunasi webhook
+ *  Midtrans, bukan kasir. Mengunci ke 'cash' juga menghindari salah label pada
+ *  jendela sempit saat webhook sudah menaikkan status ke 'received' tapi belum
+ *  sempat menulis payment_method + 'paid'. */
 export function needsCash(o: PayableOrder): boolean {
-  return o.payment_status !== "paid" && !ONLINE_PAYMENT_METHODS.has(o.payment_method ?? "");
+  return o.payment_status !== "paid" && o.payment_method === "cash";
 }
 
 /** Ringkasan item untuk satu baris setinggi 44px.
