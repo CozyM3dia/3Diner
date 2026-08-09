@@ -59,12 +59,21 @@ export async function POST(req: Request) {
       enabled_payments: ONLINE_ENABLED_PAYMENTS,
     };
 
-    const res = await fetch(snapUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: authHeader },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
+    let res: Response;
+    let data: { token?: string; error_messages?: unknown };
+    try {
+      res = await fetch(snapUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: authHeader },
+        body: JSON.stringify(body),
+      });
+      data = await res.json();
+    } catch {
+      await supabaseAdmin.from("Orders")
+        .update({ payment_status: "awaiting_payment" })
+        .eq("id_order", order.id_order).eq("payment_status", "pending");
+      return NextResponse.json({ error: "Gagal menghubungi pembayaran" }, { status: 502 });
+    }
 
     if (!res.ok || !data.token) {
       await supabaseAdmin.from("Orders")

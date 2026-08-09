@@ -59,6 +59,28 @@ describe("POST /api/payment/charge (Snap)", () => {
     expect(res.status).toBe(400);
   });
 
+  it("reverts the pending claim when the Snap fetch throws", async () => {
+    const updateMock = vi.fn(() => ({ eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }));
+    const eqToken = () => ({ single });
+    const eqOrder = () => ({ eq: eqToken });
+    from.mockReturnValue({
+      select: () => ({ eq: eqOrder }),
+      update: updateMock,
+    });
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network")));
+
+    const { POST } = await import("@/app/api/payment/charge/route");
+    const res = await POST(new Request("http://localhost/api/payment/charge", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: "order-1", orderToken: "token-1" }),
+    }));
+    expect(res.status).toBe(502);
+    const revertCall = updateMock.mock.calls.find(
+      (call) => call[0]?.payment_status === "awaiting_payment"
+    );
+    expect(revertCall).toBeTruthy();
+  });
+
   it("refuses to charge an already-paid order", async () => {
     single.mockResolvedValue({ data: {
       id_order: "order-1", customer_token: "token-1", total: 40000,
