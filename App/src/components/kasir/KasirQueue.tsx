@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { Loader2, MoreHorizontal } from "lucide-react";
+import { Loader2, MoreHorizontal, QrCode } from "lucide-react";
+import { Toaster } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { formatRupiah } from "@/lib/format";
 import { acceptOrder, cancelOrder, completeOrder, markCashPaid } from "@/lib/kasir-actions";
 import CancelOrderDialog from "@/components/kasir/CancelOrderDialog";
+import CheckInDialog from "@/components/kasir/CheckInDialog";
 import KasirOrderSheet from "@/components/kasir/KasirOrderSheet";
 import {
   AGE_LABEL,
@@ -75,6 +77,7 @@ export default function KasirQueue({
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [cancelFor, setCancelFor] = useState<KasirOrder | null>(null);
   const [openFor, setOpenFor] = useState<string | null>(null);
+  const [checkInOpen, setCheckInOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -290,7 +293,15 @@ export default function KasirQueue({
           {cafeName}
           {openingHours ? ` · buka ${openingHours}` : ""}
         </span>
-        <span className="kasir-sub kasir-push">{staffName}</span>
+        <button
+          type="button"
+          className="kasir-btn kasir-btn-solid kasir-push"
+          onClick={() => setCheckInOpen(true)}
+        >
+          <QrCode size={14} aria-hidden="true" />
+          Check-in pesanan
+        </button>
+        <span className="kasir-sub">{staffName}</span>
       </div>
 
       {disconnected && (
@@ -397,6 +408,12 @@ export default function KasirQueue({
           }}
         />
       )}
+
+      {checkInOpen && <CheckInDialog onClose={() => setCheckInOpen(false)} />}
+
+      {/* Konsol kasir permukaan tersendiri — tidak memakai Toaster dashboard,
+          jadi ia membawa miliknya sendiri untuk konfirmasi check-in. */}
+      <Toaster position="top-right" richColors />
     </>
   );
 }
