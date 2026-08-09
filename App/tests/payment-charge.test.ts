@@ -60,7 +60,7 @@ describe("POST /api/payment/charge (Snap)", () => {
   });
 
   it("reverts the pending claim when the Snap fetch throws", async () => {
-    const updateMock = vi.fn(() => ({ eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }));
+    const updateMock = vi.fn((_arg?: { payment_status?: string }) => ({ eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }));
     const eqToken = () => ({ single });
     const eqOrder = () => ({ eq: eqToken });
     from.mockReturnValue({
