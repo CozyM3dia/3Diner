@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import type { OrderItem, OrderStatus } from "@/types";
+import type { OrderItem, OrderStatus, PaymentMethod } from "@/types";
 
 export const ORDER_TABS = ["semua", "berjalan", "dibatalkan"] as const;
 export type OrderTab = (typeof ORDER_TABS)[number];
@@ -39,7 +39,7 @@ export interface OrderRowV2 {
   service_pct?: number;
   service_amount?: number;
   status: OrderStatus;
-  payment_method: string | null;
+  payment_method: PaymentMethod | null;
   payment_status: string;
   created_at: string;
   notes?: string | null;
@@ -158,12 +158,20 @@ export const STATUS_TEXT: Record<OrderStatus, string> = {
   cancelled: "Dibatalkan",
 };
 
+const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  cash: "Tunai",
+  qris: "QRIS",
+  gopay: "GoPay",
+  shopeepay: "ShopeePay",
+  bank_transfer: "Transfer Bank",
+};
+
 /** Metode pembayaran ditulis bersama keadaannya.
  *
  *  "QRIS" saja tidak memberi tahu apakah uangnya sudah masuk, dan itu justru
  *  satu-satunya hal yang ingin diketahui pemilik saat membaca riwayat. */
-export function describePayment(method: string | null, status: string): string {
-  const name = method === "qris" ? "QRIS" : method === "cash" ? "Tunai" : "Belum dipilih";
+export function describePayment(method: PaymentMethod | null, status: string): string {
+  const name = method ? PAYMENT_METHOD_LABEL[method] : "Belum dipilih";
   if (status === "paid") return `${name} · lunas`;
   if (method === "qris") return "QRIS · menunggu";
   return `${name} · belum bayar`;
