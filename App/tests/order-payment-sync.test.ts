@@ -192,4 +192,37 @@ describe("POST /api/payment/webhook", () => {
     expect(res.status).toBe(401);
     expect(rpc2).not.toHaveBeenCalled();
   });
+
+  it("still marks the order paid but forces it visible to the kitchen when stock ran out", async () => {
+    rpc2.mockResolvedValue({
+      data: { error: "insufficient_inventory", unavailableMenus: ["Nasi"] },
+      error: null,
+    });
+
+    const res = await post({
+      order_id: "order-1", status_code: "200", gross_amount: "40000.00",
+      signature_key: sig("order-1", "200", "40000.00"),
+      transaction_status: "settlement", payment_type: "gopay",
+    });
+
+    expect(res.status).toBe(200);
+    const setPaid = update.mock.calls.find((c) => c[0].payment_status === "paid");
+    expect(setPaid).toBeTruthy();
+    const forceReceived = update.mock.calls.find((c) => c[0].status === "received");
+    expect(forceReceived).toBeTruthy();
+  });
+
+  it("does not mark the order paid and returns 502 when confirm_order transport fails", async () => {
+    rpc2.mockResolvedValue({ data: null, error: { message: "db down" } });
+
+    const res = await post({
+      order_id: "order-1", status_code: "200", gross_amount: "40000.00",
+      signature_key: sig("order-1", "200", "40000.00"),
+      transaction_status: "settlement", payment_type: "gopay",
+    });
+
+    expect(res.status).toBe(502);
+    const setPaid = update.mock.calls.find((c) => c[0].payment_status === "paid");
+    expect(setPaid).toBeUndefined();
+  });
 });

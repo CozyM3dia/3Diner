@@ -25,12 +25,34 @@ export async function POST(req: Request) {
 
     if (transaction_status === "settlement" || transaction_status === "capture") {
       // Idempoten: confirm_order no-op jika sudah dikonfirmasi; update paid hanya dari pending.
-      await supabaseAdmin.rpc("confirm_order", { p_order_id: order_id });
-      await supabaseAdmin
+      const { data: confirmData, error: confirmRpcErr } = await supabaseAdmin.rpc("confirm_order", {
+        p_order_id: order_id,
+      });
+      // Transient DB/transport failure: do NOT mark paid; 5xx so Midtrans retries (confirm_order is idempotent).
+      if (confirmRpcErr) {
+        return NextResponse.json({ error: "Gagal konfirmasi pesanan" }, { status: 502 });
+      }
+
+      const { error: paidErr } = await supabaseAdmin
         .from("Orders")
         .update({ payment_status: "paid", payment_method: mapMidtransPaymentType(payment_type) })
         .eq("id_order", order_id)
         .eq("payment_status", "pending");
+      if (paidErr) {
+        return NextResponse.json({ error: "Gagal memperbarui pembayaran" }, { status: 502 });
+      }
+
+      const confirmError = (confirmData as { error?: string } | null)?.error;
+      if (confirmError) {
+        // Customer paid but stock could not be reserved (e.g. sold out after ordering).
+        // Make the paid order visible to the kitchen so staff can reconcile (refund or
+        // substitute) rather than hiding a paid order. Accepts rare inventory drift.
+        await supabaseAdmin
+          .from("Orders")
+          .update({ status: "received" })
+          .eq("id_order", order_id)
+          .eq("status", "awaiting");
+      }
     } else if (["expire", "cancel", "deny", "failure"].includes(transaction_status)) {
       // Tanpa cabang ini, QRIS yang kedaluwarsa membuat pesanan tersangkut di
       // "pending" selamanya: pelanggan tidak bisa membuat QRIS baru maupun
