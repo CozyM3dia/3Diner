@@ -91,6 +91,14 @@ export default function CheckInDialog({ onClose }: Props) {
     [onClose]
   );
 
+  // Ref ke `submit` terbaru: dipakai di dalam loop pindai kamera supaya efek
+  // siklus kamera di bawah tidak perlu bergantung pada identitas `submit`
+  // (yang berubah setiap kali `onClose` dari parent berubah identitas).
+  const submitRef = useRef(submit);
+  useEffect(() => {
+    submitRef.current = submit;
+  }, [submit]);
+
   // Deteksi fitur + kembalikan fokus. Sekali saja saat mount.
   useEffect(() => {
     returnTo.current = document.activeElement;
@@ -162,7 +170,7 @@ export default function CheckInDialog({ onClose }: Props) {
           const parsed = parseQrPayload(bc.rawValue);
           if (parsed) {
             setScanNote("QR terbaca. Memproses…");
-            const ok = await submit(parsed);
+            const ok = await submitRef.current(parsed);
             if (!ok && !disposed) {
               // Gagal (mis. stok kurang): berhenti memindai supaya pesannya
               // terbaca, tapi tetap tampilkan tombol pindai lagi.
@@ -187,7 +195,10 @@ export default function CheckInDialog({ onClose }: Props) {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
-  }, [mode, cameraSupported, submit]);
+    // `submit` sengaja tidak dimasukkan: identitasnya dijaga lewat submitRef
+    // di atas, supaya siklus getUserMedia/RAF ini tidak restart tiap kali
+    // parent me-render ulang dengan `onClose` baru.
+  }, [mode, cameraSupported]);
 
   function submitManual(e: React.FormEvent) {
     e.preventDefault();

@@ -153,6 +153,11 @@ export default function KasirQueue({
     };
   }, [cafeId]);
 
+  // Identitas stabil supaya efek siklus kamera di CheckInDialog tidak
+  // restart getUserMedia setiap kali KasirQueue me-render ulang (age-tick
+  // tiap 30dtk, event Realtime) — lihat CheckInDialog.tsx.
+  const closeCheckIn = useCallback(() => setCheckInOpen(false), []);
+
   const run = useCallback(
     (id: string, fn: () => Promise<{ error?: string }>, optimisticRemove: boolean) => {
       setBusyId(id);
@@ -409,7 +414,7 @@ export default function KasirQueue({
         />
       )}
 
-      {checkInOpen && <CheckInDialog onClose={() => setCheckInOpen(false)} />}
+      {checkInOpen && <CheckInDialog onClose={closeCheckIn} />}
 
       {/* Konsol kasir permukaan tersendiri — tidak memakai Toaster dashboard,
           jadi ia membawa miliknya sendiri untuk konfirmasi check-in. */}
