@@ -150,6 +150,7 @@ export function summarizeItems(items: OrderItem[]): string {
 }
 
 export const STATUS_TEXT: Record<OrderStatus, string> = {
+  awaiting: "Menunggu",
   received: "Baru",
   preparing: "Disiapkan",
   ready: "Siap",

@@ -4,6 +4,7 @@ import {
   PAYMENT_METHODS,
   mapMidtransPaymentType,
 } from "@/lib/payment-methods";
+import { needsCash, belongsInQueue } from "@/lib/kasir-queue-rules";
 
 describe("payment-methods", () => {
   it("enables the approved Snap channels", () => {
@@ -26,5 +27,18 @@ describe("payment-methods", () => {
       expect(PAYMENT_METHODS).toContain(mapMidtransPaymentType(t));
     }
     expect(PAYMENT_METHODS).toContain("cash");
+  });
+});
+
+describe("queue rules", () => {
+  it("only asks the cashier for money on cash orders", () => {
+    expect(needsCash({ payment_status: "unpaid", payment_method: "cash" })).toBe(true);
+    expect(needsCash({ payment_status: "unpaid", payment_method: "gopay" })).toBe(false);
+    expect(needsCash({ payment_status: "unpaid", payment_method: "qris" })).toBe(false);
+    expect(needsCash({ payment_status: "paid", payment_method: "cash" })).toBe(false);
+  });
+  it("keeps awaiting orders out of the queue", () => {
+    expect(belongsInQueue("awaiting")).toBe(false);
+    expect(belongsInQueue("received")).toBe(true);
   });
 });

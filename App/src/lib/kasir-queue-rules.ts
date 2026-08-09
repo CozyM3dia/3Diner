@@ -46,13 +46,10 @@ interface PayableOrder {
   payment_method: string | null;
 }
 
-/** Pesanan yang uangnya masih harus diterima kasir.
- *
- *  QRIS tidak pernah dilunasi kasir — hanya webhook Midtrans yang boleh
- *  menyatakannya lunas, karena kasir tidak bisa melihat dananya benar-benar
- *  masuk. Jadi QRIS yang belum lunas tetap diserahkan tanpa "terima tunai". */
+/** Uang tunai hanya ditagih untuk pesanan bermetode 'cash'. Semua metode online
+ *  (qris/gopay/shopeepay/bank_transfer) dilunasi webhook Midtrans, bukan kasir. */
 export function needsCash(o: PayableOrder): boolean {
-  return o.payment_status !== "paid" && o.payment_method !== "qris";
+  return o.payment_status !== "paid" && o.payment_method === "cash";
 }
 
 /** Ringkasan item untuk satu baris setinggi 44px.

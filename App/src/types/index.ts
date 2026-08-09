@@ -165,8 +165,8 @@ export function cartLineKey(
   return `${idMenu}:${[...new Set(optionIds)].sort().join(",")}:${trimmed}`
 }
 
-export type PaymentMethod = 'cash' | 'qris'
-export type PaymentStatus = 'unpaid' | 'pending' | 'paid'
+export type PaymentMethod = 'cash' | 'qris' | 'gopay' | 'shopeepay' | 'bank_transfer'
+export type PaymentStatus = 'unpaid' | 'awaiting_payment' | 'awaiting_checkin' | 'pending' | 'paid'
 
 /** Siklus hidup pesanan.
  *
@@ -177,6 +177,7 @@ export type PaymentStatus = 'unpaid' | 'pending' | 'paid'
  *  `ready` dipertahankan sebagai tahap opsional untuk kafe yang punya runner
  *  terpisah (K1). Konsol Kasir default melompatinya: Masuk → Disiapkan → Selesai. */
 export type OrderStatus =
+  | 'awaiting'
   | 'received'
   | 'preparing'
   | 'ready'
