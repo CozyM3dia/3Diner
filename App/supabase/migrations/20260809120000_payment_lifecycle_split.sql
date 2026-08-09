@@ -322,33 +322,35 @@ begin
 end;
 $$;
 
--- ── checkin_order: validasi kode (cafe-scoped) → confirm ────
+-- ── checkin_order: resolusi kode (cafe-scoped) → confirm ────
+-- Kode 8-char unik per kafe (lihat "Orders_checkin_code_unique") jadi
+-- cukup untuk temukan tepat satu pesanan — tak perlu order id manual.
 create or replace function public.checkin_order(
-  p_cafe_id uuid, p_order_id text, p_checkin_code text
+  p_cafe_id uuid, p_checkin_code text
 ) returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
-  v_code text;
-  v_method text;
+  v_order_id text;
 begin
-  if p_cafe_id is null or p_order_id is null or nullif(trim(p_checkin_code), '') is null then
+  if p_cafe_id is null or nullif(trim(p_checkin_code), '') is null
+     or upper(trim(p_checkin_code)) !~ '^[A-Z0-9]{8}$' then
     return jsonb_build_object('error', 'checkin_invalid');
   end if;
 
-  select checkin_code, payment_method into v_code, v_method
+  select id_order into v_order_id
   from public."Orders"
-  where id_order = p_order_id and cafe_id = p_cafe_id;
-
-  -- Kode salah, kafe salah, atau bukan pesanan tunai → tolak seragam.
-  if v_code is null or v_method <> 'cash'
-     or v_code <> upper(trim(p_checkin_code)) then
+  where cafe_id = p_cafe_id
+    and checkin_code = upper(trim(p_checkin_code))
+    and payment_method = 'cash'
+    and status = 'awaiting';
+  if not found then
     return jsonb_build_object('error', 'checkin_invalid');
   end if;
 
-  return public.confirm_order(p_order_id);
+  return public.confirm_order(v_order_id);
 end;
 $$;
 
@@ -413,9 +415,9 @@ $$;
 -- ── Hak akses ───────────────────────────────────────────────
 revoke all on function public.create_order(uuid, text, jsonb, text, text) from public, anon, authenticated;
 revoke all on function public.confirm_order(text) from public, anon, authenticated;
-revoke all on function public.checkin_order(uuid, text, text) from public, anon, authenticated;
+revoke all on function public.checkin_order(uuid, text) from public, anon, authenticated;
 grant execute on function public.create_order(uuid, text, jsonb, text, text) to service_role;
 grant execute on function public.confirm_order(text) to service_role;
-grant execute on function public.checkin_order(uuid, text, text) to service_role;
+grant execute on function public.checkin_order(uuid, text) to service_role;
 
 commit;

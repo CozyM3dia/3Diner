@@ -17,10 +17,10 @@ describe("POST /api/kasir/checkin", () => {
     const { POST } = await import("@/app/api/kasir/checkin/route");
     const res = await POST(new Request("http://localhost/api/kasir/checkin", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId: "order-1", checkinCode: "ABCD2345" }) }));
+      body: JSON.stringify({ checkinCode: "ABCD2345" }) }));
     expect(res.status).toBe(200);
     expect(rpc).toHaveBeenCalledWith("checkin_order", {
-      p_cafe_id: "cafe-1", p_order_id: "order-1", p_checkin_code: "ABCD2345" });
+      p_cafe_id: "cafe-1", p_checkin_code: "ABCD2345" });
   });
 
   it("rejects an invalid code as 404 without leaking why", async () => {
@@ -28,7 +28,7 @@ describe("POST /api/kasir/checkin", () => {
     const { POST } = await import("@/app/api/kasir/checkin/route");
     const res = await POST(new Request("http://localhost/api/kasir/checkin", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId: "order-1", checkinCode: "WRONG000" }) }));
+      body: JSON.stringify({ checkinCode: "WRONG000" }) }));
     expect(res.status).toBe(404);
   });
 
@@ -37,7 +37,7 @@ describe("POST /api/kasir/checkin", () => {
     const { POST } = await import("@/app/api/kasir/checkin/route");
     const res = await POST(new Request("http://localhost/api/kasir/checkin", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId: "order-1", checkinCode: "ABCD2345" }) }));
+      body: JSON.stringify({ checkinCode: "ABCD2345" }) }));
     expect(res.status).toBe(409);
   });
 });

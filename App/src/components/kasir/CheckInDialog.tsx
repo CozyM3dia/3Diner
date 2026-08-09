@@ -28,13 +28,16 @@ function normalizeCode(raw: string): string {
 }
 
 /** Membaca payload QR pelanggan: `{"o": orderId, "c": code}` (Task 9).
- *  Mengembalikan pasangan bila valid, atau null bila QR bukan milik alur ini. */
-function parseQrPayload(raw: string): { o: string; c: string } | null {
+ *  Hanya kodenya yang dipakai — check-in sekarang bekerja dari kode saja,
+ *  `o` diabaikan. QR mentah berupa kode 8-karakter polos juga diterima
+ *  langsung, tanpa perlu dibungkus JSON. */
+function parseQrPayload(raw: string): string | null {
+  const bare = normalizeCode(raw);
+  if (CODE_RE.test(bare)) return bare;
   try {
-    const data = JSON.parse(raw) as { o?: unknown; c?: unknown };
-    const o = typeof data.o === "string" ? data.o : "";
+    const data = JSON.parse(raw) as { c?: unknown };
     const c = typeof data.c === "string" ? normalizeCode(data.c) : "";
-    if (o && CODE_RE.test(c)) return { o, c };
+    if (CODE_RE.test(c)) return c;
   } catch {
     /* Bukan JSON — QR lain yang tidak berkaitan. */
   }
@@ -56,7 +59,6 @@ export default function CheckInDialog({ onClose }: Props) {
   const [cameraSupported, setCameraSupported] = useState<boolean | null>(null);
   const [mode, setMode] = useState<"scan" | "manual">("manual");
 
-  const [orderId, setOrderId] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,12 +72,12 @@ export default function CheckInDialog({ onClose }: Props) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
 
   const submit = useCallback(
-    async (oid: string, c: string): Promise<boolean> => {
+    async (c: string): Promise<boolean> => {
       if (submittingRef.current) return false;
       submittingRef.current = true;
       setBusy(true);
       setError(null);
-      const msg = await checkInOrder(oid, c);
+      const msg = await checkInOrder(c);
       setBusy(false);
       submittingRef.current = false;
       if (msg) {
@@ -160,7 +162,7 @@ export default function CheckInDialog({ onClose }: Props) {
           const parsed = parseQrPayload(bc.rawValue);
           if (parsed) {
             setScanNote("QR terbaca. Memproses…");
-            const ok = await submit(parsed.o, parsed.c);
+            const ok = await submit(parsed);
             if (!ok && !disposed) {
               // Gagal (mis. stok kurang): berhenti memindai supaya pesannya
               // terbaca, tapi tetap tampilkan tombol pindai lagi.
@@ -189,17 +191,12 @@ export default function CheckInDialog({ onClose }: Props) {
 
   function submitManual(e: React.FormEvent) {
     e.preventDefault();
-    const oid = orderId.trim();
     const c = normalizeCode(code);
-    if (!oid) {
-      setError("Nomor pesanan wajib diisi.");
-      return;
-    }
     if (!CODE_RE.test(c)) {
       setError("Kode check-in harus 8 karakter (huruf/angka).");
       return;
     }
-    void submit(oid, c);
+    void submit(c);
   }
 
   const showScanToggle = cameraSupported === true;
@@ -217,8 +214,8 @@ export default function CheckInDialog({ onClose }: Props) {
           Check-in pesanan
         </h2>
         <p className="kasir-dialog-body">
-          Pindai QR yang tamu tunjukkan, atau ketik nomor pesanan dan kodenya. Pesanan masuk ke
-          antrean setelah cocok.
+          Pindai QR yang tamu tunjukkan, atau ketik kode check-in-nya. Pesanan masuk ke antrean
+          setelah cocok.
         </p>
 
         {showScanToggle && (
@@ -254,20 +251,7 @@ export default function CheckInDialog({ onClose }: Props) {
           </div>
         ) : (
           <form onSubmit={submitManual}>
-            <label className="kasir-label" htmlFor="kasir-checkin-order">
-              Nomor pesanan
-            </label>
-            <input
-              id="kasir-checkin-order"
-              className="kasir-input"
-              value={orderId}
-              onChange={(e) => setOrderId(e.target.value)}
-              placeholder="Nomor pesanan dari layar tamu"
-              autoComplete="off"
-              inputMode="text"
-            />
-
-            <label className="kasir-label kasir-label-gap" htmlFor="kasir-checkin-code">
+            <label className="kasir-label" htmlFor="kasir-checkin-code">
               Kode check-in
             </label>
             <input

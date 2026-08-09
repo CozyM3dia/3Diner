@@ -8,13 +8,13 @@
  *  Mengembalikan `null` bila berhasil, atau pesan kesalahan siap-tampil —
  *  meniru gaya `setPaymentMethod` di `orders.ts`: satu nilai balik, tanpa
  *  lempar, supaya pemanggil cukup menulis `if (msg) …`. */
-export async function checkInOrder(orderId: string, checkinCode: string): Promise<string | null> {
+export async function checkInOrder(checkinCode: string): Promise<string | null> {
   let res: Response;
   try {
     res = await fetch("/api/kasir/checkin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId, checkinCode }),
+      body: JSON.stringify({ checkinCode }),
     });
   } catch {
     // Jaringan putus di tengah layanan bukan "gagal check-in" — kasir perlu
