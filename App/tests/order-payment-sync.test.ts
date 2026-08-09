@@ -143,3 +143,53 @@ describe("POST /api/orders/[id]/payment", () => {
     expect(res.status).toBe(409);
   });
 });
+
+describe("POST /api/payment/webhook", () => {
+  const rpc2 = vi.fn();
+  const update = vi.fn();
+  const eq2 = vi.fn();
+  const from2 = vi.fn();
+  beforeEach(() => {
+    vi.resetModules(); vi.clearAllMocks();
+    process.env.MIDTRANS_SERVER_KEY = "server-key";
+    eq2.mockReturnValue({ eq: () => Promise.resolve({ error: null }) });
+    update.mockReturnValue({ eq: eq2 });
+    from2.mockReturnValue({
+      select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { total: 40000, payment_status: "pending" } }) }) }),
+      update,
+    });
+    rpc2.mockResolvedValue({ data: { ok: true }, error: null });
+    vi.doMock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from: from2, rpc: rpc2 } }));
+  });
+
+  async function post(payload: Record<string, unknown>) {
+    const { POST } = await import("@/app/api/payment/webhook/route");
+    return POST(new Request("http://localhost/api/payment/webhook", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }));
+  }
+
+  function sig(order_id: string, status_code: string, gross_amount: string) {
+    const { createHash } = require("node:crypto");
+    return createHash("sha512").update(`${order_id}${status_code}${gross_amount}server-key`).digest("hex");
+  }
+
+  it("confirms and stores the real payment method on settlement", async () => {
+    const res = await post({
+      order_id: "order-1", status_code: "200", gross_amount: "40000.00",
+      signature_key: sig("order-1", "200", "40000.00"),
+      transaction_status: "settlement", payment_type: "gopay",
+    });
+    expect(res.status).toBe(200);
+    expect(rpc2).toHaveBeenCalledWith("confirm_order", { p_order_id: "order-1" });
+    const setPaid = update.mock.calls.find((c) => c[0].payment_status === "paid");
+    expect(setPaid?.[0].payment_method).toBe("gopay");
+  });
+
+  it("rejects a forged signature without touching the order", async () => {
+    const res = await post({
+      order_id: "order-1", status_code: "200", gross_amount: "40000.00",
+      signature_key: "forged", transaction_status: "settlement", payment_type: "qris" });
+    expect(res.status).toBe(401);
+    expect(rpc2).not.toHaveBeenCalled();
+  });
+});
