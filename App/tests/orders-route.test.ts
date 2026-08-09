@@ -44,16 +44,21 @@ describe("POST /api/orders", () => {
     );
 
     expect(response.status).toBe(201);
-    await expect(response.json()).resolves.toEqual({ order: successfulOrder, orderToken: "token-1" });
-    expect(rpc).toHaveBeenCalledWith("create_order_with_inventory", {
+    await expect(response.json()).resolves.toEqual({
+      order: successfulOrder,
+      orderToken: "token-1",
+      checkinCode: null,
+    });
+    expect(rpc).toHaveBeenCalledWith("create_order", {
       p_cafe_id: "cafe-1",
       p_table_number: "12",
       p_items: [{ id_menu: "menu-1", qty: 2, options: [] }],
       p_notes: "Tanpa acar",
+      p_channel: "online",
     });
     // Rute juga memanggil consume_rate_limit lewat spy yang sama, jadi yang
     // dijaga di sini adalah pesanan dibuat tepat sekali — bukan total panggilan.
-    expect(rpc.mock.calls.filter(([fn]) => fn === "create_order_with_inventory")).toHaveLength(1);
+    expect(rpc.mock.calls.filter(([fn]) => fn === "create_order")).toHaveLength(1);
   });
 
   // Ini yang dulu bocor: rute menyusun ulang tiap item menjadi { id_menu, qty }
@@ -78,11 +83,12 @@ describe("POST /api/orders", () => {
     );
 
     expect(response.status).toBe(201);
-    expect(rpc).toHaveBeenCalledWith("create_order_with_inventory", {
+    expect(rpc).toHaveBeenCalledWith("create_order", {
       p_cafe_id: "cafe-1",
       p_table_number: "12",
       p_items: [{ id_menu: "menu-1", qty: 1, options }],
       p_notes: null,
+      p_channel: "online",
     });
   });
 

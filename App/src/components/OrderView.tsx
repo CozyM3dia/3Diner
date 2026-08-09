@@ -375,10 +375,7 @@ function CashierView({
   // QR di-encode di klien dari payload minimal {o,c}. Kasir memindainya untuk
   // membuka pesanan; kode 8 karakter adalah cadangan bila kamera bermasalah.
   useEffect(() => {
-    if (!code) {
-      setQrDataUrl(null);
-      return;
-    }
+    if (!code) return;
     let active = true;
     const payload = JSON.stringify({ o: order.id_order, c: code });
     QRCode.toDataURL(payload, {
@@ -440,7 +437,7 @@ function CashierView({
             className="mx-auto rounded-2xl inline-flex items-center justify-center"
             style={{ background: "var(--white)", padding: "12px", boxShadow: "var(--shadow-sm)" }}
           >
-            {qrDataUrl ? (
+            {code && qrDataUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={qrDataUrl}

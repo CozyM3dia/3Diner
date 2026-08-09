@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const rpc = vi.fn();
@@ -169,7 +170,6 @@ describe("POST /api/payment/webhook", () => {
   }
 
   function sig(order_id: string, status_code: string, gross_amount: string) {
-    const { createHash } = require("node:crypto");
     return createHash("sha512").update(`${order_id}${status_code}${gross_amount}server-key`).digest("hex");
   }
 

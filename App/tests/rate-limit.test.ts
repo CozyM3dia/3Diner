@@ -156,7 +156,7 @@ describe("POST /api/orders rate limiting", () => {
 
     expect(response.status).toBe(429);
     expect(response.headers.get("retry-after")).toBeTruthy();
-    expect(rpc).not.toHaveBeenCalledWith("create_order_with_inventory", expect.anything());
+    expect(rpc).not.toHaveBeenCalledWith("create_order", expect.anything());
   });
 
   it("creates the order when under the limit", async () => {
@@ -182,7 +182,7 @@ describe("POST /api/orders rate limiting", () => {
     const response = await POST(orderRequest());
 
     expect(response.status).toBe(201);
-    expect(rpc).toHaveBeenCalledWith("create_order_with_inventory", expect.anything());
+    expect(rpc).toHaveBeenCalledWith("create_order", expect.anything());
   });
 
   it("rejects malformed input before spending a rate-limit slot", async () => {

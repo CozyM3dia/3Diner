@@ -41,8 +41,9 @@ describe("saringan riwayat pesanan", () => {
 });
 
 describe("kosakata status", () => {
-  it("memberi nama pada kelima status", () => {
-    expect(Object.keys(STATUS_TEXT)).toHaveLength(5);
+  it("memberi nama pada keenam status", () => {
+    expect(Object.keys(STATUS_TEXT)).toHaveLength(6);
+    expect(STATUS_TEXT.awaiting).toBe("Menunggu");
     expect(STATUS_TEXT.completed).toBe("Selesai");
     expect(STATUS_TEXT.cancelled).toBe("Dibatalkan");
   });
