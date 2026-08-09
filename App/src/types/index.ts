@@ -234,6 +234,9 @@ export interface Order {
   cancelled_by?: string | null
   notes?: string | null
   customer_token?: string
+  /** Kode check-in 8 karakter untuk pesanan bayar-di-kasir (`awaiting_checkin`).
+   *  Null untuk pesanan online. Ditunjukkan tamu ke kasir bersama QR. */
+  checkin_code?: string | null
 }
 
 // ── Staf & peran (memisahkan Konsol Kasir dari Konsol Owner) ──

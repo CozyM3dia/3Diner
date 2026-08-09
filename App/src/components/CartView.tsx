@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowLeft, LoaderCircle, Minus, Plus, Plus as PlusIcon, Box, ShoppingBag, WifiOff } from "lucide-react";
+import { AlertCircle, ArrowLeft, LoaderCircle, Minus, Plus, Plus as PlusIcon, Box, ShoppingBag, WifiOff, Smartphone, Store } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { createOrder } from "@/lib/orders";
 import { formatRupiah } from "@/lib/format";
@@ -18,6 +18,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
   const [touched, setTouched] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [channel, setChannel] = useState<"online" | "cashier">("online");
   const orderErrorRef = useRef<HTMLDivElement>(null);
   const tableValid = table.trim().length > 0;
 
@@ -36,6 +37,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
         table: table.trim(),
         items,
         notes: notes.trim(),
+        paymentChannel: channel,
       });
       clear();
       // Token ikut di URL supaya tautan status bisa dibuka ulang atau dibagikan
@@ -226,6 +228,11 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
               </span>
             </div>
           </div>
+
+          {/* Metode pembayaran dipilih di sini supaya jalur (online vs kasir)
+              sudah pasti saat pesanan dibuat: pesanan kasir butuh kode check-in
+              yang dibuat di saat itu juga, bukan sesudahnya. */}
+          <PaymentChannelSelector value={channel} onChange={setChannel} />
         </div>
       )}
 
@@ -263,7 +270,9 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                 {isSubmitting ? "Mengirim pesanan..." : "Pesan Sekarang"}
               </button>
               <p className="text-[11px] text-center mt-2" style={{ color: "var(--navy-muted)" }}>
-                Pesananmu akan dikirim ke dapur {cafe.nama_cafe}
+                {channel === "online"
+                  ? "Lanjut ke pembayaran online setelah pesanan dibuat"
+                  : `Tunjukkan kode ke kasir ${cafe.nama_cafe} untuk bayar`}
               </p>
             </>
           ) : (
@@ -285,5 +294,80 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
         </div>
       )}
     </main>
+  );
+}
+
+/* ── Pemilih metode pembayaran: dua segmen setara (online / kasir) ── */
+function PaymentChannelSelector({
+  value,
+  onChange,
+}: {
+  value: "online" | "cashier";
+  onChange: (v: "online" | "cashier") => void;
+}) {
+  const options = [
+    {
+      id: "online" as const,
+      icon: Smartphone,
+      title: "Bayar Online",
+      sub: "QRIS, e-wallet, & bank",
+    },
+    {
+      id: "cashier" as const,
+      icon: Store,
+      title: "Bayar di Kasir",
+      sub: "Tunjukkan kode ke kasir",
+    },
+  ];
+
+  return (
+    <section className="mt-4" aria-label="Metode pembayaran">
+      <h2 className="font-display text-sm font-bold mb-2" style={{ color: "var(--navy)" }}>
+        Metode Pembayaran
+      </h2>
+      <div
+        role="radiogroup"
+        aria-label="Metode pembayaran"
+        className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl"
+        style={{ background: "var(--surface)" }}
+      >
+        {options.map((opt) => {
+          const active = value === opt.id;
+          const Icon = opt.icon;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => onChange(opt.id)}
+              className="press flex flex-col items-start gap-1.5 rounded-xl px-3.5 py-3 text-left transition-[background,box-shadow,transform] duration-200"
+              style={
+                active
+                  ? { background: "var(--white)", boxShadow: "var(--shadow-md)", border: "1.5px solid var(--orange)" }
+                  : { background: "transparent", border: "1.5px solid transparent" }
+              }
+            >
+              <span className="flex items-center gap-2">
+                <Icon
+                  size={18}
+                  strokeWidth={2.2}
+                  style={{ color: active ? "var(--orange)" : "var(--navy-muted)" }}
+                />
+                <span
+                  className="font-semibold text-[13px]"
+                  style={{ color: active ? "var(--navy)" : "var(--navy-muted)" }}
+                >
+                  {opt.title}
+                </span>
+              </span>
+              <span className="text-[11px] leading-tight" style={{ color: "var(--navy-muted)" }}>
+                {opt.sub}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }

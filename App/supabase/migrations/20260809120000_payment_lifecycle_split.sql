@@ -352,6 +352,64 @@ begin
 end;
 $$;
 
+-- ── get_order_for_customer: sertakan checkin_code ───────────
+-- Layar pelanggan bayar-di-kasir butuh kode ini untuk merender QR + 8 digit
+-- saat halaman dibuka ulang (server, bukan localStorage, sumber kebenarannya).
+create or replace function public.get_order_for_customer(
+  p_order_id text,
+  p_token uuid
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_order record;
+  v_cafe record;
+begin
+  if p_order_id is null or p_token is null then
+    return jsonb_build_object('error', 'order_not_found');
+  end if;
+
+  select o.id_order, o.cafe_id, o.table_number, o.items, o.total, o.status,
+         o.payment_method, o.payment_status, o.notes, o.created_at, o.checkin_code
+    into v_order
+  from public."Orders" o
+  where o.id_order = p_order_id
+    and o.customer_token = p_token;
+
+  if not found then
+    return jsonb_build_object('error', 'order_not_found');
+  end if;
+
+  select c.nama_cafe, c.slug_url, c.google_maps_review_url
+    into v_cafe
+  from public."Cafes" c
+  where c.id_cafe = v_order.cafe_id;
+
+  return jsonb_build_object(
+    'order', jsonb_build_object(
+      'id_order', v_order.id_order,
+      'cafe_id', v_order.cafe_id,
+      'cafe_name', v_cafe.nama_cafe,
+      'cafe_slug', v_cafe.slug_url,
+      'table_number', v_order.table_number,
+      'items', v_order.items,
+      'total', v_order.total,
+      'status', v_order.status,
+      'payment_method', v_order.payment_method,
+      'payment_status', v_order.payment_status,
+      'notes', v_order.notes,
+      'created_at', v_order.created_at,
+      -- Hanya relevan selama menunggu check-in; jangan bocorkan kode setelahnya.
+      'checkin_code', case when v_order.payment_status = 'awaiting_checkin'
+                          then v_order.checkin_code else null end
+    ),
+    'reviewUrl', v_cafe.google_maps_review_url
+  );
+end;
+$$;
+
 -- ── Hak akses ───────────────────────────────────────────────
 revoke all on function public.create_order(uuid, text, jsonb, text, text) from public, anon, authenticated;
 revoke all on function public.confirm_order(text) from public, anon, authenticated;

@@ -2,40 +2,37 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useSearchParams } from "next/navigation";
+import QRCode from "qrcode";
 import {
   Check,
   Wallet,
-  QrCode,
-  ChevronRight,
   ShieldCheck,
-  ArrowLeft,
   RefreshCw,
   Star,
   Loader2,
+  Store,
+  Smartphone,
+  Copy,
 } from "lucide-react";
-import { fetchOrder, getStub, setPaymentMethod } from "@/lib/orders";
+import { chargeOnline, fetchOrder, getStub, startSnapPayment } from "@/lib/orders";
 import { formatRupiah } from "@/lib/format";
 import type { Order, OrderItem } from "@/types";
 
-type View = "loading" | "missing" | "choose" | "qris" | "status";
+type View = "loading" | "missing" | "pay" | "cashier" | "status";
 
-/** Selang polling. Layar QRIS menunggu webhook Midtrans, jadi diperiksa lebih
- *  sering; layar status hanya menunggu dapur, yang bergerak dalam menit. */
-const POLL_QRIS_MS = 4000;
-const POLL_STATUS_MS = 15000;
+/** Selang polling. Layar bayar-online menunggu webhook Midtrans, jadi diperiksa
+ *  lebih sering; layar kasir & status menunggu tindakan manusia (menit). */
+const POLL_PAY_MS = 4000;
+const POLL_SLOW_MS = 15000;
 
 export default function OrderView({ slug, orderId }: { slug: string; orderId: string }) {
   const searchParams = useSearchParams();
   const [order, setOrder] = useState<Order | null>(null);
   const [reviewUrl, setReviewUrl] = useState<string | null>(null);
   const [view, setView] = useState<View>("loading");
-  const [qrUrl, setQrUrl] = useState<string | null>(null);
-  const [qrExpiry, setQrExpiry] = useState<number | null>(null);
-  const [qrLoading, setQrLoading] = useState(false);
-  const [qrError, setQrError] = useState<string | null>(null);
-  const [cashLoading, setCashLoading] = useState(false);
+  const [chargeLoading, setChargeLoading] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   // Token boleh datang dari tautan (perangkat lain, cache terhapus) atau dari
@@ -76,14 +73,16 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
 
   // Polling menggantikan langganan Realtime anon: tabel Orders dicabut aksesnya
   // dari peran anon, jadi postgres_changes tidak pernah sampai ke pelanggan.
+  // Server tetap sumber kebenaran — tiap putaran menurunkan layar dari keadaan
+  // pesanan, jadi webhook (lunas) atau check-in kasir memindahkan tampilan sendiri.
   useEffect(() => {
-    if (view !== "qris" && view !== "status") return;
+    if (view === "loading" || view === "missing") return;
     if (order?.status === "ready" && order?.payment_status === "paid") return;
 
-    const interval = view === "qris" ? POLL_QRIS_MS : POLL_STATUS_MS;
+    const interval = view === "pay" ? POLL_PAY_MS : POLL_SLOW_MS;
     const timer = setInterval(() => {
       void load().then((fresh) => {
-        if (fresh && fresh.payment_status === "paid" && view === "qris") setView("status");
+        if (fresh) setView(viewForOrder(fresh));
       });
     }, interval);
 
@@ -93,69 +92,37 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
   async function refreshNow() {
     setRefreshing(true);
     const fresh = await load();
-    if (fresh?.payment_status === "paid") setView("status");
+    if (fresh) setView(viewForOrder(fresh));
     setRefreshing(false);
   }
 
-  async function chooseCash() {
+  /** Bayar online: minta token Snap lalu buka popup Midtrans. Poller yang
+   *  menaikkan layar ke status begitu webhook menandai lunas — callback sukses
+   *  hanya mempercepat perpindahan optimistis. */
+  async function payOnline() {
     const token = resolveToken();
     if (!order || !token) return;
-    setCashLoading(true);
-    setQrError(null);
-    const error = await setPaymentMethod(order.id_order, token, "cash");
-    if (error) {
-      setQrError(error);
-      setCashLoading(false);
-      return;
-    }
-    await load();
-    setCashLoading(false);
-    setView("status");
-  }
-
-  const chooseQris = useCallback(async () => {
-    const token = resolveToken();
-    if (!order || !token) return;
-
-    setQrLoading(true);
-    setQrError(null);
+    setChargeLoading(true);
+    setPayError(null);
     try {
-      const res = await fetch("/api/payment/charge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: order.id_order, orderToken: token }),
+      const snapToken = await chargeOnline(order.id_order, token);
+      startSnapPayment(snapToken, {
+        onSuccess: () => {
+          void load().then((fresh) => fresh && setView(viewForOrder(fresh)));
+        },
+        onPending: () => {
+          void load().then((fresh) => fresh && setView(viewForOrder(fresh)));
+        },
+        onError: () => setPayError("Pembayaran gagal diproses. Coba lagi."),
+        onClose: () => {
+          void load();
+        },
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal membuat QRIS");
-
-      const url: string = data.actions?.[0]?.url ?? null;
-      if (!url) throw new Error("QR URL tidak ditemukan dari Midtrans");
-      setQrUrl(url);
-      setQrExpiry(parseQrisExpiry(data.expiry_time));
-      await load();
-      setView("qris");
     } catch (e: unknown) {
-      setQrError(e instanceof Error ? e.message : "Terjadi kesalahan");
+      setPayError(e instanceof Error ? e.message : "Gagal memulai pembayaran");
     } finally {
-      setQrLoading(false);
+      setChargeLoading(false);
     }
-  }, [order, resolveToken, load]);
-
-  // Layar QRIS dibuka ulang (refresh / tautan dibagikan): qrUrl tidak tersimpan
-  // di perangkat, jadi ambil ulang QR yang sama — server bersifat idempoten.
-  useEffect(() => {
-    if (view !== "qris" || qrUrl || qrLoading || qrError) return;
-    const t = setTimeout(() => void chooseQris(), 0);
-    return () => clearTimeout(t);
-  }, [view, qrUrl, qrLoading, qrError, chooseQris]);
-
-  /** Buang QR lama (kedaluwarsa) lalu minta yang baru. Server membuka kunci
-   *  pesanan yang transaksi Midtrans-nya sudah mati. */
-  function regenerateQris() {
-    setQrUrl(null);
-    setQrExpiry(null);
-    setQrError(null);
-    void chooseQris();
   }
 
   if (view === "loading") {
@@ -189,47 +156,45 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
     );
   }
 
-  if (view === "choose") {
+  if (view === "pay") {
     return (
-      <PaymentChoice
+      <OnlinePayView
         order={order}
-        onCash={chooseCash}
-        onQris={chooseQris}
-        cashLoading={cashLoading}
-        qrLoading={qrLoading}
-        errorMessage={qrError}
+        loading={chargeLoading}
+        errorMessage={payError}
+        onPay={payOnline}
       />
     );
   }
 
-  if (view === "qris") {
-    return (
-      <QrisView
-        order={order}
-        qrUrl={qrUrl}
-        expiry={qrExpiry}
-        refreshing={refreshing}
-        onRefresh={refreshNow}
-        onRegenerate={regenerateQris}
-        onBack={() => setView("choose")}
-      />
-    );
+  if (view === "cashier") {
+    return <CashierView order={order} refreshing={refreshing} onRefresh={refreshNow} />;
   }
 
   return <StatusView order={order} slug={slug} reviewUrl={reviewUrl} refreshing={refreshing} onRefresh={refreshNow} />;
 }
 
 /** Layar yang cocok untuk keadaan pesanan menurut server. Tidak ada jalur yang
- *  membiarkan klien menyatakan pesanan lunas sendiri. */
+ *  membiarkan klien menyatakan pesanan lunas sendiri. Jalur dipilih di keranjang
+ *  saat pesanan dibuat, jadi di sini tinggal memetakan keadaan server. */
 function viewForOrder(order: Order): View {
   if (order.payment_status === "paid") return "status";
-  if (order.payment_method === "cash") return "status";
-  if (order.payment_method === "qris" && order.payment_status === "pending") return "qris";
-  return "choose";
+  // Begitu dapur menerima pesanan (check-in kasir / webhook), QR tak berguna lagi.
+  if (order.status !== "awaiting") return "status";
+  if (order.payment_status === "awaiting_checkin") return "cashier";
+  return "pay";
 }
 
 /* ── Ringkasan pesanan di kepala layar ── */
-function ConfirmBanner({ order }: { order: Order }) {
+function ConfirmBanner({
+  order,
+  title,
+  subtitle,
+}: {
+  order: Order;
+  title: string;
+  subtitle: string;
+}) {
   return (
     <header
       className="relative px-5 pt-12 pb-6 text-white"
@@ -241,9 +206,9 @@ function ConfirmBanner({ order }: { order: Order }) {
       >
         <Check size={26} strokeWidth={3} />
       </div>
-      <h1 className="font-display text-xl font-extrabold mt-4">Pesanan Terkirim</h1>
+      <h1 className="font-display text-xl font-extrabold mt-4">{title}</h1>
       <p className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,0.78)" }}>
-        Sudah masuk ke dapur {order.cafe_name}
+        {subtitle}
       </p>
       <div className="flex flex-wrap gap-2 mt-4">
         <Chip>No. {shortOrderId(order.id_order)}</Chip>
@@ -264,27 +229,50 @@ function Chip({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ── 1. Pilihan pembayaran ── */
-function PaymentChoice({
+/** Ringkasan item + total dipakai bersama oleh layar bayar-online dan kasir. */
+function OrderSummaryCard({ order }: { order: Order }) {
+  return (
+    <div className="card p-4">
+      <h2 className="font-display text-sm font-bold mb-3" style={{ color: "var(--navy)" }}>
+        Rincian Pesanan
+      </h2>
+      <div className="space-y-2.5">
+        {order.items.map((it, i) => (
+          <OrderLine key={`${it.id_menu}-${i}`} item={it} />
+        ))}
+      </div>
+      <div className="w-full h-px my-3" style={{ background: "var(--border)" }} />
+      <div className="flex items-center justify-between">
+        <span className="font-bold text-[15px]" style={{ color: "var(--navy)" }}>
+          Total
+        </span>
+        <span className="font-display text-base font-extrabold" style={{ color: "var(--orange-ink)" }}>
+          {formatRupiah(order.total)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ── 1. Bayar online (popup Snap) ── */
+function OnlinePayView({
   order,
-  onCash,
-  onQris,
-  cashLoading,
-  qrLoading,
+  loading,
   errorMessage,
+  onPay,
 }: {
   order: Order;
-  onCash: () => void;
-  onQris: () => void;
-  cashLoading: boolean;
-  qrLoading: boolean;
+  loading: boolean;
   errorMessage: string | null;
+  onPay: () => void;
 }) {
-  const busy = cashLoading || qrLoading;
-
   return (
-    <main className="min-h-dvh" style={{ background: "var(--paper)" }}>
-      <ConfirmBanner order={order} />
+    <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "120px" }}>
+      <ConfirmBanner
+        order={order}
+        title="Pesanan Terkirim"
+        subtitle={`Sudah masuk ke dapur ${order.cafe_name}`}
+      />
 
       <div className="mx-auto max-w-xl px-4">
         <div className="card flex items-center justify-between p-4 -mt-4 relative z-10">
@@ -296,261 +284,231 @@ function PaymentChoice({
           </span>
         </div>
 
-        <h2 className="font-display text-base font-bold mt-6 mb-3" style={{ color: "var(--navy)" }}>
-          Pilih Metode Pembayaran
-        </h2>
-
-        <div className="space-y-3">
-          <button
-            onClick={onCash}
-            disabled={busy}
-            className="press card w-full flex items-center gap-3 p-4 text-left disabled:opacity-60"
+        <div
+          className="rounded-2xl p-4 mt-4 flex items-start gap-3"
+          style={{ background: "var(--orange-blush)", border: "1px solid var(--orange-tint)" }}
+        >
+          <span
+            className="w-10 h-10 rounded-full inline-flex items-center justify-center shrink-0"
+            style={{ background: "var(--white)" }}
           >
-            <span
-              className="w-11 h-11 rounded-full inline-flex items-center justify-center shrink-0"
-              style={{ background: "var(--surface)" }}
-            >
-              {cashLoading ? (
-                <Loader2 size={20} className="animate-spin" style={{ color: "var(--navy)" }} />
-              ) : (
-                <Wallet size={20} style={{ color: "var(--navy)" }} />
-              )}
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block font-semibold text-[15px]" style={{ color: "var(--navy)" }}>
-                Bayar di Kasir
-              </span>
-              <span className="block text-xs mt-0.5" style={{ color: "var(--navy-muted)" }}>
-                {cashLoading ? "Menyimpan pilihan…" : "Tunjukkan nomor pesanan ke kasir, bayar tunai"}
-              </span>
-            </span>
-            <ChevronRight size={20} style={{ color: "var(--navy-muted)" }} />
-          </button>
-
-          <button
-            onClick={onQris}
-            disabled={busy}
-            className="press w-full flex items-center gap-3 p-4 text-left rounded-2xl disabled:opacity-60"
-            style={{
-              background: "var(--white)",
-              border: "1.5px solid var(--orange)",
-              boxShadow: "var(--shadow-md)",
-            }}
-          >
-            <span
-              className="w-11 h-11 rounded-full inline-flex items-center justify-center shrink-0"
-              style={{ background: "var(--orange-blush)" }}
-            >
-              {qrLoading ? (
-                <Loader2 size={20} className="animate-spin" style={{ color: "var(--orange)" }} />
-              ) : (
-                <QrCode size={20} style={{ color: "var(--orange)" }} />
-              )}
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block font-semibold text-[15px]" style={{ color: "var(--navy)" }}>
-                Bayar dengan QRIS
-              </span>
-              <span className="block text-xs mt-0.5" style={{ color: "var(--navy-muted)" }}>
-                {qrLoading ? "Membuat kode QRIS…" : "Scan & bayar langsung, semua e-wallet & bank"}
-              </span>
-            </span>
-            {!qrLoading && (
-              <span className="flex items-center gap-1.5 shrink-0">
-                <span className="badge-3d">Cepat</span>
-                <ChevronRight size={20} style={{ color: "var(--navy-muted)" }} />
-              </span>
-            )}
-          </button>
-
-          {errorMessage && (
-            <p className="text-xs text-center px-2" style={{ color: "var(--orange-ink)" }}>
-              {errorMessage}
+            <Smartphone size={19} style={{ color: "var(--orange)" }} />
+          </span>
+          <div className="min-w-0">
+            <p className="font-semibold text-sm" style={{ color: "var(--navy)" }}>
+              Bayar dengan QRIS, e-wallet, atau bank
             </p>
-          )}
+            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--navy-muted)" }}>
+              Ketuk tombol di bawah untuk membuka pembayaran. Layar ini berpindah
+              sendiri begitu pembayaranmu diterima.
+            </p>
+          </div>
         </div>
 
+        <div className="mt-4">
+          <OrderSummaryCard order={order} />
+        </div>
+
+        {order.notes && (
+          <div className="card p-4 mt-3">
+            <h2 className="font-display text-sm font-bold mb-2" style={{ color: "var(--navy)" }}>
+              Catatan Tambahan
+            </h2>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--navy-muted)", whiteSpace: "pre-wrap" }}>
+              {order.notes}
+            </p>
+          </div>
+        )}
+
         <p
-          className="flex items-center justify-center gap-1.5 text-[11px] mt-5 pb-8"
+          className="flex items-center justify-center gap-1.5 text-[11px] mt-5"
           style={{ color: "var(--navy-muted)" }}
         >
-          <ShieldCheck size={13} /> Pembayaran aman &amp; terenkripsi
+          <ShieldCheck size={13} /> Pembayaran aman &amp; terenkripsi oleh Midtrans
         </p>
+      </div>
+
+      <div
+        className="fixed bottom-0 inset-x-0 z-40 px-4 pt-3"
+        style={{
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+          background: "var(--white)",
+          borderTop: "1px solid var(--border)",
+        }}
+      >
+        {errorMessage && (
+          <p
+            role="alert"
+            className="max-w-xl mx-auto mb-2.5 text-xs text-center px-2"
+            style={{ color: "var(--orange-ink)" }}
+          >
+            {errorMessage}
+          </p>
+        )}
+        <button
+          onClick={onPay}
+          disabled={loading}
+          className="btn-primary press w-full h-[52px] rounded-2xl font-semibold text-[15px] text-white max-w-xl mx-auto flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+          {loading ? <Loader2 size={18} className="animate-spin" /> : <Wallet size={18} />}
+          {loading ? "Membuka pembayaran…" : "Bayar Sekarang"}
+        </button>
       </div>
     </main>
   );
 }
 
-/* ── 2. QRIS ── */
-function QrisView({
+/* ── 2. Bayar di kasir (QR + kode check-in) ── */
+function CashierView({
   order,
-  qrUrl,
-  expiry,
   refreshing,
   onRefresh,
-  onRegenerate,
-  onBack,
 }: {
   order: Order;
-  qrUrl: string | null;
-  expiry: number | null;
   refreshing: boolean;
   onRefresh: () => void;
-  onRegenerate: () => void;
-  onBack: () => void;
 }) {
-  // Ticking ringan untuk countdown masa berlaku QR.
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!expiry) return;
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, [expiry]);
+  const code = order.checkin_code ?? null;
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const remaining = expiry !== null ? Math.max(0, expiry - now) : null;
-  const expired = remaining !== null && remaining <= 0;
-  const mmss = remaining !== null
-    ? `${Math.floor(remaining / 60000)}:${String(Math.floor((remaining % 60000) / 1000)).padStart(2, "0")}`
-    : null;
+  // QR di-encode di klien dari payload minimal {o,c}. Kasir memindainya untuk
+  // membuka pesanan; kode 8 karakter adalah cadangan bila kamera bermasalah.
+  useEffect(() => {
+    if (!code) {
+      setQrDataUrl(null);
+      return;
+    }
+    let active = true;
+    const payload = JSON.stringify({ o: order.id_order, c: code });
+    QRCode.toDataURL(payload, {
+      margin: 1,
+      width: 480,
+      errorCorrectionLevel: "M",
+      color: { dark: "#022C60", light: "#FDFDFD" },
+    })
+      .then((url) => {
+        if (active) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (active) setQrDataUrl(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [order.id_order, code]);
+
+  async function copyCode() {
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard tidak tersedia — kode tetap terbaca di layar */
+    }
+  }
+
+  const codeDisplay = code ? `${code.slice(0, 4)} ${code.slice(4)}` : "————————";
 
   return (
-    <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "120px" }}>
-      <style>{`
-        @keyframes qr-scan {
-          0%   { top: 8px; opacity: 1; }
-          48%  { top: calc(100% - 8px); opacity: 1; }
-          50%  { opacity: 0; }
-          52%  { top: 8px; opacity: 0; }
-          54%  { opacity: 1; }
-          100% { top: calc(100% - 8px); opacity: 1; }
-        }
-        @keyframes qr-glow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(255,111,32,0); }
-          50%       { box-shadow: 0 0 24px 4px rgba(255,111,32,0.18); }
-        }
-        @keyframes dot-bounce {
-          0%,80%,100% { transform: translateY(0); opacity: .4; }
-          40%          { transform: translateY(-5px); opacity: 1; }
-        }
-        .qr-scan-line {
-          position: absolute; left: 8px; right: 8px; height: 2px;
-          background: linear-gradient(90deg, transparent, var(--orange), transparent);
-          border-radius: 2px;
-          animation: qr-scan 2.4s ease-in-out infinite;
-          pointer-events: none;
-        }
-        .qr-glow { animation: qr-glow 2.4s ease-in-out infinite; }
-        .dot-1 { animation: dot-bounce 1.2s ease-in-out infinite 0s; }
-        .dot-2 { animation: dot-bounce 1.2s ease-in-out infinite .2s; }
-        .dot-3 { animation: dot-bounce 1.2s ease-in-out infinite .4s; }
-        @media (prefers-reduced-motion: reduce) {
-          .qr-scan-line, .qr-glow, .dot-1, .dot-2, .dot-3 { animation: none; }
-        }
-      `}</style>
-
+    <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "104px" }}>
       <header
         className="relative px-5 pt-12 pb-8 text-center text-white"
         style={{ background: "var(--navy)", borderRadius: "0 0 32px 32px" }}
       >
-        <button
-          onClick={onBack}
-          aria-label="Kembali ke pilihan pembayaran"
-          className="press absolute left-4 top-12 w-10 h-10 inline-flex items-center justify-center rounded-full"
-          style={{ background: "rgba(255,255,255,0.1)" }}
+        <div
+          className="w-14 h-14 rounded-full inline-flex items-center justify-center mx-auto fade-up"
+          style={{ background: "var(--orange)" }}
         >
-          <ArrowLeft size={20} />
-        </button>
-        <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.55)" }}>
-          Total Pembayaran
+          <Store size={28} strokeWidth={2.4} />
+        </div>
+        <h1 className="font-display text-xl font-extrabold mt-4">Bayar di Kasir</h1>
+        <p className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,0.78)" }}>
+          Tunjukkan QR atau kode ini ke kasir {order.cafe_name}
         </p>
-        <p className="font-display text-4xl font-extrabold mt-2">{formatRupiah(order.total)}</p>
-        <div className="flex flex-wrap justify-center gap-2 mt-3">
+        <div className="flex flex-wrap justify-center gap-2 mt-4">
           <Chip>No. {shortOrderId(order.id_order)}</Chip>
           <Chip>Meja {order.table_number}</Chip>
         </div>
       </header>
 
-      <div className="px-4 -mt-4">
-        <div className="card qr-glow mx-auto p-5 fade-up" style={{ maxWidth: "300px", position: "relative" }}>
-          <div className="flex items-center justify-between mb-4">
-            <span className="font-extrabold text-base tracking-tight" style={{ color: "var(--navy)" }}>
-              QRIS
-            </span>
-            <span className="text-[11px] font-medium" style={{ color: "var(--navy-muted)" }}>
-              {order.cafe_name}
-            </span>
-          </div>
-
-          <div className="relative rounded-xl overflow-hidden" style={{ background: "#fff", padding: "8px" }}>
-            {qrUrl ? (
-              <Image
-                src={qrUrl}
-                alt="Kode QRIS pembayaran"
-                width={240}
-                height={240}
-                unoptimized
-                className={`w-full h-auto block ${expired ? "opacity-30 grayscale" : ""}`}
+      <div className="mx-auto max-w-xl px-4 -mt-4">
+        {/* Kartu QR + kode: kanal utama pesanan ini, jadi diberi bobot visual paling besar. */}
+        <div className="card p-5 fade-up text-center">
+          <div
+            className="mx-auto rounded-2xl inline-flex items-center justify-center"
+            style={{ background: "var(--white)", padding: "12px", boxShadow: "var(--shadow-sm)" }}
+          >
+            {qrDataUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={qrDataUrl}
+                alt="Kode QR check-in pesanan"
+                width={220}
+                height={220}
+                className="block rounded-lg"
+                style={{ width: "220px", height: "220px" }}
               />
             ) : (
-              <div className="w-full aspect-square skeleton rounded-lg" />
+              <div className="skeleton rounded-lg" style={{ width: "220px", height: "220px" }} />
             )}
-            {qrUrl && !expired && <div className="qr-scan-line" />}
-
-            {[
-              ["top-0 left-0", "border-t-2 border-l-2 rounded-tl-lg"],
-              ["top-0 right-0", "border-t-2 border-r-2 rounded-tr-lg"],
-              ["bottom-0 left-0", "border-b-2 border-l-2 rounded-bl-lg"],
-              ["bottom-0 right-0", "border-b-2 border-r-2 rounded-br-lg"],
-            ].map(([pos, cls], i) => (
-              <span
-                key={i}
-                className={`absolute ${pos} ${cls} w-5 h-5 pointer-events-none`}
-                style={{ borderColor: "var(--orange)" }}
-              />
-            ))}
           </div>
 
-          <p className="text-[11px] text-center mt-3 leading-relaxed" style={{ color: "var(--navy-muted)" }}>
-            Scan pakai GoPay, OVO, DANA, ShopeePay, atau m-banking
+          <p
+            className="text-[11px] font-semibold uppercase tracking-widest mt-5"
+            style={{ color: "var(--navy-muted)" }}
+          >
+            Kode Check-in
+          </p>
+          <p
+            className="font-display font-extrabold mt-1 tabular-nums"
+            style={{ color: "var(--navy)", fontSize: "34px", letterSpacing: "0.14em" }}
+          >
+            {codeDisplay}
           </p>
 
-          {qrUrl && !expired && <DownloadQris qrUrl={qrUrl} orderId={order.id_order} />}
+          <button
+            onClick={copyCode}
+            disabled={!code}
+            className="press inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-full text-xs font-semibold disabled:opacity-50"
+            style={{ background: "var(--surface)", color: "var(--navy)" }}
+          >
+            {copied ? <Check size={14} strokeWidth={3} /> : <Copy size={14} />}
+            {copied ? "Tersalin" : "Salin kode"}
+          </button>
         </div>
-      </div>
 
-      <div className="text-center mt-5 px-4">
-        {expired ? (
-          <>
-            <div
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full"
-              style={{ background: "var(--surface)" }}
-            >
-              <span className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>
-                QR kedaluwarsa
-              </span>
-            </div>
-            <p className="text-xs mt-2 max-w-[34ch] mx-auto" style={{ color: "var(--navy-muted)" }}>
-              Kode QRIS punya masa berlaku. Buat yang baru untuk melanjutkan pembayaran.
+        {/* Ajakan tindakan yang jelas — inti dari alur bayar-di-kasir. */}
+        <div
+          className="rounded-2xl p-4 mt-3 flex items-start gap-3"
+          style={{ background: "var(--orange-blush)", border: "1px solid var(--orange-tint)" }}
+        >
+          <Store size={18} className="shrink-0 mt-0.5" style={{ color: "var(--orange-ink)" }} />
+          <div className="min-w-0">
+            <p className="font-semibold text-sm" style={{ color: "var(--orange-ink)" }}>
+              Tunjukkan QR atau kode ini ke kasir
             </p>
-          </>
-        ) : (
-          <>
-            <div
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full"
-              style={{ background: "var(--orange-blush)" }}
-            >
-              <span className="dot-1 w-1.5 h-1.5 rounded-full inline-block" style={{ background: "var(--orange)" }} />
-              <span className="dot-2 w-1.5 h-1.5 rounded-full inline-block" style={{ background: "var(--orange)" }} />
-              <span className="dot-3 w-1.5 h-1.5 rounded-full inline-block" style={{ background: "var(--orange)" }} />
-              <span className="text-[13px] font-semibold ml-1" style={{ color: "var(--orange-ink)" }}>
-                Menunggu pembayaran{mmss ? ` · ${mmss}` : ""}
-              </span>
-            </div>
-            <p className="text-xs mt-2 max-w-[34ch] mx-auto" style={{ color: "var(--navy-muted)" }}>
-              Layar ini memeriksa status ke server tiap beberapa detik dan berpindah sendiri begitu
-              pembayaran masuk.
+            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--navy-muted)" }}>
+              Pesanan mulai disiapkan setelah kasir memindai QR atau memasukkan kode.
+              Layar ini berpindah sendiri saat itu terjadi.
             </p>
-          </>
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <OrderSummaryCard order={order} />
+        </div>
+
+        {order.notes && (
+          <div className="card p-4 mt-3">
+            <h2 className="font-display text-sm font-bold mb-2" style={{ color: "var(--navy)" }}>
+              Catatan Tambahan
+            </h2>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--navy-muted)", whiteSpace: "pre-wrap" }}>
+              {order.notes}
+            </p>
+          </div>
         )}
       </div>
 
@@ -562,25 +520,15 @@ function QrisView({
           borderTop: "1px solid var(--border)",
         }}
       >
-        {expired ? (
-          <button
-            onClick={onRegenerate}
-            className="btn-primary press w-full h-[52px] rounded-2xl font-semibold text-[15px] text-white max-w-xl mx-auto flex items-center justify-center gap-2"
-          >
-            <QrCode size={16} />
-            Buat QR Baru
-          </button>
-        ) : (
-          <button
-            onClick={onRefresh}
-            disabled={refreshing}
-            className="press w-full h-[52px] rounded-2xl font-semibold text-[15px] max-w-xl mx-auto flex items-center justify-center gap-2 disabled:opacity-60"
-            style={{ border: "1.5px solid var(--border)", color: "var(--navy-muted)" }}
-          >
-            <RefreshCw size={16} className={refreshing ? "animate-spin" : undefined} />
-            {refreshing ? "Memeriksa…" : "Periksa Status Sekarang"}
-          </button>
-        )}
+        <button
+          onClick={onRefresh}
+          disabled={refreshing}
+          className="press w-full h-[52px] rounded-2xl font-semibold text-[15px] max-w-xl mx-auto flex items-center justify-center gap-2 disabled:opacity-60"
+          style={{ border: "1.5px solid var(--border)", color: "var(--navy-muted)" }}
+        >
+          <RefreshCw size={16} className={refreshing ? "animate-spin" : undefined} />
+          {refreshing ? "Memeriksa…" : "Periksa Status Sekarang"}
+        </button>
       </div>
     </main>
   );
@@ -745,24 +693,8 @@ function StatusView({
         {/* Ajakan review muncul di momen kepuasan tertinggi, bukan di halaman menu. */}
         {ready && reviewUrl && <ReviewPrompt reviewUrl={reviewUrl} cafeName={order.cafe_name} />}
 
-        <div className="card p-4 mt-3">
-          <h2 className="font-display text-sm font-bold mb-3" style={{ color: "var(--navy)" }}>
-            Rincian Pesanan
-          </h2>
-          <div className="space-y-2.5">
-            {order.items.map((it, i) => (
-              <OrderLine key={`${it.id_menu}-${i}`} item={it} />
-            ))}
-          </div>
-          <div className="w-full h-px my-3" style={{ background: "var(--border)" }} />
-          <div className="flex items-center justify-between">
-            <span className="font-bold text-[15px]" style={{ color: "var(--navy)" }}>
-              Total
-            </span>
-            <span className="font-display text-base font-extrabold" style={{ color: "var(--orange-ink)" }}>
-              {formatRupiah(order.total)}
-            </span>
-          </div>
+        <div className="mt-3">
+          <OrderSummaryCard order={order} />
         </div>
 
         {order.notes && (
@@ -850,27 +782,12 @@ function ReviewPrompt({ reviewUrl, cafeName }: { reviewUrl: string; cafeName: st
   );
 }
 
-function DownloadQris({ qrUrl, orderId }: { qrUrl: string; orderId: string }) {
-  const proxyUrl = `/api/payment/qr-proxy?url=${encodeURIComponent(qrUrl)}&orderId=${encodeURIComponent(orderId)}`;
-  return (
-    <a
-      href={proxyUrl}
-      download={`QRIS-${orderId}.png`}
-      className="press mt-3 w-full h-10 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-      style={{ background: "var(--orange)", color: "#fff" }}
-    >
-      Unduh Kode QRIS
-    </a>
-  );
-}
-
 function paymentLabel(order: Order): string {
   if (order.payment_status === "paid") {
-    return order.payment_method === "qris" ? "QRIS · Lunas" : "Tunai · Lunas";
+    return order.payment_method === "cash" ? "Tunai · Lunas" : "Online · Lunas";
   }
-  if (order.payment_method === "qris") return "QRIS · Menunggu";
   if (order.payment_method === "cash") return "Tunai · Belum";
-  return "Belum dibayar";
+  return "Online · Menunggu";
 }
 
 /** Nomor pesanan penuh adalah uuid; yang dibacakan ke kasir cukup ekornya. */
@@ -884,15 +801,4 @@ function timeOf(iso: string): string {
   } catch {
     return "";
   }
-}
-
-/** Midtrans mengembalikan `expiry_time` sebagai "YYYY-MM-DD HH:mm:ss" (WIB).
- *  Fallback ke 15 menit dari sekarang — masa berlaku default QRIS — kalau
- *  field-nya tidak disertakan. */
-function parseQrisExpiry(raw: unknown): number {
-  if (typeof raw === "string") {
-    const t = new Date(raw.replace(" ", "T")).getTime();
-    if (!Number.isNaN(t)) return t;
-  }
-  return Date.now() + 15 * 60 * 1000;
 }
