@@ -2,6 +2,8 @@
 -- 3Diner — pisahkan pembuatan pesanan dari potong stok, tambah check-in kasir.
 begin;
 
+create extension if not exists pgcrypto;
+
 -- ── Kolom baru ──────────────────────────────────────────────
 alter table public."Orders"
   add column if not exists checkin_code text;
@@ -49,6 +51,8 @@ declare
   v_checkin_code text;
   v_payment_status text;
   v_payment_method text;
+  v_code_bytes bytea;
+  v_i integer;
 begin
   if p_cafe_id is null or nullif(trim(p_table_number), '') is null then
     raise exception 'invalid_order_request' using errcode = '22023';
@@ -173,7 +177,12 @@ begin
     v_payment_method := 'cash';
     -- Crockford base32, 8 char, hindari huruf ambigu. Ulang jika bentrok.
     loop
-      v_checkin_code := upper(substr(translate(encode(gen_random_bytes(6),'base32'),'ILOU',''), 1, 8));
+      v_checkin_code := '';
+      v_code_bytes := gen_random_bytes(8);
+      for v_i in 0..7 loop
+        v_checkin_code := v_checkin_code
+          || substr('0123456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + (get_byte(v_code_bytes, v_i) % 32), 1);
+      end loop;
       exit when not exists (
         select 1 from public."Orders"
         where cafe_id = p_cafe_id and checkin_code = v_checkin_code);
@@ -219,6 +228,7 @@ declare
   v_items jsonb;
   v_now timestamptz := now();
   v_unavailable text[];
+  v_unavailable_options text[];
 begin
   if p_order_id is null then
     return jsonb_build_object('error', 'order_not_found');
@@ -269,6 +279,19 @@ begin
   join public."Inventory_Items" ii on ii.id_inventory_item = mr.inventory_item_id and ii.cafe_id = v_cafe_id
   join tmp_confirm_req req on req.inventory_item_id = ii.id_inventory_item
   where ii.current_qty < req.required_qty;
+
+  select array_agg(distinct m.nama_menu) into v_unavailable_options
+  from tmp_confirm_lines cl
+  join public."Menus" m on m.id_menu = cl.id_menu and m.cafe_id = v_cafe_id
+  cross join lateral jsonb_array_elements(coalesce(cl.options, '[]'::jsonb)) as opt
+  join public."Menu_Option_Recipes" mor
+    on mor.option_value_id = (opt->>'id_option_value')::uuid and mor.cafe_id = v_cafe_id
+  join public."Inventory_Items" ii on ii.id_inventory_item = mor.inventory_item_id and ii.cafe_id = v_cafe_id
+  join tmp_confirm_req req on req.inventory_item_id = ii.id_inventory_item
+  where ii.current_qty < req.required_qty;
+
+  select array_agg(distinct nama) into v_unavailable
+  from unnest(coalesce(v_unavailable, array[]::text[]) || coalesce(v_unavailable_options, array[]::text[])) as nama;
 
   if coalesce(array_length(v_unavailable, 1), 0) > 0 then
     return jsonb_build_object('error', 'insufficient_inventory',
