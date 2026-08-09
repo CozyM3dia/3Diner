@@ -19,7 +19,8 @@ export async function createOrder(input: {
   table: string;
   items: CartItem[];
   notes?: string;
-}): Promise<Order> {
+  paymentChannel?: "online" | "cashier";
+}): Promise<Order & { checkinCode: string | null }> {
   const response = await fetch("/api/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -32,17 +33,19 @@ export async function createOrder(input: {
         options: (options ?? []).map((o) => o.id_option_value),
       })),
       notes: input.notes,
+      paymentChannel: input.paymentChannel ?? "online",
     }),
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || data.error || "Gagal membuat pesanan");
 
-  const order: Order = {
+  const order: Order & { checkinCode: string | null } = {
     ...data.order,
     cafe_slug: input.cafeSlug,
     cafe_name: input.cafeName,
     customer_token: data.orderToken,
     created_at: data.order.created_at || new Date().toISOString(),
+    checkinCode: data.checkinCode ?? null,
   };
   saveStub(order);
   return order;

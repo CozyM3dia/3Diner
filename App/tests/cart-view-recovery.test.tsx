@@ -108,6 +108,7 @@ describe("CartView order recovery", () => {
         payment_status: "unpaid",
         created_at: "2026-07-16T00:00:00.000Z",
         customer_token: "token-1",
+        checkinCode: null,
       });
 
     render(<CartView cafe={{ id_cafe: "cafe-1", nama_cafe: "3Diner" } as never} slug="demo" />);

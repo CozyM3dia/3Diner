@@ -14,6 +14,7 @@ interface CreateOrderBody {
   table?: unknown;
   items?: unknown;
   notes?: unknown;
+  paymentChannel?: unknown;
 }
 
 interface CreateOrderResult {
@@ -21,6 +22,7 @@ interface CreateOrderResult {
   unavailableMenus?: unknown;
   order?: unknown;
   orderToken?: unknown;
+  checkinCode?: unknown;
 }
 
 interface RpcResponseEnvelope {
@@ -77,6 +79,7 @@ export async function POST(req: Request) {
   const table = typeof body?.table === "string" ? body.table.trim().slice(0, 30) : "";
   const items = parseItems(body?.items);
   const notes = typeof body?.notes === "string" ? body.notes.trim().slice(0, 500) : null;
+  const paymentChannel = body?.paymentChannel === "cashier" ? "cashier" : "online";
 
   if (!cafeId || !table || !items) {
     return NextResponse.json({ error: "Data pesanan tidak valid" }, { status: 400 });
@@ -96,11 +99,12 @@ export async function POST(req: Request) {
 
   let rpcResponse;
   try {
-    rpcResponse = await supabaseAdmin.rpc("create_order_with_inventory", {
+    rpcResponse = await supabaseAdmin.rpc("create_order", {
       p_cafe_id: cafeId,
       p_table_number: table,
       p_items: items,
       p_notes: notes,
+      p_channel: paymentChannel,
     });
   } catch {
     return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
@@ -145,5 +149,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
   }
 
-  return NextResponse.json({ order: result.order, orderToken: result.orderToken }, { status: 201 });
+  return NextResponse.json(
+    { order: result.order, orderToken: result.orderToken, checkinCode: result.checkinCode ?? null },
+    { status: 201 }
+  );
 }
