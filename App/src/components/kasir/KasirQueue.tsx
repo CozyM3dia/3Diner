@@ -18,6 +18,7 @@ import {
   minutesSince,
   needsCash,
 } from "@/lib/kasir-queue-rules";
+import { paymentMethodLabel } from "@/lib/payment-methods";
 import type { OrderItem, OrderStatus } from "@/types";
 
 export interface KasirOrder {
@@ -45,7 +46,7 @@ export interface KasirTotals {
   completedCount: number;
   receivedAmount: number;
   cashAmount: number;
-  qrisAmount: number;
+  noncashAmount: number;
 }
 
 interface Props {
@@ -213,7 +214,7 @@ export default function KasirQueue({
 
         <span className="kasir-pay">
           {o.payment_status === "paid"
-            ? `Sudah bayar · ${o.payment_method === "qris" ? "QRIS" : "Tunai"}`
+            ? `Sudah bayar · ${paymentMethodLabel(o.payment_method)}`
             : `Belum bayar · ${formatRupiah(o.total)}`}
         </span>
 
@@ -258,15 +259,6 @@ export default function KasirQueue({
             </button>
             {menuFor === o.id_order && (
               <span className="kasir-menu" role="menu">
-                {group === "preparing" && cash && (
-                  <button
-                    role="menuitem"
-                    className="kasir-menu-item"
-                    onClick={() => run(o.id_order, () => completeOrder(o.id_order), true)}
-                  >
-                    Selesai tanpa bayar
-                  </button>
-                )}
                 <button
                   role="menuitem"
                   className="kasir-menu-item"
@@ -372,7 +364,7 @@ export default function KasirQueue({
           <div className="kasir-fig">{totals ? formatRupiah(totals.receivedAmount) : "—"}</div>
           <div className="kasir-sub">
             {totals
-              ? `Diterima · tunai ${formatRupiah(totals.cashAmount)} · QRIS ${formatRupiah(totals.qrisAmount)}`
+              ? `Diterima · tunai ${formatRupiah(totals.cashAmount)} · non-tunai ${formatRupiah(totals.noncashAmount)}`
               : "Diterima · tidak tersedia"}
           </div>
         </div>

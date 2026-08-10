@@ -13,6 +13,22 @@ const rateLimitMigrationPath = new URL(
   "../migrations/2026-07-23_rate_limits.sql",
   import.meta.url
 );
+const paymentLifecycleMigrationPath = new URL(
+  "../supabase/migrations/20260809120000_payment_lifecycle_split.sql",
+  import.meta.url
+);
+const paymentLifecycleRepairMigrationPath = new URL(
+  "../supabase/migrations/20260809120003_payment_lifecycle_repair.sql",
+  import.meta.url
+);
+const paymentCreditsMigrationPath = new URL(
+  "../migrations/2026-07-27_payment_credits_options.sql",
+  import.meta.url
+);
+const cashPayBeforeKitchenMigrationPath = new URL(
+  "../supabase/migrations/20260809120004_cash_pay_before_kitchen.sql",
+  import.meta.url
+);
 
 describe("security migration", () => {
   it("removes anonymous Orders policies and adds order token support", () => {
@@ -169,6 +185,77 @@ describe("rate limit migration", () => {
 
     expect(sql).toContain("create or replace function public.prune_rate_limits");
     expect(sql).toContain('create index if not exists "Rate_Limits_window_start_idx"');
+  });
+});
+
+describe("payment lifecycle migration", () => {
+  it("replaces legacy Orders checks and snapshots the canonical tax contract before charging", () => {
+    const sql = readFileSync(paymentLifecycleMigrationPath, "utf8");
+
+    expect(sql).toContain("effective_tax_settings(p_cafe_id)");
+    expect(sql).toContain("subtotal, tax_pct, tax_amount, service_pct, service_amount, prices_include_tax");
+    expect(sql).toContain("v_total := v_subtotal + v_service_amount + v_tax_amount");
+    expect(sql).toContain("v_total := v_subtotal + v_service_amount");
+    expect(sql).toContain("v_payment_status := 'awaiting_payment'");
+    expect(sql).toContain("v_payment_status := 'awaiting_checkin'");
+  });
+
+  it("repairs already-applied payment migrations by replacing checks and cash authorization safely", () => {
+    const sql = readFileSync(paymentLifecycleRepairMigrationPath, "utf8");
+
+    // Orders_cancel_requires_reason is a composite CHECK: the repair may only
+    // replace a CHECK when its conkey identifies exactly one lifecycle column.
+    expect(sql).toContain("cardinality(conkey) = 1");
+    expect(sql).toContain("conkey[1] = v_attnum");
+    expect(sql).toContain("attname = v_column");
+    expect(sql).not.toContain("pg_get_constraintdef(oid) ~");
+    expect(sql).toContain("payment_method = 'cash'");
+    expect(sql).toContain("payment_status in ('awaiting_checkin', 'unpaid')");
+    expect(sql).toContain("security definer");
+    expect(sql).toContain("set search_path = public");
+    expect(sql).toContain("to service_role");
+  });
+
+  it("repairs revenue aggregation so each accepted online method has a chart count", () => {
+    const sql = readFileSync(paymentLifecycleRepairMigrationPath, "utf8");
+
+    expect(sql).toContain("create or replace function public.revenue_analytics");
+    expect(sql).toContain("'gopay'");
+    expect(sql).toContain("'shopeepay'");
+    expect(sql).toContain("'bank_transfer'");
+  });
+
+  it("keeps the cash-paid RPC cash-only in both its source migration and repair", () => {
+    const source = readFileSync(paymentCreditsMigrationPath, "utf8");
+    const repair = readFileSync(paymentLifecycleRepairMigrationPath, "utf8");
+
+    for (const sql of [source, repair]) {
+      expect(sql).toContain("v_method is distinct from 'cash'");
+      expect(sql).toContain("payment_status in ('awaiting_checkin', 'unpaid')");
+      expect(sql).toContain("payment_method = 'cash'");
+    }
+  });
+
+  it("collects cash at check-in and blocks completing an unpaid cash order", () => {
+    const sql = readFileSync(cashPayBeforeKitchenMigrationPath, "utf8");
+
+    // check-in confirms first, then marks the cash order paid in the same
+    // transaction — so a received cash order is always already paid.
+    expect(sql).toContain("v_result := public.confirm_order(v_order_id)");
+    expect(sql).toContain("if v_result ? 'error' then");
+    expect(sql).toContain("set payment_status = 'paid'");
+    expect(sql).toContain("and payment_status = 'awaiting_checkin'");
+
+    // Defense in depth: advance_order_status refuses to complete an unpaid cash
+    // order even if a stale client tries.
+    expect(sql).toContain("p_next = 'completed'");
+    expect(sql).toContain("v_payment_method = 'cash'");
+    expect(sql).toContain("v_payment_status <> 'paid'");
+    expect(sql).toContain("raise exception 'cash_payment_required'");
+
+    expect(sql).toContain("security definer");
+    expect(sql).toContain("set search_path = public");
+    expect(sql).toContain("to service_role");
   });
 });
 

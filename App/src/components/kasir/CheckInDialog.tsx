@@ -84,7 +84,7 @@ export default function CheckInDialog({ onClose }: Props) {
         setError(msg);
         return false;
       }
-      toast.success("Pesanan berhasil di-check-in");
+      toast.success("Tunai diterima · pesanan masuk antrean");
       onClose();
       return true;
     },
@@ -225,8 +225,8 @@ export default function CheckInDialog({ onClose }: Props) {
           Check-in pesanan
         </h2>
         <p className="kasir-dialog-body">
-          Pindai QR yang tamu tunjukkan, atau ketik kode check-in-nya. Pesanan masuk ke antrean
-          setelah cocok.
+          Terima uang tunai dari tamu lebih dulu, lalu pindai QR yang ditunjukkan atau ketik kode
+          check-in-nya. Setelah cocok, pesanan tercatat lunas dan masuk ke antrean.
         </p>
 
         {showScanToggle && (

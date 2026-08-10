@@ -18,7 +18,9 @@ const MESSAGES: Record<string, string> = {
   order_already_completed: "Pesanan sudah diserahkan — pembatalan tidak berlaku lagi.",
   invalid_status_transition: "Perubahan status itu tidak berlaku dari keadaan sekarang.",
   cancel_reason_required: "Alasan pembatalan wajib diisi.",
-  qris_settled_by_webhook: "Pesanan QRIS dilunasi otomatis, bukan oleh kasir.",
+  cash_only: "Hanya pesanan tunai yang dapat dilunasi kasir.",
+  invalid_cash_payment_state: "Pesanan tunai tidak berada pada tahap pembayaran kasir.",
+  cash_payment_required: "Pesanan tunai harus dilunasi dulu sebelum diselesaikan.",
 };
 
 function readError(message: string | undefined): string {
