@@ -71,7 +71,14 @@ const nextConfig: NextConfig = {
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://app.midtrans.com https://app.sandbox.midtrans.com",
       "frame-src 'self' https://app.midtrans.com https://app.sandbox.midtrans.com",
-      "connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co https://*.datadoghq.com https://api.midtrans.com https://api.sandbox.midtrans.com https://app.midtrans.com https://app.sandbox.midtrans.com",
+      // Datadog RUM/logs POST to the "browser-intake-*" family (e.g.
+      // browser-intake-datadoghq.com), which is a distinct apex domain, NOT a
+      // subdomain of datadoghq.com — CSP host wildcards only match labels
+      // that precede the given suffix with a dot, so "*.datadoghq.com" does
+      // NOT cover "browser-intake-datadoghq.com". Listed explicitly for the
+      // default site (NEXT_PUBLIC_DATADOG_SITE=datadoghq.com); update this if
+      // the site env var is ever changed to a different Datadog region.
+      "connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co https://*.datadoghq.com https://browser-intake-datadoghq.com https://api.midtrans.com https://api.sandbox.midtrans.com https://app.midtrans.com https://app.sandbox.midtrans.com",
       "img-src 'self' data: blob: https:",
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self' data:",

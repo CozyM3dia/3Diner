@@ -608,8 +608,11 @@ export async function markOrderCashPaid(orderId: string): Promise<ActionResult> 
 
   const result = data as { error?: string; ok?: boolean } | null;
   if (result?.error === "order_not_found") return { error: "Pesanan tidak ditemukan." };
-  if (result?.error === "qris_settled_by_webhook") {
-    return { error: "Pesanan QRIS dilunasi otomatis oleh Midtrans." };
+  if (result?.error === "cash_only") {
+    return { error: "Hanya pesanan tunai yang dapat dilunasi kasir." };
+  }
+  if (result?.error === "invalid_cash_payment_state") {
+    return { error: "Pesanan tunai tidak berada pada tahap pembayaran kasir." };
   }
   if (!result?.ok) return { error: "Gagal menandai pesanan lunas." };
 

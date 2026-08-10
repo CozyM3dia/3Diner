@@ -36,7 +36,7 @@ export async function createOrder(input: {
   items: CartItem[];
   notes?: string;
   paymentChannel?: "online" | "cashier";
-}): Promise<Order & { checkinCode: string | null }> {
+}): Promise<Order> {
   const response = await fetch("/api/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -55,13 +55,12 @@ export async function createOrder(input: {
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || data.error || "Gagal membuat pesanan");
 
-  const order: Order & { checkinCode: string | null } = {
+  const order: Order = {
     ...data.order,
     cafe_slug: input.cafeSlug,
     cafe_name: input.cafeName,
     customer_token: data.orderToken,
     created_at: data.order.created_at || new Date().toISOString(),
-    checkinCode: data.checkinCode ?? null,
   };
   saveStub(order);
   return order;

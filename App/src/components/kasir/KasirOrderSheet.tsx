@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatRupiah } from "@/lib/format";
+import { paymentMethodLabel } from "@/lib/payment-methods";
 import { buildReceiptHtml, printReceipt } from "@/lib/receipt-html";
 import { formatAge, minutesSince, needsCash } from "@/lib/kasir-queue-rules";
 import type { KasirOrder } from "@/components/kasir/KasirQueue";
@@ -154,9 +155,9 @@ export default function KasirOrderSheet({
             <span className="kasir-line-name">Status</span>
             <span className="kasir-line-price kasir-sub">
               {order.payment_status === "paid"
-                ? `Sudah bayar · ${order.payment_method === "qris" ? "QRIS" : "Tunai"}`
-                : order.payment_method === "qris"
-                  ? "Menunggu QRIS"
+                ? `Sudah bayar · ${paymentMethodLabel(order.payment_method)}`
+                : order.payment_method && order.payment_method !== "cash"
+                  ? `Menunggu ${paymentMethodLabel(order.payment_method)}`
                   : "Belum bayar"}
             </span>
           </div>

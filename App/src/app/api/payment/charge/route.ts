@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     const { data: order, error } = await supabaseAdmin
       .from("Orders")
-      .select("id_order,customer_token,total,payment_status,items")
+      .select("id_order,customer_token,total,subtotal,tax_amount,service_amount,prices_include_tax,payment_status,items")
       .eq("id_order", orderId)
       .eq("customer_token", orderToken)
       .single();
@@ -40,22 +40,47 @@ export async function POST(req: Request) {
 
     // Klaim atomik: hanya order yang masih menunggu bayar yang boleh di-charge.
     // Mencegah dua tab membuat dua transaksi Snap untuk order yang sama.
-    const { error: claimError } = await supabaseAdmin
+    // .select() lets us see whether a row was actually claimed: without it, a second
+    // concurrent/retry charge on an already-"pending" order would match 0 rows, get no
+    // error, and proceed to call Snap again then blindly revert on cleanup.
+    const { data: claimedRows, error: claimError } = await supabaseAdmin
       .from("Orders")
       .update({ payment_status: "pending" })
       .eq("id_order", order.id_order)
-      .eq("payment_status", "awaiting_payment");
+      .eq("payment_status", "awaiting_payment")
+      .select("id_order");
     if (claimError) {
+      return NextResponse.json({ error: "Pembayaran sedang diproses" }, { status: 409 });
+    }
+    if (!claimedRows || claimedRows.length === 0) {
       return NextResponse.json({ error: "Pembayaran sedang diproses" }, { status: 409 });
     }
 
     const items = (Array.isArray(order.items) ? order.items as {
       id_menu: string; harga_menu: number; qty: number; nama_menu: string }[] : []);
+    const itemDetails = items.map((it) => ({
+      id: it.id_menu, price: it.harga_menu, quantity: it.qty, name: it.nama_menu.slice(0, 50),
+    }));
+    const serviceAmount = Number(order.service_amount ?? 0);
+    const taxAmount = order.prices_include_tax ? 0 : Number(order.tax_amount ?? 0);
+    if (!Number.isInteger(serviceAmount) || serviceAmount < 0 || !Number.isInteger(taxAmount) || taxAmount < 0) {
+      await supabaseAdmin.from("Orders")
+        .update({ payment_status: "awaiting_payment" })
+        .eq("id_order", order.id_order).eq("payment_status", "pending");
+      return NextResponse.json({ error: "Total pesanan tidak valid" }, { status: 500 });
+    }
+    if (serviceAmount > 0) itemDetails.push({ id: "service-charge", price: serviceAmount, quantity: 1, name: "Service charge" });
+    if (taxAmount > 0) itemDetails.push({ id: "tax", price: taxAmount, quantity: 1, name: "Tax" });
+    const itemDetailsTotal = itemDetails.reduce((sum, it) => sum + it.price * it.quantity, 0);
+    if (itemDetailsTotal !== Number(order.total)) {
+      await supabaseAdmin.from("Orders")
+        .update({ payment_status: "awaiting_payment" })
+        .eq("id_order", order.id_order).eq("payment_status", "pending");
+      return NextResponse.json({ error: "Rincian total pesanan tidak valid" }, { status: 500 });
+    }
     const body = {
       transaction_details: { order_id: order.id_order, gross_amount: order.total },
-      item_details: items.map((it) => ({
-        id: it.id_menu, price: it.harga_menu, quantity: it.qty, name: it.nama_menu.slice(0, 50),
-      })),
+      item_details: itemDetails,
       enabled_payments: ONLINE_ENABLED_PAYMENTS,
     };
 

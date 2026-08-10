@@ -52,7 +52,7 @@ const totals: KasirTotals = {
   completedCount: 37,
   receivedAmount: 1_480_000,
   cashAmount: 620_000,
-  qrisAmount: 860_000,
+  noncashAmount: 860_000,
 };
 
 function renderQueue(
@@ -192,6 +192,18 @@ describe("antrean kasir", () => {
     renderQueue([order({ table_number: "A-2" })]);
     fireEvent.click(screen.getByRole("button", { name: /Buka rincian pesanan A-2/ }));
     expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
+  it("menyebut metode pembayaran non-tunai apa adanya, bukan digeneralisasi jadi Tunai", () => {
+    renderQueue([
+      order({ status: "preparing", payment_status: "paid", payment_method: "gopay" }),
+    ]);
+    expect(screen.getByText(/Sudah bayar · GoPay/)).toBeTruthy();
+  });
+
+  it("menampilkan pemasukan tunai dan non-tunai di ringkasan bawah", () => {
+    renderQueue([order({})]);
+    expect(screen.getByText(/non-tunai/)).toBeTruthy();
   });
 
   it("menolak membatalkan tanpa alasan", async () => {

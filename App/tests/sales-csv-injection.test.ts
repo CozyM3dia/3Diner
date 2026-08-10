@@ -76,4 +76,16 @@ describe("buildSalesCsv", () => {
     expect(csv).toContain(",12,2x Kopi,2,40000,");
     expect(csv).not.toContain("'");
   });
+
+  it("keeps all online payment labels readable in exports", () => {
+    const csv = buildSalesCsv([
+      rowWith({ payment_method: "gopay" }),
+      rowWith({ payment_method: "shopeepay" }),
+      rowWith({ payment_method: "bank_transfer" }),
+    ], "Senja Kopi");
+
+    expect(csv).toContain("GoPay");
+    expect(csv).toContain("ShopeePay");
+    expect(csv).toContain("Transfer Bank");
+  });
 });

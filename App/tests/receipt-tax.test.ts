@@ -107,4 +107,10 @@ describe("struk termal", () => {
     expect(html).toContain("Pajak 0%");
     expect(html).not.toContain("6.300");
   });
+
+  it("menampilkan nama e-wallet dan transfer bank yang tersimpan", () => {
+    expect(buildReceiptHtml(order({ payment_method: "gopay" }), cafe)).toContain("GoPay");
+    expect(buildReceiptHtml(order({ payment_method: "shopeepay" }), cafe)).toContain("ShopeePay");
+    expect(buildReceiptHtml(order({ payment_method: "bank_transfer" }), cafe)).toContain("Transfer Bank");
+  });
 });

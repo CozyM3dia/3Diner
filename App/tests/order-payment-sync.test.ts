@@ -149,14 +149,27 @@ describe("POST /api/payment/webhook", () => {
   const rpc2 = vi.fn();
   const update = vi.fn();
   const eq2 = vi.fn();
+  const neq2 = vi.fn();
   const from2 = vi.fn();
+  let orderStatus = "pending";
+  let orderRead: { data: { total: number; payment_status: string; status: string } | null; error: unknown };
+  let paidRows: { id_order: string }[];
+  let forceReceivedRows: { id_order: string }[];
   beforeEach(() => {
     vi.resetModules(); vi.clearAllMocks();
+    orderStatus = "pending";
+    orderRead = { data: { total: 40000, payment_status: orderStatus, status: "awaiting" }, error: null };
+    paidRows = [{ id_order: "order-1" }];
+    forceReceivedRows = [{ id_order: "order-1" }];
     process.env.MIDTRANS_SERVER_KEY = "server-key";
-    eq2.mockReturnValue({ eq: () => Promise.resolve({ error: null }) });
+    neq2.mockImplementation(() => ({ select: () => Promise.resolve({ data: paidRows, error: null }) }));
+    eq2.mockReturnValue({
+      eq: () => ({ select: () => Promise.resolve({ data: forceReceivedRows, error: null }) }),
+      neq: neq2,
+    });
     update.mockReturnValue({ eq: eq2 });
     from2.mockReturnValue({
-      select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { total: 40000, payment_status: "pending" } }) }) }),
+      select: () => ({ eq: () => ({ single: () => Promise.resolve({ ...orderRead, data: orderRead.data && { ...orderRead.data, payment_status: orderStatus } }) }) }),
       update,
     });
     rpc2.mockResolvedValue({ data: { ok: true }, error: null });
@@ -193,6 +206,39 @@ describe("POST /api/payment/webhook", () => {
     expect(rpc2).not.toHaveBeenCalled();
   });
 
+  it("rejects malformed settlement notifications before reading or reconciling an order", async () => {
+    const res = await post({ order_id: "order-1", transaction_status: "settlement" });
+
+    expect(res.status).toBe(400);
+    expect(from2).not.toHaveBeenCalled();
+    expect(rpc2).not.toHaveBeenCalled();
+  });
+
+  it("rejects settlement notifications whose Midtrans status code is not successful", async () => {
+    const res = await post({
+      order_id: "order-1", status_code: "201", gross_amount: "40000.00",
+      signature_key: sig("order-1", "201", "40000.00"),
+      transaction_status: "settlement", payment_type: "gopay",
+    });
+
+    expect(res.status).toBe(400);
+    expect(from2).not.toHaveBeenCalled();
+    expect(rpc2).not.toHaveBeenCalled();
+  });
+
+  it("returns a retryable error when the order read fails instead of calling it an amount mismatch", async () => {
+    orderRead = { data: null, error: { message: "db down" } };
+
+    const res = await post({
+      order_id: "order-1", status_code: "200", gross_amount: "40000.00",
+      signature_key: sig("order-1", "200", "40000.00"),
+      transaction_status: "settlement", payment_type: "gopay",
+    });
+
+    expect(res.status).toBe(503);
+    expect(rpc2).not.toHaveBeenCalled();
+  });
+
   it("still marks the order paid but forces it visible to the kitchen when stock ran out", async () => {
     rpc2.mockResolvedValue({
       data: { error: "insufficient_inventory", unavailableMenus: ["Nasi"] },
@@ -212,6 +258,24 @@ describe("POST /api/payment/webhook", () => {
     expect(forceReceived).toBeTruthy();
   });
 
+  it("marks a settlement paid using neq(paid), not eq(pending) — order can be awaiting_payment", async () => {
+    orderStatus = "awaiting_payment";
+
+    const res = await post({
+      order_id: "order-1", status_code: "200", gross_amount: "40000.00",
+      signature_key: sig("order-1", "200", "40000.00"),
+      transaction_status: "settlement", payment_type: "gopay",
+    });
+
+    expect(res.status).toBe(200);
+    const setPaid = update.mock.calls.find((c) => c[0].payment_status === "paid");
+    expect(setPaid).toBeTruthy();
+    // The paid write filters with .neq("payment_status", "paid"), not .eq("payment_status", "pending"):
+    // a duplicate charge attempt can revert the order to awaiting_payment while the first Snap
+    // transaction is still live, and the real settlement must still land.
+    expect(neq2).toHaveBeenCalledWith("payment_status", "paid");
+  });
+
   it("does not mark the order paid and returns 502 when confirm_order transport fails", async () => {
     rpc2.mockResolvedValue({ data: null, error: { message: "db down" } });
 
@@ -224,5 +288,30 @@ describe("POST /api/payment/webhook", () => {
     expect(res.status).toBe(502);
     const setPaid = update.mock.calls.find((c) => c[0].payment_status === "paid");
     expect(setPaid).toBeUndefined();
+  });
+
+  it("returns 502 when the required paid reconciliation write affects no rows", async () => {
+    paidRows = [];
+
+    const res = await post({
+      order_id: "order-1", status_code: "200", gross_amount: "40000.00",
+      signature_key: sig("order-1", "200", "40000.00"),
+      transaction_status: "settlement", payment_type: "gopay",
+    });
+
+    expect(res.status).toBe(502);
+  });
+
+  it("returns 502 when the required force-received reconciliation write affects no rows", async () => {
+    rpc2.mockResolvedValue({ data: { error: "insufficient_inventory" }, error: null });
+    forceReceivedRows = [];
+
+    const res = await post({
+      order_id: "order-1", status_code: "200", gross_amount: "40000.00",
+      signature_key: sig("order-1", "200", "40000.00"),
+      transaction_status: "settlement", payment_type: "gopay",
+    });
+
+    expect(res.status).toBe(502);
   });
 });

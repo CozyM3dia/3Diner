@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { chargeOnline, fetchOrder, getStub, startSnapPayment } from "@/lib/orders";
 import { formatRupiah } from "@/lib/format";
+import { paymentMethodLabel } from "@/lib/payment-methods";
 import type { Order, OrderItem } from "@/types";
 
 type View = "loading" | "missing" | "pay" | "cashier" | "status";
@@ -780,11 +781,12 @@ function ReviewPrompt({ reviewUrl, cafeName }: { reviewUrl: string; cafeName: st
 }
 
 function paymentLabel(order: Order): string {
+  const method = order.payment_method ? paymentMethodLabel(order.payment_method) : "Online";
   if (order.payment_status === "paid") {
-    return order.payment_method === "cash" ? "Tunai · Lunas" : "Online · Lunas";
+    return `${method} · Lunas`;
   }
   if (order.payment_method === "cash") return "Tunai · Belum";
-  return "Online · Menunggu";
+  return `${method} · Menunggu`;
 }
 
 /** Nomor pesanan penuh adalah uuid; yang dibacakan ke kasir cukup ekornya. */

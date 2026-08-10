@@ -78,6 +78,12 @@ describe("uang yang masih harus diterima kasir", () => {
     expect(needsCash({ payment_status: "unpaid", payment_method: "qris" })).toBe(false);
   });
 
+  it("tidak pernah meminta kasir melunasi e-wallet atau transfer bank", () => {
+    expect(needsCash({ payment_status: "pending", payment_method: "gopay" })).toBe(false);
+    expect(needsCash({ payment_status: "pending", payment_method: "shopeepay" })).toBe(false);
+    expect(needsCash({ payment_status: "pending", payment_method: "bank_transfer" })).toBe(false);
+  });
+
   it("melewati pesanan yang sudah lunas", () => {
     expect(needsCash({ payment_status: "paid", payment_method: "cash" })).toBe(false);
   });

@@ -209,6 +209,9 @@ begin
   select jsonb_build_object(
     'cash', count(*) filter (where payment_status = 'paid' and payment_method = 'cash'),
     'qris', count(*) filter (where payment_status = 'paid' and payment_method = 'qris'),
+    'gopay', count(*) filter (where payment_status = 'paid' and payment_method = 'gopay'),
+    'shopeepay', count(*) filter (where payment_status = 'paid' and payment_method = 'shopeepay'),
+    'bank_transfer', count(*) filter (where payment_status = 'paid' and payment_method = 'bank_transfer'),
     'unpaid', count(*) filter (where payment_status <> 'paid')
   ) into v_payment
   from "Orders"

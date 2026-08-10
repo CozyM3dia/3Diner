@@ -63,8 +63,8 @@ describe("keadaan pembayaran", () => {
     expect(describePayment("cash", "paid")).toBe("Tunai · lunas");
   });
 
-  it("membedakan QRIS yang menunggu dari tunai yang belum dibayar", () => {
-    expect(describePayment("qris", "pending")).toBe("QRIS · menunggu");
+  it("belum bayar konsisten untuk semua metode, termasuk QRIS", () => {
+    expect(describePayment("qris", "pending")).toBe("QRIS · belum bayar");
     expect(describePayment("cash", "unpaid")).toBe("Tunai · belum bayar");
   });
 

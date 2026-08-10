@@ -1,4 +1,5 @@
 import { escapeHtml } from "@/lib/format";
+import { paymentMethodLabel } from "@/lib/payment-methods";
 import type { OrderItem } from "@/types";
 
 /** Bentuk minimum yang dibutuhkan struk. Sengaja tidak memakai `Order` utuh
@@ -55,8 +56,7 @@ export function buildReceiptHtml(order: ReceiptOrder, cafe: ReceiptCafe): string
   const timeStr = date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
   const items = Array.isArray(order.items) ? order.items : [];
 
-  const payLabel =
-    order.payment_method === "qris" ? "QRIS" : order.payment_method === "cash" ? "Tunai" : "-";
+  const payLabel = order.payment_method ? paymentMethodLabel(order.payment_method) : "-";
   const statusLabel = order.payment_status === "paid" ? "LUNAS" : "BELUM BAYAR";
 
   const itemRows = items

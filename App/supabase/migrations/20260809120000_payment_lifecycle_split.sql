@@ -14,19 +14,43 @@ create unique index if not exists "Orders_checkin_code_unique"
   on public."Orders" (cafe_id, checkin_code)
   where checkin_code is not null;
 
--- Perluas nilai payment_method yang sah. Longgar dulu terhadap baris lama.
+-- Constraint lama memakai nama yang tidak stabil antar lingkungan. Hapus hanya
+-- CHECK single-column untuk lifecycle/pembayaran; CHECK gabungan seperti
+-- Orders_cancel_requires_reason harus tetap dipertahankan.
 do $$
+declare
+  v_constraint record;
+  v_column text;
+  v_attnum smallint;
 begin
-  if not exists (
-    select 1 from pg_constraint
-    where conname = 'Orders_payment_method_valid'
-      and conrelid = 'public."Orders"'::regclass
-  ) then
-    alter table public."Orders"
-      add constraint "Orders_payment_method_valid"
+  foreach v_column in array array['status', 'payment_status', 'payment_method']
+  loop
+    select attnum into v_attnum
+    from pg_attribute
+    where attrelid = 'public."Orders"'::regclass
+      and attname = v_column
+      and not attisdropped;
+
+    for v_constraint in
+      select conname
+      from pg_constraint
+      where conrelid = 'public."Orders"'::regclass
+        and contype = 'c'
+        and cardinality(conkey) = 1
+        and conkey[1] = v_attnum
+    loop
+      execute format('alter table public."Orders" drop constraint if exists %I', v_constraint.conname);
+    end loop;
+  end loop;
+
+  alter table public."Orders"
+    add constraint "Orders_status_valid"
+      check (status in ('awaiting', 'received', 'preparing', 'ready', 'completed', 'cancelled')),
+    add constraint "Orders_payment_status_valid"
+      check (payment_status in ('unpaid', 'awaiting_payment', 'awaiting_checkin', 'pending', 'paid')),
+    add constraint "Orders_payment_method_valid"
       check (payment_method is null or payment_method in
-        ('cash','qris','gopay','shopeepay','bank_transfer'));
-  end if;
+        ('cash', 'qris', 'gopay', 'shopeepay', 'bank_transfer'));
 end $$;
 
 -- ── create_order: validasi + persist, TANPA potong stok ──────
@@ -44,6 +68,9 @@ as $$
 declare
   v_order_id text := gen_random_uuid()::text;
   v_customer_token uuid := gen_random_uuid();
+  v_subtotal integer := 0;
+  v_tax_amount integer := 0;
+  v_service_amount integer := 0;
   v_total integer := 0;
   v_order_items jsonb;
   v_now timestamptz := now();
@@ -53,6 +80,10 @@ declare
   v_payment_method text;
   v_code_bytes bytea;
   v_i integer;
+  v_tax jsonb;
+  v_tax_pct numeric(5,2);
+  v_service_pct numeric(5,2);
+  v_include boolean;
 begin
   if p_cafe_id is null or nullif(trim(p_table_number), '') is null then
     raise exception 'invalid_order_request' using errcode = '22023';
@@ -170,7 +201,25 @@ begin
     'id_menu', id_menu, 'nama_menu', nama_menu, 'harga_menu', harga_menu,
     'qty', qty, 'options', options) order by nama_menu, line_key)
     into v_order_items from tmp_canonical_lines;
-  select coalesce(sum(harga_menu * qty), 0)::integer into v_total from tmp_canonical_lines;
+  select coalesce(sum(harga_menu * qty), 0)::integer into v_subtotal from tmp_canonical_lines;
+
+  -- Sama persis dengan create_order_with_inventory: total yang tersimpan adalah
+  -- nominal Snap, sehingga pajak/layanan tidak boleh dihitung lagi di client.
+  v_tax := public.effective_tax_settings(p_cafe_id);
+  v_tax_pct := coalesce((v_tax->>'tax_pct')::numeric, 0);
+  v_service_pct := coalesce((v_tax->>'service_pct')::numeric, 0);
+  v_include := coalesce((v_tax->>'include')::boolean, false);
+  v_service_amount := round(v_subtotal * v_service_pct / 100.0)::integer;
+  if v_include then
+    v_tax_amount := round(
+      (v_subtotal + v_service_amount)
+      - (v_subtotal + v_service_amount) / (1 + v_tax_pct / 100.0)
+    )::integer;
+    v_total := v_subtotal + v_service_amount;
+  else
+    v_tax_amount := round((v_subtotal + v_service_amount) * v_tax_pct / 100.0)::integer;
+    v_total := v_subtotal + v_service_amount + v_tax_amount;
+  end if;
 
   if p_channel = 'cashier' then
     v_payment_status := 'awaiting_checkin';
@@ -194,10 +243,14 @@ begin
   end if;
 
   insert into public."Orders" (
-    id_order, cafe_id, table_number, items, total, status,
+    id_order, cafe_id, table_number, items,
+    subtotal, tax_pct, tax_amount, service_pct, service_amount, prices_include_tax,
+    total, status,
     payment_method, payment_status, notes, customer_token, checkin_code, created_at
   ) values (
-    v_order_id, p_cafe_id, left(trim(p_table_number), 30), v_order_items, v_total, 'awaiting',
+    v_order_id, p_cafe_id, left(trim(p_table_number), 30), v_order_items,
+    v_subtotal, v_tax_pct, v_tax_amount, v_service_pct, v_service_amount, v_include,
+    v_total, 'awaiting',
     v_payment_method, v_payment_status,
     nullif(left(coalesce(trim(p_notes), ''), 500), ''), v_customer_token, v_checkin_code, v_now
   );
@@ -206,7 +259,9 @@ begin
     'order', jsonb_build_object(
       'id_order', v_order_id, 'cafe_id', p_cafe_id,
       'table_number', left(trim(p_table_number), 30), 'items', v_order_items,
-      'total', v_total, 'status', 'awaiting',
+      'subtotal', v_subtotal, 'tax_pct', v_tax_pct, 'tax_amount', v_tax_amount,
+      'service_pct', v_service_pct, 'service_amount', v_service_amount,
+      'prices_include_tax', v_include, 'total', v_total, 'status', 'awaiting',
       'payment_method', v_payment_method, 'payment_status', v_payment_status,
       'notes', nullif(left(coalesce(trim(p_notes), ''), 500), ''), 'created_at', v_now),
     'orderToken', v_customer_token,
@@ -416,8 +471,10 @@ $$;
 revoke all on function public.create_order(uuid, text, jsonb, text, text) from public, anon, authenticated;
 revoke all on function public.confirm_order(text) from public, anon, authenticated;
 revoke all on function public.checkin_order(uuid, text) from public, anon, authenticated;
+revoke all on function public.get_order_for_customer(text, uuid) from public, anon, authenticated;
 grant execute on function public.create_order(uuid, text, jsonb, text, text) to service_role;
 grant execute on function public.confirm_order(text) to service_role;
 grant execute on function public.checkin_order(uuid, text) to service_role;
+grant execute on function public.get_order_for_customer(text, uuid) to service_role;
 
 commit;

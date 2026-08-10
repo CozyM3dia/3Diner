@@ -895,12 +895,16 @@ begin
     return jsonb_build_object('error', 'order_not_found');
   end if;
 
+  if v_method is distinct from 'cash' then
+    return jsonb_build_object('error', 'cash_only');
+  end if;
+
   if v_status = 'paid' then
     return jsonb_build_object('ok', true, 'alreadyPaid', true);
   end if;
 
-  if v_method = 'qris' then
-    return jsonb_build_object('error', 'qris_settled_by_webhook');
+  if v_status not in ('awaiting_checkin', 'unpaid') then
+    return jsonb_build_object('error', 'invalid_cash_payment_state');
   end if;
 
   update public."Orders"
@@ -908,7 +912,8 @@ begin
       payment_method = 'cash'
   where id_order = p_order_id
     and cafe_id = p_cafe_id
-    and payment_status <> 'paid';
+    and payment_method = 'cash'
+    and payment_status in ('awaiting_checkin', 'unpaid');
 
   return jsonb_build_object('ok', true);
 end;

@@ -264,7 +264,7 @@ export default function MenuBrowser({ menus, cafeId, slug }: MenuBrowserProps) {
             boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
           }}
         >
-          <WifiOff size={16} style={{ color: "#FD5002", flexShrink: 0 }} strokeWidth={2} />
+          <WifiOff size={16} style={{ color: "var(--orange)", flexShrink: 0 }} strokeWidth={2} />
           <p className="text-sm font-medium text-white leading-snug">
             Anda sedang offline. Menu yang tampil mungkin sudah tidak terbarui.
           </p>

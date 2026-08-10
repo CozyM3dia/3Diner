@@ -128,6 +128,9 @@ export default async function RevenuePage({ searchParams }: PageProps) {
                 segments={[
                   { label: "Tunai (Cash)", value: paymentCounts.cash, color: "#22D3A6" },
                   { label: "QRIS", value: paymentCounts.qris, color: "#00C2A8" },
+                  { label: "GoPay", value: paymentCounts.gopay, color: "#38BDF8" },
+                  { label: "ShopeePay", value: paymentCounts.shopeepay, color: "#FB7185" },
+                  { label: "Transfer Bank", value: paymentCounts.bank_transfer, color: "#A78BFA" },
                   { label: "Belum Bayar", value: paymentCounts.unpaid, color: "#5A7898" },
                 ]}
               />

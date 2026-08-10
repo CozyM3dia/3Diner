@@ -53,7 +53,7 @@ export default async function KasirPage() {
       completedCount: num(a.completed_count),
       receivedAmount: num(a.received_amount),
       cashAmount: num(a.cash_amount),
-      qrisAmount: num(a.qris_amount),
+      noncashAmount: num(a.noncash_amount),
     };
   }
 

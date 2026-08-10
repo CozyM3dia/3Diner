@@ -15,6 +15,7 @@ const src = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 const ORDERS_CLIENT = src("../src/components/dashboard/OrdersClient.tsx");
 const EXPORT_REPORT = src("../src/components/dashboard/ExportReport.tsx");
 const REVENUE_PAGE = src("../src/app/dashboard/revenue/page.tsx");
+const REVENUE_DATA = src("../src/lib/analytics.ts");
 // Agregasi status kini di Postgres (revenue_analytics), bukan di analytics.ts.
 const RPC_MIGRATION = src("../supabase/migrations/20260807120002_analytics_aggregation.sql");
 
@@ -66,6 +67,13 @@ describe("pemetaan status di dashboard lama", () => {
     expect(RPC_MIGRATION).toContain("'status_counts'");
     expect(REVENUE_PAGE).toContain("statusCounts.completed");
     expect(REVENUE_PAGE).toContain("statusCounts.cancelled");
+  });
+
+  it("menampilkan setiap metode pembayaran yang diterima, bukan hanya QRIS", () => {
+    for (const method of ["gopay", "shopeepay", "bank_transfer"]) {
+      expect(REVENUE_DATA).toContain(`${method}: num(p.${method})`);
+      expect(REVENUE_PAGE).toContain(`paymentCounts.${method}`);
+    }
   });
 
   it("menolak memajukan pesanan yang sudah terminal", () => {

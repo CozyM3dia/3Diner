@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Download, FileSpreadsheet, FileText, Loader2, ChevronDown } from "lucide-react";
 import { getSalesExport, type SalesExportRow } from "@/lib/dashboard-actions";
 import { escapeHtml, formatRupiah } from "@/lib/format";
+import { paymentMethodLabel } from "@/lib/payment-methods";
 
 function fmtDateTime(iso: string): string {
   const d = new Date(iso);
@@ -19,7 +20,6 @@ function rangeLabel(start?: string, end?: string): string {
   return "14 hari terakhir";
 }
 
-const PAY_LABEL: Record<string, string> = { qris: "QRIS", cash: "Tunai" };
 const STATUS_LABEL: Record<string, string> = {
   received: "Baru",
   preparing: "Diproses",
@@ -46,7 +46,7 @@ export function buildSalesCsv(rows: SalesExportRow[], cafeName: string, start?: 
   const header = ["No. Pesanan", "Tanggal", "Meja", "Item", "Jumlah Item", "Total (Rp)", "Metode Bayar", "Status Bayar", "Status Pesanan"];
   const lines = rows.map((r) => [
     r.id_order, fmtDateTime(r.created_at), r.table_number, r.items_summary,
-    r.item_count, r.total, PAY_LABEL[r.payment_method] ?? r.payment_method,
+    r.item_count, r.total, paymentMethodLabel(r.payment_method),
     r.payment_status === "paid" ? "Lunas" : "Belum", STATUS_LABEL[r.status] ?? r.status,
   ].map(csvCell).join(","));
   const totalSum = rows.reduce((n, r) => n + r.total, 0);
@@ -80,7 +80,7 @@ export function buildSalesReportHtml(rows: SalesExportRow[], cafeName: string, s
       <td class="wrap">${escapeHtml(String(r.items_summary ?? "")) || "-"}</td>
       <td class="num">${r.item_count}</td>
       <td class="num strong">${formatRupiah(r.total)}</td>
-      <td>${PAY_LABEL[r.payment_method] ?? "-"}</td>
+      <td>${escapeHtml(paymentMethodLabel(r.payment_method))}</td>
       <td>${r.payment_status === "paid" ? "Lunas" : "Belum"}</td>
     </tr>`).join("");
 

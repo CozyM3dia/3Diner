@@ -24,3 +24,12 @@ export function mapMidtransPaymentType(paymentType: string): string {
     default: return "qris";
   }
 }
+
+/** Human-readable labels for Orders.payment_method, shared across kasir/dashboard UI. */
+export const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  cash: "Tunai", qris: "QRIS", gopay: "GoPay", shopeepay: "ShopeePay", bank_transfer: "Transfer Bank",
+};
+
+export function paymentMethodLabel(method: string | null): string {
+  return method ? (PAYMENT_METHOD_LABEL[method] ?? method) : "Belum dipilih";
+}

@@ -248,7 +248,14 @@ export interface RevenueData {
     completed: number;
     cancelled: number;
   };
-  paymentCounts: { cash: number; qris: number; unpaid: number };
+  paymentCounts: {
+    cash: number;
+    qris: number;
+    gopay: number;
+    shopeepay: number;
+    bank_transfer: number;
+    unpaid: number;
+  };
   topByRevenue: { name: string; qty: number; revenue: number }[];
   recentOrders: { id: string; table: string; total: number; status: string; at: string }[];
 }
@@ -299,7 +306,14 @@ export async function getRevenueData(
     cancelled: num(asObject(agg.status_counts).cancelled),
   };
   const p = asObject(agg.payment_counts);
-  const paymentCounts = { cash: num(p.cash), qris: num(p.qris), unpaid: num(p.unpaid) };
+  const paymentCounts = {
+    cash: num(p.cash),
+    qris: num(p.qris),
+    gopay: num(p.gopay),
+    shopeepay: num(p.shopeepay),
+    bank_transfer: num(p.bank_transfer),
+    unpaid: num(p.unpaid),
+  };
 
   const avgOrder = orderCount > 0 ? Math.round(totalRevenue / orderCount) : 0;
   const thisWeekRev = num(agg.this_week_rev);

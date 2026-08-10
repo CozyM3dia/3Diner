@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { markOrderCashPaid, updateOrderStatus } from "@/lib/dashboard-actions";
 import { escapeHtml, formatRupiah } from "@/lib/format";
+import { paymentMethodLabel } from "@/lib/payment-methods";
 import {
   DashboardEmptyState,
   DashboardPanel,
@@ -42,8 +43,8 @@ type Filter = "all" | "received" | "preparing" | "ready";
 
 /** Baris pembayaran: memisahkan pekerjaan kasir dari pekerjaan dapur.
  *
- *  Pesanan QRIS dilunasi webhook Midtrans, jadi tombolnya hanya muncul untuk
- *  pesanan tunai atau pesanan yang metodenya belum dipilih pelanggan. */
+ *  Hanya pesanan tunai yang boleh dilunasi kasir; semua metode online selesai
+ *  lewat webhook Midtrans. */
 function PaymentRow({
   order,
   busy,
@@ -54,11 +55,8 @@ function PaymentRow({
   onMarkPaid: () => void;
 }) {
   const paid = order.payment_status === "paid";
-  const isQris = order.payment_method === "qris";
-  const methodLabel =
-    order.payment_method === "qris" ? "QRIS"
-    : order.payment_method === "cash" ? "Tunai"
-    : "Metode belum dipilih";
+  const isCash = order.payment_method === "cash";
+  const methodLabel = paymentMethodLabel(order.payment_method);
 
   return (
     <div
@@ -85,7 +83,7 @@ function PaymentRow({
         </span>
       </span>
 
-      {!paid && !isQris && (
+      {!paid && isCash && (
         <button
           onClick={onMarkPaid}
           disabled={busy}
@@ -97,7 +95,7 @@ function PaymentRow({
         </button>
       )}
 
-      {!paid && isQris && (
+      {!paid && !isCash && (
         <span className="text-[11px] shrink-0" style={{ color: "var(--dash-muted)" }}>
           Menunggu Midtrans
         </span>
@@ -130,10 +128,7 @@ export function buildReceiptHtml(order: OrderRow, cafeName: string): string {
   const dateStr = date.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
   const timeStr = date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
   const items = Array.isArray(order.items) ? order.items : [];
-  const payLabel =
-    order.payment_method === "qris" ? "QRIS"
-    : order.payment_method === "cash" ? "Tunai"
-    : "-";
+  const payLabel = order.payment_method ? paymentMethodLabel(order.payment_method) : "-";
   const statusLabel =
     order.payment_status === "paid" ? "LUNAS"
     : "BELUM BAYAR";

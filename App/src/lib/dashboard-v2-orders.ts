@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { PAYMENT_METHOD_LABEL } from "@/lib/payment-methods";
 import type { OrderItem, OrderStatus, PaymentMethod } from "@/types";
 
 export const ORDER_TABS = ["semua", "berjalan", "dibatalkan"] as const;
@@ -158,14 +159,6 @@ export const STATUS_TEXT: Record<OrderStatus, string> = {
   cancelled: "Dibatalkan",
 };
 
-const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
-  cash: "Tunai",
-  qris: "QRIS",
-  gopay: "GoPay",
-  shopeepay: "ShopeePay",
-  bank_transfer: "Transfer Bank",
-};
-
 /** Metode pembayaran ditulis bersama keadaannya.
  *
  *  "QRIS" saja tidak memberi tahu apakah uangnya sudah masuk, dan itu justru
@@ -173,6 +166,5 @@ const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
 export function describePayment(method: PaymentMethod | null, status: string): string {
   const name = method ? PAYMENT_METHOD_LABEL[method] : "Belum dipilih";
   if (status === "paid") return `${name} · lunas`;
-  if (method === "qris") return "QRIS · menunggu";
   return `${name} · belum bayar`;
 }
