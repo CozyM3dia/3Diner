@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
@@ -8,12 +8,9 @@ import {
   Check,
   Wallet,
   QrCode,
-  ArrowLeft,
   Download,
-  ShieldCheck,
   RefreshCw,
   Star,
-  Loader2,
   Store,
   Smartphone,
   Copy,
@@ -23,7 +20,7 @@ import { formatRupiah } from "@/lib/format";
 import { paymentMethodLabel, QRIS_SUPPORTED_APPS } from "@/lib/payment-methods";
 import type { Order, OrderItem } from "@/types";
 
-type View = "loading" | "missing" | "pay" | "qris" | "cashier" | "status";
+type View = "loading" | "missing" | "qris" | "cashier" | "status";
 
 /** Selang polling. Layar bayar-online menunggu webhook Midtrans, jadi diperiksa
  *  lebih sering; layar kasir & status menunggu tindakan manusia (menit). */
@@ -39,6 +36,7 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
   const [chargeLoading, setChargeLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const autoChargeOrderRef = useRef<string | null>(null);
 
   // Token boleh datang dari tautan (perangkat lain, cache terhapus) atau dari
   // cache lokal perangkat yang membuat pesanan. getStub menyentuh localStorage,
@@ -61,8 +59,10 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
     if (!fetched) return null;
     setOrder(fetched.order);
     setReviewUrl(fetched.reviewUrl);
-    const serverQrisUrl = fetched.order.payment_qr_url ?? getQrisUrl(orderId);
-    if (serverQrisUrl) setQrisUrlState(serverQrisUrl);
+    const serverQrisUrl = fetched.order.payment_status === "pending"
+      ? fetched.order.payment_qr_url ?? getQrisUrl(orderId)
+      : null;
+    setQrisUrlState(serverQrisUrl);
     return fetched.order;
   }, [orderId, resolveToken]);
 
@@ -86,7 +86,7 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
     if (view === "loading" || view === "missing") return;
     if (order?.status === "ready" && order?.payment_status === "paid") return;
 
-    const interval = view === "pay" || view === "qris" ? POLL_PAY_MS : POLL_SLOW_MS;
+    const interval = view === "qris" ? POLL_PAY_MS : POLL_SLOW_MS;
     const timer = setInterval(() => {
       void load().then((fresh) => {
         if (fresh) setView(viewForOrder(fresh));
@@ -104,7 +104,7 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
   }
 
   /** Membuat satu QRIS dinamis; status tetap mengikuti webhook Midtrans. */
-  async function payOnline() {
+  const payOnline = useCallback(async () => {
     const token = resolveToken();
     if (!order || !token) return;
     if (qrisUrl && order.payment_status === "pending") {
@@ -124,7 +124,24 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
     } finally {
       setChargeLoading(false);
     }
-  }
+  }, [load, order, qrisUrl, resolveToken]);
+
+  // QRIS is the only online payment path, so the customer should land on the
+  // QR screen immediately and see a loading state while Midtrans creates it.
+  useEffect(() => {
+    if (view !== "qris" || !order || order.payment_status !== "awaiting_payment" ||
+        qrisUrl || chargeLoading || payError || autoChargeOrderRef.current === order.id_order) {
+      return;
+    }
+    autoChargeOrderRef.current = order.id_order;
+    void payOnline();
+  }, [chargeLoading, order, payError, payOnline, qrisUrl, view]);
+
+  const retryPayment = useCallback(() => {
+    if (!order) return;
+    autoChargeOrderRef.current = null;
+    void payOnline();
+  }, [order, payOnline]);
 
   if (view === "loading") {
     return (
@@ -157,25 +174,16 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
     );
   }
 
-  if (view === "pay") {
-    return (
-      <OnlinePayView
-        order={order}
-        loading={chargeLoading}
-        errorMessage={payError}
-        onPay={payOnline}
-      />
-    );
-  }
-
   if (view === "qris") {
     return (
       <QrisView
         order={order}
         qrisUrl={qrisUrl}
+        loading={chargeLoading}
+        errorMessage={payError}
         refreshing={refreshing}
         onRefresh={refreshNow}
-        onBack={() => setView("pay")}
+        onRetry={retryPayment}
       />
     );
   }
@@ -195,11 +203,12 @@ function viewForOrder(order: Order): View {
   // Begitu dapur menerima pesanan (check-in kasir / webhook), QR tak berguna lagi.
   if (order.status !== "awaiting") return "status";
   if (order.payment_status === "awaiting_checkin") return "cashier";
-  if (order.payment_status === "pending") return "qris";
-  return "pay";
+  if (order.payment_status === "pending" || order.payment_status === "awaiting_payment") return "qris";
+  return "status";
 }
 
 /* ── Ringkasan pesanan di kepala layar ── */
+/*
 function ConfirmBanner({
   order,
   title,
@@ -232,6 +241,7 @@ function ConfirmBanner({
   );
 }
 
+*/
 function Chip({ children }: { children: React.ReactNode }) {
   return (
     <span
@@ -269,6 +279,7 @@ function OrderSummaryCard({ order }: { order: Order }) {
 }
 
 /* ── 1. Mulai pembayaran QRIS ── */
+/*
 function OnlinePayView({
   order,
   loading,
@@ -376,15 +387,19 @@ function OnlinePayView({
 function QrisView({
   order,
   qrisUrl,
+  loading,
+  errorMessage,
   refreshing,
   onRefresh,
-  onBack,
+  onRetry,
 }: {
   order: Order;
   qrisUrl: string | null;
+  loading: boolean;
+  errorMessage: string | null;
   refreshing: boolean;
   onRefresh: () => void;
-  onBack: () => void;
+  onRetry: () => void;
 }) {
   return (
     <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "120px" }}>
@@ -392,14 +407,6 @@ function QrisView({
         className="relative px-5 pt-12 pb-8 text-center text-white"
         style={{ background: "var(--navy)", borderRadius: "0 0 32px 32px" }}
       >
-        <button
-          onClick={onBack}
-          aria-label="Kembali ke halaman pembayaran"
-          className="press absolute left-4 top-12 w-10 h-10 inline-flex items-center justify-center rounded-full"
-          style={{ background: "rgba(255,255,255,0.1)" }}
-        >
-          <ArrowLeft size={20} />
-        </button>
         <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.55)" }}>
           Total Pembayaran
         </p>
@@ -447,20 +454,40 @@ function QrisView({
             )}
           </div>
 
-          <p className="text-[12px] text-center mt-4 leading-relaxed" style={{ color: "var(--navy-muted)" }}>
-            Scan QR ini dengan aplikasi apa pun yang mendukung QRIS.
-          </p>
-          <div className="flex flex-wrap justify-center gap-1.5 mt-3">
-            {QRIS_SUPPORTED_APPS.map((label) => (
-              <span
-                key={label}
-                className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
-                style={{ background: "var(--surface)", color: "var(--navy-muted)" }}
+          {loading ? (
+            <p className="text-[12px] text-center mt-4 leading-relaxed" style={{ color: "var(--navy-muted)" }}>
+              Menyiapkan QRIS untuk pembayaranmu…
+            </p>
+          ) : errorMessage ? (
+            <div className="mt-4 text-center">
+              <p role="alert" className="text-[12px] leading-relaxed" style={{ color: "var(--orange-ink)" }}>
+                {errorMessage}
+              </p>
+              <button
+                onClick={onRetry}
+                className="btn-primary press mt-3 h-10 px-5 rounded-xl text-sm font-semibold text-white"
               >
-                {label}
-              </span>
-            ))}
-          </div>
+                Coba Lagi
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="text-[12px] text-center mt-4 leading-relaxed" style={{ color: "var(--navy-muted)" }}>
+                Scan QR ini dengan aplikasi apa pun yang mendukung QRIS.
+              </p>
+              <div className="flex flex-wrap justify-center gap-1.5 mt-3">
+                {QRIS_SUPPORTED_APPS.map((label) => (
+                  <span
+                    key={label}
+                    className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                    style={{ background: "var(--surface)", color: "var(--navy-muted)" }}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
 
           {qrisUrl && <DownloadQris qrisUrl={qrisUrl} orderId={order.id_order} />}
         </div>
@@ -472,11 +499,14 @@ function QrisView({
           <Smartphone size={18} className="shrink-0 mt-0.5" style={{ color: "var(--orange-ink)" }} />
           <div className="min-w-0">
             <p className="font-semibold text-sm" style={{ color: "var(--orange-ink)" }}>
-              Menunggu pembayaran
+              {loading ? "Menyiapkan pembayaran" : errorMessage ? "QRIS belum siap" : "Menunggu pembayaran"}
             </p>
             <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--navy-muted)" }}>
-              Setelah pembayaran berhasil, status pesanan akan berubah otomatis. Jangan tutup layar ini
-              sebelum pembayaran selesai.
+              {loading
+                ? "QR akan muncul otomatis sebentar lagi."
+                : errorMessage
+                ? "Periksa koneksi lalu coba buat QRIS lagi."
+                : "Setelah pembayaran berhasil, status pesanan akan berubah otomatis. Jangan tutup layar ini sebelum pembayaran selesai."}
             </p>
           </div>
         </div>
