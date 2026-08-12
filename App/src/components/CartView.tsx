@@ -11,6 +11,8 @@ import { formatRupiah } from "@/lib/format";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import type { Cafe } from "@/types";
 
+type CheckoutStep = "review" | "payment";
+
 export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
   const { items, count, total, table, notes, setQty, setTable, setNotes, clear } = useCart();
   const router = useRouter();
@@ -19,8 +21,18 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
   const [orderError, setOrderError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [channel, setChannel] = useState<"online" | "cashier">("online");
+  const [step, setStep] = useState<CheckoutStep>("review");
   const orderErrorRef = useRef<HTMLDivElement>(null);
   const tableValid = table.trim().length > 0;
+
+  function continueToPayment() {
+    if (!tableValid) {
+      setTouched(true);
+      requestAnimationFrame(() => document.getElementById("meja")?.focus());
+      return;
+    }
+    setStep("payment");
+  }
 
   async function submit() {
     if (!tableValid) {
@@ -70,7 +82,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
           <ArrowLeft size={22} style={{ color: "var(--navy)" }} />
         </Link>
         <h1 className="font-display text-lg font-bold flex-1" style={{ color: "var(--navy)" }}>
-          Pesanan Kamu
+          Selesaikan pesanan
         </h1>
         {count > 0 && (
           <span className="text-xs font-medium" style={{ color: "var(--navy-muted)" }}>
@@ -78,6 +90,30 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
           </span>
         )}
       </header>
+
+      {count > 0 && (
+        <nav aria-label="Tahap checkout" className="mx-auto w-full max-w-xl px-4 pt-4">
+          <ol className="grid grid-cols-3 gap-2 text-center text-xs font-semibold">
+            {(["Review", "Bayar", "Selesai"] as const).map((label, index) => {
+              const active = step === "review" ? index === 0 : index === 1;
+              const complete = step === "payment" && index === 0;
+              return (
+                <li
+                  key={label}
+                  aria-current={active ? "step" : undefined}
+                  className="rounded-full px-2 py-2"
+                  style={{
+                    background: active ? "var(--navy)" : "var(--surface)",
+                    color: active ? "var(--white)" : complete ? "var(--orange-ink)" : "var(--navy-muted)",
+                  }}
+                >
+                  {label}
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      )}
 
       {count === 0 ? (
         <div className="flex flex-col items-center justify-center text-center px-8" style={{ minHeight: "70dvh" }}>
@@ -96,6 +132,8 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
         </div>
       ) : (
         <div className="mx-auto w-full max-w-xl px-4 pt-4">
+          {step === "review" ? (
+            <>
           {/* Items */}
           <div className="space-y-3">
             {items.map((it) => (
@@ -160,7 +198,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
           <div className="card p-4 mt-4 space-y-4">
             <div>
               <label htmlFor="meja" className="block text-sm font-semibold mb-2" style={{ color: "var(--navy)" }}>
-                Nomor Meja
+                Nomor meja
               </label>
               <input
                 id="meja"
@@ -168,6 +206,8 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                 onChange={(e) => setTable(e.target.value)}
                 onBlur={() => setTouched(true)}
                 inputMode="numeric"
+                aria-invalid={touched && !tableValid}
+                aria-describedby={touched && !tableValid ? "meja-error" : undefined}
                 placeholder="Contoh: 12"
                 className="w-full h-12 px-4 rounded-xl text-sm transition-shadow"
                 style={{
@@ -176,7 +216,12 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                   boxShadow: touched && !tableValid ? "0 0 0 2px var(--orange)" : undefined,
                 }}
               />
-              <p className="text-[11px] mt-1.5" style={{ color: touched && !tableValid ? "var(--orange-ink)" : "var(--navy-muted)" }}>
+              <p
+                id={touched && !tableValid ? "meja-error" : undefined}
+                role={touched && !tableValid ? "alert" : undefined}
+                className="text-[11px] mt-1.5"
+                style={{ color: touched && !tableValid ? "var(--orange-ink)" : "var(--navy-muted)" }}
+              >
                 {touched && !tableValid ? "Wajib diisi sebelum memesan" : "Wajib diisi"}
               </p>
             </div>
@@ -229,10 +274,33 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
             </div>
           </div>
 
-          {/* Metode pembayaran dipilih di sini supaya jalur (online vs kasir)
-              sudah pasti saat pesanan dibuat: pesanan kasir butuh kode check-in
-              yang dibuat di saat itu juga, bukan sesudahnya. */}
-          <PaymentChannelSelector value={channel} onChange={setChannel} />
+            </>
+          ) : (
+            <section aria-labelledby="payment-heading" className="space-y-4">
+              <div className="card p-4">
+                <h2 id="payment-heading" className="font-display text-lg font-bold" style={{ color: "var(--navy)" }}>
+                  Pilih metode pembayaran
+                </h2>
+                <p className="text-sm mt-1" style={{ color: "var(--navy-muted)" }}>
+                  Pesananmu akan dikirim setelah metode pembayaran dipilih.
+                </p>
+                <div className="mt-4 space-y-2">
+                  {items.map((it) => (
+                    <div key={it.line_key} className="flex items-center justify-between gap-3 text-sm">
+                      <span style={{ color: "var(--navy)" }}>{it.qty}× {it.nama_menu}</span>
+                      <span style={{ color: "var(--navy-muted)" }}>{formatRupiah(it.harga_menu * it.qty)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="w-full h-px my-3" style={{ background: "var(--border)" }} />
+                <div className="flex items-center justify-between font-bold" style={{ color: "var(--navy)" }}>
+                  <span>Total</span>
+                  <span style={{ color: "var(--orange-ink)" }}>{formatRupiah(total)}</span>
+                </div>
+              </div>
+              <PaymentChannelSelector value={channel} onChange={setChannel} />
+            </section>
+          )}
         </div>
       )}
 
@@ -246,7 +314,20 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
             borderTop: "1px solid var(--border)",
           }}
         >
-          {isOnline ? (
+          {step === "review" ? (
+            <>
+              <button
+                onClick={continueToPayment}
+                disabled={!isOnline}
+                className="btn-primary press w-full h-[52px] rounded-2xl font-semibold text-[15px] text-white max-w-xl mx-auto inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                Lanjut ke pembayaran
+              </button>
+              <p className="text-[11px] text-center mt-2" style={{ color: "var(--navy-muted)" }}>
+                {isOnline ? "Periksa meja dan catatan sebelum memilih pembayaran." : "Hubungkan ke Wi-Fi kafe untuk melanjutkan."}
+              </p>
+            </>
+          ) : (
             <>
               {orderError && (
                 <div
@@ -261,33 +342,31 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                   <p>{orderError}</p>
                 </div>
               )}
-              <button
-                onClick={submit}
-                disabled={isSubmitting}
-                className="btn-primary press w-full h-[52px] rounded-2xl font-semibold text-[15px] text-white max-w-xl mx-auto inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSubmitting && <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />}
-                {isSubmitting ? "Mengirim pesanan..." : "Pesan Sekarang"}
-              </button>
-              <p className="text-[11px] text-center mt-2" style={{ color: "var(--navy-muted)" }}>
-                {channel === "online"
-                  ? "Lanjut ke pembayaran online setelah pesanan dibuat"
-                  : `Tunjukkan kode ke kasir ${cafe.nama_cafe} untuk bayar`}
-              </p>
-            </>
-          ) : (
-            <>
-              <div
-                className="w-full h-[52px] rounded-2xl flex items-center justify-center gap-2 max-w-xl mx-auto"
-                style={{ background: "var(--surface)", border: "1.5px dashed var(--border)" }}
-              >
-                <WifiOff size={16} strokeWidth={1.8} style={{ color: "var(--navy-muted)" }} />
-                <span className="font-semibold text-sm" style={{ color: "var(--navy-muted)" }}>
-                  Pesan Sekarang
-                </span>
+              <div className="max-w-xl mx-auto flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep("review")}
+                  disabled={isSubmitting}
+                  className="press h-[52px] rounded-2xl px-4 font-semibold text-sm disabled:cursor-not-allowed disabled:opacity-70"
+                  style={{ background: "var(--surface)", color: "var(--navy)" }}
+                >
+                  Kembali ke review
+                </button>
+                <button
+                  onClick={submit}
+                  disabled={isSubmitting || !isOnline}
+                  className="btn-primary press flex-1 h-[52px] rounded-2xl font-semibold text-[15px] text-white inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isSubmitting && <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />}
+                  {isSubmitting ? "Mengirim pesanan..." : "Kirim pesanan"}
+                </button>
               </div>
-              <p className="text-[11px] text-center mt-2 flex items-center justify-center gap-1" style={{ color: "var(--orange-ink)" }}>
-                Hubungkan ke Wi-Fi kafe untuk mengirim pesanan.
+              <p className="text-[11px] text-center mt-2 flex items-center justify-center gap-1" style={{ color: isOnline ? "var(--navy-muted)" : "var(--orange-ink)" }}>
+                {isOnline
+                  ? channel === "online"
+                    ? "Lanjut ke pembayaran online setelah pesanan dibuat"
+                    : `Tunjukkan kode ke kasir ${cafe.nama_cafe} untuk bayar`
+                  : <><WifiOff size={14} strokeWidth={1.8} /> Hubungkan ke Wi-Fi kafe untuk mengirim pesanan.</>}
               </p>
             </>
           )}
@@ -310,24 +389,24 @@ function PaymentChannelSelector({
       id: "online" as const,
       icon: Smartphone,
       title: "Bayar Online",
-      sub: "Satu QRIS, scan dari aplikasi pilihanmu",
+      sub: "Satu QR untuk semua aplikasi pembayaran",
     },
     {
       id: "cashier" as const,
       icon: Store,
       title: "Bayar di Kasir",
-      sub: "Tunjukkan kode ke kasir",
+      sub: "Tunjukkan kode pesanan ke kasir",
     },
   ];
 
   return (
-    <section className="mt-4" aria-label="Metode pembayaran">
+    <section aria-label="Pilih metode pembayaran">
       <h2 className="font-display text-sm font-bold mb-2" style={{ color: "var(--navy)" }}>
-        Metode Pembayaran
+        Metode pembayaran
       </h2>
       <div
         role="radiogroup"
-        aria-label="Metode pembayaran"
+        aria-label="Pilih metode pembayaran"
         className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl"
         style={{ background: "var(--surface)" }}
       >
