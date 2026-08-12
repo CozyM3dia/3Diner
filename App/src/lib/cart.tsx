@@ -80,6 +80,7 @@ export function CartProvider({
   }, [items, table, notes, slug, hydrated]);
 
   function add(menu: Menu, qty = 1, options: SelectedOption[] = []) {
+    if (qty <= 0) return;
     const lineKey = cartLineKey(
       menu.id_menu,
       options.map((o) => o.id_option_value)

@@ -170,7 +170,7 @@ export function buildReceiptHtml(order: ReceiptOrder, cafe: ReceiptCafe): string
   <div class="sep c">${S}</div>
   <div class="meta"><b>No.</b> <span>#${orderId}</span></div>
   <div class="meta"><b>Tgl</b> <span>${escapeHtml(dateStr)} ${escapeHtml(timeStr)}</span></div>
-  <div class="meta"><b>Bayar</b> <span>${payLabel}</span></div>
+  <div class="meta"><b>Bayar</b> <span>${escapeHtml(payLabel)}</span></div>
   <div class="meta"><b>Status</b> <span class="status-paid">${statusLabel}</span></div>
   <div class="sep c">${D}</div>
   <table><tbody>${itemRows}</tbody></table>

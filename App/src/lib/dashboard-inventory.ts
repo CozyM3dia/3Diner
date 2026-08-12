@@ -36,7 +36,7 @@ export function criticalInventoryItems(items: InventoryItem[], limit = 4): Inven
     .slice(0, limit);
 }
 
-export async function getDashboardInventoryDataForSlug(slug: string | null): Promise<DashboardInventoryData> {
+async function getDashboardInventoryDataForSlug(slug: string | null): Promise<DashboardInventoryData> {
   const empty: DashboardInventoryData = {
     items: [],
     movements: [],

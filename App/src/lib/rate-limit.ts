@@ -46,16 +46,16 @@ export async function consumeRateLimit(
     });
 
     if (error || !data || typeof data !== "object") {
-      return { allowed: true, retryAfterSeconds: 0 };
+      return { allowed: true, retryAfterSeconds: 1 };
     }
 
     const row = data as ConsumeRateLimitRow;
     if (row.allowed === false) {
       return { allowed: false, retryAfterSeconds: secondsUntil(row.reset_at) };
     }
-    return { allowed: true, retryAfterSeconds: 0 };
+    return { allowed: true, retryAfterSeconds: 1 };
   } catch {
-    return { allowed: true, retryAfterSeconds: 0 };
+    return { allowed: true, retryAfterSeconds: 1 };
   }
 }
 
@@ -84,15 +84,15 @@ export async function consumeRateLimits(
     });
 
     if (error || !data || typeof data !== "object") {
-      return { allowed: true, retryAfterSeconds: 0 };
+      return { allowed: true, retryAfterSeconds: 1 };
     }
 
     const row = data as ConsumeRateLimitRow;
     if (row.allowed === false) {
       return { allowed: false, retryAfterSeconds: secondsUntil(row.reset_at) };
     }
-    return { allowed: true, retryAfterSeconds: 0 };
+    return { allowed: true, retryAfterSeconds: 1 };
   } catch {
-    return { allowed: true, retryAfterSeconds: 0 };
+    return { allowed: true, retryAfterSeconds: 1 };
   }
 }

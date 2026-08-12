@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
 import InventoryWorkspace from "@/components/dashboard/InventoryWorkspace";
 import { getDashboardCafeContext } from "@/lib/dashboard-context";
-import { getDashboardInventoryDataForSlug } from "@/lib/dashboard-inventory";
+import { getDashboardInventoryDataForOwner } from "@/lib/dashboard-inventory";
 
 export default async function InventoryPage() {
-  const { userId, slug } = await getDashboardCafeContext();
+  const { userId } = await getDashboardCafeContext();
   if (!userId) redirect("/login");
 
-  const inventory = await getDashboardInventoryDataForSlug(slug);
+  const inventory = await getDashboardInventoryDataForOwner(userId);
 
   return (
     <div className="max-w-[1180px] mx-auto p-5 lg:p-8">

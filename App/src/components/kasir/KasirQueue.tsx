@@ -19,7 +19,7 @@ import {
   needsCash,
 } from "@/lib/kasir-queue-rules";
 import { paymentMethodLabel } from "@/lib/payment-methods";
-import type { OrderItem, OrderStatus } from "@/types";
+import type { OrderItem, OrderStatus, PaymentMethod, PaymentStatus } from "@/types";
 
 export interface KasirOrder {
   id_order: string;
@@ -27,8 +27,8 @@ export interface KasirOrder {
   items: OrderItem[];
   total: number;
   status: OrderStatus;
-  payment_method: string | null;
-  payment_status: string;
+  payment_method: PaymentMethod | null;
+  payment_status: PaymentStatus;
   created_at: string;
   notes?: string | null;
   /** Potret tarif saat pesanan dibuat. Struk dan rincian memakai angka ini,

@@ -85,14 +85,14 @@ export async function POST(req: Request) {
     };
 
     let res: Response;
-    let data: { token?: string; error_messages?: unknown };
+    let data: { token?: string; error_messages?: unknown } | null;
     try {
       res = await fetch(snapUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: authHeader },
         body: JSON.stringify(body),
       });
-      data = await res.json();
+      data = await res.json() as { token?: string; error_messages?: unknown } | null;
     } catch {
       await supabaseAdmin.from("Orders")
         .update({ payment_status: "awaiting_payment" })
@@ -100,11 +100,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Gagal menghubungi pembayaran" }, { status: 502 });
     }
 
-    if (!res.ok || !data.token) {
+    if (!res.ok || !data?.token) {
       await supabaseAdmin.from("Orders")
         .update({ payment_status: "awaiting_payment" })
         .eq("id_order", order.id_order).eq("payment_status", "pending");
-      const msg = Array.isArray(data.error_messages) ? data.error_messages.join(", ") : "Midtrans error";
+      const msgs = data?.error_messages;
+      const msg = Array.isArray(msgs) ? msgs.join(", ") : "Midtrans error";
       return NextResponse.json({ error: msg }, { status: 400 });
     }
 
