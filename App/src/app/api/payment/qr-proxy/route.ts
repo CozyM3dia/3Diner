@@ -15,7 +15,7 @@ function isAllowedQrUrl(raw: string): boolean {
   }
   // Host dicocokkan persis, bukan endsWith, agar
   // "api.midtrans.com.evil.example.com" tetap ditolak.
-  return parsed.protocol === "https:" && ALLOWED_QR_HOSTS.has(parsed.hostname);
+  return parsed.protocol === "https:" && parsed.port === "" && ALLOWED_QR_HOSTS.has(parsed.hostname);
 }
 
 export async function GET(req: Request) {
@@ -29,7 +29,10 @@ export async function GET(req: Request) {
   }
 
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { redirect: "manual" });
+    if (res.status >= 300 && res.status < 400) {
+      throw new Error("QR image redirect is not allowed");
+    }
     if (!res.ok) throw new Error("Failed to fetch QR image");
     const buffer = await res.arrayBuffer();
     const contentType = res.headers.get("content-type") ?? "image/png";
@@ -43,6 +46,6 @@ export async function GET(req: Request) {
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: msg }, { status: 502 });
   }
 }

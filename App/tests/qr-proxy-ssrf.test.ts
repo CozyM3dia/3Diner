@@ -32,6 +32,7 @@ const BLOCKED = [
   ["a file URL", "file:///etc/passwd"],
   ["a lookalike host", "https://api.midtrans.com.evil.example.com/qr"],
   ["a plain-HTTP Midtrans host", "http://api.midtrans.com/v2/qris/abc/qr-code"],
+  ["a non-default Midtrans port", "https://api.midtrans.com:8443/v2/qris/abc/qr-code"],
 ] as const;
 
 describe("GET /api/payment/qr-proxy", () => {
@@ -53,7 +54,7 @@ describe("GET /api/payment/qr-proxy", () => {
     const response = await GET(get(url));
 
     expect(response.status).toBe(200);
-    expect(fetchSpy).toHaveBeenCalledWith(url);
+    expect(fetchSpy).toHaveBeenCalledWith(url, { redirect: "manual" });
     expect(response.headers.get("content-type")).toBe("image/png");
     expect(response.headers.get("content-disposition")).toContain("QRIS-order-1.png");
   });
@@ -65,5 +66,23 @@ describe("GET /api/payment/qr-proxy", () => {
 
     expect(response.status).toBe(400);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not follow a redirect from a Midtrans QR endpoint", async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(null, {
+        status: 302,
+        headers: { location: "https://evil.example.com/redirected-qr" },
+      })
+    );
+
+    const { GET } = await import("@/app/api/payment/qr-proxy/route");
+    const response = await GET(get("https://api.midtrans.com/v2/qris/abc-123/qr-code"));
+
+    expect(response.status).toBe(502);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://api.midtrans.com/v2/qris/abc-123/qr-code",
+      { redirect: "manual" }
+    );
   });
 });
