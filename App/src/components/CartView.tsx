@@ -4,7 +4,20 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowLeft, LoaderCircle, Minus, Plus, Plus as PlusIcon, Box, ShoppingBag, WifiOff, Smartphone, Store } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Box,
+  Check,
+  LoaderCircle,
+  Minus,
+  Plus,
+  Plus as PlusIcon,
+  ShoppingBag,
+  Smartphone,
+  Store,
+  WifiOff,
+} from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { createOrder } from "@/lib/orders";
 import { formatRupiah } from "@/lib/format";
@@ -66,7 +79,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
   }
 
   return (
-    <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: count > 0 ? "120px" : "0" }}>
+    <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: count > 0 ? "176px" : "0" }}>
       {/* Header */}
       <header
         className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3"
@@ -92,22 +105,21 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
       </header>
 
       {count > 0 && (
-        <nav aria-label="Tahap checkout" className="mx-auto w-full max-w-xl px-4 pt-4">
-          <ol className="grid grid-cols-3 gap-2 text-center text-xs font-semibold">
-            {(["Review", "Bayar", "Selesai"] as const).map((label, index) => {
+        <nav aria-label="Tahap checkout" className="checkout-progress mx-auto w-full max-w-xl px-4 pt-4">
+          <ol className="checkout-progress-list">
+            {["Review", "Bayar", "Selesai"].map((label, index) => {
               const active = step === "review" ? index === 0 : index === 1;
               const complete = step === "payment" && index === 0;
               return (
                 <li
                   key={label}
                   aria-current={active ? "step" : undefined}
-                  className="rounded-full px-2 py-2"
-                  style={{
-                    background: active ? "var(--navy)" : "var(--surface)",
-                    color: active ? "var(--white)" : complete ? "var(--orange-ink)" : "var(--navy-muted)",
-                  }}
+                  className={`checkout-progress-step${active ? " is-active" : ""}${complete ? " is-complete" : ""}`}
                 >
-                  {label}
+                  <span className="checkout-progress-marker" aria-hidden="true">
+                    {complete ? <Check size={15} strokeWidth={3} /> : index + 1}
+                  </span>
+                  <span>{label}</span>
                 </li>
               );
             })}
@@ -134,20 +146,29 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
         <div className="mx-auto w-full max-w-xl px-4 pt-4">
           {step === "review" ? (
             <>
+          <div className="mb-5">
+            <p className="checkout-kicker">Langkah 1 dari 2</p>
+            <h2 id="review-heading" className="font-display text-xl font-bold" style={{ color: "var(--navy)" }}>
+              Review pesanan
+            </h2>
+            <p className="text-sm mt-1" style={{ color: "var(--navy-muted)" }}>
+              Periksa jumlah, meja, dan catatan sebelum memilih pembayaran.
+            </p>
+          </div>
           {/* Items */}
           <div className="space-y-3">
             {items.map((it) => (
-              <div key={it.line_key} className="card flex items-center gap-3 p-3 fade-up">
-                <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0">
+              <div key={it.line_key} className="checkout-item card flex items-center gap-3 p-3.5 fade-up">
+                <div className="relative w-[76px] h-[76px] rounded-2xl overflow-hidden shrink-0">
                   {it.image_url ? (
-                    <Image src={it.image_url} alt={it.nama_menu} fill sizes="64px" className="object-cover" />
+                    <Image src={it.image_url} alt={it.nama_menu} fill sizes="76px" className="object-cover" />
                   ) : (
                     <div className="absolute inset-0 dish-mesh flex items-center justify-center">
                       <Box size={20} color="rgba(253,253,253,0.5)" />
                     </div>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 self-stretch flex flex-col justify-center">
                   <h3 className="font-display text-sm font-semibold truncate" style={{ color: "var(--navy)" }}>
                     {it.nama_menu}
                   </h3>
@@ -156,16 +177,16 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                       {it.options.map((o) => o.name).join(" · ")}
                     </p>
                   )}
-                  <p className="text-sm font-bold mt-0.5" style={{ color: "var(--orange-ink)" }}>
+                  <p className="text-sm font-bold mt-1" style={{ color: "var(--orange-ink)" }}>
                     {formatRupiah(it.harga_menu)}
                   </p>
                 </div>
-                <div className="shrink-0 inline-flex items-center gap-1">
+                <div className="checkout-quantity shrink-0 inline-flex items-center gap-0.5 rounded-2xl p-1" aria-label={`Jumlah ${it.nama_menu}`}>
                   <button
                     onClick={() => setQty(it.line_key, it.qty - 1)}
                     aria-label={`Kurangi ${it.nama_menu}`}
-                    className="press w-10 h-10 rounded-full inline-flex items-center justify-center"
-                    style={{ background: "var(--surface)", color: "var(--navy)" }}
+                    className="press w-11 h-11 rounded-xl inline-flex items-center justify-center"
+                    style={{ color: "var(--navy)" }}
                   >
                     <Minus size={16} strokeWidth={2.5} />
                   </button>
@@ -175,8 +196,8 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                   <button
                     onClick={() => setQty(it.line_key, it.qty + 1)}
                     aria-label={`Tambah ${it.nama_menu}`}
-                    className="press w-10 h-10 rounded-full inline-flex items-center justify-center text-white"
-                    style={{ background: "var(--orange)" }}
+                    className="press w-11 h-11 rounded-xl inline-flex items-center justify-center"
+                    style={{ background: "var(--orange)", color: "var(--white)" }}
                   >
                     <Plus size={16} strokeWidth={2.5} />
                   </button>
@@ -277,6 +298,9 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
             </>
           ) : (
             <section aria-labelledby="payment-heading" className="space-y-4">
+              <div className="mb-1">
+                <p className="checkout-kicker">Langkah 2 dari 2</p>
+              </div>
               <div className="card p-4">
                 <h2 id="payment-heading" className="font-display text-lg font-bold" style={{ color: "var(--navy)" }}>
                   Pilih metode pembayaran
@@ -306,12 +330,12 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
 
       {/* Sticky CTA */}
       {count > 0 && (
-        <div
-          className="fixed bottom-0 inset-x-0 z-40 px-4 pt-3"
+      <div
+        className="checkout-action-bar fixed bottom-0 inset-x-0 z-40 px-4 pt-3"
           style={{
             paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-            background: "var(--white)",
-            borderTop: "1px solid var(--border)",
+            background: "var(--navy)",
+            borderTop: "1px solid rgba(253,253,253,0.14)",
           }}
         >
           {step === "review" ? (
@@ -323,7 +347,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
               >
                 Lanjut ke pembayaran
               </button>
-              <p className="text-[11px] text-center mt-2" style={{ color: "var(--navy-muted)" }}>
+              <p className="checkout-action-hint text-[11px] text-center mt-2" style={{ color: "var(--navy-muted)" }}>
                 {isOnline ? "Periksa meja dan catatan sebelum memilih pembayaran." : "Hubungkan ke Wi-Fi kafe untuk melanjutkan."}
               </p>
             </>
@@ -342,26 +366,25 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                   <p>{orderError}</p>
                 </div>
               )}
-              <div className="max-w-xl mx-auto flex gap-3">
+              <div className="checkout-action-row max-w-xl mx-auto flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => setStep("review")}
                   disabled={isSubmitting}
-                  className="press h-[52px] rounded-2xl px-4 font-semibold text-sm disabled:cursor-not-allowed disabled:opacity-70"
-                  style={{ background: "var(--surface)", color: "var(--navy)" }}
+                  className="checkout-secondary-action press h-[48px] sm:h-[52px] rounded-2xl px-4 font-semibold text-sm disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   Kembali ke review
                 </button>
                 <button
                   onClick={submit}
                   disabled={isSubmitting || !isOnline}
-                  className="btn-primary press flex-1 h-[52px] rounded-2xl font-semibold text-[15px] text-white inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="btn-primary press w-full flex-1 h-[52px] rounded-2xl font-semibold text-[15px] text-white inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isSubmitting && <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />}
                   {isSubmitting ? "Mengirim pesanan..." : "Kirim pesanan"}
                 </button>
               </div>
-              <p className="text-[11px] text-center mt-2 flex items-center justify-center gap-1" style={{ color: isOnline ? "var(--navy-muted)" : "var(--orange-ink)" }}>
+              <p className="checkout-action-hint text-[11px] text-center mt-2 flex items-center justify-center gap-1" style={{ color: isOnline ? "var(--navy-muted)" : "var(--orange-ink)" }}>
                 {isOnline
                   ? channel === "online"
                     ? "Lanjut ke pembayaran online setelah pesanan dibuat"
@@ -407,8 +430,7 @@ function PaymentChannelSelector({
       <div
         role="radiogroup"
         aria-label="Pilih metode pembayaran"
-        className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl"
-        style={{ background: "var(--surface)" }}
+        className="payment-choice-list space-y-2"
       >
         {options.map((opt) => {
           const active = value === opt.id;
@@ -420,28 +442,30 @@ function PaymentChannelSelector({
               role="radio"
               aria-checked={active}
               onClick={() => onChange(opt.id)}
-              className="press flex flex-col items-start gap-1.5 rounded-xl px-3.5 py-3 text-left transition-[background,box-shadow,transform] duration-200"
+              className={`payment-choice press flex items-start gap-3 rounded-2xl px-3.5 py-3.5 text-left transition-[background,box-shadow,transform] duration-200${active ? " is-selected" : ""}`}
               style={
                 active
                   ? { background: "var(--white)", boxShadow: "var(--shadow-md)", border: "1.5px solid var(--orange)" }
-                  : { background: "transparent", border: "1.5px solid transparent" }
+                  : { background: "var(--white)", border: "1.5px solid var(--border)" }
               }
             >
-              <span className="flex items-center gap-2">
+              <span className="payment-choice-icon w-10 h-10 rounded-xl inline-flex items-center justify-center shrink-0" style={{ background: active ? "var(--orange-blush)" : "var(--surface)" }}>
                 <Icon
                   size={18}
                   strokeWidth={2.2}
                   style={{ color: active ? "var(--orange)" : "var(--navy-muted)" }}
                 />
-                <span
-                  className="font-semibold text-[13px]"
-                  style={{ color: active ? "var(--navy)" : "var(--navy-muted)" }}
-                >
-                  {opt.title}
-                </span>
               </span>
-              <span className="text-[11px] leading-tight" style={{ color: "var(--navy-muted)" }}>
-                {opt.sub}
+              <span className="flex-1 min-w-0">
+                <span className="flex items-center gap-2">
+                  <span className="font-semibold text-[13px]" style={{ color: active ? "var(--navy)" : "var(--navy-muted)" }}>
+                    {opt.title}
+                  </span>
+                  {active && <Check size={15} strokeWidth={2.8} style={{ color: "var(--orange)" }} aria-hidden="true" />}
+                </span>
+                <span className="block text-[11px] leading-tight mt-1" style={{ color: "var(--navy-muted)" }}>
+                  {opt.sub}
+                </span>
               </span>
             </button>
           );

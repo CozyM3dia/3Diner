@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import React from "react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CartView from "../src/components/CartView";
@@ -112,8 +112,17 @@ describe("CartView order recovery", () => {
 
     render(<CartView cafe={{ id_cafe: "cafe-1", nama_cafe: "3Diner" } as never} slug="demo" />);
 
+    expect(screen.getByRole("heading", { name: "Review pesanan" })).toBeTruthy();
+    const progressRail = screen.getByRole("navigation", { name: "Tahap checkout" });
+    expect(within(progressRail).getByText("Review")).toBeTruthy();
+    expect(within(progressRail).getByText("Bayar")).toBeTruthy();
+    expect(within(progressRail).getByText("Selesai")).toBeTruthy();
+
     await userEvent.click(screen.getByRole("button", { name: "Lanjut ke pembayaran" }));
     expect(screen.getByText("Pilih metode pembayaran")).toBeTruthy();
+    expect(screen.getByRole("radiogroup", { name: "Pilih metode pembayaran" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Kembali ke review" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Kirim pesanan" })).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: "Kirim pesanan" }));
 
