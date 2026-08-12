@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { chargeOnline, fetchOrder, getQrisUrl, getStub, setQrisUrl } from "@/lib/orders";
 import { formatRupiah } from "@/lib/format";
-import { paymentMethodLabel, QRIS_SUPPORTED_APPS } from "@/lib/payment-methods";
+import { paymentMethodLabel } from "@/lib/payment-methods";
 import type { Order, OrderItem } from "@/types";
 
 type View = "loading" | "missing" | "qris" | "cashier" | "status";
@@ -470,24 +470,7 @@ function QrisView({
                 Coba Lagi
               </button>
             </div>
-          ) : (
-            <>
-              <p className="text-[12px] text-center mt-4 leading-relaxed" style={{ color: "var(--navy-muted)" }}>
-                Scan QR ini dengan aplikasi apa pun yang mendukung QRIS.
-              </p>
-              <div className="flex flex-wrap justify-center gap-1.5 mt-3">
-                {QRIS_SUPPORTED_APPS.map((label) => (
-                  <span
-                    key={label}
-                    className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
-                    style={{ background: "var(--surface)", color: "var(--navy-muted)" }}
-                  >
-                    {label}
-                  </span>
-                ))}
-              </div>
-            </>
-          )}
+          ) : null}
 
           {qrisUrl && <DownloadQris qrisUrl={qrisUrl} orderId={order.id_order} />}
         </div>

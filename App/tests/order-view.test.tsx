@@ -75,6 +75,10 @@ describe("OrderView QRIS entry", () => {
 
     expect(screen.queryByText("Tampilkan QRIS")).toBeNull();
     expect(screen.queryByText("Pesanan Dibuat")).toBeNull();
+    expect(screen.queryByText("Scan QR ini dengan aplikasi apa pun yang mendukung QRIS.")).toBeNull();
+    for (const app of ["GoPay", "OVO", "DANA", "ShopeePay", "m-banking"]) {
+      expect(screen.queryByText(app, { exact: true })).toBeNull();
+    }
   });
 
   it("does not reuse a cached QR for a fresh awaiting-payment order", async () => {
