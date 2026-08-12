@@ -318,6 +318,7 @@ export default function GlbViewer({
         try {
           // Foto share memakai latar navy brand — frame live transparan akan
           // jadi abu terang setelah dicompose di atas backdrop kertas.
+          // (0x002355 = --navy-dark; three.js butuh nilai numerik, bukan var CSS.)
           scene.background = new THREE.Color(0x002355);
           renderer.render(scene, camera);
           const dataUrl = renderer.domElement.toDataURL("image/png");
@@ -376,13 +377,13 @@ export default function GlbViewer({
       {state === "loading" && (
         <div
           className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4"
-          style={{ background: "#002355" }}
+          style={{ background: "var(--navy-dark)" }}
         >
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
             style={{ background: "rgba(253,253,253,0.1)" }}
           >
-            <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
+            <Loader2 size={28} color="var(--orange)" strokeWidth={2} className="animate-spin" />
           </div>
           <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>
             Memuat model 3D...
@@ -390,7 +391,7 @@ export default function GlbViewer({
           <div className="w-56 h-2 rounded-full overflow-hidden" style={{ background: "rgba(253,253,253,0.15)" }}>
             <div
               className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${progress}%`, background: "linear-gradient(90deg, #022C60, #FD5002)" }}
+              style={{ width: `${progress}%`, background: "linear-gradient(90deg, var(--navy), var(--orange))" }}
             />
           </div>
           <p className="text-base font-bold" style={{ color: "#FDFDFD" }}>
@@ -402,7 +403,7 @@ export default function GlbViewer({
       {state === "error" && (
         <div
           className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 p-6"
-          style={{ background: "#002355" }}
+          style={{ background: "var(--navy-dark)" }}
         >
           <p className="font-semibold text-sm" style={{ color: "#FDFDFD" }}>
             Gagal memuat model 3D
@@ -419,7 +420,7 @@ export default function GlbViewer({
             type="button"
             onClick={init}
             className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white"
-            style={{ background: "#FD5002" }}
+            style={{ background: "var(--orange)" }}
           >
             <RotateCcw size={14} />
             Coba Lagi

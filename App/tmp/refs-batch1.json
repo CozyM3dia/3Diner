@@ -1,0 +1,25 @@
+[
+  { "name": "meandu-live-menu-parkerquinn", "url": "https://parkerandquinn.menu/bppickup", "why": "LIVE me&u guest menu — the closest shipped analog to 3Diner: QR entry, category nav, dish cards, cart" },
+  { "name": "meandu-order-pay-product", "url": "https://www.meandu.com/us/serve/order-pay", "why": "me&u product page, shows guest UI in context" },
+  { "name": "meandu-group-tabs", "url": "https://help.meandu.com/hc/en-us/articles/6539880778511-Group-tabs-explained", "why": "group ordering at one table — pattern 3Diner lacks" },
+  { "name": "meandu-upsells", "url": "https://help.meandu.com/hc/en-us/articles/6539899736207-How-to-set-up-upsells", "why": "upsell placement in a QR menu" },
+  { "name": "sunday-order-and-pay", "url": "https://sundayapp.com/order-and-pay/", "why": "QR order+pay flow presentation" },
+  { "name": "sunday-digital-bill", "url": "https://sundayapp.com/digital-bill/", "why": "bill splitting and pay-at-table UI" },
+  { "name": "storekit-order-pay-qr", "url": "https://www.storekit.com/products/order-pay-qr-ordering", "why": "QR ordering product UI" },
+  { "name": "storekit-pay-at-table", "url": "https://www.storekit.com/products/pay-at-table-digital-bills", "why": "digital bill screens" },
+  { "name": "menutiger", "url": "https://www.menutiger.com/", "why": "QR menu builder, shows generated menu styling" },
+
+  { "name": "modelviewer-ar-examples", "url": "https://modelviewer.dev/examples/augmentedreality/", "why": "AR entry button treatment and unsupported-device fallback" },
+  { "name": "modelviewer-lighting-env", "url": "https://modelviewer.dev/examples/lightingandenv/", "why": "environment map and ground shadow — directly fixes our flat navy viewer" },
+  { "name": "modelviewer-loading", "url": "https://modelviewer.dev/examples/loading/", "why": "poster image and progress patterns for heavy GLB" },
+  { "name": "sketchfab-embed-settings", "url": "https://sketchfab.com/blogs/community/discover-our-new-embed-settings/", "why": "viewer chrome: which controls to show or hide" },
+  { "name": "8thwall-food-beverage", "url": "https://www.8thwall.com/discover/food-beverage", "why": "shipped WebAR food experiences gallery" },
+  { "name": "apple-ar-hig", "url": "https://developer.apple.com/design/human-interface-guidelines/augmented-reality/", "why": "Apple guidance on AR entry, coaching, placement" },
+  { "name": "apple-quick-look", "url": "https://developer.apple.com/augmented-reality/quick-look/", "why": "Quick Look presentation and banner UI" },
+  { "name": "ikea-mobile-apps", "url": "https://www.ikea.com/us/en/customer-service/mobile-apps/", "why": "IKEA Place AR framing" },
+
+  { "name": "runchise-qr-dinein", "url": "https://www.runchise.com/en/qr-dinein", "why": "Indonesian QR dine-in product" },
+  { "name": "interactive-myorder-id", "url": "https://interactive.co.id/product/myorder-apps-type-software-qrcode", "why": "Indonesian QR ordering product" },
+  { "name": "qraved", "url": "https://www.qraved.com/", "why": "Indonesian F&B discovery, local visual register" },
+  { "name": "majoo-menu-digital-qris", "url": "https://majoo.id/blog/detail/menu-digital-dan-qris-solusi-transaksi-bebas-kontak", "why": "Indonesian framing of digital menu + QRIS" }
+]

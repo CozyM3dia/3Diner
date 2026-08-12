@@ -1,0 +1,19 @@
+[
+  {
+    "name": "meandu-live-menu-parkerquinn",
+    "url": "https://parkerandquinn.menu/bppickup",
+    "why": "LIVE me&u guest menu — category nav, dish cards, group order, cart",
+    "mobile": {
+      "ok": true,
+      "file": "meandu-live-menu-parkerquinn--mobile.png",
+      "title": "bppickup | parkerandquinn.menu",
+      "consent": "none"
+    },
+    "desktop": {
+      "ok": true,
+      "file": "meandu-live-menu-parkerquinn--desktop.png",
+      "title": "bppickup | parkerandquinn.menu",
+      "consent": "none"
+    }
+  }
+]

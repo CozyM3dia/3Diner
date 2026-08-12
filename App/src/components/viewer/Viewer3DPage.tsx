@@ -276,7 +276,7 @@ export default function Viewer3DPage({
   };
 
   return (
-    <div ref={shellRef} data-viewer-entrance="shell" className="fixed inset-0 flex flex-col" style={{ background: "radial-gradient(120% 90% at 50% 35%, #0A3A78 0%, #022C60 45%, #002355 100%)", touchAction: "none", overscrollBehavior: "none" } as React.CSSProperties}>
+    <div ref={shellRef} data-viewer-entrance="shell" className="fixed inset-0 flex flex-col" style={{ background: "radial-gradient(120% 90% at 50% 35%, var(--navy-bright) 0%, var(--navy) 45%, var(--navy-dark) 100%)", touchAction: "none", overscrollBehavior: "none" } as React.CSSProperties}>
       {/* Top bar */}
       <div
         ref={headerRef}

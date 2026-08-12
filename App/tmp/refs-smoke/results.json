@@ -1,0 +1,36 @@
+[
+  {
+    "name": "material3-cards",
+    "url": "https://m3.material.io/components/cards/overview",
+    "why": "card anatomy and elevation guidance",
+    "mobile": {
+      "ok": true,
+      "file": "material3-cards--mobile.png",
+      "title": "Cards – Material Design 3",
+      "consent": "none"
+    },
+    "desktop": {
+      "ok": true,
+      "file": "material3-cards--desktop.png",
+      "title": "Cards – Material Design 3",
+      "consent": "none"
+    }
+  },
+  {
+    "name": "apple-augmented-reality",
+    "url": "https://www.apple.com/augmented-reality/",
+    "why": "how Apple frames AR entry and Quick Look",
+    "mobile": {
+      "ok": true,
+      "file": "apple-augmented-reality--mobile.png",
+      "title": "Apple Vision Pro - Apple",
+      "consent": "none"
+    },
+    "desktop": {
+      "ok": true,
+      "file": "apple-augmented-reality--desktop.png",
+      "title": "Apple Vision Pro - Apple",
+      "consent": "none"
+    }
+  }
+]

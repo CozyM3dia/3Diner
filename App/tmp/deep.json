@@ -1,0 +1,42 @@
+[
+  {
+    "name": "behance-restaurant-app",
+    "url": "https://www.behance.net/search/projects?search=restaurant%20app%20ui&sort=appreciations",
+    "linkSelector": "a[href*='/gallery/']",
+    "take": 5,
+    "segments": 6,
+    "scrolls": 3
+  },
+  {
+    "name": "behance-food-menu-app",
+    "url": "https://www.behance.net/search/projects?search=food%20menu%20app&sort=appreciations",
+    "linkSelector": "a[href*='/gallery/']",
+    "take": 5,
+    "segments": 6,
+    "scrolls": 3
+  },
+  {
+    "name": "behance-qr-menu",
+    "url": "https://www.behance.net/search/projects?search=qr%20menu%20restaurant&sort=appreciations",
+    "linkSelector": "a[href*='/gallery/']",
+    "take": 4,
+    "segments": 6,
+    "scrolls": 3
+  },
+  {
+    "name": "dribbble-shot-food-menu",
+    "url": "https://dribbble.com/search/food-menu-app",
+    "linkSelector": "a[href*='/shots/']",
+    "take": 6,
+    "segments": 3,
+    "scrolls": 3
+  },
+  {
+    "name": "dribbble-shot-coffee",
+    "url": "https://dribbble.com/search/coffee%20shop%20app",
+    "linkSelector": "a[href*='/shots/']",
+    "take": 6,
+    "segments": 3,
+    "scrolls": 3
+  }
+]

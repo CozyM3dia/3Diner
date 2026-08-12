@@ -2,6 +2,13 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "3diner-payment",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:\\Kerja\\3Diner\\App", "run", "dev"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
       "name": "3diner-dashboard-ux",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "C:\\Kerja\\3Diner\\.worktrees\\dashboard-ux\\App", "run", "dev"],

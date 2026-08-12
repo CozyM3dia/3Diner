@@ -4,7 +4,7 @@ import React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import StatusBadge from "@/components/dashboard/system/StatusBadge";
+import StatusBadge, { type StatusKind } from "@/components/dashboard/system/StatusBadge";
 
 /** Dashboard lama tetap dipakai sampai /dashboard-v2 lulus, sementara migrasi
  *  2026-07-27c sudah memasukkan status terminal ke database. Berkas ini menjaga
@@ -40,11 +40,21 @@ describe("badge status terminal", () => {
     const style = container.querySelector("span")?.getAttribute("style") ?? "";
     expect(style).toContain("--dash-muted");
   });
+
+  it("renders the payment-waiting order status without crashing", () => {
+    expect(() => render(<StatusBadge kind={"order-awaiting" as StatusKind} />)).not.toThrow();
+    expect(screen.getByText("Menunggu")).toBeTruthy();
+  });
+
+  it("falls back safely when runtime data contains an unknown status", () => {
+    expect(() => render(<StatusBadge kind={"order-unknown" as StatusKind} label="Status lain" />)).not.toThrow();
+    expect(screen.getByText("Status lain")).toBeTruthy();
+  });
 });
 
 describe("pemetaan status di dashboard lama", () => {
   it("memetakan setiap status ke sebuah badge di daftar pesanan", () => {
-    for (const status of ["received", "preparing", "ready", "completed", "cancelled"]) {
+    for (const status of ["awaiting", "received", "preparing", "ready", "completed", "cancelled"]) {
       expect(ORDERS_CLIENT).toMatch(new RegExp(`${status}: "order-`));
     }
   });
