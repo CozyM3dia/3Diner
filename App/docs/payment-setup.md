@@ -83,6 +83,12 @@ identity, and expose the QR URL through the customer order RPC only while the
 order is still pending. The idempotency key is retained for safe retries when
 a charge response is lost.
 
+Settlement callbacks use the identity-aware `settle_payment_order` RPC. It
+locks the order, confirms inventory, marks the matching Midtrans attempt paid,
+and clears the QRIS attempt fields in one database transaction. A callback for
+an older or already-cleared transaction is acknowledged without changing a
+newer attempt.
+
 Before pushing, check that the local migration filenames match the linked
 project's remote migration history. This repository includes the deployed
 remote versions for the QRIS migrations; if `supabase migration list` reports

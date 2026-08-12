@@ -41,6 +41,10 @@ const qrisPaymentAttemptIdentityMigrationPath = new URL(
   "../supabase/migrations/20260812141335_qris_payment_attempt_identity.sql",
   import.meta.url
 );
+const qrisSettlementCasMigrationPath = new URL(
+  "../supabase/migrations/20260812145223_qris_settlement_cas.sql",
+  import.meta.url
+);
 
 describe("security migration", () => {
   it("removes anonymous Orders policies and adds order token support", () => {
@@ -227,6 +231,17 @@ describe("payment lifecycle migration", () => {
     expect(sql).toContain('Orders_payment_qr_identity_pair_valid');
     expect(sql).toContain('Orders_payment_idempotency_key_valid');
     expect(sql).toContain("payment_idempotency_key ~ '^[A-Za-z0-9._:-]{1,46}$'");
+  });
+
+  it("settles QRIS through an identity-aware atomic RPC", () => {
+    const sql = readFileSync(qrisSettlementCasMigrationPath, "utf8");
+
+    expect(sql).toContain("create or replace function public.settle_payment_order");
+    expect(sql).toContain("p_transaction_id text");
+    expect(sql).toContain("for update");
+    expect(sql).toContain("payment_transaction_id is distinct from p_transaction_id");
+    expect(sql).toContain("and payment_transaction_id = p_transaction_id");
+    expect(sql).toContain("public.confirm_order(p_order_id)");
   });
 
   it("replaces legacy Orders checks and snapshots the canonical tax contract before charging", () => {

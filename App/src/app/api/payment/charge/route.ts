@@ -244,6 +244,20 @@ export async function POST(req: Request) {
     const statusCode = Number(data?.status_code ?? res.status);
     if (!res.ok || !Number.isFinite(statusCode) || statusCode >= 400 || data?.payment_type !== "qris" ||
         data?.transaction_status !== "pending" || !qrisUrl || !transactionId) {
+      // A non-ambiguous Midtrans 4xx means this attempt was rejected before a
+      // usable QR was created. Release only this attempt's claim so the
+      // customer can choose another payment path. Duplicate-order (406) and
+      // rate-limit (429) responses stay pending because they may represent an
+      // already accepted request and must be retried with the same key.
+      const definitiveClientFailure = Number.isFinite(statusCode) && statusCode >= 400 && statusCode < 500 &&
+        statusCode !== 406 && statusCode !== 429;
+      if (definitiveClientFailure) {
+        const resetResult = await resetPendingQris(order.id_order, order.payment_transaction_id, attemptIdempotencyKey);
+        if (resetResult === "error") return NextResponse.json({ error: "Gagal mereset pembayaran" }, { status: 502 });
+        if (resetResult === "superseded") {
+          return NextResponse.json({ error: "Pembayaran sedang diproses" }, { status: 409 });
+        }
+      }
       const msgs = data?.error_messages;
       const msg = Array.isArray(msgs)
         ? msgs.join(", ")

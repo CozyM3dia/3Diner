@@ -164,7 +164,15 @@ describe("POST /api/payment/webhook", () => {
   beforeEach(() => {
     vi.resetModules(); vi.clearAllMocks();
     orderStatus = "pending";
-    orderRead = { data: { total: 40000, payment_status: orderStatus, status: "awaiting" }, error: null };
+    orderRead = {
+      data: {
+        total: 40000,
+        payment_status: orderStatus,
+        status: "awaiting",
+        payment_transaction_id: "tx-current",
+      },
+      error: null,
+    };
     paidRows = [{ id_order: "order-1" }];
     forceReceivedRows = [{ id_order: "order-1" }];
     resetRows = [{ id_order: "order-1" }];
@@ -205,12 +213,13 @@ describe("POST /api/payment/webhook", () => {
     const res = await post({
       order_id: "order-1", status_code: "200", gross_amount: "40000.00",
       signature_key: sig("order-1", "200", "40000.00"),
-      transaction_status: "settlement", payment_type: "gopay",
+      transaction_id: "tx-current", transaction_status: "settlement", payment_type: "gopay",
     });
     expect(res.status).toBe(200);
-    expect(rpc2).toHaveBeenCalledWith("confirm_order", { p_order_id: "order-1" });
-    const setPaid = update.mock.calls.find((c) => c[0].payment_status === "paid");
-    expect(setPaid?.[0].payment_method).toBe("gopay");
+    expect(rpc2).toHaveBeenCalledWith("settle_payment_order", {
+      p_order_id: "order-1", p_transaction_id: "tx-current", p_payment_type: "gopay",
+    });
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("rejects a forged signature without touching the order", async () => {
@@ -263,41 +272,38 @@ describe("POST /api/payment/webhook", () => {
     const res = await post({
       order_id: "order-1", status_code: "200", gross_amount: "40000.00",
       signature_key: sig("order-1", "200", "40000.00"),
-      transaction_status: "settlement", payment_type: "gopay",
+      transaction_id: "tx-current", transaction_status: "settlement", payment_type: "gopay",
     });
 
     expect(res.status).toBe(200);
-    const setPaid = update.mock.calls.find((c) => c[0].payment_status === "paid");
-    expect(setPaid).toBeTruthy();
-    const forceReceived = update.mock.calls.find((c) => c[0].status === "received");
-    expect(forceReceived).toBeTruthy();
+    expect(rpc2).toHaveBeenCalledWith("settle_payment_order", expect.objectContaining({
+      p_transaction_id: "tx-current",
+    }));
+    expect(update).not.toHaveBeenCalled();
   });
 
-  it("marks a settlement paid using neq(paid), not eq(pending) — order can be awaiting_payment", async () => {
+  it("settles an awaiting-payment order when the transaction identity matches", async () => {
     orderStatus = "awaiting_payment";
 
     const res = await post({
       order_id: "order-1", status_code: "200", gross_amount: "40000.00",
       signature_key: sig("order-1", "200", "40000.00"),
-      transaction_status: "settlement", payment_type: "gopay",
+      transaction_id: "tx-current", transaction_status: "settlement", payment_type: "gopay",
     });
 
     expect(res.status).toBe(200);
-    const setPaid = update.mock.calls.find((c) => c[0].payment_status === "paid");
-    expect(setPaid).toBeTruthy();
-    // The paid write filters with .neq("payment_status", "paid"), not .eq("payment_status", "pending"):
-    // a duplicate charge attempt can revert the order to awaiting_payment while the first QRIS
-    // transaction is still live, and the real settlement must still land.
-    expect(neq2).toHaveBeenCalledWith("payment_status", "paid");
+    expect(rpc2).toHaveBeenCalledWith("settle_payment_order", expect.objectContaining({
+      p_transaction_id: "tx-current",
+    }));
   });
 
-  it("does not mark the order paid and returns 502 when confirm_order transport fails", async () => {
+  it("does not mark the order paid and returns 502 when settlement RPC transport fails", async () => {
     rpc2.mockResolvedValue({ data: null, error: { message: "db down" } });
 
     const res = await post({
       order_id: "order-1", status_code: "200", gross_amount: "40000.00",
       signature_key: sig("order-1", "200", "40000.00"),
-      transaction_status: "settlement", payment_type: "gopay",
+      transaction_id: "tx-current", transaction_status: "settlement", payment_type: "gopay",
     });
 
     expect(res.status).toBe(502);
@@ -305,26 +311,25 @@ describe("POST /api/payment/webhook", () => {
     expect(setPaid).toBeUndefined();
   });
 
-  it("returns 502 when the required paid reconciliation write affects no rows", async () => {
-    paidRows = [];
+  it("returns 502 when the settlement RPC reports an identity race", async () => {
+    rpc2.mockResolvedValue({ data: { error: "payment_identity_race" }, error: null });
 
     const res = await post({
       order_id: "order-1", status_code: "200", gross_amount: "40000.00",
       signature_key: sig("order-1", "200", "40000.00"),
-      transaction_status: "settlement", payment_type: "gopay",
+      transaction_id: "tx-current", transaction_status: "settlement", payment_type: "gopay",
     });
 
     expect(res.status).toBe(502);
   });
 
-  it("returns 502 when the required force-received reconciliation write affects no rows", async () => {
-    rpc2.mockResolvedValue({ data: { error: "insufficient_inventory" }, error: null });
-    forceReceivedRows = [];
+  it("returns 502 when settlement inventory reconciliation fails", async () => {
+    rpc2.mockResolvedValue({ data: { error: "order_reconciliation_failed" }, error: null });
 
     const res = await post({
       order_id: "order-1", status_code: "200", gross_amount: "40000.00",
       signature_key: sig("order-1", "200", "40000.00"),
-      transaction_status: "settlement", payment_type: "gopay",
+      transaction_id: "tx-current", transaction_status: "settlement", payment_type: "gopay",
     });
 
     expect(res.status).toBe(502);
@@ -353,6 +358,17 @@ describe("POST /api/payment/webhook", () => {
 
     expect(res.status).toBe(200);
     expect(update).not.toHaveBeenCalled();
+    expect(rpc2).not.toHaveBeenCalled();
+  });
+
+  it("keeps a settlement retryable when the Midtrans transaction identity is missing", async () => {
+    const res = await post({
+      order_id: "order-1", status_code: "200", gross_amount: "40000.00",
+      signature_key: sig("order-1", "200", "40000.00"),
+      transaction_status: "settlement", payment_type: "qris",
+    });
+
+    expect(res.status).toBe(409);
     expect(rpc2).not.toHaveBeenCalled();
   });
 

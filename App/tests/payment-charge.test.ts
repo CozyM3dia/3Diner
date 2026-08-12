@@ -252,6 +252,24 @@ describe("POST /api/payment/charge (QRIS)", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("https://api.sandbox.midtrans.com/v2/order-1/status");
   });
 
+  it("releases a definitively rejected 4xx attempt with a compare-and-set reset", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      status_code: "400", status_message: "Invalid gross amount", payment_type: "qris",
+    }), { status: 400, headers: { "Content-Type": "application/json" } })));
+
+    const { POST } = await import("@/app/api/payment/charge/route");
+    const response = await POST(new Request("http://localhost/api/payment/charge", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: "order-1", orderToken: "token-1" }),
+    }));
+
+    expect(response.status).toBe(400);
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      payment_status: "awaiting_payment",
+      payment_idempotency_key: null,
+    }));
+  });
+
   it("rejects a missing customer token", async () => {
     const { POST } = await import("@/app/api/payment/charge/route");
     const res = await POST(new Request("http://localhost/api/payment/charge", {

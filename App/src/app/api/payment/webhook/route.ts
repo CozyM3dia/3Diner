@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyMidtransSignature } from "@/lib/order-validation";
-import { mapMidtransPaymentType } from "@/lib/payment-methods";
 
 type MidtransNotification = {
   order_id?: unknown;
@@ -34,7 +33,6 @@ export async function POST(req: Request) {
     if (isSuccessfulPayment && status_code !== "200") {
       return NextResponse.json({ error: "Invalid payment status" }, { status: 400 });
     }
-
     const serverKey = process.env.MIDTRANS_SERVER_KEY;
     if (!serverKey || !verifyMidtransSignature({ order_id, status_code, gross_amount, signature_key }, serverKey)) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
@@ -52,6 +50,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Amount mismatch" }, { status: 400 });
     }
 
+    if (isSuccessfulPayment && !isNonEmptyString(transaction_id)) {
+      // Successful QRIS notifications carry the Midtrans transaction identity.
+      // Without it, acknowledging the callback is safer than attaching an old
+      // payment to a newer attempt. A still-pending row is retryable: the
+      // client/status reconciliation can persist the identity before Midtrans
+      // sends the next notification. A reset/awaiting row is an old attempt;
+      // acknowledge it so it cannot block a newer payment forever.
+      return order.payment_status === "pending"
+        ? NextResponse.json({ error: "Payment identity is still being reconciled" }, { status: 409 })
+        : NextResponse.json({ ok: true });
+    }
+
     if (!isSuccessfulPayment && ["expire", "cancel", "deny", "failure"].includes(transaction_status) &&
         !isNonEmptyString(transaction_id)) {
       // A terminal callback without an attempt identity cannot be safely
@@ -62,69 +72,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    if (isSuccessfulPayment && !order.payment_transaction_id) {
+      // An active QRIS attempt without a persisted Midtrans transaction ID is
+      // not safe to settle. Keep the notification retryable while the charge
+      // recovery path queries Midtrans and pairs the identity.
+      return order.payment_status === "pending"
+        ? NextResponse.json({ error: "Payment identity is still being reconciled" }, { status: 409 })
+        : NextResponse.json({ ok: true });
+    }
+
     if (isSuccessfulPayment) {
-      // Idempoten: confirm_order no-op jika sudah dikonfirmasi.
-      const { data: confirmData, error: confirmRpcErr } = await supabaseAdmin.rpc("confirm_order", {
+      // The RPC locks the order, verifies this transaction identity, confirms
+      // inventory, and marks the payment paid in one database transaction.
+      // This prevents a delayed settlement from clearing a newer QR attempt.
+      const { data: settlementData, error: settlementRpcErr } = await supabaseAdmin.rpc("settle_payment_order", {
         p_order_id: order_id,
+        p_transaction_id: transaction_id,
+        p_payment_type: payment_type,
       });
-      // Transient DB/transport failure: do NOT mark paid; 5xx so Midtrans retries (confirm_order is idempotent).
-      if (confirmRpcErr) {
+      if (settlementRpcErr) {
         return NextResponse.json({ error: "Gagal konfirmasi pesanan" }, { status: 502 });
       }
-      const confirmError = (confirmData as { error?: string } | null)?.error;
-      if (confirmError && confirmError !== "insufficient_inventory") {
+      const settlementError = (settlementData as { error?: string } | null)?.error;
+      if (settlementError && settlementError !== "insufficient_inventory") {
         return NextResponse.json({ error: "Gagal konfirmasi pesanan" }, { status: 502 });
       }
-
-      if (order.payment_status !== "paid") {
-        // A settlement remains valid after a payment retry restored the row to
-        // awaiting_payment. A zero-row write is a reconciliation failure, not an
-        // acknowledgement Midtrans may safely stop retrying.
-        const { data: paidRows, error: paidErr } = await supabaseAdmin
-          .from("Orders")
-          .update({
-            payment_status: "paid",
-            payment_method: mapMidtransPaymentType(payment_type),
-            payment_qr_url: null,
-            payment_transaction_id: null,
-            payment_idempotency_key: null,
-          })
-          .eq("id_order", order_id)
-          .neq("payment_status", "paid")
-          .select("id_order");
-        if (paidErr || !paidRows || paidRows.length > 1) {
-          return NextResponse.json({ error: "Gagal memperbarui pembayaran" }, { status: 502 });
-        }
-        if (paidRows.length === 0) {
-          const { data: currentOrder, error: currentOrderError } = await supabaseAdmin
-            .from("Orders").select("payment_status").eq("id_order", order_id).single();
-          if (currentOrderError || currentOrder?.payment_status !== "paid") {
-            return NextResponse.json({ error: "Gagal memperbarui pembayaran" }, { status: 502 });
-          }
-        }
-      }
-
-      if (confirmError) {
-        // Customer paid but stock could not be reserved (e.g. sold out after ordering).
-        // Make the paid order visible to the kitchen so staff can reconcile (refund or
-        // substitute) rather than hiding a paid order. Accepts rare inventory drift.
-        const { data: forcedRows, error: forceReceivedError } = await supabaseAdmin
-          .from("Orders")
-          .update({ status: "received" })
-          .eq("id_order", order_id)
-          .eq("status", "awaiting")
-          .select("id_order");
-        if (forceReceivedError || !forcedRows || forcedRows.length > 1) {
-          return NextResponse.json({ error: "Gagal merekonsiliasi pesanan" }, { status: 502 });
-        }
-        if (forcedRows.length === 0) {
-          const { data: currentOrder, error: currentOrderError } = await supabaseAdmin
-            .from("Orders").select("status").eq("id_order", order_id).single();
-          if (currentOrderError || currentOrder?.status !== "received") {
-            return NextResponse.json({ error: "Gagal merekonsiliasi pesanan" }, { status: 502 });
-          }
-        }
-      }
+      // A stale callback after an expired/reset attempt is acknowledged by
+      // the RPC without changing the currently active order state.
     } else if (["expire", "cancel", "deny", "failure"].includes(transaction_status)) {
       // Tanpa cabang ini, QRIS yang kedaluwarsa membuat pesanan tersangkut di
       // "pending" selamanya: pelanggan tidak bisa membuat QRIS baru maupun
