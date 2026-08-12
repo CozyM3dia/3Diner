@@ -6,10 +6,10 @@ vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { from } }));
 vi.mock("@/lib/rate-limit", () => ({
   clientIp: () => "127.0.0.1",
   consumeRateLimit: vi.fn(async () => ({ allowed: true, retryAfterSeconds: 0 })),
-  tooManyRequests: (s: number) => Response.json({ error: "rate" }, { status: 429 }),
+  tooManyRequests: () => Response.json({ error: "rate" }, { status: 429 }),
 }));
 
-describe("POST /api/payment/charge (Snap)", () => {
+describe("POST /api/payment/charge (QRIS)", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
@@ -41,27 +41,43 @@ describe("POST /api/payment/charge (Snap)", () => {
       update,
     });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ token: "snap-abc", redirect_url: "https://app.sandbox.midtrans.com/snap/v2/vtweb/snap-abc" }),
+      new Response(JSON.stringify({
+        status_code: "201",
+        payment_type: "qris",
+        transaction_status: "pending",
+        actions: [
+          {
+            name: "generate-qr-code",
+            method: "GET",
+            url: "https://api.sandbox.midtrans.com/v2/qris/tx-1/qr-code",
+          },
+          {
+            name: "generate-qr-code-v2",
+            method: "GET",
+            url: "https://api.sandbox.midtrans.com/v4/qris/tx-1/qr-code",
+          },
+        ],
+      }),
         { status: 201, headers: { "Content-Type": "application/json" } })));
   });
 
-  it("creates a Snap transaction with the stored total and enabled channels", async () => {
+  it("creates one dynamic QRIS transaction that can be scanned by QRIS apps", async () => {
     const { POST } = await import("@/app/api/payment/charge/route");
     const res = await POST(new Request("http://localhost/api/payment/charge", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ orderId: "order-1", orderToken: "token-1" }),
     }));
     expect(res.status).toBe(200);
-    expect((await res.json()).snap_token).toBe("snap-abc");
+    expect((await res.json()).qris_url).toBe("https://api.sandbox.midtrans.com/v4/qris/tx-1/qr-code");
     const call = vi.mocked(fetch).mock.calls[0];
-    expect(String(call[0])).toBe("https://app.sandbox.midtrans.com/snap/v1/transactions");
+    expect(String(call[0])).toBe("https://api.sandbox.midtrans.com/v2/charge");
     const sent = JSON.parse(String(call[1]?.body));
+    expect(sent.payment_type).toBe("qris");
     expect(sent.transaction_details.gross_amount).toBe(40000);
-    expect(sent.enabled_payments).toContain("qris");
-    expect(sent.enabled_payments).toContain("gopay");
+    expect(sent).not.toHaveProperty("enabled_payments");
   });
 
-  it("includes stored service and tax lines so Snap item details reconcile to gross amount", async () => {
+  it("includes stored service and tax lines so QRIS item details reconcile to gross amount", async () => {
     single.mockResolvedValue({
       data: {
         id_order: "order-1", customer_token: "token-1", total: 45000, subtotal: 40000,
@@ -85,6 +101,30 @@ describe("POST /api/payment/charge (Snap)", () => {
     expect(sent.item_details.reduce((sum: number, item: { price: number; quantity: number }) => sum + item.price * item.quantity, 0)).toBe(45000);
   });
 
+  it("returns the stored QRIS URL for a pending order instead of creating a second transaction", async () => {
+    single.mockResolvedValue({
+      data: {
+        id_order: "order-1", customer_token: "token-1", total: 40000,
+        payment_status: "pending",
+        payment_qr_url: "https://api.sandbox.midtrans.com/v4/qris/tx-1/qr-code",
+        items: [],
+      },
+      error: null,
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { POST } = await import("@/app/api/payment/charge/route");
+    const res = await POST(new Request("http://localhost/api/payment/charge", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: "order-1", orderToken: "token-1" }),
+    }));
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).qris_url).toBe("https://api.sandbox.midtrans.com/v4/qris/tx-1/qr-code");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("rejects a missing customer token", async () => {
     const { POST } = await import("@/app/api/payment/charge/route");
     const res = await POST(new Request("http://localhost/api/payment/charge", {
@@ -94,7 +134,7 @@ describe("POST /api/payment/charge (Snap)", () => {
     expect(res.status).toBe(400);
   });
 
-  it("reverts the pending claim when the Snap fetch throws", async () => {
+  it("reverts the pending claim when the Midtrans fetch throws", async () => {
     const updateMock = vi.fn((patch?: { payment_status?: string }) => ({
       eq: () => ({
         eq: () =>
@@ -123,10 +163,10 @@ describe("POST /api/payment/charge (Snap)", () => {
     expect(revertCall).toBeTruthy();
   });
 
-  it("refuses a concurrent/retry charge when the claim finds nothing to claim, without calling Snap", async () => {
+  it("refuses a concurrent/retry charge when the claim finds nothing to claim, without calling Midtrans", async () => {
     // Order is still "awaiting_payment" per the initial select, but another request already
     // won the atomic claim race — the claim update matches 0 rows. The route must detect this
-    // via .select() and bail with 409 before ever calling Snap or reverting anything.
+    // via .select() and bail with 409 before ever calling Midtrans or reverting anything.
     const updateMock = vi.fn(() => ({
       eq: () => ({
         eq: () => ({ select: () => Promise.resolve({ data: [], error: null }) }),

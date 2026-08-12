@@ -1,16 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  ONLINE_ENABLED_PAYMENTS,
+  QRIS_SUPPORTED_APPS,
   PAYMENT_METHODS,
   mapMidtransPaymentType,
 } from "@/lib/payment-methods";
 import { needsCash, belongsInQueue } from "@/lib/kasir-queue-rules";
 
 describe("payment-methods", () => {
-  it("enables the approved Snap channels", () => {
-    expect(ONLINE_ENABLED_PAYMENTS).toEqual([
-      "qris", "gopay", "shopeepay", "bca_va", "bni_va", "bri_va", "permata_va", "echannel",
-    ]);
+  it("documents the payer apps supported by the QRIS screen", () => {
+    expect(QRIS_SUPPORTED_APPS).toEqual(["GoPay", "OVO", "DANA", "ShopeePay", "m-banking"]);
   });
 
   it("maps Midtrans payment_type to a stored method", () => {

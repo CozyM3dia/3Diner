@@ -225,6 +225,8 @@ export interface Order {
   status: OrderStatus
   payment_method: PaymentMethod | null
   payment_status: PaymentStatus
+  /** URL gambar QRIS dinamis untuk order yang sedang menunggu pembayaran. */
+  payment_qr_url?: string | null
   created_at: string
   completed_at?: string | null
   cancelled_at?: string | null

@@ -1,22 +1,17 @@
 import type { CartItem, Order, PaymentMethod } from "@/types";
 
-declare global {
-  interface Window {
-    snap?: {
-      pay: (
-        token: string,
-        cb: {
-          onSuccess?: (r: unknown) => void;
-          onPending?: (r: unknown) => void;
-          onError?: (r: unknown) => void;
-          onClose?: () => void;
-        },
-      ) => void;
-    };
+const key = (id: string) => `3diner.order.${id}`;
+const QRIS_HOSTS = new Set(["api.midtrans.com", "api.sandbox.midtrans.com"]);
+
+function isMidtransQrisUrl(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && QRIS_HOSTS.has(url.hostname);
+  } catch {
+    return false;
   }
 }
-
-const key = (id: string) => `3diner.order.${id}`;
 
 /** Cache lokal hanya menyimpan yang tidak ada di server: token pelanggan dan
  *  identitas kafe untuk tautan kembali. Status pesanan selalu diambil ulang dari
@@ -26,6 +21,7 @@ interface OrderStub {
   cafe_slug: string;
   cafe_name: string;
   customer_token: string;
+  qris_url?: string | null;
 }
 
 export async function createOrder(input: {
@@ -69,11 +65,13 @@ export async function createOrder(input: {
 function saveStub(order: Order) {
   if (!order.customer_token) return;
   try {
+    const existing = getStub(order.id_order);
     const stub: OrderStub = {
       id_order: order.id_order,
       cafe_slug: order.cafe_slug,
       cafe_name: order.cafe_name,
       customer_token: order.customer_token,
+      qris_url: existing?.qris_url ?? null,
     };
     localStorage.setItem(key(order.id_order), JSON.stringify(stub));
   } catch {
@@ -90,6 +88,24 @@ export function getStub(id: string): OrderStub | null {
   } catch {
     return null;
   }
+}
+
+/** QR dinamis bukan sumber kebenaran status, tetapi menyimpannya di perangkat
+ *  membuat layar pembayaran tetap bisa dipulihkan setelah refresh tanpa
+ *  membuat transaksi Midtrans kedua. */
+export function setQrisUrl(id: string, qrisUrl: string): void {
+  const stub = getStub(id);
+  if (!stub || !isMidtransQrisUrl(qrisUrl)) return;
+  try {
+    localStorage.setItem(key(id), JSON.stringify({ ...stub, qris_url: qrisUrl }));
+  } catch {
+    /* storage penuh atau tidak tersedia — QR tetap bisa dipakai di state aktif */
+  }
+}
+
+export function getQrisUrl(id: string): string | null {
+  const qrisUrl = getStub(id)?.qris_url;
+  return isMidtransQrisUrl(qrisUrl) ? qrisUrl : null;
 }
 
 export interface FetchedOrder {
@@ -132,39 +148,17 @@ export async function setPaymentMethod(
   return data?.error ?? "Gagal menyimpan metode pembayaran";
 }
 
-/** Meminta token transaksi Snap ke server untuk pembayaran online. Server yang
- *  memegang server-key Midtrans; klien hanya menerima token lalu membuka popup. */
+/** Meminta URL QRIS dinamis ke server untuk pembayaran online. Server yang
+ *  memegang server-key Midtrans; klien hanya menerima URL gambar QR. */
 export async function chargeOnline(orderId: string, token: string): Promise<string> {
   const res = await fetch("/api/payment/charge", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ orderId, orderToken: token }),
   });
-  const data = (await res.json().catch(() => null)) as { snap_token?: string; error?: string } | null;
-  if (!res.ok || !data?.snap_token) {
+  const data = (await res.json().catch(() => null)) as { qris_url?: string; error?: string } | null;
+  if (!res.ok || !data?.qris_url) {
     throw new Error(data?.error ?? "Gagal memulai pembayaran");
   }
-  return data.snap_token;
-}
-
-/** Membuka popup Midtrans Snap. Melempar bila skrip Snap belum termuat — pemanggil
- *  menampilkan pesan agar pelanggan memuat ulang halaman. */
-export function startSnapPayment(
-  token: string,
-  cb: {
-    onSuccess?: () => void;
-    onPending?: () => void;
-    onError?: () => void;
-    onClose?: () => void;
-  },
-): void {
-  if (typeof window === "undefined" || !window.snap) {
-    throw new Error("Pembayaran belum siap. Muat ulang halaman lalu coba lagi.");
-  }
-  window.snap.pay(token, {
-    onSuccess: () => cb.onSuccess?.(),
-    onPending: () => cb.onPending?.(),
-    onError: () => cb.onError?.(),
-    onClose: () => cb.onClose?.(),
-  });
+  return data.qris_url;
 }

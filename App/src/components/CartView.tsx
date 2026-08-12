@@ -310,7 +310,7 @@ function PaymentChannelSelector({
       id: "online" as const,
       icon: Smartphone,
       title: "Bayar Online",
-      sub: "QRIS, e-wallet, & bank",
+      sub: "Satu QRIS, scan dari aplikasi pilihanmu",
     },
     {
       id: "cashier" as const,
