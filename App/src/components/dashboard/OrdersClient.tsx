@@ -17,7 +17,7 @@ import {
   getDashPortal,
   type StatusKind,
 } from "@/components/dashboard/system";
-import type { OrderItem } from "@/types";
+import type { OrderItem, OrderStatus } from "@/types";
 
 export interface OrderRow {
   id_order: string;
@@ -25,7 +25,7 @@ export interface OrderRow {
   table_number: string;
   items: OrderItem[];
   total: number;
-  status: "received" | "preparing" | "ready" | "completed" | "cancelled";
+  status: OrderStatus;
   payment_method: string | null;
   payment_status: string;
   created_at: string;
@@ -106,6 +106,7 @@ function PaymentRow({
 
 /** Status pesanan memakai vocabulary StatusBadge system (label identik). */
 const STATUS_KIND: Record<OrderRow["status"], StatusKind> = {
+  awaiting: "order-awaiting",
   received: "order-received",
   preparing: "order-preparing",
   ready: "order-ready",

@@ -1,4 +1,5 @@
 export type StatusKind =
+  | "order-awaiting"
   | "order-received"
   | "order-preparing"
   | "order-ready"
@@ -14,7 +15,10 @@ export type StatusKind =
   | "inactive"
   | "threeD";
 
-const META: Record<StatusKind, { label: string; color: string; bg?: string; outline?: boolean }> = {
+type StatusMeta = { label: string; color: string; bg?: string; outline?: boolean };
+
+const META: Record<StatusKind, StatusMeta> = {
+  "order-awaiting":  { label: "Menunggu",  color: "#F59E0B", bg: "rgba(245,158,11,0.12)" },
   "order-received":  { label: "Baru",        color: "#FD5002", bg: "rgba(253,80,2,0.12)" },
   "order-preparing": { label: "Diproses",    color: "#F59E0B", bg: "rgba(245,158,11,0.12)" },
   "order-ready":     { label: "Siap",        color: "#22D3A6", bg: "rgba(34,211,166,0.12)" },
@@ -38,7 +42,9 @@ const META: Record<StatusKind, { label: string; color: string; bg?: string; outl
 };
 
 interface StatusBadgeProps {
-  kind: StatusKind;
+  /** Runtime rows come from the database, so keep rendering safe if a newer
+   * status arrives before this client vocabulary is updated. */
+  kind: StatusKind | string;
   /** Override teks label (warna/dot tetap dari kind). */
   label?: string;
   className?: string;
@@ -47,7 +53,11 @@ interface StatusBadgeProps {
 /** Satu vocabulary status dashboard: dot + label — makna tidak pernah
  *  disampaikan lewat warna saja. */
 export default function StatusBadge({ kind, label, className = "" }: StatusBadgeProps) {
-  const meta = META[kind];
+  const meta = META[kind as StatusKind] ?? {
+    label: "Status tidak diketahui",
+    color: "var(--dash-muted)",
+    outline: true,
+  };
   return (
     <span
       className={`inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-semibold px-2 py-0.5 rounded-full ${className}`}

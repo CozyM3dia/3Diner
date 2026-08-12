@@ -28,6 +28,7 @@ function relTime(iso: string): string {
 }
 
 const STATUS_KIND: Record<string, StatusKind> = {
+  awaiting: "order-received",
   received: "order-received",
   preparing: "order-preparing",
   ready: "order-ready",

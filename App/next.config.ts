@@ -10,9 +10,12 @@ const withPWA = withPWAInit({
   workboxOptions: {
     disableDevLogs: true,
     runtimeCaching: [
-      // Stale-while-revalidate for navigation pages
+      // Stale-while-revalidate for public navigation pages only.
+      // Dashboard routes are excluded: they require auth, serve real-time data,
+      // and caching their HTML across deployments causes JS chunk mismatches
+      // ("This page couldn't load") because new deployments produce new chunk hashes.
       {
-        urlPattern: /^https:\/\/3diner\.vercel\.app\/[^_].*/,
+        urlPattern: /^https:\/\/3diner\.vercel\.app\/(?!dashboard|login|api)[^_].*/,
         handler: "StaleWhileRevalidate",
         options: {
           cacheName: "pages-cache",

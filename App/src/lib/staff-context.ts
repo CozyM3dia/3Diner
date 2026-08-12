@@ -37,7 +37,7 @@ export const getStaffContext = cache(async (): Promise<StaffContext> => {
  *  klien: id kafe yang datang dari browser adalah id yang bisa ditukar. */
 export async function getStaffCafeId(): Promise<string | null> {
   const ctx = await getStaffContext();
-  if (!ctx.role || !ctx.is_active) return null;
+  if (!ctx.role || ctx.is_active === false) return null;
   return ctx.cafe_id ?? null;
 }
 

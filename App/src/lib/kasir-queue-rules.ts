@@ -1,4 +1,4 @@
-import type { OrderItem, OrderStatus } from "@/types";
+import type { OrderItem, OrderStatus, PaymentMethod, PaymentStatus } from "@/types";
 
 /** ASUMSI-A4 — ambang ini dikonfigurasi per outlet nanti. Mengubahnya mengubah
  *  urutan dan label, bukan mekanismenya. */
@@ -42,8 +42,8 @@ export function formatAge(minutes: number): string {
 }
 
 interface PayableOrder {
-  payment_status: string;
-  payment_method: string | null;
+  payment_status: PaymentStatus;
+  payment_method: PaymentMethod | null;
 }
 
 /** Uang tunai hanya ditagih untuk pesanan bermetode 'cash'. Setiap pesanan

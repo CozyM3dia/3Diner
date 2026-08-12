@@ -569,15 +569,15 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
   const exitAR = () => sessionEndRef.current?.();
 
   return (
-    <div className="fixed inset-0 z-[100]" style={{ background: "#002355", touchAction: "none" }}>
+    <div className="fixed inset-0 z-[100]" style={{ background: "var(--navy-dark)", touchAction: "none" }}>
       <div ref={canvasSlotRef} className="absolute inset-0" />
 
       {/* DOM overlay root — always mounted for WebXR registration */}
       <div ref={overlayRef} className="absolute inset-0" style={{ zIndex: 20, touchAction: "none" }}>
         {/* Loading cover — only while the camera session is starting up (not while scanning) */}
         {state !== "ar" && state !== "unsupported" && state !== "error" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: "#002355" }}>
-            <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: "var(--navy-dark)" }}>
+            <Loader2 size={28} color="var(--orange)" strokeWidth={2} className="animate-spin" />
             <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>
               {"Membuka kamera..."}
             </p>
@@ -639,7 +639,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
             <div className="flex items-start gap-3 mb-5">
               <span className="text-2xl mt-0.5">📱</span>
               <div className="flex-1">
-                <h3 className="font-bold text-base mb-1" style={{ color: "#022C60" }}>AR Belum Didukung</h3>
+                <h3 className="font-bold text-base mb-1" style={{ color: "var(--navy)" }}>AR Belum Didukung</h3>
                 <p className="text-xs leading-relaxed" style={{ color: "#51698F" }}>
                   Perangkat ini membutuhkan <strong>Google Play Services for AR</strong>.
                 </p>
@@ -648,12 +648,12 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
             <a href="https://play.google.com/store/apps/details?id=com.google.ar.core"
               target="_blank" rel="noopener noreferrer"
               className="w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 mb-3 text-white"
-              style={{ background: "linear-gradient(135deg, #FD5002, #FC6A41)" }}>
+              style={{ background: "linear-gradient(135deg, var(--orange), var(--orange-bright))" }}>
               Install Google AR Services →
             </a>
             <button onClick={onClose}
               className="w-full py-3 rounded-2xl text-sm font-semibold"
-              style={{ background: "#E0E7EE", color: "#022C60" }}>
+              style={{ background: "var(--surface)", color: "var(--navy)" }}>
               Kembali ke Detail Menu
             </button>
           </div>
@@ -815,10 +815,10 @@ function PlyAR({ url, menuName, onClose }: { url: string; menuName: string; onCl
           <button onClick={onClose} className="absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(253,253,253,0.15)" }}>
             <X size={18} color="#FDFDFD" />
           </button>
-          <Loader2 size={28} color="#FD5002" strokeWidth={2} className="animate-spin" />
+          <Loader2 size={28} color="var(--orange)" strokeWidth={2} className="animate-spin" />
           <p className="text-sm font-semibold" style={{ color: "#FDFDFD" }}>Memuat model AR...</p>
           <div className="w-40 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(253,253,253,0.15)" }}>
-            <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: "linear-gradient(90deg, #022C60, #FD5002)" }} />
+            <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: "linear-gradient(90deg, var(--navy), var(--orange))" }} />
           </div>
           <p className="text-xs" style={{ color: "rgba(253,253,253,0.7)" }}>{progress > 0 ? `${progress}%` : "Menyiapkan..."}</p>
         </div>
@@ -832,7 +832,7 @@ function PlyAR({ url, menuName, onClose }: { url: string; menuName: string; onCl
           <div className="absolute bottom-0 left-0 right-0 z-[101] px-5 pb-8 pt-12" style={{ background: "linear-gradient(to top, rgba(0,35,85,0.9) 0%, transparent 100%)" }}>
             <button onClick={triggerAR} disabled={arStarting}
               className="w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
-              style={{ background: "linear-gradient(135deg, #FD5002, #FC6A41)", color: "#FDFDFD", boxShadow: "0 4px 24px rgba(253,80,2,0.45)", opacity: arStarting ? 0.7 : 1 }}>
+              style={{ background: "linear-gradient(135deg, var(--orange), var(--orange-bright))", color: "#FDFDFD", boxShadow: "0 4px 24px rgba(253,80,2,0.45)", opacity: arStarting ? 0.7 : 1 }}>
               {arStarting ? <><Loader2 size={18} className="animate-spin" />Memulai AR...</> : <><Scan size={18} />Mulai AR — Arahkan ke Permukaan Datar</>}
             </button>
           </div>
@@ -845,10 +845,10 @@ function PlyAR({ url, menuName, onClose }: { url: string; menuName: string; onCl
             <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#CFD9E4" }} />
             <div className="flex items-start gap-3 mb-5">
               <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "#FDD8C3" }}>
-                <AlertTriangle size={20} color="#FD5002" />
+                <AlertTriangle size={20} color="var(--orange)" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-base mb-2" style={{ color: "#022C60" }}>Ada Aplikasi Mengambang</h3>
+                <h3 className="font-bold text-base mb-2" style={{ color: "var(--navy)" }}>Ada Aplikasi Mengambang</h3>
                 <p className="text-sm leading-relaxed mb-3" style={{ color: "#254473" }}>Izin kamera diblokir oleh Android karena ada aplikasi yang tampil di atas layar.</p>
                 <ul className="text-xs mt-1.5 space-y-1" style={{ color: "#51698F" }}>
                   <li>• Chat bubble WhatsApp / Telegram</li>
@@ -857,8 +857,8 @@ function PlyAR({ url, menuName, onClose }: { url: string; menuName: string; onCl
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={onClose} className="flex-1 py-3 rounded-2xl text-sm font-semibold" style={{ background: "#E0E7EE", color: "#022C60" }}>Kembali</button>
-              <button onClick={() => setState("ready")} className="flex-1 py-3 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 text-white" style={{ background: "#FD5002" }}>
+              <button onClick={onClose} className="flex-1 py-3 rounded-2xl text-sm font-semibold" style={{ background: "var(--surface)", color: "var(--navy)" }}>Kembali</button>
+              <button onClick={() => setState("ready")} className="flex-1 py-3 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 text-white" style={{ background: "var(--orange)" }}>
                 <RotateCcw size={14} />Coba Lagi
               </button>
             </div>
@@ -876,16 +876,16 @@ function PlyAR({ url, menuName, onClose }: { url: string; menuName: string; onCl
             <div className="flex items-start gap-3 mb-5">
               <span className="text-2xl">📱</span>
               <div>
-                <h3 className="font-bold text-base mb-1" style={{ color: "#022C60" }}>AR Belum Didukung</h3>
+                <h3 className="font-bold text-base mb-1" style={{ color: "var(--navy)" }}>AR Belum Didukung</h3>
                 <p className="text-xs leading-relaxed" style={{ color: "#51698F" }}>Perangkat ini membutuhkan Google Play Services for AR.</p>
               </div>
             </div>
             <a href="https://play.google.com/store/apps/details?id=com.google.ar.core" target="_blank" rel="noopener noreferrer"
               className="w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 mb-3 text-white"
-              style={{ background: "linear-gradient(135deg, #FD5002, #FC6A41)" }}>
+              style={{ background: "linear-gradient(135deg, var(--orange), var(--orange-bright))" }}>
               Install Google AR Services →
             </a>
-            <button onClick={onClose} className="w-full py-3 rounded-2xl text-sm font-semibold" style={{ background: "#E0E7EE", color: "#022C60" }}>Kembali</button>
+            <button onClick={onClose} className="w-full py-3 rounded-2xl text-sm font-semibold" style={{ background: "var(--surface)", color: "var(--navy)" }}>Kembali</button>
           </div>
         </>
       )}
@@ -893,7 +893,7 @@ function PlyAR({ url, menuName, onClose }: { url: string; menuName: string; onCl
       {state === "error" && (
         <div className="absolute inset-0 z-[101] flex flex-col items-center justify-center gap-4" style={{ background: "rgba(0,35,85,0.97)" }}>
           <p className="font-semibold" style={{ color: "#FDFDFD" }}>Gagal memuat model</p>
-          <button onClick={onClose} className="px-8 py-3 rounded-2xl text-sm font-semibold text-white" style={{ background: "#FD5002" }}>Kembali</button>
+          <button onClick={onClose} className="px-8 py-3 rounded-2xl text-sm font-semibold text-white" style={{ background: "var(--orange)" }}>Kembali</button>
         </div>
       )}
 

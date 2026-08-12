@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/3diner-design-system-5411981e-edf0-4357-bde6-c0a02ea918a6/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/3diner-design-system-5411981e-edf0-4357-bde6-c0a02ea918a6/tokens/colors.css">
+<link rel="stylesheet" href="_ds/3diner-design-system-5411981e-edf0-4357-bde6-c0a02ea918a6/tokens/typography.css">
+<link rel="stylesheet" href="_ds/3diner-design-system-5411981e-edf0-4357-bde6-c0a02ea918a6/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/3diner-design-system-5411981e-edf0-4357-bde6-c0a02ea918a6/tokens/radius.css">
+<link rel="stylesheet" href="_ds/3diner-design-system-5411981e-edf0-4357-bde6-c0a02ea918a6/tokens/elevation.css">
+<link rel="stylesheet" href="_ds/3diner-design-system-5411981e-edf0-4357-bde6-c0a02ea918a6/tokens/motion.css">
+<link rel="stylesheet" href="_ds/3diner-design-system-5411981e-edf0-4357-bde6-c0a02ea918a6/tokens/base.css">
+<link rel="stylesheet" href="_ds/3diner-design-system-5411981e-edf0-4357-bde6-c0a02ea918a6/styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&display=swap" rel="stylesheet">
+<script src="_ds/3diner-design-system-5411981e-edf0-4357-bde6-c0a02ea918a6/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#f0eee9;font-family:'Architects Daughter','Comic Sans MS',cursive;--acc:#FD5002}
+a{color:#C23B00}a:hover{color:#FD5002}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 'Architects Daughter',sans-serif;color:#1a1a1a}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 12px/1.35 'Architects Daughter',sans-serif;color:rgba(0,0,0,.6);max-width:860px}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 'Architects Daughter',sans-serif;color:rgba(0,0,0,.55)}
+
+.wf{color:#2b2b2b;background:#fff}
+.tbar{display:flex;align-items:center;gap:7px;padding:7px 12px;background:#eceef1;border-bottom:1.5px solid #2b2b2b}
+.tbar u{width:9px;height:9px;border-radius:999px;border:1.4px solid #9aa2ad;text-decoration:none}
+.tbar em{flex:1;font:400 10.5px/1 ui-monospace,Menlo,monospace;font-style:normal;color:#7a828e;background:#fff;border:1.2px solid #cdd3db;border-radius:999px;padding:5px 10px}
+.nav{display:flex;align-items:center;gap:15px;padding:11px 20px;border-bottom:1.5px solid #2b2b2b}
+.nav img{width:20px;height:20px;filter:grayscale(1) contrast(.65) opacity(.75)}
+.brand{font:700 14px/1 'Architects Daughter',sans-serif}
+.ni{font:400 12.5px/1 'Architects Daughter',sans-serif;color:#626a76}
+.ni.on{color:#1a1a1a;font-weight:700;padding-bottom:3px;border-bottom:2px solid var(--acc)}
+.sec{padding:18px 20px;border-top:1.5px dashed #dde2e8}
+.lbl{font:400 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.09em;text-transform:uppercase;color:#8b93a1}
+.h1{font:700 27px/1.12 'Architects Daughter',sans-serif;color:#1a1a1a;letter-spacing:-.01em}
+.h2{font:700 18px/1.2 'Architects Daughter',sans-serif;color:#1a1a1a}
+.h3{font:700 13px/1.25 'Architects Daughter',sans-serif;color:#1a1a1a}
+.mut{font:400 11.5px/1.4 'Architects Daughter',sans-serif;color:#7a828e}
+.tg{display:flex;flex-direction:column;gap:6px}
+.tg b{display:block;height:7px;border-radius:4px;background:#dbe0e6}
+.tg b:last-child{width:58%}
+.slot{display:grid;place-items:center;text-align:center;padding:10px;border:1.5px dashed #b3bac4;border-radius:8px;font:400 11.5px/1.35 'Architects Daughter',sans-serif;color:#8b93a1;background-image:linear-gradient(to top right,transparent calc(50% - .8px),#e4e8ed calc(50% - .8px),#e4e8ed calc(50% + .8px),transparent calc(50% + .8px)),linear-gradient(to top left,transparent calc(50% - .8px),#e4e8ed calc(50% - .8px),#e4e8ed calc(50% + .8px),transparent calc(50% + .8px))}
+.card{border:1.5px solid #cdd3db;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.btn{flex:none;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid #2b2b2b;border-radius:999px;padding:8px 15px;font:700 12px/1 'Architects Daughter',sans-serif;background:#fff}
+.btn.pri{background:var(--acc);border-color:#C23B00;color:#fff}
+.pill{flex:none;align-self:flex-start;white-space:nowrap;display:inline-flex;align-items:center;border:1.4px solid #cdd3db;border-radius:999px;padding:5px 10px;font:400 11px/1 'Architects Daughter',sans-serif;color:#626a76}
+.tgl{flex:none;white-space:nowrap;display:inline-flex;border:1.5px solid #2b2b2b;border-radius:999px;overflow:hidden}
+.tgl i{flex:none;white-space:nowrap;font-style:normal;padding:6px 10px;font:400 10.5px/1 ui-monospace,Menlo,monospace}
+.tgl i.on{background:#2b2b2b;color:#fff}
+.num{flex:none;width:23px;height:23px;border:1.5px solid #2b2b2b;border-radius:999px;display:grid;place-items:center;font:400 10.5px/1 ui-monospace,Menlo,monospace}
+.note{font:400 11.5px/1.35 'Architects Daughter',sans-serif;color:#C23B00}
+.tag{flex:none;white-space:nowrap;display:inline-flex;align-items:center;font:400 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.07em;text-transform:uppercase;border:1.2px solid #e2b39c;color:#C23B00;background:#FDF3EE;border-radius:999px;padding:5px 8px}
+.anno{display:flex;flex-wrap:wrap;gap:7px;padding:11px 20px;background:#FDFBF9;border-bottom:1.5px solid #2b2b2b}
+.foot{padding:16px 20px;background:#f7f8fa;border-top:1.5px solid #2b2b2b;display:flex;gap:26px}
+.pm{width:190px;border:1.5px solid #2b2b2b;border-radius:9px;padding:9px;display:flex;flex-direction:column;gap:5px;background:#fff}
+.pm>strong{font:700 11.5px/1 'Architects Daughter',sans-serif;margin-bottom:2px}
+.pb{border:1.2px solid #d3d8e0;border-radius:5px;background:#f7f8fa;font:400 9px/1.25 ui-monospace,Menlo,monospace;letter-spacing:.05em;text-transform:uppercase;color:#6d7684;padding:7px 7px}
+.pb.k{border-color:#e2b39c;background:#FDF3EE;color:#C23B00}
+.rail{width:172px;flex:none;border-right:1.5px solid #2b2b2b;padding:14px 12px;display:flex;flex-direction:column;gap:9px;background:#fafbfc}
+.ch{display:flex;gap:8px;align-items:center;font:400 11.5px/1.2 'Architects Daughter',sans-serif;color:#626a76}
+.ch em{font-style:normal;font:400 9.5px/1 ui-monospace,Menlo,monospace;color:#a4abb6}
+.ch.on{color:#1a1a1a;font-weight:700}
+.ch.on em{color:var(--acc)}
+.stat{flex:1;border-right:1.5px dashed #dde2e8;padding:0 14px;display:flex;flex-direction:column;gap:5px}
+.stat:last-child{border-right:none}
+.stat b{font:400 19px/1 'Architects Daughter',sans-serif;color:#1a1a1a}
+.vid{position:relative;display:grid;place-items:center;border:1.5px dashed #b3bac4;border-radius:10px;background:#f4f6f8;background-image:linear-gradient(to top right,transparent calc(50% - .8px),#e4e8ed calc(50% - .8px),#e4e8ed calc(50% + .8px),transparent calc(50% + .8px)),linear-gradient(to top left,transparent calc(50% - .8px),#e4e8ed calc(50% - .8px),#e4e8ed calc(50% + .8px),transparent calc(50% + .8px))}
+.play{width:46px;height:46px;border-radius:999px;border:1.8px solid #2b2b2b;background:#fff;display:grid;place-items:center}
+.play s{width:0;height:0;text-decoration:none;border-left:13px solid #2b2b2b;border-top:8px solid transparent;border-bottom:8px solid transparent;margin-left:4px}
+.vcap{position:absolute;bottom:8px;left:9px;right:9px;text-align:center;font:400 11px/1.3 'Architects Daughter',sans-serif;color:#8b93a1}
+.acc{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1.2px dashed #dde2e8;font:400 12.5px/1.3 'Architects Daughter',sans-serif;color:#3d444e}
+.acc span{flex:1}
+.acc u{flex:none;text-decoration:none;font:400 14px/1 ui-monospace,Menlo,monospace;color:#8b93a1}
+.chk{display:flex;gap:8px;align-items:flex-start;font:400 12px/1.35 'Architects Daughter',sans-serif;color:#3d444e}
+.chk u{flex:none;text-decoration:none;width:15px;height:15px;border:1.4px solid #cdd3db;border-radius:4px;margin-top:1px}
+.ans{font:400 12px/1.6 'Architects Daughter',sans-serif;color:#5c646f;max-width:600px;margin:0}
+.mwf .sec{padding:14px}
+.mwf .h1{font-size:21px;line-height:1.14}
+.mwf .h2{font-size:16px}
+.mwf .anno{padding:9px 14px}
+.mwf .nav{padding:10px 14px;gap:10px}
+.mwf .foot{padding:14px;flex-direction:column;gap:12px}
+.mwf .ans{max-width:none}
+.burg{flex:none;display:flex;flex-direction:column;gap:3px;width:19px}
+.burg i{height:1.8px;background:#2b2b2b;display:block}
+.hs{display:flex;gap:9px;overflow:hidden}
+.stack{display:flex;flex-direction:column;gap:10px}
+.mcta{position:sticky;bottom:0;display:flex;gap:8px;align-items:center;padding:10px 14px;background:#fff;border-top:1.5px solid #2b2b2b}
+.seg{display:flex;border:1.5px solid #2b2b2b;border-radius:999px;overflow:hidden}
+.seg i{flex:1;text-align:center;font-style:normal;padding:8px 0;font:700 11.5px/1 'Architects Daughter',sans-serif;color:#626a76}
+.seg i.on{background:#2b2b2b;color:#fff}
+.frow{display:flex;gap:10px;align-items:center;padding:11px 0;border-bottom:1.2px dashed #dde2e8;font:400 12.5px/1.3 'Architects Daughter',sans-serif;color:#3d444e}
+.frow span{flex:1}
+.frow u{flex:none;text-decoration:none;font:400 14px/1 ui-monospace,Menlo,monospace;color:#8b93a1}
+.qa{display:flex;flex-direction:column;gap:6px;flex:1}
+.hide-anno .note,.hide-anno .anno,.hide-anno .tag{display:none}
+.hide-maps .pagemaps{display:none}
+</style></helmet>
+
+<section class="dv-turn {{ rootCls }}" id="t4" style="--acc: {{ accent }}">
+<div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Versi mobile — 390px, kelima halaman</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="4a">
+<div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>Home mobile. Nav jadi hamburger, CTA pindah ke bar nempel di bawah, blok empat kolom jadi tumpuk atau geser samping.</div>
+<div class="dv-card wf mwf" style="width:390px">
+<div class="anno"><span class="tag">390px</span><span class="tag">CTA nempel di bawah</span><span class="tag">FAQ tertutup</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id</em></div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand" style="font-size:13px">3Diner</span><span style="flex:1"></span><span class="tgl"><i class="on">ID</i><i>EN</i></span><span class="burg"><i></i><i></i><i></i></span></div>
+
+<div class="sec" style="border-top:none;padding:18px 14px">
+<span class="lbl">01 · Hero</span>
+<div class="stack" style="margin-top:8px">
+<span class="pill">Smart menu 3D/AR untuk kafe</span>
+<div class="h1">Lihat Sebelum Memesan</div>
+<div class="tg"><b></b><b></b><b></b></div>
+<span class="btn pri" style="width:100%">Minta Demo</span>
+<span class="btn" style="width:100%">Lihat menu contoh</span>
+<div class="vid" style="height:210px"><div class="play"><s></s></div><span class="vcap">[ video pendek: dish diputar ]</span></div>
+</div>
+<div class="note" style="margin-top:8px">Dua tombol ditumpuk, lebar penuh. Video di bawah teks, bukan di samping.</div>
+</div>
+
+<div class="sec" style="background:#F6F8FB">
+<span class="lbl">Dipakai / didukung oleh</span>
+<div class="hs" style="margin-top:9px"><div class="slot" style="flex:none;width:96px;height:32px">[ logo ]</div><div class="slot" style="flex:none;width:96px;height:32px">[ logo ]</div><div class="slot" style="flex:none;width:96px;height:32px">[ logo ]</div><div class="slot" style="flex:none;width:96px;height:32px">[ logo ]</div></div>
+<span class="mut">Geser samping.</span>
+</div>
+
+<div class="sec">
+<span class="lbl">02 · Masalah & solusi</span>
+<div class="stack" style="margin-top:8px">
+<div class="card" style="gap:7px"><span class="h3">Menu flat, tamu ragu</span><div class="tg"><b></b><b></b></div></div>
+<div class="card" style="gap:7px;border-color:var(--acc)"><span class="h3">Tamu lihat dulu, lalu pesan</span><div class="tg"><b></b><b></b></div></div>
+</div>
+<div class="hs" style="margin-top:12px"><div class="vid" style="flex:none;width:104px;height:160px"><span class="vcap">[ klip dish ]</span></div><div class="vid" style="flex:none;width:104px;height:160px"><span class="vcap">[ klip dish ]</span></div><div class="vid" style="flex:none;width:104px;height:160px"><span class="vcap">[ klip dish ]</span></div><div class="vid" style="flex:none;width:104px;height:160px"><span class="vcap">[ klip ]</span></div></div>
+<div class="note" style="margin-top:7px">Klip 9:16 jalan sendiri, bergeser lambat. Di mobile ini bagian paling kuat — biar tinggi.</div>
+</div>
+
+<div class="sec">
+<span class="lbl">03 · Cara kerja</span>
+<div class="stack" style="margin-top:9px">
+<div style="display:flex;gap:10px;align-items:center"><span class="num">01</span><span class="h3" style="flex:1">Scan QR di meja</span><div class="slot" style="width:52px;height:40px"></div></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="num">02</span><span class="h3" style="flex:1">Putar dish 3D</span><div class="slot" style="width:52px;height:40px"></div></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="num">03</span><span class="h3" style="flex:1">Mode AR di meja</span><div class="slot" style="width:52px;height:40px"></div></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="num">04</span><span class="h3" style="flex:1">Kirim pesanan</span><div class="slot" style="width:52px;height:40px"></div></div>
+</div>
+<div class="note" style="margin-top:7px">Empat kartu jadi empat baris. Ikon kecil di kanan, bukan gambar besar.</div>
+</div>
+
+<div class="sec" style="background:#FDFBF9">
+<span class="lbl">04 · Video demo</span>
+<div class="h2" style="margin-top:6px">Lihat 3Diner jalan di satu meja</div>
+<div class="vid" style="height:200px;margin-top:9px"><div class="play"><s></s></div><span class="vcap">[ video demo utama · 16:9 ]</span></div>
+<div class="hs" style="margin-top:9px"><div class="vid" style="flex:none;width:130px;height:84px"><span class="vcap">[ scan QR ]</span></div><div class="vid" style="flex:none;width:130px;height:84px"><span class="vcap">[ putar 3D ]</span></div><div class="vid" style="flex:none;width:130px;height:84px"><span class="vcap">[ AR ]</span></div></div>
+</div>
+
+<div class="sec">
+<span class="lbl">05 · Produk</span>
+<div class="seg" style="margin:9px 0"><i class="on">Menu tamu</i><i>Dashboard owner</i></div>
+<div class="vid" style="height:170px"><div class="play"><s></s></div><span class="vcap">[ rekaman layar tab aktif ]</span></div>
+<div class="stack" style="margin-top:10px;gap:7px">
+<div class="chk"><u></u><span>Scan QR, langsung buka — tanpa aplikasi</span></div>
+<div class="chk"><u></u><span>Putar dish 3D sebelum pesan</span></div>
+<div class="chk"><u></u><span>Taruh dish di meja lewat mode AR</span></div>
+<div class="chk"><u></u><span>Kirim pesanan dari HP sendiri</span></div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">06 · Fitur unggulan</span>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px">
+<div class="card" style="gap:6px;padding:10px"><div class="slot" style="width:24px;height:24px;border-radius:6px"></div><span class="h3">Model 3D per dish</span></div>
+<div class="card" style="gap:6px;padding:10px"><div class="slot" style="width:24px;height:24px;border-radius:6px"></div><span class="h3">Mode AR di meja</span></div>
+<div class="card" style="gap:6px;padding:10px"><div class="slot" style="width:24px;height:24px;border-radius:6px"></div><span class="h3">QR meja</span></div>
+<div class="card" style="gap:6px;padding:10px"><div class="slot" style="width:24px;height:24px;border-radius:6px"></div><span class="h3">Analitik tamu</span></div>
+<div class="card" style="gap:6px;padding:10px"><div class="slot" style="width:24px;height:24px;border-radius:6px"></div><span class="h3">Inventory & resep</span></div>
+<div class="card" style="gap:6px;padding:10px"><div class="slot" style="width:24px;height:24px;border-radius:6px"></div><span class="h3">Pesanan masuk</span></div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">07 · Kafe yang pakai 3Diner</span>
+<div class="hs" style="margin-top:9px">
+<div class="card" style="flex:none;width:190px;gap:7px"><div class="slot" style="height:84px">[ foto kafe ]</div><span class="h3">[ nama kafe ]</span><span class="mut">[ kota ]</span><span class="btn" style="padding:6px 12px">Lihat Menu</span></div>
+<div class="card" style="flex:none;width:190px;gap:7px"><div class="slot" style="height:84px">[ foto kafe ]</div><span class="h3">[ nama kafe ]</span><span class="mut">[ kota ]</span><span class="btn" style="padding:6px 12px">Lihat Menu</span></div>
+</div>
+<span class="mut">Geser samping · <a href="#4a">Semua kafe →</a></span>
+</div>
+
+<div class="sec">
+<span class="lbl">08 · Testimoni</span>
+<div class="vid" style="height:150px;margin-top:9px"><div class="play"><s></s></div><span class="vcap">[ video testimoni owner ]</span></div>
+<div style="display:flex;gap:9px;align-items:center;margin-top:9px"><div class="slot" style="width:32px;height:32px;border-radius:999px"></div><div><div class="h3">[ nama owner ]</div><span class="mut">Owner [ nama kafe ]</span></div></div>
+<div class="h3" style="font-weight:400;margin-top:8px">“[ kutipan — pakai angka riil ]”</div>
+</div>
+
+<div class="sec">
+<span class="lbl">09 · Harga</span>
+<div class="hs" style="margin-top:9px">
+<div class="card" style="flex:none;width:180px"><span class="h3">Tier 50k</span><div class="h2">Rp 50.000<span class="mut"> /bln</span></div><div class="tg"><b></b><b></b></div><span class="btn" style="justify-content:center">Pilih</span></div>
+<div class="card" style="flex:none;width:180px;border-color:var(--acc);border-width:2px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="h3">Tier 100k</span><span class="tag">Populer</span></div><div class="h2">Rp 100.000<span class="mut"> /bln</span></div><div class="tg"><b></b><b></b></div><span class="btn pri" style="justify-content:center">Pilih</span></div>
+</div>
+<div class="note" style="margin-top:7px">Kartu digeser, satu setengah kartu kelihatan supaya jelas masih ada lanjutannya.</div>
+</div>
+
+<div class="sec" style="background:#FDFBF9">
+<span class="lbl">10 · Pertanyaan umum</span>
+<div class="h2" style="margin-top:6px">Yang paling sering ditanya</div>
+<div style="margin-top:9px">
+<div class="frow"><span>Apa itu menu 3D, dan apa bedanya dengan foto?</span><u>+</u></div>
+<div class="frow"><span>Tamu perlu pasang aplikasi?</span><u>+</u></div>
+<div class="frow"><span>Model 3D dibuat siapa — kami atau kafe?</span><u>+</u></div>
+<div class="frow"><span>Fotonya harus bagus banget?</span><u>+</u></div>
+<div class="frow"><span>Berapa lama dari daftar sampai menu tayang?</span><u>+</u></div>
+<div class="frow" style="border-bottom:none"><span>Ada masa coba sebelum bayar?</span><u>+</u></div>
+</div>
+<span class="mut" style="display:block;margin-top:9px">Enam teratas dulu, sisanya di bawah tombol “Lihat semua pertanyaan”.</span>
+<div class="note" style="margin-top:6px">Di mobile semua tertutup — 18 jawaban terbuka bikin halaman kepanjangan.</div>
+</div>
+
+<div class="sec" style="padding:0">
+<div class="slot" style="height:150px;border:none;border-radius:0;padding:14px;text-align:left"><div class="stack"><div class="h2">Mau lihat menu kafe Anda dalam 3D?</div><span class="pill" style="width:100%;padding:10px 12px">Nama kafe</span><span class="pill" style="width:100%;padding:10px 12px">WhatsApp</span><span class="btn pri" style="width:100%">Kirim</span></div></div>
+</div>
+
+<div class="foot">
+<div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="brand" style="font-size:12.5px">3Diner</span></div>
+<div style="width:100%">
+<div class="frow" style="padding:9px 0"><span>Produk</span><u>+</u></div>
+<div class="frow" style="padding:9px 0"><span>Perusahaan</span><u>+</u></div>
+<div class="frow" style="padding:9px 0;border-bottom:none"><span>Bantuan</span><u>+</u></div>
+</div>
+<span class="mut">[ badan usaha ] · [ alamat ] · [ email ]</span>
+<span class="tgl"><i class="on">ID</i><i>EN</i></span>
+</div>
+
+<div class="mcta"><span class="mut" style="flex:1">Mulai dari Rp 50.000/bln</span><span class="btn pri">Minta Demo</span></div>
+<div class="note" style="padding:9px 14px">Bar ini nempel di bawah layar setelah tamu lewat hero, dan menghilang di blok form.</div>
+</div>
+</div>
+
+<div class="dv-opt" id="4b">
+<div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>Menu hamburger yang terbuka — satu-satunya layar tambahan yang mobile butuh tapi desktop tidak.</div>
+<div class="dv-card wf mwf" style="width:390px">
+<div class="anno"><span class="tag">Sheet dari kanan</span><span class="tag">5 halaman + bahasa</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id</em></div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand" style="font-size:13px">3Diner</span><span style="flex:1"></span><span class="tgl"><i class="on">ID</i><i>EN</i></span><span class="mut" style="font-size:15px">×</span></div>
+<div class="sec" style="border-top:none;padding:16px 14px">
+<div class="stack" style="gap:0">
+<div class="frow" style="padding:14px 0"><span class="h3" style="flex:1">Home</span><u>→</u></div>
+<div class="frow" style="padding:14px 0"><span class="h3" style="flex:1">Tentang</span><u>→</u></div>
+<div class="frow" style="padding:14px 0"><span class="h3" style="flex:1">Produk</span><u>→</u></div>
+<div class="frow" style="padding:14px 0"><span class="h3" style="flex:1">Harga</span><u>→</u></div>
+<div class="frow" style="padding:14px 0"><span class="h3" style="flex:1">Kontak</span><u>→</u></div>
+<div class="frow" style="padding:14px 0;border-bottom:none"><span style="flex:1">Pertanyaan umum</span><u>→</u></div>
+</div>
+<div class="stack" style="margin-top:16px">
+<span class="btn pri" style="width:100%">Minta Demo</span>
+<span class="btn" style="width:100%">Chat WhatsApp</span>
+<div style="display:flex;gap:9px;align-items:center;margin-top:4px"><span class="lbl">Bahasa</span><span class="tgl"><i class="on">ID</i><i>EN</i></span></div>
+</div>
+<div class="note" style="margin-top:14px">Baris ≥ 44px. “Pertanyaan umum” melompat ke band FAQ di Home, bukan halaman baru.</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="4c">
+<div class="dv-olabel"><a class="dv-oid" href="#4c">4c</a>Tentang mobile — cerita dulu, tim di tengah, angka perusahaan 2×2.</div>
+<div class="dv-card wf mwf" style="width:390px">
+<div class="anno"><span class="tag">390px</span><span class="tag">Halaman 2 dari 5</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/tentang</em></div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand" style="font-size:13px">3Diner</span><span style="flex:1"></span><span class="tgl"><i class="on">ID</i><i>EN</i></span><span class="burg"><i></i><i></i><i></i></span></div>
+
+<div class="sec" style="border-top:none;padding:18px 14px">
+<span class="lbl">01 · Hero</span>
+<div class="h1" style="margin-top:7px">Kami bikin menu yang bisa dilihat dulu</div>
+<div class="tg" style="margin-top:9px"><b></b><b></b></div>
+<div class="slot" style="height:170px;margin-top:11px">[ foto: dish 3D di layar HP, di atas meja kafe ]</div>
+</div>
+
+<div class="sec">
+<span class="lbl">02 · Kenapa 3Diner ada</span>
+<div class="h2" style="margin-top:6px">Awalnya dari satu pertanyaan tamu</div>
+<div class="tg" style="margin-top:9px"><b></b><b></b><b></b><b></b></div>
+<div class="card" style="margin-top:11px;gap:6px"><div class="h3" style="font-weight:400">“[ kutipan founder — kejadian nyata yang jadi pemicu ]”</div><span class="mut">[ nama ] · [ peran ]</span></div>
+</div>
+
+<div class="sec" style="background:#FDFBF9">
+<span class="lbl">03 · Kenalan dengan kami</span>
+<div class="h2" style="margin-top:6px">Orang di balik 3Diner</div>
+<div class="vid" style="height:190px;margin-top:9px"><div class="play"><s></s></div><span class="vcap">[ video kenalan tim ]</span></div>
+<div class="stack" style="margin-top:10px;gap:9px">
+<div style="display:flex;gap:9px;align-items:center"><div class="slot" style="width:34px;height:34px;border-radius:999px"></div><div><div class="h3">[ nama ]</div><span class="mut">[ peran ]</span></div></div>
+<div style="display:flex;gap:9px;align-items:center"><div class="slot" style="width:34px;height:34px;border-radius:999px"></div><div><div class="h3">[ nama ]</div><span class="mut">[ peran ]</span></div></div>
+<div style="display:flex;gap:9px;align-items:center"><div class="slot" style="width:34px;height:34px;border-radius:999px"></div><div><div class="h3">[ nama ]</div><span class="mut">[ peran ]</span></div></div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">04 · Cara kerjanya untuk kafe</span>
+<div class="h2" style="margin-top:6px">Kafe yang foto, dashboard yang bikin modelnya</div>
+<div class="stack" style="margin-top:10px">
+<div style="display:flex;gap:10px;align-items:center"><span class="num">01</span><span class="h3" style="flex:1">Daftar dan pilih paket</span></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="num">02</span><span class="h3" style="flex:1">Foto dish pakai HP</span></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="num">03</span><span class="h3" style="flex:1">Unggah, model 3D digenerate</span></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="num">04</span><span class="h3" style="flex:1">Cetak QR, menu tayang</span></div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">Angka perusahaan</span>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:9px">
+<div class="card" style="gap:4px;padding:10px"><span class="lbl">Berdiri</span><b style="font:400 18px/1 'Architects Daughter',sans-serif">[ tahun ]</b></div>
+<div class="card" style="gap:4px;padding:10px"><span class="lbl">Kafe aktif</span><b style="font:400 18px/1 'Architects Daughter',sans-serif">[ angka ]</b></div>
+<div class="card" style="gap:4px;padding:10px"><span class="lbl">Dish 3D tayang</span><b style="font:400 18px/1 'Architects Daughter',sans-serif">[ angka ]</b></div>
+<div class="card" style="gap:4px;padding:10px"><span class="lbl">Kota terjangkau</span><b style="font:400 18px/1 'Architects Daughter',sans-serif">[ angka ]</b></div>
+</div>
+<div class="note" style="margin-top:7px">Empat kolom desktop jadi 2×2, bukan digeser — angka harus kelihatan sekaligus.</div>
+</div>
+
+<div class="sec" style="background:#F6F8FB">
+<div class="h2">Ngobrol dulu, tanpa harus langganan</div>
+<span class="mut">Kirim satu foto dish, kami balas dengan model 3D-nya.</span>
+<div class="stack" style="margin-top:10px"><span class="btn pri" style="width:100%">Minta Demo</span><span class="btn" style="width:100%">Chat WhatsApp</span></div>
+</div>
+
+<div class="foot"><div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="mut">[ badan usaha ] · [ alamat ] · [ email ]</span></div><span class="tgl"><i class="on">ID</i><i>EN</i></span></div>
+<div class="mcta"><span class="mut" style="flex:1">Mulai dari Rp 50.000/bln</span><span class="btn pri">Minta Demo</span></div>
+</div>
+</div>
+
+<div class="dv-opt" id="4d">
+<div class="dv-olabel"><a class="dv-oid" href="#4d">4d</a>Produk mobile — alur lima layar jadi rel geser, modul dashboard ditumpuk.</div>
+<div class="dv-card wf mwf" style="width:390px">
+<div class="anno"><span class="tag">390px</span><span class="tag">Halaman 3 dari 5</span><span class="tag">Rel 5 layar</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/produk</em></div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand" style="font-size:13px">3Diner</span><span style="flex:1"></span><span class="tgl"><i class="on">ID</i><i>EN</i></span><span class="burg"><i></i><i></i><i></i></span></div>
+
+<div class="sec" style="border-top:none;padding:18px 14px">
+<span class="lbl">01 · Hero produk</span>
+<div class="h1" style="margin-top:7px">Satu QR di meja, dua alat sekaligus</div>
+<div class="tg" style="margin-top:9px"><b></b><b></b></div>
+<div class="vid" style="height:180px;margin-top:11px"><div class="play"><s></s></div><span class="vcap">[ video demo ]</span></div>
+<span class="btn pri" style="width:100%;margin-top:10px">Minta Demo</span>
+</div>
+
+<div class="sec">
+<span class="lbl">02 · Untuk tamu</span>
+<div class="seg" style="margin:9px 0"><i class="on">Menu tamu</i><i>Dashboard owner</i></div>
+<div class="hs">
+<div style="flex:none;width:118px;display:flex;flex-direction:column;gap:5px"><div class="slot" style="height:180px;border-radius:14px">[ 01 scan ]</div><span class="h3">Scan QR</span></div>
+<div style="flex:none;width:118px;display:flex;flex-direction:column;gap:5px"><div class="slot" style="height:180px;border-radius:14px">[ 02 daftar ]</div><span class="h3">Pilih dish</span></div>
+<div style="flex:none;width:118px;display:flex;flex-direction:column;gap:5px"><div class="slot" style="height:180px;border-radius:14px">[ 03 3D ]</div><span class="h3">Putar 3D</span></div>
+</div>
+<span class="mut" style="display:block;margin-top:7px">Geser · 5 layar · titik indikator di bawah</span>
+</div>
+
+<div class="sec">
+<span class="lbl">03 · Viewer 3D & mode AR</span>
+<div class="vid" style="height:170px;margin-top:9px"><div class="play"><s></s></div><span class="vcap">[ rekaman layar: putar, zoom, AR ]</span></div>
+<div class="stack" style="margin-top:10px;gap:7px">
+<div class="chk"><u></u><span>Putar 360°, zoom, kembali ke posisi awal</span></div>
+<div class="chk"><u></u><span>Mode AR di meja — iOS dan Android</span></div>
+<div class="chk"><u></u><span>Kalau HP tamu tak dukung AR, tetap bisa 3D</span></div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">04 · Untuk owner · dashboard</span>
+<div class="note" style="margin-top:6px">Dashboard dipakai di laptop. Di mobile cukup ditunjukkan, bukan diajak dipakai.</div>
+<div class="stack" style="margin-top:10px">
+<div class="card" style="gap:7px"><span class="h3">Pesanan masuk</span><div class="slot" style="height:70px">[ slot ]</div><span class="mut">Baru → Diproses → Siap</span></div>
+<div class="card" style="gap:7px"><span class="h3">Menu & generate 3D</span><div class="slot" style="height:70px">[ slot: unggah foto → generate ]</div></div>
+<div class="card" style="gap:7px"><span class="h3">Inventory & analitik</span><div class="slot" style="height:70px">[ slot ]</div></div>
+</div>
+</div>
+
+<div class="sec" style="background:#FDFBF9">
+<span class="lbl">05 · Dari foto ke model 3D</span>
+<div class="h2" style="margin-top:6px">Anda foto dish-nya, dashboard yang bikin modelnya</div>
+<div class="stack" style="margin-top:10px">
+<div class="card" style="gap:5px;padding:10px"><div style="display:flex;gap:9px;align-items:center"><span class="num">01</span><span class="h3">Foto dish pakai HP</span></div><span class="mut">panduan di dashboard</span></div>
+<div class="card" style="gap:5px;padding:10px"><div style="display:flex;gap:9px;align-items:center"><span class="num">02</span><span class="h3">Unggah ke dashboard</span></div><span class="mut">beberapa sudut</span></div>
+<div class="card" style="gap:5px;padding:10px"><div style="display:flex;gap:9px;align-items:center"><span class="num">03</span><span class="h3">Generate model 3D</span></div><span class="mut">[ isi lama generate ]</span></div>
+<div class="card" style="gap:5px;padding:10px"><div style="display:flex;gap:9px;align-items:center"><span class="num">04</span><span class="h3">Cek, lalu tayangkan</span></div><span class="mut">generate ulang kalau belum pas</span></div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">06 · Teknis singkat</span>
+<div class="stack" style="margin-top:9px;gap:7px">
+<div class="chk"><u></u><span>Format model: .glb (Android/web) · .usdz (iOS)</span></div>
+<div class="chk"><u></u><span>QR per meja, satu tautan per kafe</span></div>
+<div class="chk"><u></u><span>Jalan di browser HP, tanpa pasang aplikasi</span></div>
+</div>
+</div>
+
+<div class="sec" style="background:#F6F8FB">
+<div class="h2">Mau lihat satu dish Anda jadi 3D?</div>
+<span class="mut">Kirim satu foto dish, kami balas dengan model 3D-nya.</span>
+<div class="stack" style="margin-top:10px"><span class="pill" style="width:100%;padding:10px 12px">Nama kafe</span><span class="btn pri" style="width:100%">Kirim</span></div>
+</div>
+
+<div class="foot"><div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="mut">[ badan usaha ] · [ alamat ] · [ email ]</span></div><span class="tgl"><i class="on">ID</i><i>EN</i></span></div>
+<div class="mcta"><span class="mut" style="flex:1">Mulai dari Rp 50.000/bln</span><span class="btn pri">Minta Demo</span></div>
+</div>
+</div>
+
+<div class="dv-opt" id="4e">
+<div class="dv-olabel"><a class="dv-oid" href="#4e">4e</a>Harga mobile — tier ditumpuk penuh (bukan digeser), tabel banding jadi accordion per paket.</div>
+<div class="dv-card wf mwf" style="width:390px">
+<div class="anno"><span class="tag">390px</span><span class="tag">Halaman 4 dari 5</span><span class="tag">Tabel → accordion</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/harga</em></div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand" style="font-size:13px">3Diner</span><span style="flex:1"></span><span class="tgl"><i class="on">ID</i><i>EN</i></span><span class="burg"><i></i><i></i><i></i></span></div>
+
+<div class="sec" style="border-top:none;padding:18px 14px;text-align:center">
+<div class="h1">Bayar per bulan, berhenti kapan saja</div>
+<div class="tg" style="margin-top:9px"><b></b><b></b></div>
+<div class="seg" style="margin-top:11px"><i class="on">Bulanan</i><i>Tahunan</i></div>
+<span class="mut" style="display:block;margin-top:7px">[ isi potongan kalau tahunan ]</span>
+</div>
+
+<div class="sec">
+<div class="stack">
+<div class="card" style="gap:9px;border-color:var(--acc);border-width:2px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="h3">Tier 100k</span><span class="tag">Paling dipakai</span></div><div class="h2">Rp 100.000<span class="mut"> /bln</span></div><span class="mut">Untuk kafe yang menunya jalan terus</span>
+<div class="stack" style="gap:6px">
+<div class="chk"><u></u><span>[ jumlah ] dish dengan model 3D</span></div>
+<div class="chk"><u></u><span>Inventory & resep</span></div>
+<div class="chk"><u></u><span>Analitik tamu</span></div>
+</div>
+<span class="btn pri" style="width:100%">Pilih paket ini</span></div>
+<div class="card" style="gap:9px"><span class="h3">Tier 50k</span><div class="h2">Rp 50.000<span class="mut"> /bln</span></div><span class="mut">Untuk kafe kecil, menu pendek</span>
+<div class="stack" style="gap:6px">
+<div class="chk"><u></u><span>[ jumlah ] dish dengan model 3D</span></div>
+<div class="chk"><u></u><span>QR meja tanpa batas</span></div>
+</div>
+<span class="btn" style="width:100%">Pilih paket ini</span></div>
+<div class="card" style="gap:9px"><span class="h3">Tier 150k</span><div class="h2">Rp 150.000<span class="mut"> /bln</span></div><span class="mut">Untuk kafe besar atau lebih dari satu cabang</span>
+<div class="stack" style="gap:6px">
+<div class="chk"><u></u><span>[ jumlah ] dish dengan model 3D</span></div>
+<div class="chk"><u></u><span>[ isi: multi-cabang? ]</span></div>
+</div>
+<span class="btn" style="width:100%">Pilih paket ini</span></div>
+</div>
+<div class="note" style="margin-top:9px">Paket populer ditaruh paling atas — di mobile urutan sama dengan prioritas.</div>
+</div>
+
+<div class="sec">
+<span class="lbl">02 · Banding paket</span>
+<div style="margin-top:9px">
+<div class="frow"><span>Dish dengan model 3D</span><u>+</u></div>
+<div class="frow"><span>Mode AR</span><u>+</u></div>
+<div class="frow"><span>Inventory & resep</span><u>+</u></div>
+<div class="frow"><span>Analitik tamu</span><u>+</u></div>
+<div class="frow" style="border-bottom:none"><span>Pendampingan pasang</span><u>+</u></div>
+</div>
+<div class="note" style="margin-top:8px">Tabel 4 kolom tak masuk di 390px. Dibalik: satu baris per fitur, dibuka menampilkan nilai tiap tier.</div>
+</div>
+
+<div class="sec">
+<span class="lbl">03 · Tambahan di luar paket</span>
+<div class="stack" style="margin-top:9px">
+<div class="card" style="gap:5px;padding:10px"><span class="h3">Kami yang unggah menu awal</span><span class="mut">[ harga ] / menu</span></div>
+<div class="card" style="gap:5px;padding:10px"><span class="h3">Kredit generate tambahan</span><span class="mut">[ harga ] / generate</span></div>
+<div class="card" style="gap:5px;padding:10px"><span class="h3">Cetak QR meja</span><span class="mut">[ harga ] / meja</span></div>
+</div>
+</div>
+
+<div class="sec" style="background:#F6F8FB">
+<div class="h2">Bingung pilih paket?</div>
+<span class="mut">Sebutkan jumlah menu Anda, kami sarankan yang paling pas.</span>
+<div class="stack" style="margin-top:10px"><span class="btn pri" style="width:100%">Minta Demo</span><span class="btn" style="width:100%">Chat WhatsApp</span></div>
+</div>
+
+<div class="foot"><div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="mut">[ badan usaha ] · [ alamat ] · [ email ]</span></div><span class="tgl"><i class="on">ID</i><i>EN</i></span></div>
+</div>
+</div>
+
+<div class="dv-opt" id="4f">
+<div class="dv-olabel"><a class="dv-oid" href="#4f">4f</a>Kontak mobile — WhatsApp naik ke paling atas, form di bawahnya. Di HP orang lebih sering chat daripada isi form.</div>
+<div class="dv-card wf mwf" style="width:390px">
+<div class="anno"><span class="tag">390px</span><span class="tag">Halaman 5 dari 5</span><span class="tag">WhatsApp paling atas</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/kontak</em></div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand" style="font-size:13px">3Diner</span><span style="flex:1"></span><span class="tgl"><i class="on">ID</i><i>EN</i></span><span class="burg"><i></i><i></i><i></i></span></div>
+
+<div class="sec" style="border-top:none;padding:18px 14px">
+<div class="h1">Mau lihat menu kafe Anda dalam 3D?</div>
+<div class="tg" style="margin-top:9px"><b></b><b></b></div>
+<div class="card" style="gap:7px;margin-top:12px;border-color:var(--acc);border-width:2px"><span class="lbl">Paling cepat</span><span class="h3">Chat WhatsApp langsung</span><span class="mut">[ nomor ]</span><span class="btn pri" style="width:100%">Buka WhatsApp</span></div>
+<div class="note" style="margin-top:8px">Di desktop form dulu, WhatsApp di samping. Di mobile dibalik.</div>
+</div>
+
+<div class="sec">
+<span class="lbl">01 · Atau isi form</span>
+<div class="stack" style="margin-top:9px">
+<div style="display:flex;flex-direction:column;gap:5px"><span class="lbl">Nama kafe</span><span class="pill" style="width:100%;padding:11px 12px;justify-content:flex-start">[ input ]</span></div>
+<div style="display:flex;flex-direction:column;gap:5px"><span class="lbl">Kota</span><span class="pill" style="width:100%;padding:11px 12px;justify-content:flex-start">[ input ]</span></div>
+<div style="display:flex;flex-direction:column;gap:5px"><span class="lbl">Nomor WhatsApp</span><span class="pill" style="width:100%;padding:11px 12px;justify-content:flex-start">[ input ]</span></div>
+<div style="display:flex;flex-direction:column;gap:5px"><span class="lbl">Jumlah menu (perkiraan)</span><span class="pill" style="width:100%;padding:11px 12px;justify-content:flex-start">[ pilihan: &lt;20 · 20–50 · &gt;50 ]</span></div>
+<span class="btn pri" style="width:100%">Kirim & minta demo</span>
+<span class="mut">Kami balas lewat WhatsApp, biasanya [ isi lama balas ].</span>
+</div>
+<div class="note" style="margin-top:8px">Satu kolom penuh, tinggi 44px, keyboard numerik untuk nomor.</div>
+</div>
+
+<div class="sec">
+<span class="lbl">02 · Yang terjadi setelah kirim</span>
+<div class="stack" style="margin-top:9px">
+<div style="display:flex;gap:10px;align-items:center"><span class="num">01</span><span class="h3" style="flex:1">Kami balas di WhatsApp</span></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="num">02</span><span class="h3" style="flex:1">Bikin satu dish contoh gratis</span></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="num">03</span><span class="h3" style="flex:1">Anda coba di HP sendiri</span></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="num">04</span><span class="h3" style="flex:1">Kalau cocok, baru pasang</span></div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">03 · Datang ke kantor</span>
+<div class="slot" style="height:130px;margin-top:9px">[ peta ]</div>
+<span class="mut" style="display:block;margin-top:8px">[ alamat lengkap ] · [ kota ]<br>Buka [ jam ] · [ hari ]</span>
+<span class="btn" style="width:100%;margin-top:9px">Buka di aplikasi peta</span>
+</div>
+
+<div class="foot"><div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="mut">[ badan usaha ] · [ alamat ] · [ email ]</span></div><span class="tgl"><i class="on">ID</i><i>EN</i></span></div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Coba selanjutnya: “gambar layar dashboard: unggah foto → generate 3D” · “naikkan <a class="dv-oid" href="#2a">2a</a> ke hi-fi pakai warna 3Diner” · “tulis versi EN semua copy”</p>
+</section>
+
+<section class="dv-turn {{ rootCls }}" id="t3" style="--acc: {{ accent }}">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Empat halaman sisanya, pola <a class="dv-oid" href="#2a">2a</a> — Tentang, Produk, Harga, Kontak</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="3a">
+<div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Tentang — cerita perusahaan, bukan brosur produk. Satu video kenalan tim, dan angka perusahaan yang bisa Anda isi.</div>
+<div class="dv-card wf" style="width:880px">
+<div class="anno"><span class="tag">Halaman 2 dari 5</span><span class="tag">Toggle: pil ID | EN</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/tentang</em></div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand">3Diner</span><span class="ni">Home</span><span class="ni on">Tentang</span><span class="ni">Produk</span><span class="ni">Harga</span><span class="ni">Kontak</span><span style="flex:1"></span><span class="tgl" style="align-self:center"><i class="on">ID</i><i>EN</i></span><span class="btn pri">Minta Demo</span></div>
+
+<div class="sec" style="border-top:none;padding:24px 20px;display:flex;gap:24px;align-items:center">
+<div style="flex:1;display:flex;flex-direction:column;gap:11px">
+<span class="lbl">01 · Hero</span>
+<div class="h1">Kami bikin menu<br>yang bisa dilihat dulu</div>
+<div class="tg" style="max-width:320px"><b></b><b></b></div>
+<div class="note">Satu paragraf saja. Tanpa CTA di hero — halaman ini untuk dibaca.</div>
+</div>
+<div class="slot" style="width:300px;height:190px">[ foto: dish 3D di layar HP, di atas meja kafe ]</div>
+</div>
+
+<div class="sec">
+<span class="lbl">02 · Kenapa 3Diner ada</span>
+<div style="display:flex;gap:20px;margin-top:9px">
+<div style="flex:1;display:flex;flex-direction:column;gap:9px"><div class="h2">Awalnya dari satu pertanyaan tamu</div><div class="tg"><b></b><b></b><b></b><b></b></div></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:9px"><div class="h3" style="margin-top:22px">“[ kutipan founder — kejadian nyata yang jadi pemicu ]”</div><span class="mut">[ nama ] · [ peran ]</span></div>
+</div>
+</div>
+
+<div class="sec" style="background:#FDFBF9">
+<span class="lbl">03 · Kenalan dengan kami</span>
+<div class="h2" style="margin-top:7px">Orang di balik 3Diner</div>
+<div style="display:flex;gap:12px;margin-top:11px">
+<div class="vid" style="flex:1;height:210px"><div class="play"><s></s></div><span class="vcap">[ video kenalan tim · 60–90 detik ]</span></div>
+<div style="width:250px;display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;gap:9px;align-items:center"><div class="slot" style="width:38px;height:38px;border-radius:999px"></div><div><div class="h3">[ nama ]</div><span class="mut">[ peran ]</span></div></div>
+<div style="display:flex;gap:9px;align-items:center"><div class="slot" style="width:38px;height:38px;border-radius:999px"></div><div><div class="h3">[ nama ]</div><span class="mut">[ peran ]</span></div></div>
+<div style="display:flex;gap:9px;align-items:center"><div class="slot" style="width:38px;height:38px;border-radius:999px"></div><div><div class="h3">[ nama ]</div><span class="mut">[ peran ]</span></div></div>
+<span class="note">Isi sebanyak orang yang benar-benar ada. Jangan ditambah-tambah.</span>
+</div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">04 · Cara kerjanya untuk kafe</span>
+<div class="h2" style="margin-top:7px">Kafe yang foto, dashboard yang bikin modelnya</div>
+<div style="display:flex;flex-direction:column;gap:9px;margin-top:11px">
+<div style="display:flex;gap:11px;align-items:center"><span class="num">01</span><span class="h3" style="width:200px">Daftar dan pilih paket</span><div class="tg" style="flex:1"><b></b></div></div>
+<div style="display:flex;gap:11px;align-items:center"><span class="num">02</span><span class="h3" style="width:200px">Foto dish pakai HP</span><div class="tg" style="flex:1"><b></b></div></div>
+<div style="display:flex;gap:11px;align-items:center"><span class="num">03</span><span class="h3" style="width:200px">Unggah, model 3D digenerate</span><div class="tg" style="flex:1"><b></b></div></div>
+<div style="display:flex;gap:11px;align-items:center"><span class="num">04</span><span class="h3" style="width:200px">Cetak QR, menu tayang</span><div class="tg" style="flex:1"><b></b></div></div>
+</div>
+</div>
+
+<div class="sec" style="display:flex;padding:14px 6px">
+<div class="stat"><span class="lbl">Berdiri</span><b>[ tahun ]</b><span class="mut">isi nanti</span></div>
+<div class="stat"><span class="lbl">Kafe aktif</span><b>[ angka ]</b><span class="mut">isi nanti</span></div>
+<div class="stat"><span class="lbl">Dish 3D tayang</span><b>[ angka ]</b><span class="mut">isi nanti</span></div>
+<div class="stat"><span class="lbl">Kota terjangkau</span><b>[ angka ]</b><span class="mut">isi nanti</span></div>
+</div>
+
+<div class="sec" style="background:#F6F8FB;display:flex;gap:16px;align-items:center">
+<div style="flex:1"><div class="h2">Ngobrol dulu, tanpa harus langsung langganan</div><span class="mut">Kirim satu foto dish, kami balas dengan model 3D-nya.</span></div>
+<span class="btn pri">Minta Demo</span><span class="btn">Chat WhatsApp</span>
+</div>
+
+<div class="foot" style="padding:14px 20px">
+<div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="mut">[ badan usaha ] · [ alamat ] · [ email ]</span></div>
+<div style="flex:1"></div><span class="tgl" style="align-self:center"><i class="on">ID</i><i>EN</i></span>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="3b">
+<div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>Produk — dua sisi produk dalam satu halaman bertab, plus alur lima layar tamu dan proses foto → model 3D.</div>
+<div class="dv-card wf" style="width:880px">
+<div class="anno"><span class="tag">Halaman 3 dari 5</span><span class="tag">Video demo di hero</span><span class="tag">Alur 5 layar</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/produk</em></div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand">3Diner</span><span class="ni">Home</span><span class="ni">Tentang</span><span class="ni on">Produk</span><span class="ni">Harga</span><span class="ni">Kontak</span><span style="flex:1"></span><span class="tgl" style="align-self:center"><i class="on">ID</i><i>EN</i></span><span class="btn pri">Minta Demo</span></div>
+
+<div class="sec" style="border-top:none;padding:22px 20px">
+<span class="lbl">01 · Hero produk</span>
+<div style="display:flex;gap:20px;margin-top:9px;align-items:center">
+<div style="flex:1;display:flex;flex-direction:column;gap:10px"><div class="h1" style="font-size:24px">Satu QR di meja,<br>dua alat sekaligus</div><div class="tg" style="max-width:280px"><b></b><b></b></div><div style="display:flex;gap:8px"><span class="btn pri">Minta Demo</span><span class="btn">Menu contoh</span></div></div>
+<div class="vid" style="flex:1;height:200px"><div class="play"><s></s></div><span class="vcap">[ video demo · sama seperti di Home ]</span></div>
+</div>
+</div>
+
+<div class="sec">
+<div style="display:flex;align-items:baseline;gap:10px"><span class="lbl">02 · Untuk tamu</span><span class="mut">tab aktif: Menu tamu</span></div>
+<div style="display:flex;gap:8px;margin:11px 0"><span class="pill" style="border-color:#2b2b2b;color:#1a1a1a;font-weight:700">Menu tamu</span><span class="pill">Dashboard owner</span></div>
+<div style="display:flex;gap:9px">
+<div style="flex:1;display:flex;flex-direction:column;gap:6px"><div class="slot" style="height:180px;border-radius:14px">[ 01 scan ]</div><span class="h3">Scan QR</span><span class="mut">tanpa aplikasi</span></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:6px"><div class="slot" style="height:180px;border-radius:14px">[ 02 daftar menu ]</div><span class="h3">Pilih dish</span><span class="mut">grid 2 kolom</span></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:6px"><div class="slot" style="height:180px;border-radius:14px">[ 03 detail + 3D ]</div><span class="h3">Putar 3D</span><span class="mut">viewer</span></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:6px"><div class="slot" style="height:180px;border-radius:14px">[ 04 mode AR ]</div><span class="h3">Mode AR</span><span class="mut">taruh di meja</span></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:6px"><div class="slot" style="height:180px;border-radius:14px">[ 05 pesanan ]</div><span class="h3">Kirim pesanan</span><span class="mut">status jalan</span></div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">03 · Viewer 3D & mode AR</span>
+<div style="display:flex;gap:14px;margin-top:11px">
+<div class="vid" style="flex:1;height:190px"><div class="play"><s></s></div><span class="vcap">[ rekaman layar: putar, zoom, mode AR ]</span></div>
+<div style="width:290px;display:flex;flex-direction:column;gap:9px">
+<div class="chk"><u></u><span>Putar 360°, zoom, kembali ke posisi awal</span></div>
+<div class="chk"><u></u><span>Mode AR di meja — iOS dan Android</span></div>
+<div class="chk"><u></u><span>Ukuran porsi terasa nyata sebelum pesan</span></div>
+<div class="chk"><u></u><span>Kalau HP tamu tak dukung AR, tetap bisa 3D</span></div>
+</div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">04 · Untuk owner · dashboard</span>
+<div style="display:flex;gap:12px;margin-top:11px">
+<div class="card" style="flex:1;gap:7px"><span class="h3">Pesanan masuk</span><div class="slot" style="height:78px">[ slot ]</div><span class="mut">Baru → Diproses → Siap</span></div>
+<div class="card" style="flex:1;gap:7px"><span class="h3">Menu & generate 3D</span><div class="slot" style="height:78px">[ slot: unggah foto → generate ]</div><span class="mut">tayang / nonaktif</span></div>
+<div class="card" style="flex:1;gap:7px"><span class="h3">Inventory & resep</span><div class="slot" style="height:78px">[ slot ]</div><span class="mut">stok kurang / habis</span></div>
+<div class="card" style="flex:1;gap:7px"><span class="h3">Analitik</span><div class="slot" style="height:78px">[ slot ]</div><span class="mut">dish paling dilihat</span></div>
+</div>
+<div class="note" style="margin-top:8px">Dashboard bertema gelap — di wireframe tetap kotak putih, warna menyusul di hi-fi.</div>
+</div>
+
+<div class="sec" style="background:#FDFBF9">
+<span class="lbl">05 · Dari foto ke model 3D</span>
+<div class="h2" style="margin-top:7px">Anda foto dish-nya, dashboard yang bikin modelnya</div>
+<div style="display:flex;align-items:center;gap:8px;margin-top:11px">
+<div class="card" style="flex:1;gap:6px"><span class="num">01</span><span class="h3">Foto dish pakai HP</span><span class="mut">panduan di dashboard</span></div><span class="mut">→</span>
+<div class="card" style="flex:1;gap:6px"><span class="num">02</span><span class="h3">Unggah ke dashboard</span><span class="mut">beberapa sudut</span></div><span class="mut">→</span>
+<div class="card" style="flex:1;gap:6px"><span class="num">03</span><span class="h3">Generate model 3D</span><span class="mut">[ isi lama generate ]</span></div><span class="mut">→</span>
+<div class="card" style="flex:1;gap:6px"><span class="num">04</span><span class="h3">Cek, lalu tayangkan</span><span class="mut">generate ulang kalau belum pas</span></div>
+</div>
+</div>
+
+<div class="sec" style="display:flex;gap:22px">
+<div style="flex:1"><span class="lbl">06 · Teknis singkat</span><div class="mut" style="margin-top:7px">Untuk yang mau tahu isi dapurnya. Sisanya cukup baca bagian atas.</div></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:7px">
+<div class="chk"><u></u><span>Format model: .glb (Android/web) · .usdz (iOS)</span></div>
+<div class="chk"><u></u><span>QR per meja, satu tautan per kafe</span></div>
+<div class="chk"><u></u><span>Jalan di browser HP, tanpa pasang aplikasi</span></div>
+<div class="chk"><u></u><span>[ isi: hosting, backup, waktu buka halaman ]</span></div>
+</div>
+</div>
+
+<div class="sec" style="background:#F6F8FB;display:flex;gap:16px;align-items:center">
+<div style="flex:1"><div class="h2">Mau lihat satu dish Anda jadi 3D?</div><span class="mut">Kirim satu foto dish, kami balas dengan model 3D-nya.</span></div>
+<span class="pill" style="align-self:center;width:130px;padding:9px 10px">Nama kafe</span><span class="btn pri">Kirim</span>
+</div>
+
+<div class="foot" style="padding:14px 20px">
+<div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="mut">[ badan usaha ] · [ alamat ] · [ email ]</span></div>
+<div style="flex:1"></div><span class="tgl" style="align-self:center"><i class="on">ID</i><i>EN</i></span>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="3c">
+<div class="dv-olabel"><a class="dv-oid" href="#3c">3c</a>Harga — tiga tier, tabel banding fitur, dan add-on. Semua isi paket masih placeholder sampai Anda tetapkan.</div>
+<div class="dv-card wf" style="width:880px">
+<div class="anno"><span class="tag">Halaman 4 dari 5</span><span class="tag">Toggle bulanan / tahunan</span><span class="tag">FAQ ada di band footer</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/harga</em></div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand">3Diner</span><span class="ni">Home</span><span class="ni">Tentang</span><span class="ni">Produk</span><span class="ni on">Harga</span><span class="ni">Kontak</span><span style="flex:1"></span><span class="tgl" style="align-self:center"><i class="on">ID</i><i>EN</i></span><span class="btn pri">Minta Demo</span></div>
+
+<div class="sec" style="border-top:none;padding:22px 20px;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center">
+<span class="lbl">01 · Hero harga</span>
+<div class="h1" style="font-size:25px">Bayar per bulan, berhenti kapan saja</div>
+<div class="tg" style="width:380px"><b></b><b></b></div>
+<div style="display:flex;gap:9px;align-items:center;margin-top:2px"><span class="tgl"><i class="on">Bulanan</i><i>Tahunan</i></span><span class="mut">[ isi potongan kalau tahunan ]</span></div>
+</div>
+
+<div class="sec">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+<div class="card" style="gap:9px"><span class="h3">Tier 50k</span><div class="h2">Rp 50.000<span class="mut"> /bln</span></div><span class="mut">Untuk kafe kecil, menu pendek</span>
+<div style="display:flex;flex-direction:column;gap:6px;margin-top:2px">
+<div class="chk"><u></u><span>[ jumlah ] dish dengan model 3D</span></div>
+<div class="chk"><u></u><span>QR meja tanpa batas</span></div>
+<div class="chk"><u></u><span>Dashboard pesanan & menu</span></div>
+<div class="chk"><u></u><span>[ isi kredit AI ]</span></div>
+</div>
+<span class="btn" style="justify-content:center;margin-top:4px">Pilih paket ini</span></div>
+<div class="card" style="gap:9px;border-color:var(--acc);border-width:2px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="h3">Tier 100k</span><span class="tag">Paling dipakai</span></div><div class="h2">Rp 100.000<span class="mut"> /bln</span></div><span class="mut">Untuk kafe yang menunya jalan terus</span>
+<div style="display:flex;flex-direction:column;gap:6px;margin-top:2px">
+<div class="chk"><u></u><span>[ jumlah ] dish dengan model 3D</span></div>
+<div class="chk"><u></u><span>Semua di Tier 50k</span></div>
+<div class="chk"><u></u><span>Inventory & resep</span></div>
+<div class="chk"><u></u><span>Analitik tamu</span></div>
+</div>
+<span class="btn pri" style="justify-content:center;margin-top:4px">Pilih paket ini</span></div>
+<div class="card" style="gap:9px"><span class="h3">Tier 150k</span><div class="h2">Rp 150.000<span class="mut"> /bln</span></div><span class="mut">Untuk kafe besar atau lebih dari satu cabang</span>
+<div style="display:flex;flex-direction:column;gap:6px;margin-top:2px">
+<div class="chk"><u></u><span>[ jumlah ] dish dengan model 3D</span></div>
+<div class="chk"><u></u><span>Semua di Tier 100k</span></div>
+<div class="chk"><u></u><span>[ isi: multi-cabang? ]</span></div>
+<div class="chk"><u></u><span>[ isi: prioritas bikin model ]</span></div>
+</div>
+<span class="btn" style="justify-content:center;margin-top:4px">Pilih paket ini</span></div>
+</div>
+<div class="note" style="margin-top:9px">Harga bulanan diambil dari tier yang sudah ada. Isi paket masih perlu Anda tetapkan — jangan dikarang di hi-fi.</div>
+</div>
+
+<div class="sec">
+<span class="lbl">02 · Banding paket</span>
+<div style="margin-top:11px;border:1.5px solid #cdd3db;border-radius:10px;overflow:hidden">
+<div style="display:flex;background:#F6F8FB;border-bottom:1.2px solid #dde2e8"><span class="lbl" style="flex:1;padding:9px 12px">Fitur</span><span class="lbl" style="width:104px;padding:9px 12px">50k</span><span class="lbl" style="width:104px;padding:9px 12px">100k</span><span class="lbl" style="width:104px;padding:9px 12px">150k</span></div>
+<div style="display:flex;border-bottom:1.2px dashed #e6eaef"><span class="mut" style="flex:1;padding:10px 12px;color:#3d444e">Dish dengan model 3D</span><span class="mut" style="width:104px;padding:10px 12px">[ angka ]</span><span class="mut" style="width:104px;padding:10px 12px">[ angka ]</span><span class="mut" style="width:104px;padding:10px 12px">[ angka ]</span></div>
+<div style="display:flex;border-bottom:1.2px dashed #e6eaef"><span class="mut" style="flex:1;padding:10px 12px;color:#3d444e">Mode AR</span><span class="mut" style="width:104px;padding:10px 12px">ada</span><span class="mut" style="width:104px;padding:10px 12px">ada</span><span class="mut" style="width:104px;padding:10px 12px">ada</span></div>
+<div style="display:flex;border-bottom:1.2px dashed #e6eaef"><span class="mut" style="flex:1;padding:10px 12px;color:#3d444e">Inventory & resep</span><span class="mut" style="width:104px;padding:10px 12px">–</span><span class="mut" style="width:104px;padding:10px 12px">ada</span><span class="mut" style="width:104px;padding:10px 12px">ada</span></div>
+<div style="display:flex;border-bottom:1.2px dashed #e6eaef"><span class="mut" style="flex:1;padding:10px 12px;color:#3d444e">Analitik tamu</span><span class="mut" style="width:104px;padding:10px 12px">–</span><span class="mut" style="width:104px;padding:10px 12px">ada</span><span class="mut" style="width:104px;padding:10px 12px">ada</span></div>
+<div style="display:flex;border-bottom:1.2px dashed #e6eaef"><span class="mut" style="flex:1;padding:10px 12px;color:#3d444e">[ baris tambahan ]</span><span class="mut" style="width:104px;padding:10px 12px">[ ? ]</span><span class="mut" style="width:104px;padding:10px 12px">[ ? ]</span><span class="mut" style="width:104px;padding:10px 12px">[ ? ]</span></div>
+<div style="display:flex"><span class="mut" style="flex:1;padding:10px 12px;color:#3d444e">Pendampingan pasang</span><span class="mut" style="width:104px;padding:10px 12px">[ ? ]</span><span class="mut" style="width:104px;padding:10px 12px">[ ? ]</span><span class="mut" style="width:104px;padding:10px 12px">[ ? ]</span></div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">03 · Tambahan di luar paket</span>
+<div style="display:flex;gap:12px;margin-top:11px">
+<div class="card" style="flex:1;gap:7px"><span class="h3">Kami yang unggah menu awal</span><span class="mut">Anda kirim foto, kami isi menu pertama</span><div class="h2" style="font-size:15px">[ harga ] / menu</div></div>
+<div class="card" style="flex:1;gap:7px"><span class="h3">Kredit generate tambahan</span><span class="mut">di luar batas bulanan</span><div class="h2" style="font-size:15px">[ harga ] / generate</div></div>
+<div class="card" style="flex:1;gap:7px"><span class="h3">Cetak QR meja</span><span class="mut">akrilik atau stiker, dikirim ke alamat Anda</span><div class="h2" style="font-size:15px">[ harga ] / meja</div></div>
+</div>
+</div>
+
+<div class="sec" style="background:#F6F8FB;display:flex;gap:16px;align-items:center">
+<div style="flex:1"><div class="h2">Bingung pilih paket?</div><span class="mut">Sebutkan jumlah menu Anda, kami sarankan yang paling pas.</span></div>
+<span class="btn pri">Minta Demo</span><span class="btn">Chat WhatsApp</span>
+</div>
+
+<div class="foot" style="padding:14px 20px">
+<div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="mut">[ badan usaha ] · [ alamat ] · [ email ]</span></div>
+<div style="flex:1"></div><span class="tgl" style="align-self:center"><i class="on">ID</i><i>EN</i></span>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="3e">
+<div class="dv-olabel"><a class="dv-oid" href="#3e">3e</a>Kontak — form pendek yang bisa diisi sambil berdiri, WhatsApp sebagai jalur utama, alamat dan jam kerja.</div>
+<div class="dv-card wf" style="width:880px">
+<div class="anno"><span class="tag">Halaman 5 dari 5</span><span class="tag">WhatsApp jalur utama</span><span class="tag">Form 4 kolom saja</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/kontak</em></div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand">3Diner</span><span class="ni">Home</span><span class="ni">Tentang</span><span class="ni">Produk</span><span class="ni">Harga</span><span class="ni on">Kontak</span><span style="flex:1"></span><span class="tgl" style="align-self:center"><i class="on">ID</i><i>EN</i></span><span class="btn pri">Minta Demo</span></div>
+
+<div class="sec" style="border-top:none;padding:22px 20px;display:flex;gap:24px">
+<div style="flex:1;display:flex;flex-direction:column;gap:11px">
+<span class="lbl">01 · Form demo</span>
+<div class="h1" style="font-size:24px">Mau lihat menu kafe Anda dalam 3D?</div>
+<div class="tg" style="max-width:300px"><b></b><b></b></div>
+<div style="display:flex;flex-direction:column;gap:9px;margin-top:4px">
+<div style="display:flex;flex-direction:column;gap:5px"><span class="lbl">Nama kafe</span><span class="pill" style="padding:11px 12px;border-radius:12px;justify-content:flex-start">[ input ]</span></div>
+<div style="display:flex;gap:9px">
+<div style="flex:1;display:flex;flex-direction:column;gap:5px"><span class="lbl">Kota</span><span class="pill" style="padding:11px 12px;border-radius:12px;justify-content:flex-start">[ input ]</span></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:5px"><span class="lbl">Nomor WhatsApp</span><span class="pill" style="padding:11px 12px;border-radius:12px;justify-content:flex-start">[ input ]</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:5px"><span class="lbl">Jumlah menu (perkiraan)</span><span class="pill" style="padding:11px 12px;border-radius:12px;justify-content:flex-start">[ pilihan: &lt;20 · 20–50 · &gt;50 ]</span></div>
+<span class="btn pri" style="align-self:flex-start;margin-top:2px">Kirim & minta demo</span>
+<span class="mut">Kami balas lewat WhatsApp, biasanya [ isi lama balas ].</span>
+</div>
+<div class="note">Empat kolom, tak lebih. Tanpa alamat email wajib — pemilik kafe lebih sering pakai WhatsApp.</div>
+</div>
+<div style="width:290px;display:flex;flex-direction:column;gap:11px">
+<div class="card" style="gap:7px;border-color:var(--acc);border-width:2px"><span class="lbl">Lebih cepat</span><span class="h3">Chat WhatsApp langsung</span><span class="mut">[ nomor ]</span><span class="btn pri" style="justify-content:center">Buka WhatsApp</span></div>
+<div class="card" style="gap:7px"><span class="lbl">Datang ke kantor</span><span class="mut">[ alamat lengkap ]<br>[ kota ]</span><div class="slot" style="height:110px">[ peta ]</div><span class="mut">Buka [ jam ] · [ hari ]</span></div>
+<div class="card" style="gap:6px"><span class="lbl">Lain-lain</span><span class="mut">Email [ email ]<br>Instagram [ akun ]<br>Kerja sama & media [ email ]</span></div>
+</div>
+</div>
+
+<div class="sec" style="display:flex;gap:22px">
+<div style="flex:1"><span class="lbl">02 · Yang terjadi setelah kirim</span><div class="mut" style="margin-top:7px">Biar pengirim tahu apa yang ditunggu.</div></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;gap:10px;align-items:center"><span class="num">01</span><span class="h3">Kami balas di WhatsApp</span></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="num">02</span><span class="h3">Bikin satu dish contoh gratis</span></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="num">03</span><span class="h3">Anda coba di HP sendiri</span></div>
+<div style="display:flex;gap:10px;align-items:center"><span class="num">04</span><span class="h3">Kalau cocok, baru pasang</span></div>
+</div>
+</div>
+
+<div class="foot" style="padding:14px 20px">
+<div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="mut">[ badan usaha ] · [ alamat ] · [ email ]</span></div>
+<div style="flex:1"></div><span class="tgl" style="align-self:center"><i class="on">ID</i><i>EN</i></span>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Coba selanjutnya: “buat versi mobile untuk kelima halaman” · “gambar layar dashboard: unggah foto → generate 3D” · “naikkan <a class="dv-oid" href="#2a">2a</a> ke hi-fi pakai warna 3Diner”</p>
+</section>
+
+<section class="dv-turn {{ rootCls }}" id="t2" style="--acc: {{ accent }}">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Revisi <a class="dv-oid" href="#1a">1a</a> — ada blok video demo, struktur disesuaikan ke referensi platepost.io</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a><span class="dv-oid" style="background:#FD5002;color:#fff">Dipilih</span><a class="dv-oid" href="#1a">1a</a> + video demo di bawah Cara kerja. Urutan mengikuti pola platepost.io: hero → keyakinan → cara kerja → video → produk bertab dengan checklist → fitur → direktori kafe → testimoni → harga → FAQ → CTA.</div>
+<div class="dv-card wf" style="width:880px">
+<div class="anno"><span class="tag">Video demo: blok 4</span><span class="tag">Pola platepost: tab + checklist</span><span class="tag">Direktori kafe</span><span class="tag">FAQ di atas footer</span><span class="tag">Toggle: pil ID | EN</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/</em></div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand">3Diner</span><span class="ni on">Home</span><span class="ni">Tentang</span><span class="ni">Produk</span><span class="ni">Harga</span><span class="ni">Kontak</span><span style="flex:1"></span><span class="tgl" style="align-self:center"><i class="on">ID</i><i>EN</i></span><span class="btn pri">Minta Demo</span></div>
+
+<div class="sec" style="border-top:none;display:flex;gap:26px;align-items:center;padding:26px 20px">
+<div style="flex:1;display:flex;flex-direction:column;gap:12px">
+<span class="lbl">01 · Hero</span>
+<span class="pill">Smart menu 3D/AR untuk kafe</span>
+<div class="h1">Lihat Sebelum<br>Memesan</div>
+<div class="tg" style="max-width:320px"><b></b><b></b><b></b></div>
+<div style="display:flex;gap:9px;margin-top:2px"><span class="btn pri">Minta Demo</span><span class="btn">Lihat menu contoh</span></div>
+<div class="note">EN: “See Before You Order”. Satu CTA utama saja, seperti referensi.</div>
+</div>
+<div style="display:flex;gap:10px;align-items:flex-end">
+<div class="slot" style="width:126px;height:225px;border-radius:16px">[ menu tamu di HP ]</div>
+<div class="vid" style="width:196px;height:196px"><div class="play"><s></s></div><span class="vcap">[ video pendek: dish diputar ]</span></div>
+</div>
+</div>
+
+<div class="sec" style="display:flex;gap:14px;align-items:center;background:#F6F8FB">
+<span class="lbl" style="flex:none">Dipakai / didukung oleh</span>
+<div class="slot" style="flex:1;height:34px">[ logo ]</div>
+<div class="slot" style="flex:1;height:34px">[ logo ]</div>
+<div class="slot" style="flex:1;height:34px">[ logo ]</div>
+<div class="slot" style="flex:1;height:34px">[ logo ]</div>
+<span class="note" style="flex:none">isi kalau sudah ada</span>
+</div>
+
+<div class="sec">
+<span class="lbl">02 · Tamu memilih dengan mata</span>
+<div style="display:flex;gap:22px;margin-top:9px">
+<div style="flex:1;display:flex;flex-direction:column;gap:9px"><div class="h2">Masalah: menu flat, tamu ragu</div><div class="tg"><b></b><b></b><b></b></div></div>
+<div style="width:1.5px;background:#dde2e8"></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:9px"><div class="h2">Solusi: dish bisa diputar dan dicek di meja</div><div class="tg"><b></b><b></b><b></b></div></div>
+</div>
+<div style="display:flex;gap:9px;margin-top:14px;overflow:hidden">
+<div class="vid" style="flex:none;width:96px;height:150px"><span class="vcap">[ klip dish ]</span></div>
+<div class="vid" style="flex:none;width:96px;height:150px"><span class="vcap">[ klip dish ]</span></div>
+<div class="vid" style="flex:none;width:96px;height:150px"><span class="vcap">[ klip dish ]</span></div>
+<div class="vid" style="flex:none;width:96px;height:150px"><span class="vcap">[ klip dish ]</span></div>
+<div class="vid" style="flex:none;width:96px;height:150px"><span class="vcap">[ klip dish ]</span></div>
+<div class="vid" style="flex:none;width:96px;height:150px"><span class="vcap">[ klip dish ]</span></div>
+<div class="vid" style="flex:none;width:96px;height:150px"><span class="vcap">[ klip dish ]</span></div>
+<div class="vid" style="flex:none;width:96px;height:150px"><span class="vcap">[ klip dish ]</span></div>
+</div>
+<div class="note" style="margin-top:7px">Baris klip dish 9:16, muted dan loop, jalan sendiri sambil bergeser lambat ke samping. Tap satu klip untuk buka dish itu. Berhenti kalau prefers-reduced-motion — fallback ke frame pertama.</div>
+</div>
+
+<div class="sec">
+<span class="lbl">03 · Cara kerja</span>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:11px">
+<div class="card"><div style="display:flex;gap:8px;align-items:center"><span class="num">01</span><span class="h3">Scan QR di meja</span></div><div class="slot" style="height:74px">[ slot ]</div></div>
+<div class="card"><div style="display:flex;gap:8px;align-items:center"><span class="num">02</span><span class="h3">Putar dish 3D</span></div><div class="slot" style="height:74px">[ slot ]</div></div>
+<div class="card"><div style="display:flex;gap:8px;align-items:center"><span class="num">03</span><span class="h3">Mode AR di meja</span></div><div class="slot" style="height:74px">[ slot ]</div></div>
+<div class="card"><div style="display:flex;gap:8px;align-items:center"><span class="num">04</span><span class="h3">Kirim pesanan</span></div><div class="slot" style="height:74px">[ slot ]</div></div>
+</div>
+</div>
+
+<div class="sec" style="background:#FDFBF9">
+<div style="display:flex;align-items:baseline;gap:10px"><span class="lbl">04 · Video demo</span><span class="mut">blok baru — persis di bawah Cara kerja</span></div>
+<div class="h2" style="margin-top:7px">Lihat 3Diner jalan di satu meja kafe</div>
+<div class="vid" style="height:330px;margin-top:11px"><div class="play"><s></s></div><span class="vcap">[ video demo utama · 16:9 · YouTube embed atau .mp4 ]<br>thumbnail sendiri, tanpa autoplay, ada teks durasi</span></div>
+<div style="display:flex;gap:10px;margin-top:11px;align-items:center">
+<div class="vid" style="flex:1;height:96px"><span class="vcap">[ klip: scan QR ]</span></div>
+<div class="vid" style="flex:1;height:96px"><span class="vcap">[ klip: putar 3D ]</span></div>
+<div class="vid" style="flex:1;height:96px"><span class="vcap">[ klip: mode AR ]</span></div>
+<div style="flex:none;width:150px"><span class="mut">Klip pendek tanpa suara, 6–10 detik, bisa dipakai ulang di IG.</span></div>
+</div>
+</div>
+
+<div class="sec">
+<div style="display:flex;align-items:baseline;gap:10px"><span class="lbl">05 · Produk</span><span class="mut">dua sisi, satu blok bertab</span></div>
+<div style="display:flex;gap:8px;margin:11px 0"><span class="pill" style="border-color:#2b2b2b;color:#1a1a1a;font-weight:700">Menu tamu</span><span class="pill">Dashboard owner</span></div>
+<div style="display:flex;gap:14px">
+<div class="vid" style="flex:1;height:210px"><div class="play"><s></s></div><span class="vcap">[ rekaman layar tab aktif ]</span></div>
+<div style="width:270px;display:flex;flex-direction:column;gap:9px">
+<span class="h3">Yang tamu dapat</span>
+<div class="chk"><u></u><span>Scan QR, langsung buka — tanpa aplikasi</span></div>
+<div class="chk"><u></u><span>Putar dish 3D sebelum pesan</span></div>
+<div class="chk"><u></u><span>Taruh dish di meja lewat mode AR</span></div>
+<div class="chk"><u></u><span>Kirim pesanan dari HP sendiri</span></div>
+<span class="mut">Tab kedua: pesanan masuk, unggah foto dan generate model 3D, inventory, analitik.</span>
+</div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">06 · Fitur unggulan</span>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:11px">
+<div class="card" style="gap:6px"><div class="slot" style="width:26px;height:26px;border-radius:6px"></div><span class="h3">Model 3D per dish</span><div class="tg"><b></b><b></b></div></div>
+<div class="card" style="gap:6px"><div class="slot" style="width:26px;height:26px;border-radius:6px"></div><span class="h3">Mode AR di meja</span><div class="tg"><b></b><b></b></div></div>
+<div class="card" style="gap:6px"><div class="slot" style="width:26px;height:26px;border-radius:6px"></div><span class="h3">QR meja</span><div class="tg"><b></b><b></b></div></div>
+<div class="card" style="gap:6px"><div class="slot" style="width:26px;height:26px;border-radius:6px"></div><span class="h3">Analitik tamu</span><div class="tg"><b></b><b></b></div></div>
+<div class="card" style="gap:6px"><div class="slot" style="width:26px;height:26px;border-radius:6px"></div><span class="h3">Inventory & resep</span><div class="tg"><b></b><b></b></div></div>
+<div class="card" style="gap:6px"><div class="slot" style="width:26px;height:26px;border-radius:6px"></div><span class="h3">Pesanan masuk</span><div class="tg"><b></b><b></b></div></div>
+</div>
+</div>
+
+<div class="sec">
+<div style="display:flex;align-items:baseline;gap:10px"><span class="lbl">07 · Kafe yang pakai 3Diner</span><span class="mut">tiap kafe dapat halaman menu sendiri</span></div>
+<div style="display:flex;gap:12px;margin-top:11px">
+<div class="card" style="flex:1;gap:7px"><div class="slot" style="height:88px">[ foto kafe ]</div><span class="h3">[ nama kafe ]</span><span class="mut">[ kota ]</span><div class="tg"><b></b><b></b></div><div style="display:flex;gap:7px"><span class="btn" style="padding:6px 12px">Lihat Menu</span><span class="pill" style="align-self:center">Arah</span></div></div>
+<div class="card" style="flex:1;gap:7px"><div class="slot" style="height:88px">[ foto kafe ]</div><span class="h3">[ nama kafe ]</span><span class="mut">[ kota ]</span><div class="tg"><b></b><b></b></div><div style="display:flex;gap:7px"><span class="btn" style="padding:6px 12px">Lihat Menu</span><span class="pill" style="align-self:center">Arah</span></div></div>
+<div class="card" style="flex:1;gap:7px"><div class="slot" style="height:88px">[ foto kafe ]</div><span class="h3">[ nama kafe ]</span><span class="mut">[ kota ]</span><div class="tg"><b></b><b></b></div><div style="display:flex;gap:7px"><span class="btn" style="padding:6px 12px">Lihat Menu</span><span class="pill" style="align-self:center">Arah</span></div></div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">08 · Studi kasus & testimoni</span>
+<div style="display:flex;gap:12px;margin-top:11px">
+<div class="card" style="flex:1;gap:9px"><div class="vid" style="height:120px"><div class="play"><s></s></div><span class="vcap">[ video testimoni owner ]</span></div><div style="display:flex;gap:9px;align-items:center"><div class="slot" style="width:34px;height:34px;border-radius:999px"></div><div><div class="h3">[ nama owner ]</div><span class="mut">Owner [ nama kafe ]</span></div></div><div class="h3" style="font-weight:400">“[ kutipan — pakai angka riil, bukan klaim bulat ]”</div><span class="btn" style="align-self:flex-start;padding:6px 12px">Baca studi kasus</span></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:9px">
+<div class="card" style="gap:6px;padding:10px"><div style="display:flex;gap:8px;align-items:center"><div class="slot" style="width:24px;height:24px;border-radius:999px"></div><span class="h3">[ nama ]</span><span class="mut">[ peran ]</span></div><div class="tg"><b></b><b></b></div></div>
+<div class="card" style="gap:6px;padding:10px"><div style="display:flex;gap:8px;align-items:center"><div class="slot" style="width:24px;height:24px;border-radius:999px"></div><span class="h3">[ nama ]</span><span class="mut">[ peran ]</span></div><div class="tg"><b></b><b></b></div></div>
+<div class="card" style="gap:6px;padding:10px"><div style="display:flex;gap:8px;align-items:center"><div class="slot" style="width:24px;height:24px;border-radius:999px"></div><span class="h3">[ nama ]</span><span class="mut">[ peran ]</span></div><div class="tg"><b></b><b></b></div></div>
+<span class="note">Kutipan pendek dari tamu dan owner. Kosongkan sampai ada yang riil.</span>
+</div>
+</div>
+</div>
+
+<div class="sec">
+<div style="display:flex;align-items:baseline;gap:10px"><span class="lbl">09 · Harga</span><span class="mut">ringkasan — detail di halaman Harga</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:11px">
+<div class="card"><span class="h3">Tier 50k</span><div class="h2">Rp 50.000<span class="mut"> /bln</span></div><div class="tg"><b></b><b></b><b></b></div><span class="mut">[ isi jumlah dish 3D ]</span></div>
+<div class="card" style="border-color:var(--acc);border-width:2px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="h3">Tier 100k</span><span class="tag">Paling dipakai</span></div><div class="h2">Rp 100.000<span class="mut"> /bln</span></div><div class="tg"><b></b><b></b><b></b></div><span class="mut">[ isi jumlah dish 3D ]</span></div>
+<div class="card"><span class="h3">Tier 150k</span><div class="h2">Rp 150.000<span class="mut"> /bln</span></div><div class="tg"><b></b><b></b><b></b></div><span class="mut">[ isi jumlah dish 3D ]</span></div>
+</div>
+</div>
+
+<div class="sec" style="background:#FDFBF9">
+<div style="display:flex;align-items:baseline;gap:10px"><span class="lbl">10 · Pertanyaan umum</span><span class="mut">band di atas footer — bukan halaman sendiri</span></div>
+<div class="h2" style="margin-top:7px">Yang paling sering ditanya</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;margin-top:12px">
+<div style="display:flex;flex-direction:column"><span class="lbl" style="padding:0 0 4px">01 · Dasar produk</span><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Apa itu menu 3D, dan apa bedanya dengan foto?</span><p class="ans">Menu 3D adalah dish yang bisa diputar dari HP tamu. Mereka lihat dari atas, dari samping, dari belakang — bukan satu sudut yang sudah dipilih fotografer. Porsinya juga terasa: tinggi gelas, tebal daging, isi mangkuk. Foto tetap ada di menu; 3D-nya tambahan untuk dish yang paling sering ditanya tamu.</p></div><u>−</u></div><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Tamu perlu pasang aplikasi?</span><p class="ans">Tidak. Scan QR di meja, menu langsung terbuka di browser HP. Tanpa unduhan, tanpa daftar akun.</p></div><u>−</u></div><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Menu 3D menggantikan menu cetak?</span><p class="ans">Tidak harus. Kebanyakan kafe pakai dua-duanya: cetak untuk lihat cepat, 3D untuk dish yang tamu masih ragu pesan. Kalau nanti Anda mau berhenti cetak, itu keputusan Anda — bukan syarat dari kami.</p></div><u>−</u></div><div class="acc" style="align-items:flex-start;border-bottom:none"><div class="qa"><span class="h3">Kafe seperti apa yang cocok pakai 3Diner?</span><p class="ans">Yang menunya visual dan porsinya jadi alasan orang datang: kopi susu bertingkat, dessert, ricebowl, steak, mocktail. Kalau menu Anda hampir semua minuman polos, model 3D-nya kurang bekerja — kami akan bilang terus terang.</p></div><u>−</u></div></div><div style="display:flex;flex-direction:column"><span class="lbl" style="padding:0 0 4px">02 · Foto & model 3D</span><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Model 3D dibuat siapa — kami atau kafe?</span><p class="ans">Anda yang foto dish-nya, dashboard yang bikin modelnya. Foto pakai HP, unggah di menu, lalu model 3D digenerate dari foto itu. Tidak perlu alat, software, atau orang 3D.</p></div><u>−</u></div><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Fotonya harus bagus banget?</span><p class="ans">Tidak perlu studio. Cahaya terang, latar bersih, dan dish diambil dari beberapa sudut sudah cukup. Panduan fotonya ada di dashboard, lengkap dengan contoh yang bagus dan yang gagal.</p></div><u>−</u></div><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Berapa lama satu dish jadi model 3D?</span><p class="ans">[ isi lama generate ] setelah foto diunggah. Anda lihat hasilnya di dashboard sebelum diputuskan tayang.</p></div><u>−</u></div><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Kalau hasil modelnya belum pas?</span><p class="ans">Foto ulang dish-nya dan generate lagi — model lama tidak ikut tayang sampai Anda setujui. [ isi batas generate per bulan ]</p></div><u>−</u></div><div class="acc" style="align-items:flex-start;border-bottom:none"><div class="qa"><span class="h3">Kalau HP tamu tidak dukung AR, bagaimana?</span><p class="ans">Menu dan model 3D-nya tetap jalan. Yang hilang hanya tombol Mode AR. Tamu masih bisa memutar dish di layar seperti biasa.</p></div><u>−</u></div></div><div style="display:flex;flex-direction:column"><span class="lbl" style="padding:0 0 4px">03 · Pemasangan</span><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Berapa lama dari daftar sampai menu tayang?</span><p class="ans">Tergantung berapa dish yang Anda foto. Satu dish bisa tayang hari itu juga; menu penuh biasanya dikerjakan bertahap sambil kafe tetap jalan.</p></div><u>−</u></div><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Perlu alat atau wifi khusus di kafe?</span><p class="ans">Cukup HP dengan kamera untuk foto dish, dan sinyal untuk tamu. Kalau kafe punya wifi, tamu lebih nyaman karena model 3D perlu unduh sebentar.</p></div><u>−</u></div><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Siapa yang pasang QR di meja?</span><p class="ans">QR dibuat otomatis di dashboard, satu per meja. Anda cetak sendiri — stiker atau akrilik — atau pesan cetaknya ke kami.</p></div><u>−</u></div><div class="acc" style="align-items:flex-start;border-bottom:none"><div class="qa"><span class="h3">Staf saya perlu dilatih?</span><p class="ans">Satu sesi singkat untuk kasir dan dapur: cara baca pesanan masuk dan mengubah statusnya dari Baru ke Diproses lalu Siap. Selain itu cara kerja Anda tidak berubah.</p></div><u>−</u></div></div><div style="display:flex;flex-direction:column"><span class="lbl" style="padding:0 0 4px">04 · Langganan & bayar</span><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Demo-nya bayar?</span><p class="ans">Tidak. Satu dish contoh dibuat gratis, dan Anda tidak wajib lanjut langganan setelahnya.</p></div><u>−</u></div><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Ada biaya pasang di awal?</span><p class="ans">[ isi: ada atau tidak ]. Kalau ada, itu untuk cetak QR — sekali bayar, bukan tiap bulan.</p></div><u>−</u></div><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Bayarnya lewat apa?</span><p class="ans">Transfer bank atau QRIS, per bulan. Tagihan dikirim lewat WhatsApp [ isi tanggal tagih ].</p></div><u>−</u></div><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Kalau berhenti, menu 3D saya hilang?</span><p class="ans">Halaman menu berhenti tayang dan QR di meja tidak lagi membuka apa-apa. File model 3D dish Anda bisa kami kirimkan — itu hasil dari foto Anda sendiri. [ konfirmasi kebijakan final ]</p></div><u>−</u></div><div class="acc" style="align-items:flex-start"><div class="qa"><span class="h3">Bisa pindah paket di tengah bulan?</span><p class="ans">Bisa. Naik paket berlaku hari itu dan selisihnya dihitung dari sisa bulan. Turun paket berlaku mulai bulan berikutnya.</p></div><u>−</u></div><div class="acc" style="align-items:flex-start;border-bottom:none"><div class="qa"><span class="h3">Ada masa coba sebelum bayar?</span><p class="ans">[ isi: ada atau tidak ]. Yang pasti gratis adalah satu dish contoh sebelum Anda memutuskan.</p></div><u>−</u></div></div></div>
+<div style="display:flex;gap:9px;margin-top:14px;align-items:center;padding-top:12px;border-top:1.2px dashed #dde2e8"><span class="mut" style="flex:1">Tidak ketemu? Chat WhatsApp, dibalas jam kerja [ isi jam ].</span><span class="btn">Chat WhatsApp</span></div>
+<div class="note" style="margin-top:8px">Di halaman jadi semua tertutup dan hanya satu terbuka saat diklik; di wireframe dibuka supaya isinya bisa dibaca. Band ini muncul di atas footer, di semua halaman.</div>
+</div>
+
+<div class="sec" style="padding:0">
+<div class="slot" style="height:150px;border:none;border-radius:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px">
+<div style="text-align:left"><div class="h2">Mau lihat menu kafe Anda dalam 3D?</div><span class="mut">Kirim nama kafe dan nomor WhatsApp, kami balas dengan satu dish contoh.</span></div>
+<div style="display:flex;gap:8px;align-items:center"><span class="pill" style="align-self:center;width:120px;padding:9px 10px">Nama kafe</span><span class="pill" style="align-self:center;width:110px;padding:9px 10px">WhatsApp</span><span class="btn pri">Kirim</span></div>
+</div>
+<div class="note" style="padding:0 20px 12px">Blok CTA duduk di atas satu foto kafe lebar, teks di plat putih supaya tetap kebaca.</div>
+</div>
+
+<div class="foot">
+<div style="display:flex;flex-direction:column;gap:7px;width:180px"><div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="brand" style="font-size:12.5px">3Diner</span></div><span class="mut">[ badan usaha ]<br>[ alamat ] · [ email ]</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span class="lbl">Produk</span><div class="tg" style="width:80px"><b></b><b></b><b></b></div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span class="lbl">Perusahaan</span><div class="tg" style="width:80px"><b></b><b></b><b></b></div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span class="lbl">Bantuan</span><div class="tg" style="width:80px"><b></b><b></b><b></b></div></div>
+<div style="flex:1"></div><span class="tgl" style="align-self:center"><i class="on">ID</i><i>EN</i></span>
+</div>
+
+<div class="pagemaps sec" style="background:#FDFBF9">
+<div style="display:flex;align-items:baseline;gap:10px"><span class="lbl">Halaman lain — struktur blok</span><span class="mut">digambar penuh di turn <a href="#t3">3</a></span></div>
+<div style="display:flex;gap:12px;margin-top:11px;flex-wrap:wrap">
+<div class="pm"><strong>Tentang <a href="#3a">3a</a></strong><div class="pb">Hero: cerita singkat</div><div class="pb">Kenapa 3Diner ada</div><div class="pb">Cara kerjanya untuk kafe</div><div class="pb">Video: kenalan tim</div><div class="pb">Cara kami kerja</div><div class="pb k">CTA: ngobrol dulu</div></div>
+<div class="pm"><strong>Produk <a href="#3b">3b</a></strong><div class="pb">Hero + video demo</div><div class="pb">Tab: tamu / owner</div><div class="pb">Viewer 3D + AR</div><div class="pb">Foto → unggah → generate</div><div class="pb">Teknis: .glb / .usdz / QR</div><div class="pb k">CTA: minta demo</div></div>
+<div class="pm"><strong>Harga <a href="#3c">3c</a></strong><div class="pb">3 tier</div><div class="pb">Tabel banding fitur</div><div class="pb">Add-on: model done-for-you</div><div class="pb">Add-on & kredit generate</div><div class="pb k">CTA: mulai pilot</div></div>
+<div class="pm"><strong>Kontak <a href="#3e">3e</a></strong><div class="pb">Form: kafe, kota, WA</div><div class="pb">WhatsApp langsung</div><div class="pb">Alamat + peta [ slot ]</div><div class="pb">Setelah kirim, apa</div><div class="pb k">CTA: jadwalkan demo</div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="2b">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Kalau video mau jadi bintang: video demo dinaikkan jadi hero lebar, blok di bawah Cara kerja jadi galeri klip per dish. Sisanya sama seperti <a class="dv-oid" href="#2a">2a</a>.</div>
+<div class="dv-card wf" style="width:880px">
+<div class="anno"><span class="tag">Video jadi hero</span><span class="tag">Galeri klip di bawah Cara kerja</span><span class="tag">Home lebih pendek</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/</em></div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand">3Diner</span><span class="ni on">Home</span><span class="ni">Tentang</span><span class="ni">Produk</span><span class="ni">Harga</span><span class="ni">Kontak</span><span style="flex:1"></span><span class="tgl" style="align-self:center"><i class="on">ID</i><i>EN</i></span><span class="btn pri">Minta Demo</span></div>
+
+<div class="sec" style="border-top:none;padding:20px">
+<span class="lbl">01 · Hero video</span>
+<div class="vid" style="height:300px;margin-top:9px"><div style="display:flex;flex-direction:column;gap:11px;align-items:center;background:#fff;border:1.5px solid #cdd3db;border-radius:14px;padding:16px 22px"><div class="h1" style="font-size:24px;text-align:center">Lihat Sebelum Memesan</div><div class="tg" style="width:260px"><b></b><b></b></div><div style="display:flex;gap:9px"><span class="btn pri">Minta Demo</span><span class="btn">Menu contoh</span></div></div><span class="vcap">[ video kafe + tamu scan QR · muted, loop, tanpa suara ]</span></div>
+<div class="note" style="margin-top:7px">Teks duduk di plat putih di atas video, bukan langsung di atas gambar — supaya kontras aman.</div>
+</div>
+
+<div class="sec" style="display:flex;gap:14px;align-items:center;background:#F6F8FB">
+<span class="lbl" style="flex:none">Dipakai oleh</span>
+<div class="slot" style="flex:1;height:34px">[ logo ]</div>
+<div class="slot" style="flex:1;height:34px">[ logo ]</div>
+<div class="slot" style="flex:1;height:34px">[ logo ]</div>
+<div class="slot" style="flex:1;height:34px">[ logo ]</div>
+</div>
+
+<div class="sec" style="display:flex;gap:22px">
+<div style="flex:1;display:flex;flex-direction:column;gap:9px"><span class="lbl">02 · Masalah</span><div class="h3">Menu flat, tamu ragu, foto tak mewakili dish</div><div class="tg"><b></b><b></b></div></div>
+<div style="width:1.5px;background:#dde2e8"></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:9px"><span class="lbl">02 · Solusi</span><div class="h3">Dish bisa diputar dan dicek di meja lewat AR</div><div class="tg"><b></b><b></b></div></div>
+</div>
+
+<div class="sec">
+<span class="lbl">03 · Cara kerja</span>
+<div style="display:flex;align-items:center;gap:8px;margin-top:11px">
+<div class="card" style="flex:1;gap:6px"><span class="num">01</span><span class="h3">Scan QR meja</span></div><span class="mut">→</span>
+<div class="card" style="flex:1;gap:6px"><span class="num">02</span><span class="h3">Lihat 3D</span></div><span class="mut">→</span>
+<div class="card" style="flex:1;gap:6px"><span class="num">03</span><span class="h3">Mode AR</span></div><span class="mut">→</span>
+<div class="card" style="flex:1;gap:6px"><span class="num">04</span><span class="h3">Pesan</span></div>
+</div>
+</div>
+
+<div class="sec" style="background:#FDFBF9">
+<div style="display:flex;align-items:baseline;gap:10px"><span class="lbl">04 · Galeri klip demo</span><span class="mut">blok video di bawah Cara kerja</span></div>
+<div class="h2" style="margin-top:7px">Satu klip per langkah, bisa diputar sendiri-sendiri</div>
+<div style="display:flex;gap:10px;margin-top:11px">
+<div class="vid" style="flex:1;height:230px"><div class="play"><s></s></div><span class="vcap">[ 9:16 · scan QR ]</span></div>
+<div class="vid" style="flex:1;height:230px"><div class="play"><s></s></div><span class="vcap">[ 9:16 · putar 3D ]</span></div>
+<div class="vid" style="flex:1;height:230px"><div class="play"><s></s></div><span class="vcap">[ 9:16 · mode AR ]</span></div>
+<div class="vid" style="flex:1;height:230px"><div class="play"><s></s></div><span class="vcap">[ 9:16 · kirim pesanan ]</span></div>
+</div>
+<div style="display:flex;gap:9px;margin-top:10px;align-items:center"><span class="mut" style="flex:1">Klip vertikal, sama seperti yang dipakai di IG — sekali produksi, dua tempat.</span><span class="btn">Tonton demo penuh</span></div>
+</div>
+
+<div class="sec">
+<span class="lbl">05 · Produk + fitur</span>
+<div style="display:flex;gap:8px;margin:11px 0"><span class="pill" style="border-color:#2b2b2b;color:#1a1a1a;font-weight:700">Menu tamu</span><span class="pill">Dashboard owner</span></div>
+<div style="display:flex;gap:14px">
+<div class="slot" style="width:130px;height:180px;border-radius:16px">[ mobile ]</div>
+<div class="slot" style="flex:1;height:180px">[ layar tab aktif ]</div>
+<div style="width:210px;display:flex;flex-direction:column;gap:8px">
+<div class="chk"><u></u><span>Model 3D per dish</span></div>
+<div class="chk"><u></u><span>Mode AR di meja</span></div>
+<div class="chk"><u></u><span>QR meja</span></div>
+<div class="chk"><u></u><span>Analitik tamu</span></div>
+<div class="chk"><u></u><span>Inventory & resep</span></div>
+<div class="chk"><u></u><span>Pesanan masuk</span></div>
+</div>
+</div>
+</div>
+
+<div class="sec" style="display:flex;gap:12px;align-items:stretch">
+<div style="flex:1;display:flex;flex-direction:column;gap:8px"><span class="lbl">06 · Kafe pakai 3Diner</span><div style="display:flex;gap:9px"><div class="card" style="flex:1;gap:5px;padding:9px"><div class="slot" style="height:56px">[ foto ]</div><span class="h3">[ nama kafe ]</span><span class="mut">Lihat Menu →</span></div><div class="card" style="flex:1;gap:5px;padding:9px"><div class="slot" style="height:56px">[ foto ]</div><span class="h3">[ nama kafe ]</span><span class="mut">Lihat Menu →</span></div></div></div>
+<div style="width:1.5px;background:#dde2e8"></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px"><span class="lbl">07 · Testimoni</span><div class="vid" style="height:104px"><div class="play"><s></s></div><span class="vcap">[ video testimoni owner ]</span></div><div class="h3" style="font-weight:400">“[ kutipan owner ]”</div><span class="mut">[ nama ] · Owner [ nama kafe ]</span></div>
+</div>
+
+<div class="sec" style="display:flex;gap:10px;align-items:center">
+<div style="flex:none;width:118px"><span class="lbl">08 · Harga</span><div class="mut" style="margin-top:6px">strip ringkas</div></div>
+<div class="card" style="flex:1;gap:4px;padding:10px"><span class="h3">Rp 50.000</span><span class="mut">[ dish 3D ]</span></div>
+<div class="card" style="flex:1;gap:4px;padding:10px;border-color:var(--acc);border-width:2px"><span class="h3">Rp 100.000</span><span class="mut">[ dish 3D ]</span></div>
+<div class="card" style="flex:1;gap:4px;padding:10px"><span class="h3">Rp 150.000</span><span class="mut">[ dish 3D ]</span></div>
+<span class="btn">Detail paket</span>
+</div>
+
+<div class="sec" style="display:flex;gap:24px">
+<div style="width:200px"><span class="lbl">09 · FAQ</span><div class="h3" style="margin-top:6px">Empat pertanyaan, tak lebih</div><span class="mut">Isi jawaban ditulis di band FAQ <a href="#2a">2a</a>.</span></div>
+<div style="flex:1">
+<div class="acc"><span>Apa itu menu 3D, dan apa bedanya dengan foto?</span><u>+</u></div>
+<div class="acc"><span>Tamu perlu pasang aplikasi?</span><u>+</u></div>
+<div class="acc"><span>Model 3D dibuat siapa — kami atau kafe?</span><u>+</u></div>
+<div class="acc" style="border-bottom:none"><span>Fotonya harus bagus banget?</span><u>+</u></div>
+</div>
+</div>
+
+<div class="sec" style="background:#F6F8FB;display:flex;gap:16px;align-items:center">
+<div style="flex:1"><div class="h2">Mau lihat menu kafe Anda dalam 3D?</div><span class="mut">Balasan lewat WhatsApp, dengan satu dish contoh.</span></div>
+<span class="pill" style="align-self:center;width:130px;padding:9px 10px">Nama kafe</span><span class="btn pri">Kirim</span>
+</div>
+
+<div class="foot" style="padding:14px 20px">
+<div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="mut">[ badan usaha ] · [ alamat ] · [ email ]</span></div>
+<div style="flex:1"></div><span class="tgl" style="align-self:center"><i class="on">ID</i><i>EN</i></span>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Coba selanjutnya: “pakai <a class="dv-oid" href="#2a">2a</a>, sesuaikan juga <a class="dv-oid" href="#1b">1b</a> dan <a class="dv-oid" href="#1d">1d</a> ke pola ini” · “buat versi mobile <a class="dv-oid" href="#2a">2a</a>” · “gambar halaman Produk lengkap dari <a class="dv-oid" href="#2a">2a</a>”</p>
+</section>
+
+<section class="dv-turn {{ rootCls }}" id="t1" style="--acc: {{ accent }}">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Company profile 3Diner — 4 struktur, semua dwibahasa ID/EN</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Produk dulu — Home satu scroll penuh, dari tagline sampai CTA demo. Toggle bahasa = pil segmented ID | EN di nav.</div>
+<div class="dv-card wf" style="width:880px">
+<div class="anno"><span class="tag">Home = pitch lengkap</span><span class="tag">5 halaman</span><span class="tag">Toggle: pil ID | EN di nav</span><span class="tag">Untuk pemilik kafe</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/</em></div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand">3Diner</span><span class="ni on">Home</span><span class="ni">Tentang</span><span class="ni">Produk</span><span class="ni">Harga</span><span class="ni">Kontak</span><span style="flex:1"></span><span class="tgl"><i class="on">ID</i><i>EN</i></span><span class="btn pri">Minta Demo</span></div>
+
+<div class="sec" style="border-top:none;display:flex;gap:26px;align-items:center;padding:26px 20px">
+<div style="flex:1;display:flex;flex-direction:column;gap:12px">
+<span class="lbl">Hero</span>
+<span class="pill">Smart menu 3D/AR untuk kafe</span>
+<div class="h1">Lihat Sebelum<br>Memesan</div>
+<div class="tg" style="max-width:330px"><b></b><b></b><b></b></div>
+<div style="display:flex;gap:9px;margin-top:2px"><span class="btn pri">Minta Demo</span><span class="btn">Lihat menu contoh</span></div>
+<div class="note">EN: “See Before You Order” — headline diganti, layout tetap.</div>
+</div>
+<div class="slot" style="width:330px;height:225px">[ dish 3D · putar 360° ]<br>slot model .glb</div>
+</div>
+
+<div class="sec" style="display:flex;gap:22px">
+<div style="flex:1;display:flex;flex-direction:column;gap:10px"><span class="lbl">02 · Masalah</span><div class="h2">Menu flat, tamu ragu</div><div class="tg"><b></b><b></b><b></b></div></div>
+<div style="width:1.5px;background:#dde2e8"></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:10px"><span class="lbl">02 · Solusi</span><div class="h2">Tamu lihat dulu, lalu pesan</div><div class="tg"><b></b><b></b><b></b></div></div>
+</div>
+
+<div class="sec">
+<span class="lbl">03 · Cara kerja</span>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:11px">
+<div class="card"><div style="display:flex;gap:8px;align-items:center"><span class="num">01</span><span class="h3">Scan QR di meja</span></div><div class="slot" style="height:74px">[ slot ]</div></div>
+<div class="card"><div style="display:flex;gap:8px;align-items:center"><span class="num">02</span><span class="h3">Putar dish 3D</span></div><div class="slot" style="height:74px">[ slot ]</div></div>
+<div class="card"><div style="display:flex;gap:8px;align-items:center"><span class="num">03</span><span class="h3">Mode AR di meja</span></div><div class="slot" style="height:74px">[ slot ]</div></div>
+<div class="card"><div style="display:flex;gap:8px;align-items:center"><span class="num">04</span><span class="h3">Kirim pesanan</span></div><div class="slot" style="height:74px">[ slot ]</div></div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">04 · Produk</span>
+<div style="display:flex;gap:14px;margin-top:11px">
+<div class="card" style="flex:none;width:250px"><span class="h3">Smart menu (tamu)</span><span class="mut">Mobile 390px</span><div class="slot" style="height:190px;border-radius:16px">[ layar menu tamu ]</div></div>
+<div class="card" style="flex:1"><span class="h3">Dashboard owner</span><span class="mut">Desktop · pesanan, menu, inventory, analitik</span><div class="slot" style="height:190px">[ screenshot dashboard gelap ]</div></div>
+</div>
+</div>
+
+<div class="sec">
+<span class="lbl">05 · Fitur unggulan</span>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:11px">
+<div class="card" style="gap:6px"><div class="slot" style="width:26px;height:26px;border-radius:6px"></div><span class="h3">Model 3D per dish</span><div class="tg"><b></b><b></b></div></div>
+<div class="card" style="gap:6px"><div class="slot" style="width:26px;height:26px;border-radius:6px"></div><span class="h3">Mode AR di meja</span><div class="tg"><b></b><b></b></div></div>
+<div class="card" style="gap:6px"><div class="slot" style="width:26px;height:26px;border-radius:6px"></div><span class="h3">QR meja</span><div class="tg"><b></b><b></b></div></div>
+<div class="card" style="gap:6px"><div class="slot" style="width:26px;height:26px;border-radius:6px"></div><span class="h3">Analitik tamu</span><div class="tg"><b></b><b></b></div></div>
+<div class="card" style="gap:6px"><div class="slot" style="width:26px;height:26px;border-radius:6px"></div><span class="h3">Inventory & resep</span><div class="tg"><b></b><b></b></div></div>
+<div class="card" style="gap:6px"><div class="slot" style="width:26px;height:26px;border-radius:6px"></div><span class="h3">Pesanan masuk</span><div class="tg"><b></b><b></b></div></div>
+</div>
+</div>
+
+<div class="sec">
+<div style="display:flex;align-items:baseline;gap:10px"><span class="lbl">06 · Harga</span><span class="mut">ringkasan — detail di halaman Harga</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:11px">
+<div class="card"><span class="h3">Tier 50k</span><div class="h2">Rp 50.000<span class="mut"> /bln</span></div><div class="tg"><b></b><b></b><b></b></div><span class="mut">[ isi jumlah dish 3D ]</span></div>
+<div class="card" style="border-color:var(--acc);border-width:2px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="h3">Tier 100k</span><span class="tag">Paling dipakai</span></div><div class="h2">Rp 100.000<span class="mut"> /bln</span></div><div class="tg"><b></b><b></b><b></b></div><span class="mut">[ isi jumlah dish 3D ]</span></div>
+<div class="card"><span class="h3">Tier 150k</span><div class="h2">Rp 150.000<span class="mut"> /bln</span></div><div class="tg"><b></b><b></b><b></b></div><span class="mut">[ isi jumlah dish 3D ]</span></div>
+</div>
+</div>
+
+<div class="sec" style="display:flex;gap:16px;align-items:center">
+<div class="slot" style="width:200px;height:130px">[ foto kafe pilot ]</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:9px"><span class="lbl">07 · Studi kasus</span><div class="h2">“[ kutipan owner kafe pilot ]”</div><div class="tg"><b></b><b></b></div><span class="mut">[ nama kafe ] · [ kota ] · [ isi angka: tamu lihat 3D/bln ]</span></div>
+</div>
+
+<div class="sec" style="background:#F6F8FB;display:flex;gap:18px;align-items:center">
+<div style="flex:1"><div class="h2">Mau lihat menu kafe Anda dalam 3D?</div><span class="mut">Kirim nama kafe dan nomor WhatsApp, kami balas dengan menu contoh.</span></div>
+<div style="display:flex;gap:8px;align-items:center"><span class="pill" style="width:120px;padding:9px 10px">Nama kafe</span><span class="pill" style="width:110px;padding:9px 10px">WhatsApp</span><span class="btn pri">Kirim</span></div>
+</div>
+
+<div class="foot">
+<div style="display:flex;flex-direction:column;gap:7px;width:180px"><div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="brand" style="font-size:12.5px">3Diner</span></div><span class="mut">[ badan usaha ]<br>[ alamat ] · [ email ]</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span class="lbl">Produk</span><div class="tg" style="width:80px"><b></b><b></b><b></b></div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span class="lbl">Perusahaan</span><div class="tg" style="width:80px"><b></b><b></b><b></b></div></div>
+<div style="flex:1"></div><span class="tgl" style="align-self:center"><i class="on">ID</i><i>EN</i></span>
+</div>
+
+<div class="pagemaps sec" style="background:#FDFBF9">
+<span class="lbl">Halaman lain — struktur blok</span>
+<div style="display:flex;gap:12px;margin-top:11px;flex-wrap:wrap">
+<div class="pm"><strong>Tentang</strong><div class="pb">Hero: cerita singkat</div><div class="pb">Kenapa 3Diner ada</div><div class="pb">Cara kerjanya untuk kafe</div><div class="pb">Linimasa [ placeholder ]</div><div class="pb">Cara kami kerja</div><div class="pb k">CTA: ngobrol dulu</div></div>
+<div class="pm"><strong>Produk</strong><div class="pb">Hero produk</div><div class="pb">Smart menu tamu (5 layar)</div><div class="pb">Viewer 3D + AR</div><div class="pb">Dashboard owner (4 modul)</div><div class="pb">Teknis: .glb / .usdz / QR</div><div class="pb k">CTA: minta demo</div></div>
+<div class="pm"><strong>Harga</strong><div class="pb">3 tier + toggle bulanan</div><div class="pb">Tabel banding fitur</div><div class="pb">Add-on: model done-for-you</div><div class="pb">Add-on & kredit generate</div><div class="pb k">CTA: mulai pilot</div></div>
+<div class="pm"><strong>Kontak</strong><div class="pb">Form: kafe, kota, WA</div><div class="pb">WhatsApp langsung</div><div class="pb">Alamat + peta [ slot ]</div><div class="pb">Jam operasional</div><div class="pb k">CTA: jadwalkan demo</div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Dua pintu — Home memisahkan pembaca: pemilik kafe vs investor, lalu jalur masing-masing. Toggle bahasa = dropdown di utility bar, URL /id dan /en.</div>
+<div class="dv-card wf" style="width:880px">
+<div class="anno"><span class="tag">Home = pemilah pembaca</span><span class="tag">6 halaman (+ Untuk Investor)</span><span class="tag">Toggle: dropdown bahasa + URL /id /en</span><span class="tag">Kafe + investor</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/id</em></div>
+<div style="display:flex;align-items:center;gap:12px;padding:7px 20px;background:#F6F8FB;border-bottom:1.2px dashed #cdd3db">
+<span class="mut">[ email ] · [ WhatsApp ]</span><span style="flex:1"></span>
+<span class="pill" style="gap:6px;align-self:center">Bahasa Indonesia ▾</span><span class="mut" style="flex:none;white-space:nowrap">/id · /en</span>
+</div>
+<div class="nav"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand">3Diner</span><span class="ni on">Home</span><span class="ni">Tentang</span><span class="ni">Produk</span><span class="ni">Harga</span><span class="ni">Untuk Investor</span><span class="ni">Kontak</span><span style="flex:1"></span><span class="btn pri">Minta Demo</span></div>
+
+<div class="sec" style="border-top:none;padding:24px 20px;display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center">
+<span class="lbl">Hero ringkas</span>
+<div class="h1">Lihat Sebelum Memesan</div>
+<div class="tg" style="width:420px"><b></b><b></b></div>
+<div class="note">Satu baris posisi: smart menu 3D/AR untuk kafe. Tanpa gambar besar di hero — gambar muncul di jalur masing-masing.</div>
+</div>
+
+<div class="sec" style="display:flex;gap:14px">
+<div class="card" style="flex:1;border-width:2px;border-color:#2b2b2b"><span class="lbl">Pintu 1</span><span class="h2">Saya pemilik kafe</span><div class="tg"><b></b><b></b></div><div class="slot" style="height:96px">[ slot: menu tamu ]</div><span class="btn pri" style="align-self:flex-start">Lihat produk</span></div>
+<div class="card" style="flex:1;border-width:2px;border-color:#2b2b2b"><span class="lbl">Pintu 2</span><span class="h2">Saya investor</span><div class="tg"><b></b><b></b></div><div class="slot" style="height:96px">[ slot: grafik pasar ]</div><span class="btn" style="align-self:flex-start">Lihat ringkasan bisnis</span></div>
+</div>
+
+<div class="sec">
+<span class="lbl">Bagian bersama · Cara kerja</span>
+<div style="display:flex;align-items:center;gap:8px;margin-top:11px">
+<div class="card" style="flex:1;gap:6px"><span class="num">01</span><span class="h3">Scan QR meja</span></div><span class="mut">→</span>
+<div class="card" style="flex:1;gap:6px"><span class="num">02</span><span class="h3">Lihat 3D</span></div><span class="mut">→</span>
+<div class="card" style="flex:1;gap:6px"><span class="num">03</span><span class="h3">Mode AR</span></div><span class="mut">→</span>
+<div class="card" style="flex:1;gap:6px"><span class="num">04</span><span class="h3">Pesan</span></div>
+</div>
+</div>
+
+<div class="sec" style="display:flex;gap:22px">
+<div style="flex:1;display:flex;flex-direction:column;gap:9px"><span class="lbl">Masalah</span><div class="h3">Menu flat, tamu ragu, foto tak mewakili dish</div><div class="tg"><b></b><b></b></div></div>
+<div style="width:1.5px;background:#dde2e8"></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:9px"><span class="lbl">Solusi</span><div class="h3">Dish bisa diputar dan ditaruh di meja lewat AR</div><div class="tg"><b></b><b></b></div></div>
+</div>
+
+<div class="sec">
+<span class="lbl">Produk · tab</span>
+<div style="display:flex;gap:8px;margin:11px 0"><span class="pill" style="border-color:#2b2b2b;color:#1a1a1a;font-weight:700">Menu tamu</span><span class="pill">Dashboard owner</span></div>
+<div style="display:flex;gap:12px"><div class="slot" style="width:150px;height:170px;border-radius:16px">[ mobile ]</div><div class="slot" style="flex:1;height:170px">[ layar aktif tab ]</div></div>
+</div>
+
+<div class="sec" style="display:flex;gap:14px;align-items:center">
+<div style="flex:1"><span class="lbl">Studi kasus pilot</span><div class="h3" style="margin-top:6px">“[ kutipan owner ]”</div><span class="mut">[ nama kafe ] · [ isi angka riil ]</span></div>
+<div class="slot" style="width:150px;height:92px">[ foto ]</div>
+<div class="slot" style="width:150px;height:92px">[ foto ]</div>
+</div>
+
+<div class="sec" style="background:#F6F8FB;display:flex;gap:14px;align-items:center">
+<div style="flex:1"><div class="h2">Dua CTA, satu per pembaca</div><span class="mut">Kafe → demo. Investor → minta deck & ringkasan angka.</span></div>
+<span class="btn pri">Minta Demo</span><span class="btn">Minta Deck Investor</span>
+</div>
+
+<div class="foot">
+<div style="display:flex;flex-direction:column;gap:7px;width:170px"><div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="brand" style="font-size:12.5px">3Diner</span></div><span class="mut">[ badan usaha ] · [ alamat ]</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span class="lbl">Untuk kafe</span><div class="tg" style="width:76px"><b></b><b></b><b></b></div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span class="lbl">Untuk investor</span><div class="tg" style="width:76px"><b></b><b></b><b></b></div></div>
+<div style="flex:1"></div><span class="pill" style="align-self:center">Bahasa Indonesia ▾</span>
+</div>
+
+<div class="pagemaps sec" style="background:#FDFBF9">
+<span class="lbl">Halaman lain — struktur blok</span>
+<div style="display:flex;gap:12px;margin-top:11px;flex-wrap:wrap">
+<div class="pm"><strong>Tentang</strong><div class="pb">Cerita: kenapa dibuat</div><div class="pb">Cara kami bekerja</div><div class="pb">Cara kami kerja</div><div class="pb">Tim [ placeholder ]</div><div class="pb k">CTA ganda</div></div>
+<div class="pm"><strong>Produk</strong><div class="pb">Tab: tamu / owner</div><div class="pb">Alur 5 layar tamu</div><div class="pb">4 modul dashboard</div><div class="pb">Model 3D: dari foto ke .glb</div><div class="pb k">CTA: demo</div></div>
+<div class="pm"><strong>Harga</strong><div class="pb">3 tier</div><div class="pb">Apa isi tiap tier</div><div class="pb">Setup & done-for-you</div><div class="pb k">CTA: mulai pilot</div></div>
+<div class="pm"><strong>Untuk Investor</strong><div class="pb">Posisi produk</div><div class="pb">Pasar & target [ angka ]</div><div class="pb">Model bisnis + tier</div><div class="pb">Traksi [ placeholder ]</div><div class="pb">Roadmap</div><div class="pb k">CTA: minta deck</div></div>
+<div class="pm"><strong>Kontak</strong><div class="pb">Pilih: kafe / investor</div><div class="pb">Form sesuai pilihan</div><div class="pb">WhatsApp + email</div><div class="pb k">CTA: jadwalkan</div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Profil bab — rail bab bernomor di kiri, kolom baca di kanan, bisa diunduh sebagai PDF. Judul ID dan EN ditumpuk, jadi satu halaman melayani dua bahasa sekaligus.</div>
+<div class="dv-card wf" style="width:880px">
+<div class="anno"><span class="tag">Rail bab 01–09</span><span class="tag">Kolom baca</span><span class="tag">Toggle: judul ID + EN ditumpuk</span><span class="tag">Bisa jadi PDF</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/profil</em></div>
+<div style="display:flex;align-items:stretch">
+<div class="rail">
+<div style="display:flex;gap:7px;align-items:center;padding-bottom:9px;border-bottom:1.2px dashed #cdd3db"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="brand" style="font-size:12.5px">3Diner</span></div>
+<span class="tgl" style="align-self:flex-start"><i class="on">ID</i><i>EN</i></span>
+<span class="lbl" style="margin-top:4px">Isi profil</span>
+<div class="ch on"><em>01</em>Ringkasan</div>
+<div class="ch"><em>02</em>Tentang kami</div>
+<div class="ch"><em>03</em>Masalah & solusi</div>
+<div class="ch"><em>04</em>Cara kerja</div>
+<div class="ch"><em>05</em>Produk</div>
+<div class="ch"><em>06</em>Fitur</div>
+<div class="ch"><em>07</em>Harga & paket</div>
+<div class="ch"><em>08</em>Studi kasus</div>
+<div class="ch"><em>09</em>Kontak</div>
+<div style="flex:1"></div>
+<span class="btn" style="justify-content:center">Unduh PDF</span>
+<span class="btn pri" style="justify-content:center">Minta Demo</span>
+</div>
+<div style="flex:1">
+<div class="sec" style="border-top:none;padding:24px">
+<span class="lbl">01 · Ringkasan</span>
+<div class="h1" style="margin-top:8px">Lihat Sebelum Memesan</div>
+<div class="h3" style="color:#7a828e;font-weight:400;margin-top:4px">See Before You Order</div>
+<div class="note" style="margin-top:8px">Pola dwibahasa: judul ID besar, judul EN di bawahnya lebih kecil. Toggle menukar mana yang jadi besar.</div>
+<div class="tg" style="margin-top:12px"><b></b><b></b><b></b><b></b></div>
+<div class="slot" style="height:170px;margin-top:14px">[ foto dish / model 3D — 1 gambar pembuka ]</div>
+<div style="display:flex;gap:0;margin-top:14px;border:1.5px solid #cdd3db;border-radius:10px;padding:12px 0">
+<div class="stat"><span class="lbl">Kafe aktif</span><b>[ angka ]</b></div>
+<div class="stat"><span class="lbl">Dish 3D tayang</span><b>[ angka ]</b></div>
+<div class="stat"><span class="lbl">Kota terjangkau</span><b>[ angka ]</b></div>
+<div class="stat"><span class="lbl">Berdiri</span><b>[ tahun ]</b></div>
+</div>
+</div>
+<div class="sec" style="padding:20px 24px">
+<span class="lbl">02 · Tentang kami</span>
+<div class="h2" style="margin-top:7px">Tentang 3Diner</div>
+<div class="h3" style="color:#7a828e;font-weight:400">About 3Diner</div>
+<div style="display:flex;gap:16px;margin-top:11px"><div class="tg" style="flex:1"><b></b><b></b><b></b><b></b><b></b></div><div class="slot" style="width:190px;height:118px">[ foto kerja ]</div></div>
+</div>
+<div class="sec" style="padding:20px 24px">
+<span class="lbl">03 · Masalah & solusi</span>
+<div style="display:flex;gap:14px;margin-top:11px">
+<div class="card" style="flex:1"><span class="h3">Masalah</span><div class="tg"><b></b><b></b><b></b></div></div>
+<div class="card" style="flex:1;border-color:var(--acc)"><span class="h3">Solusi</span><div class="tg"><b></b><b></b><b></b></div></div>
+</div>
+</div>
+<div class="sec" style="padding:20px 24px">
+<span class="lbl">04 · Cara kerja</span>
+<div style="display:flex;flex-direction:column;gap:9px;margin-top:11px">
+<div style="display:flex;gap:11px;align-items:center"><span class="num">01</span><span class="h3" style="width:150px">Scan QR di meja</span><div class="tg" style="flex:1"><b></b></div><div class="slot" style="width:64px;height:44px"></div></div>
+<div style="display:flex;gap:11px;align-items:center"><span class="num">02</span><span class="h3" style="width:150px">Putar dish 3D</span><div class="tg" style="flex:1"><b></b></div><div class="slot" style="width:64px;height:44px"></div></div>
+<div style="display:flex;gap:11px;align-items:center"><span class="num">03</span><span class="h3" style="width:150px">Mode AR di meja</span><div class="tg" style="flex:1"><b></b></div><div class="slot" style="width:64px;height:44px"></div></div>
+<div style="display:flex;gap:11px;align-items:center"><span class="num">04</span><span class="h3" style="width:150px">Kirim pesanan</span><div class="tg" style="flex:1"><b></b></div><div class="slot" style="width:64px;height:44px"></div></div>
+</div>
+</div>
+<div class="sec" style="padding:20px 24px">
+<span class="lbl">05 · Produk · 06 · Fitur</span>
+<div style="display:flex;gap:12px;margin-top:11px"><div class="slot" style="width:120px;height:150px;border-radius:16px">[ menu tamu ]</div><div style="flex:1;display:flex;flex-direction:column;gap:9px"><div class="slot" style="height:96px">[ dashboard owner ]</div><div style="display:flex;gap:8px"><span class="pill">Model 3D</span><span class="pill">AR</span><span class="pill">Analitik</span><span class="pill">Inventory</span><span class="pill">QR meja</span></div></div></div>
+</div>
+<div class="sec" style="padding:20px 24px">
+<span class="lbl">07 · Harga & paket</span>
+<div style="margin-top:11px;border:1.5px solid #cdd3db;border-radius:10px;overflow:hidden">
+<div style="display:flex;background:#F6F8FB;border-bottom:1.2px solid #dde2e8"><span class="lbl" style="flex:1;padding:9px 12px">Paket</span><span class="lbl" style="width:96px;padding:9px 12px">Harga/bln</span><span class="lbl" style="width:110px;padding:9px 12px">Dish 3D</span><span class="lbl" style="width:110px;padding:9px 12px">Kredit AI</span></div>
+<div style="display:flex;border-bottom:1.2px dashed #e6eaef"><span class="h3" style="flex:1;padding:10px 12px">Tier 50k</span><span class="mut" style="width:96px;padding:10px 12px">Rp 50.000</span><span class="mut" style="width:110px;padding:10px 12px">[ angka ]</span><span class="mut" style="width:110px;padding:10px 12px">[ angka ]</span></div>
+<div style="display:flex;border-bottom:1.2px dashed #e6eaef"><span class="h3" style="flex:1;padding:10px 12px">Tier 100k</span><span class="mut" style="width:96px;padding:10px 12px">Rp 100.000</span><span class="mut" style="width:110px;padding:10px 12px">[ angka ]</span><span class="mut" style="width:110px;padding:10px 12px">[ angka ]</span></div>
+<div style="display:flex"><span class="h3" style="flex:1;padding:10px 12px">Tier 150k</span><span class="mut" style="width:96px;padding:10px 12px">Rp 150.000</span><span class="mut" style="width:110px;padding:10px 12px">[ angka ]</span><span class="mut" style="width:110px;padding:10px 12px">[ angka ]</span></div>
+</div>
+</div>
+<div class="sec" style="padding:20px 24px">
+<span class="lbl">08 · Studi kasus · 09 · Kontak</span>
+<div style="display:flex;gap:14px;margin-top:11px;align-items:center"><div class="slot" style="width:150px;height:100px">[ foto kafe ]</div><div style="flex:1"><div class="h3">“[ kutipan owner kafe pilot ]”</div><span class="mut">[ nama kafe ] · [ angka ]</span></div></div>
+<div style="display:flex;gap:9px;margin-top:14px;align-items:center;padding-top:14px;border-top:1.2px dashed #dde2e8"><span class="mut" style="flex:1">[ alamat ] · [ email ] · [ WhatsApp ]</span><span class="btn">Unduh PDF</span><span class="btn pri">Minta Demo</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1d">
+<div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Bukti dulu — Home pendek dan padat: angka, layar produk nyata, kafe pilot. Toggle bahasa = dua tautan teks ID / EN, tanpa dropdown.</div>
+<div class="dv-card wf" style="width:880px">
+<div class="anno"><span class="tag">Home pendek & padat</span><span class="tag">Angka di paling atas</span><span class="tag">Toggle: tautan teks ID / EN</span><span class="tag">Cenderung investor</span></div>
+<div class="tbar"><u></u><u></u><u></u><em>3diner.id/en</em></div>
+<div class="nav" style="padding:9px 20px;gap:13px"><img src="assets/logo-3diner-mark.svg" alt=""><span class="brand" style="font-size:13px">3Diner</span><span class="ni on">Home</span><span class="ni">Tentang</span><span class="ni">Produk</span><span class="ni">Harga</span><span class="ni">Kontak</span><span style="flex:1"></span><span class="mut" style="font-weight:700;color:#1a1a1a">ID</span><span class="mut">/</span><span class="mut">EN</span><span class="btn pri" style="padding:7px 13px">Demo</span></div>
+
+<div class="sec" style="border-top:none;padding:20px;display:flex;gap:20px;align-items:center">
+<div style="flex:1;display:flex;flex-direction:column;gap:10px">
+<div class="h1" style="font-size:23px">Lihat Sebelum Memesan</div>
+<div class="tg" style="max-width:300px"><b></b><b></b></div>
+<div style="display:flex;gap:8px"><span class="btn pri">Minta Demo</span><span class="btn">Menu contoh</span></div>
+</div>
+<div class="slot" style="width:132px;height:200px;border-radius:16px">[ layar menu tamu ]</div>
+<div class="slot" style="width:230px;height:200px">[ viewer 3D ]</div>
+</div>
+
+<div class="sec" style="display:flex;padding:14px 6px">
+<div class="stat"><span class="lbl">Kafe pakai</span><b>[ angka ]</b><span class="mut">isi nanti</span></div>
+<div class="stat"><span class="lbl">Dish 3D tayang</span><b>[ angka ]</b><span class="mut">isi nanti</span></div>
+<div class="stat"><span class="lbl">Tamu lihat 3D/bln</span><b>[ angka ]</b><span class="mut">isi nanti</span></div>
+<div class="stat"><span class="lbl">Kota terjangkau</span><b>[ angka ]</b><span class="mut">isi nanti</span></div>
+</div>
+
+<div class="sec">
+<div style="display:flex;align-items:baseline;gap:10px"><span class="lbl">Studi kasus dulu</span><span class="mut">bukti sebelum janji</span></div>
+<div style="display:flex;gap:12px;margin-top:11px">
+<div class="card" style="flex:1"><div class="slot" style="height:88px">[ foto kafe pilot ]</div><span class="h3">“[ kutipan owner ]”</span><span class="mut">[ nama kafe ]</span></div>
+<div class="card" style="flex:1"><div class="slot" style="height:88px">[ foto kafe pilot ]</div><span class="h3">“[ kutipan owner ]”</span><span class="mut">[ nama kafe ]</span></div>
+<div class="card" style="flex:1"><div class="slot" style="height:88px">[ slot grafik ]</div><span class="h3">Tamu lihat 3D naik</span><span class="mut">[ isi data analitik ]</span></div>
+</div>
+</div>
+
+<div class="sec" style="display:flex;gap:10px;align-items:stretch">
+<div style="flex:none;width:130px"><span class="lbl">Cara kerja</span><div class="mut" style="margin-top:6px">4 langkah, satu baris</div></div>
+<div class="card" style="flex:1;gap:5px;padding:10px"><span class="num">01</span><span class="h3">Scan QR</span></div>
+<div class="card" style="flex:1;gap:5px;padding:10px"><span class="num">02</span><span class="h3">Lihat 3D</span></div>
+<div class="card" style="flex:1;gap:5px;padding:10px"><span class="num">03</span><span class="h3">Mode AR</span></div>
+<div class="card" style="flex:1;gap:5px;padding:10px"><span class="num">04</span><span class="h3">Pesan</span></div>
+</div>
+
+<div class="sec" style="display:flex;gap:22px">
+<div style="flex:1;display:flex;flex-direction:column;gap:8px"><span class="lbl">Masalah → Solusi</span><div class="h3">Menu flat bikin tamu ragu · dish bisa diputar dan dicek di meja</div><div class="tg"><b></b><b></b></div></div>
+<div style="width:1.5px;background:#dde2e8"></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px"><span class="lbl">Tentang kami — ringkas</span><div class="h3">Dibuat untuk kafe di seluruh Indonesia</div><div class="tg"><b></b><b></b></div><span class="note">Cerita panjang pindah ke halaman Tentang.</span></div>
+</div>
+
+<div class="sec">
+<span class="lbl">Produk + fitur, satu blok</span>
+<div style="display:flex;gap:12px;margin-top:11px">
+<div class="card" style="flex:1"><span class="h3">Menu tamu</span><div class="slot" style="height:76px">[ slot ]</div><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill">3D</span><span class="pill">AR</span><span class="pill">QR meja</span></div></div>
+<div class="card" style="flex:1"><span class="h3">Dashboard owner</span><div class="slot" style="height:76px">[ slot ]</div><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill">Pesanan</span><span class="pill">Menu</span><span class="pill">Inventory</span><span class="pill">Analitik</span></div></div>
+</div>
+</div>
+
+<div class="sec" style="display:flex;gap:10px;align-items:center">
+<div style="flex:none;width:130px"><span class="lbl">Harga</span><div class="mut" style="margin-top:6px">strip satu baris</div></div>
+<div class="card" style="flex:1;gap:4px;padding:10px"><span class="h3">Rp 50.000</span><span class="mut">[ dish 3D ]</span></div>
+<div class="card" style="flex:1;gap:4px;padding:10px;border-color:var(--acc);border-width:2px"><span class="h3">Rp 100.000</span><span class="mut">[ dish 3D ]</span></div>
+<div class="card" style="flex:1;gap:4px;padding:10px"><span class="h3">Rp 150.000</span><span class="mut">[ dish 3D ]</span></div>
+<span class="btn">Detail paket</span>
+</div>
+
+<div class="sec" style="background:#F6F8FB;display:flex;gap:16px;align-items:center">
+<div style="flex:1"><div class="h2">Mau lihat menu kafe Anda dalam 3D?</div><span class="mut">Balasan lewat WhatsApp, dengan satu dish contoh.</span></div>
+<span class="pill" style="width:130px;padding:9px 10px">Nama kafe</span><span class="btn pri">Kirim</span>
+</div>
+
+<div class="foot" style="padding:14px 20px">
+<div style="display:flex;gap:7px;align-items:center"><img src="assets/logo-3diner-mark.svg" alt="" style="width:18px;height:18px;filter:grayscale(1) opacity(.7)"><span class="mut">[ badan usaha ] · [ alamat ] · [ email ]</span></div>
+<div style="flex:1"></div><span class="mut" style="font-weight:700;color:#1a1a1a">ID</span><span class="mut">/ EN</span>
+</div>
+
+<div class="pagemaps sec" style="background:#FDFBF9">
+<span class="lbl">Halaman lain — struktur blok</span>
+<div style="display:flex;gap:12px;margin-top:11px;flex-wrap:wrap">
+<div class="pm"><strong>Tentang</strong><div class="pb">Cerita perusahaan</div><div class="pb">Cara kami kerja</div><div class="pb">Angka perusahaan [ isi ]</div><div class="pb k">CTA: ngobrol</div></div>
+<div class="pm"><strong>Produk</strong><div class="pb">Alur tamu 5 layar</div><div class="pb">Dashboard 4 modul</div><div class="pb">Dari foto ke model 3D</div><div class="pb k">CTA: demo</div></div>
+<div class="pm"><strong>Harga</strong><div class="pb">Tabel 3 tier</div><div class="pb">Add-on model</div><div class="pb">FAQ</div><div class="pb k">CTA: pilot</div></div>
+<div class="pm"><strong>Kontak</strong><div class="pb">Form pendek: kafe + WA</div><div class="pb">Alamat + peta [ slot ]</div><div class="pb k">CTA: WhatsApp</div></div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Coba selanjutnya: “lanjutkan <a class="dv-oid" href="#1a">1a</a> tapi pakai rail bab dari <a class="dv-oid" href="#1c">1c</a>” · “buat versi mobile untuk <a class="dv-oid" href="#1d">1d</a>” · “gambar halaman Produk lengkap dari <a class="dv-oid" href="#1b">1b</a>”</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showAnnotations&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Wireframe&quot;},&quot;showPageMaps&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Wireframe&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#FD5002&quot;,&quot;options&quot;:[&quot;#FD5002&quot;,&quot;#C23B00&quot;,&quot;#00C2A8&quot;,&quot;#2b2b2b&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Wireframe&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const cls = [
+      p.showAnnotations === false ? "hide-anno" : "",
+      p.showPageMaps === false ? "hide-maps" : "",
+    ].filter(Boolean).join(" ");
+    return { rootCls: cls, accent: p.accent ?? "#FD5002" };
+  }
+}
+</script>
+</body>
+</html>

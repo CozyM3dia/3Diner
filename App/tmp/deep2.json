@@ -1,0 +1,37 @@
+[
+  {
+    "name": "dribbble-shot-food-menu",
+    "url": "https://dribbble.com/search/food-menu-app",
+    "linkSelector": "a[href*='/shots/']",
+    "linkPattern": "dribbble\\.com/shots/\\d+",
+    "take": 8,
+    "segments": 3,
+    "scrolls": 3
+  },
+  {
+    "name": "dribbble-shot-coffee",
+    "url": "https://dribbble.com/search/coffee%20shop%20app",
+    "linkSelector": "a[href*='/shots/']",
+    "linkPattern": "dribbble\\.com/shots/\\d+",
+    "take": 8,
+    "segments": 3,
+    "scrolls": 3
+  },
+  {
+    "name": "dribbble-shot-3d-food",
+    "url": "https://dribbble.com/search/3d%20food%20app",
+    "linkSelector": "a[href*='/shots/']",
+    "linkPattern": "dribbble\\.com/shots/\\d+",
+    "take": 8,
+    "segments": 3,
+    "scrolls": 3
+  },
+  {
+    "name": "screensdesign-food",
+    "url": "https://screensdesign.com/library?q=food",
+    "linkSelector": "a[href*='/app/'], a[href*='/screens/']",
+    "take": 6,
+    "segments": 4,
+    "scrolls": 4
+  }
+]

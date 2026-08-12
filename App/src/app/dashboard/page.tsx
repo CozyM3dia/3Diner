@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { getDashboardData, type EventType } from "@/lib/analytics";
 import { getDashboardCafeContext } from "@/lib/dashboard-context";
-import { getDashboardInventoryDataForSlug } from "@/lib/dashboard-inventory";
+import { getDashboardInventoryDataForOwner } from "@/lib/dashboard-inventory";
 import { getTodayOps } from "@/lib/dashboard-today";
 import DateRangePicker from "@/components/dashboard/DateRangePicker";
 import { DashboardMetric, DashboardPageHeader, DashboardPanel } from "@/components/dashboard/system";
@@ -61,10 +61,10 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
   const [data, inventory, today] = slug
     ? await Promise.all([
         getDashboardData(slug, start, end),
-        getDashboardInventoryDataForSlug(slug),
+        getDashboardInventoryDataForOwner(userId),
         getTodayOps(slug),
       ])
-    : [null, await getDashboardInventoryDataForSlug(null), await getTodayOps(null)];
+    : [null, await getDashboardInventoryDataForOwner(userId), await getTodayOps(null)];
 
   if (!data) {
     return (
@@ -85,7 +85,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
     { label: "Mulai Pesan", value: totals.click_order, pct: (totals.click_order / base) * 100, color: "#FD5002" },
   ];
 
-  const maxDishViews = Math.max(1, ...topDishes.map((d) => d.views || d.clicks));
+  const maxDishViews = Math.max(1, ...topDishes.map((d) => d.views));
 
   const insightTiles = [
     insights.peakHour !== null && {
@@ -242,7 +242,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate" style={{ color: "var(--dash-text)" }}>{d.name}</p>
                       <div className="h-1 rounded-full mt-1.5 overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
-                        <div className="h-full rounded-full" style={{ width: `${((d.views || d.clicks) / maxDishViews) * 100}%`, background: "#00C2A8" }} />
+                        <div className="h-full rounded-full" style={{ width: `${(d.views / maxDishViews) * 100}%`, background: "#00C2A8" }} />
                       </div>
                     </div>
                     <div className="flex items-center gap-3 text-right tabular-nums">

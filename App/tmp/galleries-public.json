@@ -1,0 +1,27 @@
+[
+  { "name": "dribbble-food-menu-app", "url": "https://dribbble.com/search/food-menu-app", "scrolls": 8 },
+  { "name": "dribbble-restaurant-menu-ui", "url": "https://dribbble.com/search/restaurant%20menu%20ui", "scrolls": 8 },
+  { "name": "dribbble-coffee-shop-app", "url": "https://dribbble.com/search/coffee%20shop%20app", "scrolls": 8 },
+  { "name": "dribbble-qr-menu", "url": "https://dribbble.com/search/qr%20menu", "scrolls": 6 },
+  { "name": "dribbble-food-delivery-app", "url": "https://dribbble.com/search/food%20delivery%20app%20ui", "scrolls": 8 },
+  { "name": "dribbble-3d-food", "url": "https://dribbble.com/search/3d%20food%20app", "scrolls": 6 },
+
+  { "name": "pinterest-food-menu-app-ui", "url": "https://www.pinterest.com/search/pins/?q=food%20menu%20app%20ui", "scrolls": 10 },
+  { "name": "pinterest-restaurant-app-design", "url": "https://www.pinterest.com/search/pins/?q=restaurant%20app%20ui%20design", "scrolls": 10 },
+  { "name": "pinterest-coffee-app-ui", "url": "https://www.pinterest.com/search/pins/?q=coffee%20shop%20app%20ui%20design", "scrolls": 10 },
+
+  { "name": "behance-food-app-ui", "url": "https://www.behance.net/search/projects/food%20app%20ui", "scrolls": 8 },
+  { "name": "behance-restaurant-menu", "url": "https://www.behance.net/search/projects/restaurant%20menu%20app", "scrolls": 8 },
+
+  { "name": "nicelydone-food", "url": "https://nicelydone.club/", "scrolls": 8 },
+  { "name": "scrnshts-food", "url": "https://scrnshts.club/", "scrolls": 8 },
+  { "name": "collectui-menu", "url": "https://collectui.com/challenges/menu", "scrolls": 8 },
+  { "name": "collectui-food-drink", "url": "https://collectui.com/challenges/food-drink", "scrolls": 8 },
+  { "name": "refero-design", "url": "https://refero.design/", "scrolls": 6 },
+  { "name": "landbook-restaurant", "url": "https://land-book.com/?search=restaurant", "scrolls": 6 },
+  { "name": "godly-website", "url": "https://godly.website/", "scrolls": 6 },
+  { "name": "awwwards-restaurant", "url": "https://www.awwwards.com/websites/restaurant/", "scrolls": 6 },
+  { "name": "siteinspire-food-drink", "url": "https://www.siteinspire.com/websites?categories=32", "scrolls": 6 },
+  { "name": "mobbin-public-browse", "url": "https://mobbin.com/browse/ios/apps", "scrolls": 8 },
+  { "name": "21st-dev-components", "url": "https://21st.dev/?tab=components&q=card", "scrolls": 6 }
+]
