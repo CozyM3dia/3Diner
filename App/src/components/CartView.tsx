@@ -4,12 +4,27 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowLeft, LoaderCircle, Minus, Plus, Plus as PlusIcon, Box, ShoppingBag, WifiOff, Smartphone, Store } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Box,
+  Check,
+  LoaderCircle,
+  Minus,
+  Plus,
+  Plus as PlusIcon,
+  ShoppingBag,
+  Smartphone,
+  Store,
+  WifiOff,
+} from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { createOrder } from "@/lib/orders";
 import { formatRupiah } from "@/lib/format";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import type { Cafe } from "@/types";
+
+type CheckoutStep = "review" | "payment";
 
 export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
   const { items, count, total, table, notes, setQty, setTable, setNotes, clear } = useCart();
@@ -19,8 +34,18 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
   const [orderError, setOrderError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [channel, setChannel] = useState<"online" | "cashier">("online");
+  const [step, setStep] = useState<CheckoutStep>("review");
   const orderErrorRef = useRef<HTMLDivElement>(null);
   const tableValid = table.trim().length > 0;
+
+  function continueToPayment() {
+    if (!tableValid) {
+      setTouched(true);
+      requestAnimationFrame(() => document.getElementById("meja")?.focus());
+      return;
+    }
+    setStep("payment");
+  }
 
   async function submit() {
     if (!tableValid) {
@@ -54,7 +79,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
   }
 
   return (
-    <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: count > 0 ? "120px" : "0" }}>
+    <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: count > 0 ? "176px" : "0" }}>
       {/* Header */}
       <header
         className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3"
@@ -70,7 +95,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
           <ArrowLeft size={22} style={{ color: "var(--navy)" }} />
         </Link>
         <h1 className="font-display text-lg font-bold flex-1" style={{ color: "var(--navy)" }}>
-          Pesanan Kamu
+          Selesaikan pesanan
         </h1>
         {count > 0 && (
           <span className="text-xs font-medium" style={{ color: "var(--navy-muted)" }}>
@@ -78,6 +103,29 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
           </span>
         )}
       </header>
+
+      {count > 0 && (
+        <nav aria-label="Tahap checkout" className="checkout-progress mx-auto w-full max-w-xl px-4 pt-4">
+          <ol className="checkout-progress-list">
+            {["Review", "Bayar", "Selesai"].map((label, index) => {
+              const active = step === "review" ? index === 0 : index === 1;
+              const complete = step === "payment" && index === 0;
+              return (
+                <li
+                  key={label}
+                  aria-current={active ? "step" : undefined}
+                  className={`checkout-progress-step${active ? " is-active" : ""}${complete ? " is-complete" : ""}`}
+                >
+                  <span className="checkout-progress-marker" aria-hidden="true">
+                    {complete ? <Check size={15} strokeWidth={3} /> : index + 1}
+                  </span>
+                  <span>{label}</span>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      )}
 
       {count === 0 ? (
         <div className="flex flex-col items-center justify-center text-center px-8" style={{ minHeight: "70dvh" }}>
@@ -96,20 +144,31 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
         </div>
       ) : (
         <div className="mx-auto w-full max-w-xl px-4 pt-4">
+          {step === "review" ? (
+            <>
+          <div className="mb-5">
+            <p className="checkout-kicker">Langkah 1 dari 2</p>
+            <h2 id="review-heading" className="font-display text-xl font-bold" style={{ color: "var(--navy)" }}>
+              Review pesanan
+            </h2>
+            <p className="text-sm mt-1" style={{ color: "var(--navy-muted)" }}>
+              Periksa jumlah, meja, dan catatan sebelum memilih pembayaran.
+            </p>
+          </div>
           {/* Items */}
           <div className="space-y-3">
             {items.map((it) => (
-              <div key={it.line_key} className="card flex items-center gap-3 p-3 fade-up">
-                <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0">
+              <div key={it.line_key} className="checkout-item card flex items-center gap-3 p-3.5 fade-up">
+                <div className="relative w-[76px] h-[76px] rounded-2xl overflow-hidden shrink-0">
                   {it.image_url ? (
-                    <Image src={it.image_url} alt={it.nama_menu} fill sizes="64px" className="object-cover" />
+                    <Image src={it.image_url} alt={it.nama_menu} fill sizes="76px" className="object-cover" />
                   ) : (
                     <div className="absolute inset-0 dish-mesh flex items-center justify-center">
                       <Box size={20} color="rgba(253,253,253,0.5)" />
                     </div>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 self-stretch flex flex-col justify-center">
                   <h3 className="font-display text-sm font-semibold truncate" style={{ color: "var(--navy)" }}>
                     {it.nama_menu}
                   </h3>
@@ -118,16 +177,16 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                       {it.options.map((o) => o.name).join(" · ")}
                     </p>
                   )}
-                  <p className="text-sm font-bold mt-0.5" style={{ color: "var(--orange-ink)" }}>
+                  <p className="text-sm font-bold mt-1" style={{ color: "var(--orange-ink)" }}>
                     {formatRupiah(it.harga_menu)}
                   </p>
                 </div>
-                <div className="shrink-0 inline-flex items-center gap-1">
+                <div className="checkout-quantity shrink-0 inline-flex items-center gap-0.5 rounded-2xl p-1" aria-label={`Jumlah ${it.nama_menu}`}>
                   <button
                     onClick={() => setQty(it.line_key, it.qty - 1)}
                     aria-label={`Kurangi ${it.nama_menu}`}
-                    className="press w-10 h-10 rounded-full inline-flex items-center justify-center"
-                    style={{ background: "var(--surface)", color: "var(--navy)" }}
+                    className="press w-11 h-11 rounded-xl inline-flex items-center justify-center"
+                    style={{ color: "var(--navy)" }}
                   >
                     <Minus size={16} strokeWidth={2.5} />
                   </button>
@@ -137,8 +196,8 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                   <button
                     onClick={() => setQty(it.line_key, it.qty + 1)}
                     aria-label={`Tambah ${it.nama_menu}`}
-                    className="press w-10 h-10 rounded-full inline-flex items-center justify-center text-white"
-                    style={{ background: "var(--orange)" }}
+                    className="press w-11 h-11 rounded-xl inline-flex items-center justify-center"
+                    style={{ background: "var(--orange)", color: "var(--white)" }}
                   >
                     <Plus size={16} strokeWidth={2.5} />
                   </button>
@@ -160,7 +219,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
           <div className="card p-4 mt-4 space-y-4">
             <div>
               <label htmlFor="meja" className="block text-sm font-semibold mb-2" style={{ color: "var(--navy)" }}>
-                Nomor Meja
+                Nomor meja
               </label>
               <input
                 id="meja"
@@ -168,6 +227,8 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                 onChange={(e) => setTable(e.target.value)}
                 onBlur={() => setTouched(true)}
                 inputMode="numeric"
+                aria-invalid={touched && !tableValid}
+                aria-describedby={touched && !tableValid ? "meja-error" : undefined}
                 placeholder="Contoh: 12"
                 className="w-full h-12 px-4 rounded-xl text-sm transition-shadow"
                 style={{
@@ -176,7 +237,12 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                   boxShadow: touched && !tableValid ? "0 0 0 2px var(--orange)" : undefined,
                 }}
               />
-              <p className="text-[11px] mt-1.5" style={{ color: touched && !tableValid ? "var(--orange-ink)" : "var(--navy-muted)" }}>
+              <p
+                id={touched && !tableValid ? "meja-error" : undefined}
+                role={touched && !tableValid ? "alert" : undefined}
+                className="text-[11px] mt-1.5"
+                style={{ color: touched && !tableValid ? "var(--orange-ink)" : "var(--navy-muted)" }}
+              >
                 {touched && !tableValid ? "Wajib diisi sebelum memesan" : "Wajib diisi"}
               </p>
             </div>
@@ -229,24 +295,63 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
             </div>
           </div>
 
-          {/* Metode pembayaran dipilih di sini supaya jalur (online vs kasir)
-              sudah pasti saat pesanan dibuat: pesanan kasir butuh kode check-in
-              yang dibuat di saat itu juga, bukan sesudahnya. */}
-          <PaymentChannelSelector value={channel} onChange={setChannel} />
+            </>
+          ) : (
+            <section aria-labelledby="payment-heading" className="space-y-4">
+              <div className="mb-1">
+                <p className="checkout-kicker">Langkah 2 dari 2</p>
+              </div>
+              <div className="card p-4">
+                <h2 id="payment-heading" className="font-display text-lg font-bold" style={{ color: "var(--navy)" }}>
+                  Pilih metode pembayaran
+                </h2>
+                <p className="text-sm mt-1" style={{ color: "var(--navy-muted)" }}>
+                  Pesananmu akan dikirim setelah metode pembayaran dipilih.
+                </p>
+                <div className="mt-4 space-y-2">
+                  {items.map((it) => (
+                    <div key={it.line_key} className="flex items-center justify-between gap-3 text-sm">
+                      <span style={{ color: "var(--navy)" }}>{it.qty}× {it.nama_menu}</span>
+                      <span style={{ color: "var(--navy-muted)" }}>{formatRupiah(it.harga_menu * it.qty)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="w-full h-px my-3" style={{ background: "var(--border)" }} />
+                <div className="flex items-center justify-between font-bold" style={{ color: "var(--navy)" }}>
+                  <span>Total</span>
+                  <span style={{ color: "var(--orange-ink)" }}>{formatRupiah(total)}</span>
+                </div>
+              </div>
+              <PaymentChannelSelector value={channel} onChange={setChannel} />
+            </section>
+          )}
         </div>
       )}
 
       {/* Sticky CTA */}
       {count > 0 && (
-        <div
-          className="fixed bottom-0 inset-x-0 z-40 px-4 pt-3"
+      <div
+        className="checkout-action-bar fixed bottom-0 inset-x-0 z-40 px-4 pt-3"
           style={{
             paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-            background: "var(--white)",
-            borderTop: "1px solid var(--border)",
+            background: "var(--navy)",
+            borderTop: "1px solid rgba(253,253,253,0.14)",
           }}
         >
-          {isOnline ? (
+          {step === "review" ? (
+            <>
+              <button
+                onClick={continueToPayment}
+                disabled={!isOnline}
+                className="btn-primary press w-full h-[52px] rounded-2xl font-semibold text-[15px] text-white max-w-xl mx-auto inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                Lanjut ke pembayaran
+              </button>
+              <p className="checkout-action-hint text-[11px] text-center mt-2" style={{ color: "var(--navy-muted)" }}>
+                {isOnline ? "Periksa meja dan catatan sebelum memilih pembayaran." : "Hubungkan ke Wi-Fi kafe untuk melanjutkan."}
+              </p>
+            </>
+          ) : (
             <>
               {orderError && (
                 <div
@@ -261,33 +366,30 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
                   <p>{orderError}</p>
                 </div>
               )}
-              <button
-                onClick={submit}
-                disabled={isSubmitting}
-                className="btn-primary press w-full h-[52px] rounded-2xl font-semibold text-[15px] text-white max-w-xl mx-auto inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSubmitting && <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />}
-                {isSubmitting ? "Mengirim pesanan..." : "Pesan Sekarang"}
-              </button>
-              <p className="text-[11px] text-center mt-2" style={{ color: "var(--navy-muted)" }}>
-                {channel === "online"
-                  ? "Lanjut ke pembayaran online setelah pesanan dibuat"
-                  : `Tunjukkan kode ke kasir ${cafe.nama_cafe} untuk bayar`}
-              </p>
-            </>
-          ) : (
-            <>
-              <div
-                className="w-full h-[52px] rounded-2xl flex items-center justify-center gap-2 max-w-xl mx-auto"
-                style={{ background: "var(--surface)", border: "1.5px dashed var(--border)" }}
-              >
-                <WifiOff size={16} strokeWidth={1.8} style={{ color: "var(--navy-muted)" }} />
-                <span className="font-semibold text-sm" style={{ color: "var(--navy-muted)" }}>
-                  Pesan Sekarang
-                </span>
+              <div className="checkout-action-row max-w-xl mx-auto flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep("review")}
+                  disabled={isSubmitting}
+                  className="checkout-secondary-action press h-[48px] sm:h-[52px] rounded-2xl px-4 font-semibold text-sm disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  Kembali ke review
+                </button>
+                <button
+                  onClick={submit}
+                  disabled={isSubmitting || !isOnline}
+                  className="btn-primary press w-full flex-1 h-[52px] rounded-2xl font-semibold text-[15px] text-white inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isSubmitting && <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />}
+                  {isSubmitting ? "Mengirim pesanan..." : "Kirim pesanan"}
+                </button>
               </div>
-              <p className="text-[11px] text-center mt-2 flex items-center justify-center gap-1" style={{ color: "var(--orange-ink)" }}>
-                Hubungkan ke Wi-Fi kafe untuk mengirim pesanan.
+              <p className="checkout-action-hint text-[11px] text-center mt-2 flex items-center justify-center gap-1" style={{ color: isOnline ? "var(--navy-muted)" : "var(--orange-ink)" }}>
+                {isOnline
+                  ? channel === "online"
+                    ? "Lanjut ke pembayaran online setelah pesanan dibuat"
+                    : `Tunjukkan kode ke kasir ${cafe.nama_cafe} untuk bayar`
+                  : <><WifiOff size={14} strokeWidth={1.8} /> Hubungkan ke Wi-Fi kafe untuk mengirim pesanan.</>}
               </p>
             </>
           )}
@@ -310,26 +412,25 @@ function PaymentChannelSelector({
       id: "online" as const,
       icon: Smartphone,
       title: "Bayar Online",
-      sub: "Satu QRIS, scan dari aplikasi pilihanmu",
+      sub: "Satu QR untuk semua aplikasi pembayaran",
     },
     {
       id: "cashier" as const,
       icon: Store,
       title: "Bayar di Kasir",
-      sub: "Tunjukkan kode ke kasir",
+      sub: "Tunjukkan kode pesanan ke kasir",
     },
   ];
 
   return (
-    <section className="mt-4" aria-label="Metode pembayaran">
+    <section aria-label="Pilih metode pembayaran">
       <h2 className="font-display text-sm font-bold mb-2" style={{ color: "var(--navy)" }}>
-        Metode Pembayaran
+        Metode pembayaran
       </h2>
       <div
         role="radiogroup"
-        aria-label="Metode pembayaran"
-        className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl"
-        style={{ background: "var(--surface)" }}
+        aria-label="Pilih metode pembayaran"
+        className="payment-choice-list space-y-2"
       >
         {options.map((opt) => {
           const active = value === opt.id;
@@ -341,28 +442,30 @@ function PaymentChannelSelector({
               role="radio"
               aria-checked={active}
               onClick={() => onChange(opt.id)}
-              className="press flex flex-col items-start gap-1.5 rounded-xl px-3.5 py-3 text-left transition-[background,box-shadow,transform] duration-200"
+              className={`payment-choice press flex items-start gap-3 rounded-2xl px-3.5 py-3.5 text-left transition-[background,box-shadow,transform] duration-200${active ? " is-selected" : ""}`}
               style={
                 active
                   ? { background: "var(--white)", boxShadow: "var(--shadow-md)", border: "1.5px solid var(--orange)" }
-                  : { background: "transparent", border: "1.5px solid transparent" }
+                  : { background: "var(--white)", border: "1.5px solid var(--border)" }
               }
             >
-              <span className="flex items-center gap-2">
+              <span className="payment-choice-icon w-10 h-10 rounded-xl inline-flex items-center justify-center shrink-0" style={{ background: active ? "var(--orange-blush)" : "var(--surface)" }}>
                 <Icon
                   size={18}
                   strokeWidth={2.2}
                   style={{ color: active ? "var(--orange)" : "var(--navy-muted)" }}
                 />
-                <span
-                  className="font-semibold text-[13px]"
-                  style={{ color: active ? "var(--navy)" : "var(--navy-muted)" }}
-                >
-                  {opt.title}
-                </span>
               </span>
-              <span className="text-[11px] leading-tight" style={{ color: "var(--navy-muted)" }}>
-                {opt.sub}
+              <span className="flex-1 min-w-0">
+                <span className="flex items-center gap-2">
+                  <span className="font-semibold text-[13px]" style={{ color: active ? "var(--navy)" : "var(--navy-muted)" }}>
+                    {opt.title}
+                  </span>
+                  {active && <Check size={15} strokeWidth={2.8} style={{ color: "var(--orange)" }} aria-hidden="true" />}
+                </span>
+                <span className="block text-[11px] leading-tight mt-1" style={{ color: "var(--navy-muted)" }}>
+                  {opt.sub}
+                </span>
               </span>
             </button>
           );

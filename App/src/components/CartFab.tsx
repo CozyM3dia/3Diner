@@ -19,7 +19,7 @@ export default function CartFab({ slug }: { slug: string }) {
   return (
     <Link
       href={`/${slug}/keranjang`}
-      aria-label={`Lihat keranjang, ${count} item, total ${formatRupiah(total)}`}
+      aria-label={`Lihat pesanan, ${count} item, total ${formatRupiah(total)}`}
       className="fab-in press fixed right-4 z-50 flex items-center gap-3 h-12 pl-4 pr-5 rounded-full text-white"
       style={{
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)",
@@ -36,7 +36,7 @@ export default function CartFab({ slug }: { slug: string }) {
           {count}
         </span>
       </span>
-      <span className="text-[13px] font-semibold whitespace-nowrap">{count} item</span>
+      <span className="text-[13px] font-semibold whitespace-nowrap">Lihat pesanan</span>
       <span className="w-px h-4" style={{ background: "rgba(255,255,255,0.35)" }} />
       <span className="text-[13px] font-bold whitespace-nowrap">{formatRupiah(total)}</span>
     </Link>

@@ -159,14 +159,15 @@ export default function MenuOrderPanel({
             ) : (
               <>
                 <div
-                  className="shrink-0 inline-flex items-center h-[52px] px-1 rounded-2xl"
+                  className="menu-order-quantity shrink-0 inline-flex items-center h-[52px] px-1 rounded-2xl"
+                  aria-label={`Jumlah ${menu.nama_menu}`}
                   style={{ background: "var(--surface)" }}
                 >
                   <button
                     onClick={() => setQty(lineKey, qty - 1)}
                     aria-label={qty === 1 ? `Hapus ${menu.nama_menu} dari pesanan` : "Kurangi jumlah"}
-                    className="press w-9 h-9 rounded-full inline-flex items-center justify-center"
-                    style={{ background: "var(--white)", color: "var(--navy)" }}
+                    className="press w-11 h-11 rounded-xl inline-flex items-center justify-center"
+                    style={{ color: "var(--navy)" }}
                   >
                     <Minus size={15} strokeWidth={2.5} />
                   </button>
@@ -180,7 +181,7 @@ export default function MenuOrderPanel({
                   <button
                     onClick={inc}
                     aria-label="Tambah jumlah"
-                    className="press w-9 h-9 rounded-full inline-flex items-center justify-center text-white"
+                    className="press w-11 h-11 rounded-xl inline-flex items-center justify-center text-white"
                     style={{ background: "var(--orange)" }}
                   >
                     <Plus size={15} strokeWidth={2.5} />
@@ -190,9 +191,15 @@ export default function MenuOrderPanel({
                 <Link
                   href={`/${slug}/keranjang`}
                   className="btn-primary press flex-1 min-w-0 inline-flex items-center justify-between gap-2 h-[52px] px-4 rounded-2xl text-white"
+                  aria-label={`Lihat pesanan, ${count} item, total ${formatRupiah(total)}`}
                 >
-                  <span className="font-semibold text-sm whitespace-nowrap">
-                    Pesanan{count > qty ? ` (${count})` : ""}
+                  <span className="min-w-0 flex items-center gap-2">
+                    <span className="font-semibold text-sm whitespace-nowrap">
+                      Lihat pesanan
+                    </span>
+                    <span className="text-[11px] font-semibold whitespace-nowrap opacity-80">
+                      {count} item
+                    </span>
                   </span>
                   <span className="font-bold text-sm whitespace-nowrap tabular-nums">
                     {formatRupiah(total)}

@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import React from "react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CartView from "../src/components/CartView";
@@ -49,7 +49,7 @@ const clearCart = vi.fn();
 const createOrderMock = vi.mocked(createOrder);
 const useCartMock = vi.mocked(useCart);
 
-function mockCart() {
+function mockCartWithTable(table = "7") {
   useCartMock.mockReturnValue({
     items: [
       {
@@ -64,7 +64,7 @@ function mockCart() {
     ],
     count: 2,
     total: 100_000,
-    table: "7",
+    table,
     notes: "",
     add: vi.fn(),
     setQty: vi.fn(),
@@ -78,7 +78,7 @@ function mockCart() {
 describe("CartView order recovery", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockCart();
+    mockCartWithTable();
   });
 
   afterEach(() => {
@@ -112,19 +112,42 @@ describe("CartView order recovery", () => {
 
     render(<CartView cafe={{ id_cafe: "cafe-1", nama_cafe: "3Diner" } as never} slug="demo" />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Pesan Sekarang" }));
+    expect(screen.getByRole("heading", { name: "Review pesanan" })).toBeTruthy();
+    const progressRail = screen.getByRole("navigation", { name: "Tahap checkout" });
+    expect(within(progressRail).getByText("Review")).toBeTruthy();
+    expect(within(progressRail).getByText("Bayar")).toBeTruthy();
+    expect(within(progressRail).getByText("Selesai")).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: "Lanjut ke pembayaran" }));
+    expect(screen.getByText("Pilih metode pembayaran")).toBeTruthy();
+    expect(screen.getByRole("radiogroup", { name: "Pilih metode pembayaran" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Kembali ke review" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Kirim pesanan" })).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: "Kirim pesanan" }));
 
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Stok beberapa menu sedang tidak cukup");
     expect(alertSpy).not.toHaveBeenCalled();
     expect(clearCart).not.toHaveBeenCalled();
-    expect(screen.queryByText("Pasta Meatball")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Kembali ke review" })).toBeTruthy();
 
-    await userEvent.click(screen.getByRole("button", { name: "Pesan Sekarang" }));
+    await userEvent.click(screen.getByRole("button", { name: "Kirim pesanan" }));
 
     await waitFor(() => expect(createOrderMock).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(clearCart).toHaveBeenCalledTimes(1));
     // Token ikut di URL supaya halaman status bisa dibuka ulang tanpa localStorage.
     expect(routerPush).toHaveBeenCalledWith("/demo/pesanan/order-1?token=token-1");
+  });
+
+  it("keeps the review step and marks the table as required", async () => {
+    mockCartWithTable("");
+    render(<CartView cafe={{ id_cafe: "cafe-1", nama_cafe: "3Diner" } as never} slug="demo" />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Lanjut ke pembayaran" }));
+
+    expect(screen.getByRole("textbox", { name: "Nomor meja" }).getAttribute("aria-invalid")).toBe("true");
+    expect(screen.queryByText("Pilih metode pembayaran")).toBeNull();
+    expect(createOrderMock).not.toHaveBeenCalled();
   });
 });
