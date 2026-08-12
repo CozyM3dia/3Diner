@@ -29,6 +29,10 @@ const cashPayBeforeKitchenMigrationPath = new URL(
   "../supabase/migrations/20260809120004_cash_pay_before_kitchen.sql",
   import.meta.url
 );
+const qrisPaymentUrlMigrationPath = new URL(
+  "../supabase/migrations/20260812121415_qris_payment_url.sql",
+  import.meta.url
+);
 
 describe("security migration", () => {
   it("removes anonymous Orders policies and adds order token support", () => {
@@ -189,6 +193,17 @@ describe("rate limit migration", () => {
 });
 
 describe("payment lifecycle migration", () => {
+  it("persists a validated dynamic QRIS URL and exposes it only while pending", () => {
+    const sql = readFileSync(qrisPaymentUrlMigrationPath, "utf8");
+
+    expect(sql).toContain('add column if not exists payment_qr_url text');
+    expect(sql).toContain('Orders_payment_qr_url_valid');
+    expect(sql).toContain("payment_qr_url ~ '^https://api(\\.sandbox)?\\.midtrans\\.com/'");
+    expect(sql).toContain("'payment_qr_url', case when v_order.payment_status = 'pending'");
+    expect(sql).toContain("o.checkin_code, o.payment_qr_url");
+    expect(sql).toContain("security definer");
+  });
+
   it("replaces legacy Orders checks and snapshots the canonical tax contract before charging", () => {
     const sql = readFileSync(paymentLifecycleMigrationPath, "utf8");
 

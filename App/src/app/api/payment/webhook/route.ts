@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       }
 
       if (order.payment_status !== "paid") {
-        // A settlement remains valid after a Snap-popup retry restored the row to
+        // A settlement remains valid after a payment retry restored the row to
         // awaiting_payment. A zero-row write is a reconciliation failure, not an
         // acknowledgement Midtrans may safely stop retrying.
         const { data: paidRows, error: paidErr } = await supabaseAdmin
@@ -114,7 +114,7 @@ export async function POST(req: Request) {
       // memilih bayar tunai, karena kedua jalur menuntut status "awaiting_payment".
       const { error: resetError } = await supabaseAdmin
         .from("Orders")
-        .update({ payment_status: "awaiting_payment", payment_method: null })
+        .update({ payment_status: "awaiting_payment", payment_method: null, payment_qr_url: null })
         .eq("id_order", order_id)
         .eq("payment_status", "pending");
       if (resetError) {

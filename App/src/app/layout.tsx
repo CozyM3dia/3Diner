@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
-import Script from "next/script";
 import { DatadogAppRouter } from "@datadog/browser-rum-nextjs";
 import "./globals.css";
 
@@ -43,15 +42,6 @@ export default function RootLayout({
       <body className="min-h-dvh">
         <DatadogAppRouter />
         {children}
-        <Script
-          src={
-            process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true"
-              ? "https://app.midtrans.com/snap/snap.js"
-              : "https://app.sandbox.midtrans.com/snap/snap.js"
-          }
-          data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
-          strategy="afterInteractive"
-        />
       </body>
     </html>
   );

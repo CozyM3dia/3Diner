@@ -1,8 +1,8 @@
 
-/** Channels shown inside the Midtrans Snap popup. DANA/OVO are reachable through
- *  the QRIS option — Snap has no direct OVO channel. */
-export const ONLINE_ENABLED_PAYMENTS = [
-  "qris", "gopay", "shopeepay", "bca_va", "bni_va", "bri_va", "permata_va", "echannel",
+/** Common QRIS payer apps shown on the customer payment screen. The QR itself
+ *  remains one dynamic QRIS transaction, regardless of the app used to scan it. */
+export const QRIS_SUPPORTED_APPS = [
+  "GoPay", "OVO", "DANA", "ShopeePay", "m-banking",
 ] as const;
 
 /** Every value the Orders.payment_method CHECK constraint accepts. */

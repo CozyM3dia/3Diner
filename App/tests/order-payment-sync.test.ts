@@ -271,7 +271,7 @@ describe("POST /api/payment/webhook", () => {
     const setPaid = update.mock.calls.find((c) => c[0].payment_status === "paid");
     expect(setPaid).toBeTruthy();
     // The paid write filters with .neq("payment_status", "paid"), not .eq("payment_status", "pending"):
-    // a duplicate charge attempt can revert the order to awaiting_payment while the first Snap
+    // a duplicate charge attempt can revert the order to awaiting_payment while the first QRIS
     // transaction is still live, and the real settlement must still land.
     expect(neq2).toHaveBeenCalledWith("payment_status", "paid");
   });
