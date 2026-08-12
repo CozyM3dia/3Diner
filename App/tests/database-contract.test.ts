@@ -33,6 +33,14 @@ const qrisPaymentUrlMigrationPath = new URL(
   "../supabase/migrations/20260812121415_qris_payment_url.sql",
   import.meta.url
 );
+const qrisPaymentTransactionIdMigrationPath = new URL(
+  "../supabase/migrations/20260812130642_qris_payment_transaction_id.sql",
+  import.meta.url
+);
+const qrisPaymentAttemptIdentityMigrationPath = new URL(
+  "../supabase/migrations/20260812141335_qris_payment_attempt_identity.sql",
+  import.meta.url
+);
 
 describe("security migration", () => {
   it("removes anonymous Orders policies and adds order token support", () => {
@@ -202,6 +210,23 @@ describe("payment lifecycle migration", () => {
     expect(sql).toContain("'payment_qr_url', case when v_order.payment_status = 'pending'");
     expect(sql).toContain("o.checkin_code, o.payment_qr_url");
     expect(sql).toContain("security definer");
+  });
+
+  it("persists the active Midtrans transaction identity for QRIS recovery", () => {
+    const sql = readFileSync(qrisPaymentTransactionIdMigrationPath, "utf8");
+
+    expect(sql).toContain('add column if not exists payment_transaction_id text');
+    expect(sql).toContain('Orders_payment_transaction_id_valid');
+    expect(sql).toContain("payment_transaction_id is null");
+  });
+
+  it("pairs QRIS identity fields and validates the retry key", () => {
+    const sql = readFileSync(qrisPaymentAttemptIdentityMigrationPath, "utf8");
+
+    expect(sql).toContain('add column if not exists payment_idempotency_key text');
+    expect(sql).toContain('Orders_payment_qr_identity_pair_valid');
+    expect(sql).toContain('Orders_payment_idempotency_key_valid');
+    expect(sql).toContain("payment_idempotency_key ~ '^[A-Za-z0-9._:-]{1,46}$'");
   });
 
   it("replaces legacy Orders checks and snapshots the canonical tax contract before charging", () => {

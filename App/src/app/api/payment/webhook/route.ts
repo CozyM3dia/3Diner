@@ -10,6 +10,7 @@ type MidtransNotification = {
   signature_key?: unknown;
   transaction_status?: unknown;
   payment_type?: unknown;
+  transaction_id?: unknown;
 };
 
 function isNonEmptyString(value: unknown): value is string {
@@ -19,7 +20,7 @@ function isNonEmptyString(value: unknown): value is string {
 export async function POST(req: Request) {
   try {
     const body = await req.json() as MidtransNotification;
-    const { order_id, status_code, gross_amount, signature_key, transaction_status, payment_type } = body;
+    const { order_id, status_code, gross_amount, signature_key, transaction_status, payment_type, transaction_id } = body;
     if (
       !isNonEmptyString(order_id) || !isNonEmptyString(status_code) ||
       !isNonEmptyString(gross_amount) || !/^\d+(?:\.\d{1,2})?$/.test(gross_amount) ||
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
     }
 
     const { data: order, error: orderReadError } = await supabaseAdmin
-      .from("Orders").select("total,payment_status,status").eq("id_order", order_id).single();
+      .from("Orders").select("total,payment_status,status,payment_transaction_id").eq("id_order", order_id).single();
     if (orderReadError) {
       return NextResponse.json({ error: "Gagal membaca pesanan" }, { status: 503 });
     }
@@ -49,6 +50,16 @@ export async function POST(req: Request) {
     }
     if (Number(gross_amount) !== Number(order.total)) {
       return NextResponse.json({ error: "Amount mismatch" }, { status: 400 });
+    }
+
+    if (!isSuccessfulPayment && ["expire", "cancel", "deny", "failure"].includes(transaction_status) &&
+        !isNonEmptyString(transaction_id)) {
+      // A terminal callback without an attempt identity cannot be safely
+      // applied: it might belong to an older transaction for the same order.
+      return NextResponse.json({ ok: true });
+    }
+    if (order.payment_transaction_id && transaction_id !== order.payment_transaction_id) {
+      return NextResponse.json({ ok: true });
     }
 
     if (isSuccessfulPayment) {
@@ -71,7 +82,13 @@ export async function POST(req: Request) {
         // acknowledgement Midtrans may safely stop retrying.
         const { data: paidRows, error: paidErr } = await supabaseAdmin
           .from("Orders")
-          .update({ payment_status: "paid", payment_method: mapMidtransPaymentType(payment_type) })
+          .update({
+            payment_status: "paid",
+            payment_method: mapMidtransPaymentType(payment_type),
+            payment_qr_url: null,
+            payment_transaction_id: null,
+            payment_idempotency_key: null,
+          })
           .eq("id_order", order_id)
           .neq("payment_status", "paid")
           .select("id_order");
@@ -112,14 +129,25 @@ export async function POST(req: Request) {
       // Tanpa cabang ini, QRIS yang kedaluwarsa membuat pesanan tersangkut di
       // "pending" selamanya: pelanggan tidak bisa membuat QRIS baru maupun
       // memilih bayar tunai, karena kedua jalur menuntut status "awaiting_payment".
-      const { error: resetError } = await supabaseAdmin
+      const { data: resetRows, error: resetError } = await supabaseAdmin
         .from("Orders")
-        .update({ payment_status: "awaiting_payment", payment_method: null, payment_qr_url: null })
+        .update({
+          payment_status: "awaiting_payment",
+          payment_method: null,
+          payment_qr_url: null,
+          payment_transaction_id: null,
+          payment_idempotency_key: null,
+        })
         .eq("id_order", order_id)
-        .eq("payment_status", "pending");
-      if (resetError) {
+        .eq("payment_transaction_id", transaction_id)
+        .eq("payment_status", "pending")
+        .select("id_order");
+      if (resetError || !resetRows || resetRows.length > 1) {
         return NextResponse.json({ error: "Gagal mereset pembayaran" }, { status: 502 });
       }
+      // Zero rows means another state transition won the compare-and-set
+      // (for example, a newer QRIS attempt or settlement). Acknowledge the
+      // stale callback without clearing that newer state.
     }
 
     return NextResponse.json({ ok: true });

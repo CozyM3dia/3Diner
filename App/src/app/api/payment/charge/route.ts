@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
@@ -15,15 +16,28 @@ type MidtransQrisResponse = {
   status_message?: unknown;
   payment_type?: unknown;
   transaction_status?: unknown;
+  transaction_id?: unknown;
   actions?: unknown;
   error_messages?: unknown;
 };
+
+type QrisRecovery =
+  | { kind: "pending"; qrisUrl: string; transactionId: string }
+  | { kind: "settled" }
+  | { kind: "terminal"; transactionId: string | null }
+  | { kind: "unknown" };
+
+type ResetResult = "reset" | "superseded" | "error";
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
 
 function isAllowedQrUrl(value: unknown): value is string {
   if (typeof value !== "string") return false;
   try {
     const url = new URL(value);
-    return url.protocol === "https:" && ALLOWED_QR_HOSTS.has(url.hostname);
+    return url.protocol === "https:" && url.port === "" && ALLOWED_QR_HOSTS.has(url.hostname);
   } catch {
     return false;
   }
@@ -31,15 +45,25 @@ function isAllowedQrUrl(value: unknown): value is string {
 
 /** Prefer ASPI's bordered QR when Midtrans provides it, then fall back to the
  *  original QR action for older merchant/API responses. */
-function getQrisUrl(data: MidtransQrisResponse | null): string | null {
-  if (!Array.isArray(data?.actions)) return null;
-  const actions = data.actions.filter((action): action is MidtransQrisAction =>
-    typeof action === "object" && action !== null
-  );
+function getQrisUrl(data: MidtransQrisResponse | null, apiBaseUrl?: string): string | null {
+  const actions = Array.isArray(data?.actions)
+    ? data.actions.filter((action): action is MidtransQrisAction =>
+      typeof action === "object" && action !== null
+    )
+    : [];
   const action =
     actions.find((candidate) => candidate.name === "generate-qr-code-v2") ??
     actions.find((candidate) => candidate.name === "generate-qr-code");
-  return isAllowedQrUrl(action?.url) ? action.url : null;
+  if (isAllowedQrUrl(action?.url)) return action.url;
+
+  // The standard QRIS image path is deterministic from transaction_id. This
+  // lets us recover a transaction after a charge response was lost, even when
+  // Get Status omits the original actions array.
+  if (apiBaseUrl && isNonEmptyString(data?.transaction_id)) {
+    const fallback = `${apiBaseUrl}/v2/qris/${encodeURIComponent(data.transaction_id)}/qr-code`;
+    return isAllowedQrUrl(fallback) ? fallback : null;
+  }
+  return null;
 }
 
 export async function POST(req: Request) {
@@ -56,7 +80,7 @@ export async function POST(req: Request) {
 
     const { data: order, error } = await supabaseAdmin
       .from("Orders")
-      .select("id_order,customer_token,total,subtotal,tax_amount,service_amount,prices_include_tax,payment_status,payment_qr_url,items")
+      .select("id_order,customer_token,total,subtotal,tax_amount,service_amount,prices_include_tax,payment_status,payment_qr_url,payment_transaction_id,payment_idempotency_key,items")
       .eq("id_order", orderId)
       .eq("customer_token", orderToken)
       .single();
@@ -66,33 +90,80 @@ export async function POST(req: Request) {
     if (order.payment_status === "paid") {
       return NextResponse.json({ error: "Pembayaran pesanan ini sudah lunas" }, { status: 409 });
     }
-    if (order.payment_status === "pending" && isAllowedQrUrl(order.payment_qr_url)) {
+    if (order.payment_status === "pending" &&
+        isAllowedQrUrl(order.payment_qr_url) &&
+        isNonEmptyString(order.payment_transaction_id)) {
       return NextResponse.json({ qris_url: order.payment_qr_url });
     }
-
     const serverKey = process.env.MIDTRANS_SERVER_KEY;
     if (!serverKey) return NextResponse.json({ error: "Pembayaran belum dikonfigurasi" }, { status: 503 });
     const isProduction = process.env.MIDTRANS_IS_PRODUCTION === "true";
+    const apiBaseUrl = isProduction ? "https://api.midtrans.com" : "https://api.sandbox.midtrans.com";
     const chargeUrl = isProduction
       ? "https://api.midtrans.com/v2/charge"
       : "https://api.sandbox.midtrans.com/v2/charge";
     const authHeader = `Basic ${Buffer.from(serverKey + ":").toString("base64")}`;
+    let attemptIdempotencyKey: string | null = null;
+    let shouldClaimNewAttempt = order.payment_status === "awaiting_payment";
 
-    // Klaim atomik: hanya order yang masih menunggu bayar yang boleh di-charge.
-    // Mencegah dua tab membuat dua transaksi QRIS untuk order yang sama.
-    // .select() lets us see whether a row was actually claimed: without it, a second
-    // concurrent/retry charge on an already-"pending" order would match 0 rows, get no
-    // error, and proceed to call Midtrans again then blindly revert on cleanup.
-    const { data: claimedRows, error: claimError } = await supabaseAdmin
-      .from("Orders")
-      .update({ payment_status: "pending", payment_qr_url: null })
-      .eq("id_order", order.id_order)
-      .eq("payment_status", "awaiting_payment")
-      .select("id_order");
-    if (claimError) {
-      return NextResponse.json({ error: "Pembayaran sedang diproses" }, { status: 409 });
+    if (order.payment_status === "pending") {
+      const recovery = await recoverPendingQris(
+        order.id_order,
+        serverKey,
+        apiBaseUrl,
+        order.payment_transaction_id,
+        order.payment_idempotency_key
+      );
+      if (recovery.kind === "pending") {
+        return NextResponse.json({ qris_url: recovery.qrisUrl });
+      }
+      if (recovery.kind === "settled") {
+        return NextResponse.json({ error: "Pembayaran sudah diterima; menunggu konfirmasi" }, { status: 409 });
+      }
+      if (recovery.kind === "terminal") {
+        const resetResult = await resetPendingQris(
+          order.id_order,
+          order.payment_transaction_id,
+          order.payment_idempotency_key
+        );
+        if (resetResult === "error") return NextResponse.json({ error: "Gagal mereset pembayaran" }, { status: 502 });
+        if (resetResult === "superseded") {
+          return NextResponse.json({ error: "Pembayaran sedang diproses" }, { status: 409 });
+        }
+        shouldClaimNewAttempt = true;
+      } else {
+        // A 404 or transient status failure is ambiguous: the charge may have
+        // succeeded but not be visible to Get Status yet. Only retry with the
+        // stored Midtrans idempotency key; legacy attempts without one stay
+        // pending until they can be reconciled safely.
+        attemptIdempotencyKey = isNonEmptyString(order.payment_idempotency_key)
+          ? order.payment_idempotency_key
+          : null;
+        if (!attemptIdempotencyKey) {
+          return NextResponse.json({ error: "Pembayaran sedang diverifikasi" }, { status: 409 });
+        }
+      }
     }
-    if (!claimedRows || claimedRows.length === 0) {
+
+    if (shouldClaimNewAttempt) {
+      // Klaim atomik: hanya order yang masih menunggu bayar yang boleh di-charge.
+      // Mencegah dua tab membuat dua transaksi QRIS untuk order yang sama.
+      const newIdempotencyKey = randomUUID();
+      const { data: claimedRows, error: claimError } = await supabaseAdmin
+        .from("Orders")
+        .update({ payment_status: "pending", payment_qr_url: null, payment_transaction_id: null, payment_idempotency_key: newIdempotencyKey })
+        .eq("id_order", order.id_order)
+        .eq("payment_status", "awaiting_payment")
+        .select("id_order,payment_idempotency_key");
+      if (claimError) {
+        return NextResponse.json({ error: "Pembayaran sedang diproses" }, { status: 409 });
+      }
+      if (!claimedRows || claimedRows.length !== 1 || claimedRows[0]?.payment_idempotency_key !== newIdempotencyKey) {
+        return NextResponse.json({ error: "Pembayaran sedang diproses" }, { status: 409 });
+      }
+      attemptIdempotencyKey = newIdempotencyKey;
+    }
+    if (!attemptIdempotencyKey) {
       return NextResponse.json({ error: "Pembayaran sedang diproses" }, { status: 409 });
     }
 
@@ -104,18 +175,18 @@ export async function POST(req: Request) {
     const serviceAmount = Number(order.service_amount ?? 0);
     const taxAmount = order.prices_include_tax ? 0 : Number(order.tax_amount ?? 0);
     if (!Number.isInteger(serviceAmount) || serviceAmount < 0 || !Number.isInteger(taxAmount) || taxAmount < 0) {
-      await supabaseAdmin.from("Orders")
-        .update({ payment_status: "awaiting_payment" })
-        .eq("id_order", order.id_order).eq("payment_status", "pending");
+      const resetResult = await resetPendingQris(order.id_order, null, attemptIdempotencyKey);
+      if (resetResult === "error") return NextResponse.json({ error: "Gagal mereset pembayaran" }, { status: 502 });
+      if (resetResult === "superseded") return NextResponse.json({ error: "Pembayaran sedang diproses" }, { status: 409 });
       return NextResponse.json({ error: "Total pesanan tidak valid" }, { status: 500 });
     }
     if (serviceAmount > 0) itemDetails.push({ id: "service-charge", price: serviceAmount, quantity: 1, name: "Service charge" });
     if (taxAmount > 0) itemDetails.push({ id: "tax", price: taxAmount, quantity: 1, name: "Tax" });
     const itemDetailsTotal = itemDetails.reduce((sum, it) => sum + it.price * it.quantity, 0);
     if (itemDetailsTotal !== Number(order.total)) {
-      await supabaseAdmin.from("Orders")
-        .update({ payment_status: "awaiting_payment" })
-        .eq("id_order", order.id_order).eq("payment_status", "pending");
+      const resetResult = await resetPendingQris(order.id_order, null, attemptIdempotencyKey);
+      if (resetResult === "error") return NextResponse.json({ error: "Gagal mereset pembayaran" }, { status: 502 });
+      if (resetResult === "superseded") return NextResponse.json({ error: "Pembayaran sedang diproses" }, { status: 409 });
       return NextResponse.json({ error: "Rincian total pesanan tidak valid" }, { status: 500 });
     }
     const body = {
@@ -129,40 +200,68 @@ export async function POST(req: Request) {
     try {
       res = await fetch(chargeUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: authHeader },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: authHeader,
+          "Idempotency-Key": attemptIdempotencyKey,
+        },
         body: JSON.stringify(body),
       });
       data = await res.json() as MidtransQrisResponse | null;
     } catch {
-      await supabaseAdmin.from("Orders")
-        .update({ payment_status: "awaiting_payment" })
-        .eq("id_order", order.id_order).eq("payment_status", "pending");
-      return NextResponse.json({ error: "Gagal menghubungi pembayaran" }, { status: 502 });
+      // The request may have reached Midtrans even though the response was
+      // lost. Query by merchant order ID before allowing a retry, otherwise a
+      // retry could create a second active QRIS transaction.
+      const recovery = await recoverPendingQris(
+        order.id_order,
+        serverKey,
+        apiBaseUrl,
+        order.payment_transaction_id,
+        attemptIdempotencyKey
+      );
+      if (recovery.kind === "pending") return NextResponse.json({ qris_url: recovery.qrisUrl });
+      if (recovery.kind === "settled") {
+        return NextResponse.json({ error: "Pembayaran sudah diterima; menunggu konfirmasi" }, { status: 409 });
+      }
+      if (recovery.kind === "terminal") {
+        const resetResult = await resetPendingQris(
+          order.id_order,
+          order.payment_transaction_id,
+          attemptIdempotencyKey
+        );
+        if (resetResult === "error") return NextResponse.json({ error: "Gagal mereset pembayaran" }, { status: 502 });
+        if (resetResult === "superseded") {
+          return NextResponse.json({ error: "Pembayaran sedang diproses" }, { status: 409 });
+        }
+        return NextResponse.json({ error: "Gagal menghubungi pembayaran" }, { status: 502 });
+      }
+      return NextResponse.json({ error: "Pembayaran sedang diverifikasi" }, { status: 502 });
     }
 
-    const qrisUrl = getQrisUrl(data);
+    const qrisUrl = getQrisUrl(data, apiBaseUrl);
+    const transactionId = isNonEmptyString(data?.transaction_id) ? data.transaction_id : null;
     const statusCode = Number(data?.status_code ?? res.status);
     if (!res.ok || !Number.isFinite(statusCode) || statusCode >= 400 || data?.payment_type !== "qris" ||
-        data?.transaction_status !== "pending" || !qrisUrl) {
-      await supabaseAdmin.from("Orders")
-        .update({ payment_status: "awaiting_payment" })
-        .eq("id_order", order.id_order).eq("payment_status", "pending");
+        data?.transaction_status !== "pending" || !qrisUrl || !transactionId) {
       const msgs = data?.error_messages;
       const msg = Array.isArray(msgs)
         ? msgs.join(", ")
         : data?.status_message ?? "QRIS tidak dapat dibuat";
-      return NextResponse.json({ error: msg }, { status: res.ok ? 502 : 400 });
+      return NextResponse.json({ error: msg }, { status: res.ok ? 502 : res.status === 406 ? 409 : 400 });
     }
 
-    const { error: qrPersistError } = await supabaseAdmin
+    const { data: persistedRows, error: qrPersistError } = await supabaseAdmin
       .from("Orders")
-      .update({ payment_qr_url: qrisUrl })
+      .update({ payment_qr_url: qrisUrl, payment_transaction_id: transactionId })
       .eq("id_order", order.id_order)
-      .eq("payment_status", "pending");
-    if (qrPersistError) {
-      // The Midtrans transaction already exists; do not revert it or allow a
-      // retry to create a second QR. The current client still receives the QR.
-      return NextResponse.json({ qris_url: qrisUrl, warning: "QRIS dibuat, tetapi belum tersimpan di pesanan" });
+      .eq("payment_status", "pending")
+      .eq("payment_idempotency_key", attemptIdempotencyKey)
+      .select("payment_qr_url,payment_transaction_id");
+    if (qrPersistError || persistedRows?.length !== 1 ||
+        persistedRows[0]?.payment_qr_url !== qrisUrl ||
+        persistedRows[0]?.payment_transaction_id !== transactionId) {
+      return NextResponse.json({ error: "QRIS dibuat, tetapi belum tersimpan. Silakan ulangi." }, { status: 502 });
     }
 
     return NextResponse.json({ qris_url: qrisUrl });
@@ -170,4 +269,85 @@ export async function POST(req: Request) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
+}
+
+async function recoverPendingQris(
+  orderId: string,
+  serverKey: string,
+  apiBaseUrl: string,
+  transactionIdHint?: unknown,
+  idempotencyKey?: unknown
+): Promise<QrisRecovery> {
+  const statusIdentifier = isNonEmptyString(transactionIdHint) ? transactionIdHint : orderId;
+  const statusUrl = `${apiBaseUrl}/v2/${encodeURIComponent(statusIdentifier)}/status`;
+  try {
+    const response = await fetch(statusUrl, {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Basic ${Buffer.from(serverKey + ":").toString("base64")}`,
+      },
+    });
+    if (response.status === 404) return { kind: "unknown" };
+    if (!response.ok) return { kind: "unknown" };
+    const data = await response.json() as MidtransQrisResponse;
+    if (isNonEmptyString(transactionIdHint) && data.transaction_id !== transactionIdHint) {
+      return { kind: "unknown" };
+    }
+    if (data.transaction_status === "settlement" || data.transaction_status === "capture") {
+      return { kind: "settled" };
+    }
+    if (["expire", "cancel", "deny", "failure"].includes(String(data.transaction_status))) {
+      return {
+        kind: "terminal",
+        transactionId: isNonEmptyString(data.transaction_id) ? data.transaction_id : null,
+      };
+    }
+    const qrisUrl = getQrisUrl(data, apiBaseUrl);
+    const transactionId = isNonEmptyString(data.transaction_id) ? data.transaction_id : null;
+    if (data.payment_type !== "qris" || data.transaction_status !== "pending" || !qrisUrl || !transactionId) {
+      return { kind: "unknown" };
+    }
+    let persistedQuery = supabaseAdmin
+      .from("Orders")
+      .update({ payment_qr_url: qrisUrl, payment_transaction_id: transactionId })
+      .eq("id_order", orderId)
+      .eq("payment_status", "pending");
+    if (isNonEmptyString(transactionIdHint)) {
+      // A status lookup by transaction ID must only update that same attempt.
+      persistedQuery = persistedQuery.eq("payment_transaction_id", transactionIdHint);
+    } else if (isNonEmptyString(idempotencyKey)) {
+      // A lost charge response has no transaction ID yet; the attempt key is
+      // the compare-and-set identity that prevents a stale recovery write.
+      persistedQuery = persistedQuery.eq("payment_idempotency_key", idempotencyKey);
+    } else {
+      return { kind: "unknown" };
+    }
+    const { data: persistedRows, error } = await persistedQuery.select("payment_qr_url,payment_transaction_id");
+    if (error || persistedRows?.length !== 1 ||
+        persistedRows[0]?.payment_qr_url !== qrisUrl ||
+        persistedRows[0]?.payment_transaction_id !== transactionId) {
+      return { kind: "unknown" };
+    }
+    return { kind: "pending", qrisUrl, transactionId };
+  } catch {
+    return { kind: "unknown" };
+  }
+}
+
+async function resetPendingQris(
+  orderId: string,
+  transactionId: unknown,
+  idempotencyKey: unknown
+): Promise<ResetResult> {
+  if (!isNonEmptyString(transactionId) && !isNonEmptyString(idempotencyKey)) return "error";
+  let resetQuery = supabaseAdmin
+    .from("Orders")
+    .update({ payment_status: "awaiting_payment", payment_qr_url: null, payment_transaction_id: null, payment_idempotency_key: null })
+    .eq("id_order", orderId)
+    .eq("payment_status", "pending");
+  if (isNonEmptyString(transactionId)) resetQuery = resetQuery.eq("payment_transaction_id", transactionId);
+  if (isNonEmptyString(idempotencyKey)) resetQuery = resetQuery.eq("payment_idempotency_key", idempotencyKey);
+  const { data, error } = await resetQuery.select("id_order");
+  if (error || !data || data.length > 1) return "error";
+  return data.length === 0 ? "superseded" : "reset";
 }
