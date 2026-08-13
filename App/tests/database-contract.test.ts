@@ -218,6 +218,21 @@ describe("payment lifecycle migration", () => {
     expect(sql).toContain("security definer");
   });
 
+  it("returns the canonical pricing snapshot to the customer order page", () => {
+    const migration = readdirSync(checkoutFinalReviewMigrationDir).find((file) => file.endsWith("_order_customer_pricing.sql"));
+    expect(migration).toBeDefined();
+    if (!migration) return;
+    const sql = readFileSync(new URL(`../supabase/migrations/${migration}`, import.meta.url), "utf8");
+
+    expect(sql).toMatch(/o\.subtotal,\s+o\.tax_pct,\s+o\.tax_amount,\s+o\.service_pct,\s+o\.service_amount,\s+o\.prices_include_tax/);
+    expect(sql).toContain("'subtotal', v_order.subtotal");
+    expect(sql).toContain("'tax_pct', v_order.tax_pct");
+    expect(sql).toContain("'tax_amount', v_order.tax_amount");
+    expect(sql).toContain("'service_pct', v_order.service_pct");
+    expect(sql).toContain("'service_amount', v_order.service_amount");
+    expect(sql).toContain("'prices_include_tax', v_order.prices_include_tax");
+  });
+
   it("persists the active Midtrans transaction identity for QRIS recovery", () => {
     const sql = readFileSync(qrisPaymentTransactionIdMigrationPath, "utf8");
 
