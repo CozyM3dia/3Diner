@@ -10,15 +10,17 @@ const withPWA = withPWAInit({
   workboxOptions: {
     disableDevLogs: true,
     runtimeCaching: [
-      // Stale-while-revalidate for public navigation pages only.
-      // Dashboard routes are excluded: they require auth, serve real-time data,
-      // and caching their HTML across deployments causes JS chunk mismatches
-      // ("This page couldn't load") because new deployments produce new chunk hashes.
+      // Network-first for public navigation pages only.
+      // Checkout/order pages must receive the current HTML before falling back
+      // to cache; serving an old HTML shell with new immutable CSS/JS chunk
+      // hashes can leave the page completely unstyled after a deployment.
+      // Dashboard routes are excluded: they require auth and serve real-time data.
       {
         urlPattern: /^https:\/\/3diner\.vercel\.app\/(?!dashboard|login|api)[^_].*/,
-        handler: "StaleWhileRevalidate",
+        handler: "NetworkFirst",
         options: {
-          cacheName: "pages-cache",
+          cacheName: "pages-cache-v2",
+          networkTimeoutSeconds: 5,
           expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 },
         },
       },
@@ -36,7 +38,7 @@ const withPWA = withPWAInit({
         urlPattern: /\/_next\/static\/.*/,
         handler: "StaleWhileRevalidate",
         options: {
-          cacheName: "next-static-cache",
+          cacheName: "next-static-cache-v2",
           expiration: { maxAgeSeconds: 30 * 24 * 60 * 60 },
         },
       },
