@@ -151,6 +151,7 @@ describe("POST /api/payment/webhook", () => {
   const eq2 = vi.fn();
   const eqAfterId = vi.fn();
   const eqPaymentStatus = vi.fn();
+  const in2 = vi.fn();
   const neq2 = vi.fn();
   const from2 = vi.fn();
   let orderStatus = "pending";
@@ -178,9 +179,8 @@ describe("POST /api/payment/webhook", () => {
     resetRows = [{ id_order: "order-1" }];
     process.env.MIDTRANS_SERVER_KEY = "server-key";
     neq2.mockImplementation(() => ({ select: () => Promise.resolve({ data: paidRows, error: null }) }));
-    eqPaymentStatus.mockImplementation(() => ({
-      select: () => Promise.resolve({ data: resetRows, error: null }),
-    }));
+    in2.mockImplementation(() => ({ select: () => Promise.resolve({ data: resetRows, error: null }) }));
+    eqPaymentStatus.mockImplementation(() => ({ in: in2 }));
     eqAfterId.mockImplementation((column: string) => column === "status"
       ? { select: () => Promise.resolve({ data: forceReceivedRows, error: null }) }
       : column === "payment_transaction_id"
@@ -219,6 +219,28 @@ describe("POST /api/payment/webhook", () => {
     expect(rpc2).toHaveBeenCalledWith("settle_payment_order", {
       p_order_id: "order-1", p_transaction_id: "tx-current", p_payment_type: "gopay",
     });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("acknowledges a cancelled-order settlement without calling the settlement RPC", async () => {
+    orderRead = {
+      data: {
+        total: 40000,
+        payment_status: "pending",
+        status: "cancelled",
+        payment_transaction_id: "tx-current",
+      },
+      error: null,
+    };
+
+    const res = await post({
+      order_id: "order-1", status_code: "200", gross_amount: "40000.00",
+      signature_key: sig("order-1", "200", "40000.00"),
+      transaction_id: "tx-current", transaction_status: "settlement", payment_type: "qris",
+    });
+
+    expect(res.status).toBe(200);
+    expect(rpc2).not.toHaveBeenCalled();
     expect(update).not.toHaveBeenCalled();
   });
 

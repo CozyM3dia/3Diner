@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const migrationPath = new URL(
@@ -45,6 +45,8 @@ const qrisSettlementCasMigrationPath = new URL(
   "../supabase/migrations/20260812145223_qris_settlement_cas.sql",
   import.meta.url
 );
+const checkoutFinalReviewMigrationDir = new URL("../supabase/migrations/", import.meta.url);
+const orderQuoteMigrationDir = new URL("../supabase/migrations/", import.meta.url);
 
 describe("security migration", () => {
   it("removes anonymous Orders policies and adds order token support", () => {
@@ -244,6 +246,19 @@ describe("payment lifecycle migration", () => {
     expect(sql).toContain("public.confirm_order(p_order_id)");
   });
 
+  it("has a corrective migration that rejects terminal QRIS settlement and cancellation of pending or paid orders", () => {
+    const migration = readdirSync(checkoutFinalReviewMigrationDir).find((file) => file.endsWith("_checkout_final_review.sql"));
+    expect(migration).toBeDefined();
+    if (!migration) return;
+    const sql = readFileSync(new URL(`../supabase/migrations/${migration}`, import.meta.url), "utf8");
+
+    expect(sql).toContain("v_order.status not in ('awaiting', 'received', 'preparing')");
+    expect(sql).toContain("and status in ('awaiting', 'received', 'preparing')");
+    expect(sql).toContain("if v_status = 'cancelled' then");
+    expect(sql).toContain("v_payment_status in ('pending', 'paid')");
+    expect(sql).toContain("raise exception 'payment_refund_required'");
+  });
+
   it("replaces legacy Orders checks and snapshots the canonical tax contract before charging", () => {
     const sql = readFileSync(paymentLifecycleMigrationPath, "utf8");
 
@@ -341,5 +356,53 @@ describe("option group min_select fix", () => {
     expect(sql).toContain(
       "revoke all on function public.create_order_with_inventory(uuid, text, jsonb, text) from public, anon, authenticated"
     );
+  });
+});
+
+describe("order quote migration", () => {
+  it("defines a service-role-only no-write canonical quote RPC", () => {
+    const migration = readdirSync(orderQuoteMigrationDir).find((file) => file.endsWith("_order_quote.sql"));
+    expect(migration).toBeDefined();
+    if (!migration) return;
+
+    const sql = readFileSync(new URL(`../supabase/migrations/${migration}`, import.meta.url), "utf8");
+
+    expect(sql).toContain("create or replace function public.quote_order(");
+    expect(sql).toContain("p_cafe_id uuid");
+    expect(sql).toContain("p_items jsonb");
+    expect(sql).toContain("returns jsonb");
+    expect(sql).toContain("security definer");
+    expect(sql).toContain("set search_path = public");
+    expect(sql).toContain("public.effective_tax_settings(p_cafe_id)");
+    expect(sql).toContain("round(v_subtotal * v_service_pct / 100.0)::integer");
+    expect(sql).toContain("'prices_include_tax', v_include");
+    expect(sql).toContain("coalesce(m.is_active, true) = true");
+    expect(sql).toContain("join public.\"Menu_Option_Values\" ov");
+    expect(sql).toContain("join public.\"Menu_Option_Groups\" og");
+    expect(sql).not.toMatch(/\binsert\s+into\s+public\./i);
+    expect(sql).not.toMatch(/\bupdate\s+public\./i);
+    expect(sql).not.toMatch(/\bdelete\s+from\s+public\./i);
+    expect(sql).not.toMatch(/\bfor\s+update\b/i);
+    expect(sql).toContain(
+      "revoke all on function public.quote_order(uuid, jsonb) from public, anon, authenticated"
+    );
+    expect(sql).toContain(
+      "grant execute on function public.quote_order(uuid, jsonb) to service_role"
+    );
+  });
+
+  it("corrects quote predicates to match the active create-order validation", () => {
+    const migration = readdirSync(orderQuoteMigrationDir).find((file) => file.endsWith("_checkout_final_review.sql"));
+    expect(migration).toBeDefined();
+    if (!migration) return;
+    const quoteSql = readFileSync(new URL(`../supabase/migrations/${migration}`, import.meta.url), "utf8");
+    const createSql = readFileSync(paymentLifecycleMigrationPath, "utf8");
+
+    expect(quoteSql).toContain("having count(selected.id_option_value) < og.min_select");
+    expect(quoteSql).toContain("or count(selected.id_option_value) > og.max_select");
+    expect(quoteSql).not.toMatch(/schedule_(?:days|start|end)/i);
+    expect(quoteSql).toContain("coalesce(m.is_active, true) = true");
+    expect(createSql).toContain("having count(lo.id_option_value) < og.min_select or count(lo.id_option_value) > og.max_select");
+    expect(createSql).toContain("coalesce(m.is_active, true) = true");
   });
 });

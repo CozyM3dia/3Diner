@@ -1,7 +1,80 @@
-import type { CartItem, Order, PaymentMethod } from "@/types";
+import type { CartItem, Order, OrderItem, OrderQuote, PaymentMethod, SelectedOption } from "@/types";
 
 const key = (id: string) => `3diner.order.${id}`;
 const QRIS_HOSTS = new Set(["api.midtrans.com", "api.sandbox.midtrans.com"]);
+const SAFE_QUOTE_ERRORS = new Set(["Menu tidak tersedia", "Data pesanan tidak valid"]);
+
+function isFiniteNonNegativeNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function isSelectedOption(value: unknown): value is SelectedOption {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const option = value as Record<string, unknown>;
+  return (
+    typeof option.id_option_value === "string" && option.id_option_value.length > 0 &&
+    typeof option.group_name === "string" &&
+    typeof option.name === "string" &&
+    typeof option.price_delta === "number" && Number.isFinite(option.price_delta)
+  );
+}
+
+function isOrderItem(value: unknown): value is OrderItem {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const item = value as Record<string, unknown>;
+  return (
+    typeof item.id_menu === "string" && item.id_menu.length > 0 &&
+    typeof item.nama_menu === "string" &&
+    isFiniteNonNegativeNumber(item.harga_menu) &&
+    typeof item.qty === "number" && Number.isInteger(item.qty) && item.qty >= 1 &&
+    (!("options" in item) || (Array.isArray(item.options) && item.options.every(isSelectedOption)))
+  );
+}
+
+function isOrderQuote(value: unknown): value is OrderQuote {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const quote = value as Record<string, unknown>;
+  return (
+    Array.isArray(quote.items) && quote.items.every(isOrderItem) &&
+    isFiniteNonNegativeNumber(quote.subtotal) &&
+    isFiniteNonNegativeNumber(quote.tax_pct) &&
+    isFiniteNonNegativeNumber(quote.tax_amount) &&
+    isFiniteNonNegativeNumber(quote.service_pct) &&
+    isFiniteNonNegativeNumber(quote.service_amount) &&
+    typeof quote.prices_include_tax === "boolean" &&
+    isFiniteNonNegativeNumber(quote.total)
+  );
+}
+
+function isOrder(value: unknown): value is Order {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const order = value as Record<string, unknown>;
+  const statuses = new Set(["awaiting", "received", "preparing", "ready", "completed", "cancelled"]);
+  const paymentMethods = new Set(["cash", "qris", "gopay", "shopeepay", "bank_transfer"]);
+  const paymentStatuses = new Set(["unpaid", "awaiting_payment", "awaiting_checkin", "pending", "paid"]);
+
+  return (
+    typeof order.id_order === "string" && order.id_order.length > 0 &&
+    typeof order.cafe_id === "string" && order.cafe_id.length > 0 &&
+    typeof order.cafe_slug === "string" &&
+    typeof order.cafe_name === "string" &&
+    typeof order.table_number === "string" &&
+    Array.isArray(order.items) && order.items.every(isOrderItem) &&
+    isFiniteNonNegativeNumber(order.subtotal) &&
+    isFiniteNonNegativeNumber(order.tax_pct) &&
+    isFiniteNonNegativeNumber(order.tax_amount) &&
+    isFiniteNonNegativeNumber(order.service_pct) &&
+    isFiniteNonNegativeNumber(order.service_amount) &&
+    typeof order.prices_include_tax === "boolean" &&
+    isFiniteNonNegativeNumber(order.total) &&
+    typeof order.status === "string" && statuses.has(order.status) &&
+    (order.payment_method === null || (typeof order.payment_method === "string" && paymentMethods.has(order.payment_method))) &&
+    typeof order.payment_status === "string" && paymentStatuses.has(order.payment_status) &&
+    typeof order.created_at === "string" &&
+    (!("payment_qr_url" in order) || order.payment_qr_url === null || typeof order.payment_qr_url === "string") &&
+    (!("cancelled_reason" in order) || order.cancelled_reason === null || typeof order.cancelled_reason === "string")
+  );
+}
 
 function isMidtransQrisUrl(value: unknown): value is string {
   if (typeof value !== "string") return false;
@@ -62,6 +135,41 @@ export async function createOrder(input: {
   return order;
 }
 
+/** Requests the server's canonical, read-only total before the customer commits. */
+export async function quoteOrder(input: {
+  cafeId: string;
+  items: CartItem[];
+}): Promise<OrderQuote> {
+  try {
+    const response = await fetch("/api/orders/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cafeId: input.cafeId,
+        items: input.items.map(({ id_menu, qty, options }) => ({
+          id_menu,
+          qty,
+          options: (options ?? []).map((o) => o.id_option_value),
+        })),
+      }),
+    });
+    const data = (await response.json().catch(() => null)) as { quote?: unknown; error?: unknown } | null;
+    if (!response.ok) {
+      const error = typeof data?.error === "string" && SAFE_QUOTE_ERRORS.has(data.error)
+        ? data.error
+        : "Gagal memuat ringkasan pesanan";
+      throw new Error(error);
+    }
+    if (!isOrderQuote(data?.quote)) {
+      throw new Error("Gagal memuat ringkasan pesanan");
+    }
+    return data.quote;
+  } catch (error) {
+    if (error instanceof Error && SAFE_QUOTE_ERRORS.has(error.message)) throw error;
+    throw new Error("Gagal memuat ringkasan pesanan");
+  }
+}
+
 function saveStub(order: Order) {
   if (!order.customer_token) return;
   try {
@@ -113,21 +221,36 @@ export interface FetchedOrder {
   reviewUrl: string | null;
 }
 
+export class OrderFetchError extends Error {
+  constructor(public readonly kind: "not-found" | "transient") {
+    super(kind === "not-found" ? "Pesanan tidak ditemukan" : "Gagal memuat pesanan");
+    this.name = "OrderFetchError";
+  }
+}
+
 /** Membaca pesanan dari server. Token boleh datang dari localStorage atau dari
  *  query string tautan — itu yang membuat pesanan tetap terbuka di perangkat lain. */
-export async function fetchOrder(id: string, token: string): Promise<FetchedOrder | null> {
-  const res = await fetch(
-    `/api/orders/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`,
-    { cache: "no-store" }
-  );
-  if (!res.ok) return null;
+export async function fetchOrder(id: string, token: string): Promise<FetchedOrder> {
+  try {
+    const res = await fetch(
+      `/api/orders/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`,
+      { cache: "no-store" }
+    );
+    if (res.status === 404) throw new OrderFetchError("not-found");
+    if (!res.ok) throw new OrderFetchError("transient");
 
-  const data = (await res.json()) as { order?: Order; reviewUrl?: string | null };
-  if (!data.order) return null;
+    const data = (await res.json()) as { order?: unknown; reviewUrl?: unknown };
+    if (!isOrder(data.order) || !(data.reviewUrl === undefined || data.reviewUrl === null || typeof data.reviewUrl === "string")) {
+      throw new OrderFetchError("transient");
+    }
 
-  const order: Order = { ...data.order, customer_token: token };
-  saveStub(order);
-  return { order, reviewUrl: data.reviewUrl ?? null };
+    const order: Order = { ...data.order, customer_token: token };
+    saveStub(order);
+    return { order, reviewUrl: data.reviewUrl ?? null };
+  } catch (error) {
+    if (error instanceof OrderFetchError) throw error;
+    throw new OrderFetchError("transient");
+  }
 }
 
 /** Mencatat pilihan tunai ke server. Mengembalikan pesan galat, atau null bila

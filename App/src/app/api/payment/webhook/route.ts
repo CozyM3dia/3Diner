@@ -12,6 +12,8 @@ type MidtransNotification = {
   transaction_id?: unknown;
 };
 
+const ACTIVE_ORDER_STATUSES = ["awaiting", "received", "preparing"];
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -48,6 +50,11 @@ export async function POST(req: Request) {
     }
     if (Number(gross_amount) !== Number(order.total)) {
       return NextResponse.json({ error: "Amount mismatch" }, { status: 400 });
+    }
+    if (isSuccessfulPayment && !ACTIVE_ORDER_STATUSES.includes(order.status)) {
+      // The RPC repeats this fence under a row lock. Acknowledging here avoids
+      // needless retries for a cancelled/completed/ready order.
+      return NextResponse.json({ ok: true });
     }
 
     if (isSuccessfulPayment && !isNonEmptyString(transaction_id)) {
@@ -115,6 +122,7 @@ export async function POST(req: Request) {
         .eq("id_order", order_id)
         .eq("payment_transaction_id", transaction_id)
         .eq("payment_status", "pending")
+        .in("status", ACTIVE_ORDER_STATUSES)
         .select("id_order");
       if (resetError || !resetRows || resetRows.length > 1) {
         return NextResponse.json({ error: "Gagal mereset pembayaran" }, { status: 502 });
