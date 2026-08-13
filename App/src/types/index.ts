@@ -204,6 +204,18 @@ export interface OrderItem {
   notes?: string | null
 }
 
+/** Read-only canonical checkout quote returned before the customer commits. */
+export interface OrderQuote {
+  items: OrderItem[]
+  subtotal: number
+  tax_pct: number
+  tax_amount: number
+  service_pct: number
+  service_amount: number
+  prices_include_tax: boolean
+  total: number
+}
+
 export interface Order {
   id_order: string
   cafe_id: string

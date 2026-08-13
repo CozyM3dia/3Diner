@@ -15,12 +15,15 @@ import {
   Smartphone,
   Copy,
 } from "lucide-react";
-import { chargeOnline, fetchOrder, getQrisUrl, getStub, setQrisUrl } from "@/lib/orders";
+import { chargeOnline, fetchOrder, getQrisUrl, getStub, OrderFetchError, setQrisUrl } from "@/lib/orders";
 import { formatRupiah } from "@/lib/format";
 import { paymentMethodLabel } from "@/lib/payment-methods";
 import type { Order, OrderItem } from "@/types";
+import { OrderLoadState } from "@/components/order/OrderLoadState";
+import { OrderTerminalState } from "@/components/order/OrderTerminalState";
 
-type View = "loading" | "missing" | "qris" | "cashier" | "status";
+type View = "qris" | "cashier" | "status";
+type LoadState = "loading" | "transient-error" | "not-found" | "loaded";
 
 /** Selang polling. Layar bayar-online menunggu webhook Midtrans, jadi diperiksa
  *  lebih sering; layar kasir & status menunggu tindakan manusia (menit). */
@@ -31,17 +34,23 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
   const searchParams = useSearchParams();
   const [order, setOrder] = useState<Order | null>(null);
   const [reviewUrl, setReviewUrl] = useState<string | null>(null);
-  const [view, setView] = useState<View>("loading");
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [view, setView] = useState<View>("status");
   const [qrisUrl, setQrisUrlState] = useState<string | null>(null);
   const [chargeLoading, setChargeLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [acknowledgedTotalKey, setAcknowledgedTotalKey] = useState<string | null>(null);
   const autoChargeOrderRef = useRef<string | null>(null);
+  const loadedOrderRef = useRef<Order | null>(null);
 
   // Token boleh datang dari tautan (perangkat lain, cache terhapus) atau dari
   // cache lokal perangkat yang membuat pesanan. getStub menyentuh localStorage,
   // jadi hanya boleh dibaca setelah komponen terpasang.
   const linkToken = searchParams.get("token");
+  const reviewTotal = parseReviewTotal(searchParams.get("reviewTotal"));
+  const reviewTotalKey = `${orderId}:${reviewTotal}`;
 
   /** Token dibaca saat dibutuhkan, bukan disimpan di state: getStub menyentuh
    *  localStorage, yang tidak ada saat render di server. Semua pemanggil di
@@ -54,24 +63,41 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
   /** Satu-satunya jalan status masuk ke layar ini: dibaca dari server. */
   const load = useCallback(async (): Promise<Order | null> => {
     const token = resolveToken();
-    if (!token) return null;
-    const fetched = await fetchOrder(orderId, token);
-    if (!fetched) return null;
-    setOrder(fetched.order);
-    setReviewUrl(fetched.reviewUrl);
-    const serverQrisUrl = fetched.order.payment_status === "pending"
-      ? fetched.order.payment_qr_url ?? getQrisUrl(orderId)
-      : null;
-    setQrisUrlState(serverQrisUrl);
-    return fetched.order;
+    if (!token) {
+      setLoadState("not-found");
+      return null;
+    }
+
+    try {
+      const fetched = await fetchOrder(orderId, token);
+      loadedOrderRef.current = fetched.order;
+      setOrder(fetched.order);
+      setReviewUrl(fetched.reviewUrl);
+      setRefreshError(null);
+      setLoadState("loaded");
+      const serverQrisUrl = fetched.order.payment_status === "pending"
+        ? fetched.order.payment_qr_url ?? getQrisUrl(orderId)
+        : null;
+      setQrisUrlState(serverQrisUrl);
+      return fetched.order;
+    } catch (error) {
+      const kind = error instanceof OrderFetchError ? error.kind : "transient";
+      if (kind === "transient" && loadedOrderRef.current) {
+        setRefreshError("Status pesanan belum dapat diperbarui. Coba lagi.");
+        return null;
+      }
+      setLoadState(kind === "not-found" ? "not-found" : "transient-error");
+      return null;
+    }
   }, [orderId, resolveToken]);
 
   useEffect(() => {
     let cancelled = false;
+    loadedOrderRef.current = null;
     (async () => {
       const fresh = await load();
       if (cancelled) return;
-      setView(fresh ? viewForOrder(fresh) : "missing");
+      if (fresh) setView(viewForOrder(fresh));
     })();
     return () => {
       cancelled = true;
@@ -83,8 +109,7 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
   // Server tetap sumber kebenaran — tiap putaran menurunkan layar dari keadaan
   // pesanan, jadi webhook (lunas) atau check-in kasir memindahkan tampilan sendiri.
   useEffect(() => {
-    if (view === "loading" || view === "missing") return;
-    if (order?.status === "ready" && order?.payment_status === "paid") return;
+    if (loadState !== "loaded" || !order || isKitchenTerminal(order)) return;
 
     const interval = view === "qris" ? POLL_PAY_MS : POLL_SLOW_MS;
     const timer = setInterval(() => {
@@ -94,13 +119,16 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
     }, interval);
 
     return () => clearInterval(timer);
-  }, [view, order?.status, order?.payment_status, load]);
+  }, [loadState, view, order, load]);
 
   async function refreshNow() {
     setRefreshing(true);
-    const fresh = await load();
-    if (fresh) setView(viewForOrder(fresh));
-    setRefreshing(false);
+    try {
+      const fresh = await load();
+      if (fresh) setView(viewForOrder(fresh));
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   /** Membuat satu QRIS dinamis; status tetap mengikuti webhook Midtrans. */
@@ -126,16 +154,25 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
     }
   }, [load, order, qrisUrl, resolveToken]);
 
+  const requiresTotalAcknowledgement = Boolean(
+    order &&
+    reviewTotal !== null &&
+    reviewTotal !== order.total &&
+    acknowledgedTotalKey !== reviewTotalKey &&
+    (view === "qris" || view === "cashier")
+  );
+
   // QRIS is the only online payment path, so the customer should land on the
   // QR screen immediately and see a loading state while Midtrans creates it.
   useEffect(() => {
     if (view !== "qris" || !order || order.payment_status !== "awaiting_payment" ||
-        qrisUrl || chargeLoading || payError || autoChargeOrderRef.current === order.id_order) {
+        qrisUrl || chargeLoading || payError || requiresTotalAcknowledgement ||
+        autoChargeOrderRef.current === order.id_order) {
       return;
     }
     autoChargeOrderRef.current = order.id_order;
     void payOnline();
-  }, [chargeLoading, order, payError, payOnline, qrisUrl, view]);
+  }, [chargeLoading, order, payError, payOnline, qrisUrl, requiresTotalAcknowledgement, view]);
 
   const retryPayment = useCallback(() => {
     if (!order) return;
@@ -143,35 +180,27 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
     void payOnline();
   }, [order, payOnline]);
 
-  if (view === "loading") {
+  if (loadState !== "loaded") {
+    return <OrderLoadState state={loadState} slug={slug} onRetry={refreshNow} />;
+  }
+
+  if (!order) {
+    return <OrderLoadState state="transient-error" slug={slug} onRetry={refreshNow} />;
+  }
+
+  if (requiresTotalAcknowledgement) {
     return (
-      <main className="min-h-dvh flex items-center justify-center" style={{ background: "var(--paper)" }}>
-        <div className="w-10 h-10 rounded-full skeleton" />
-      </main>
+      <TotalChangeAcknowledgement
+        approvedTotal={reviewTotal!}
+        currentTotal={order.total}
+        paymentLabel={view === "qris" ? "QRIS" : "kode kasir"}
+        onContinue={() => setAcknowledgedTotalKey(reviewTotalKey)}
+      />
     );
   }
 
-  if (view === "missing" || !order) {
-    return (
-      <main
-        className="min-h-dvh flex flex-col items-center justify-center text-center px-8"
-        style={{ background: "var(--paper)" }}
-      >
-        <h1 className="font-display text-xl font-bold" style={{ color: "var(--navy)" }}>
-          Pesanan tidak ditemukan
-        </h1>
-        <p className="text-sm mt-1.5 mb-6 max-w-[38ch]" style={{ color: "var(--navy-muted)" }}>
-          Tautan pesanan mungkin sudah tidak berlaku, atau dibuka dari perangkat yang berbeda.
-          Minta kasir membuka pesanan dengan nomor mejamu.
-        </p>
-        <Link
-          href={`/${slug}`}
-          className="btn-primary press inline-flex items-center justify-center h-12 px-6 rounded-2xl font-semibold text-sm text-white"
-        >
-          Kembali ke Menu
-        </Link>
-      </main>
-    );
+  if (order.status === "completed" || order.status === "cancelled") {
+    return <OrderTerminalState order={order} slug={slug} />;
   }
 
   if (view === "qris") {
@@ -181,6 +210,7 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
         qrisUrl={qrisUrl}
         loading={chargeLoading}
         errorMessage={payError}
+        refreshError={refreshError}
         refreshing={refreshing}
         onRefresh={refreshNow}
         onRetry={retryPayment}
@@ -189,10 +219,58 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
   }
 
   if (view === "cashier") {
-    return <CashierView order={order} refreshing={refreshing} onRefresh={refreshNow} />;
+    return <CashierView order={order} refreshError={refreshError} refreshing={refreshing} onRefresh={refreshNow} />;
   }
 
-  return <StatusView order={order} slug={slug} reviewUrl={reviewUrl} refreshing={refreshing} onRefresh={refreshNow} />;
+  return <StatusView order={order} slug={slug} reviewUrl={reviewUrl} refreshError={refreshError} refreshing={refreshing} onRefresh={refreshNow} />;
+}
+
+function parseReviewTotal(value: string | null): number | null {
+  if (!value || !/^\d+$/.test(value)) return null;
+  const total = Number(value);
+  return Number.isSafeInteger(total) && total >= 0 ? total : null;
+}
+
+function isKitchenTerminal(order: Order): boolean {
+  return order.status === "completed" || order.status === "cancelled";
+}
+
+function TotalChangeAcknowledgement({
+  approvedTotal,
+  currentTotal,
+  paymentLabel,
+  onContinue,
+}: {
+  approvedTotal: number;
+  currentTotal: number;
+  paymentLabel: string;
+  onContinue: () => void;
+}) {
+  return (
+    <main className="min-h-dvh flex items-center justify-center px-4" style={{ background: "var(--paper)" }}>
+      <section className="w-full max-w-md rounded-2xl p-6" aria-labelledby="total-change-heading" style={{ background: "var(--white)", boxShadow: "var(--shadow-sm)" }}>
+        <h1 id="total-change-heading" className="font-display text-xl font-bold" style={{ color: "var(--navy)" }}>
+          Total pesanan berubah
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--navy-muted)" }}>
+          Total yang kamu setujui berbeda dari total pesanan saat ini. Periksa sebelum melanjutkan.
+        </p>
+        <dl className="mt-5 space-y-3 rounded-xl p-4" style={{ background: "var(--surface)" }}>
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-sm" style={{ color: "var(--navy-muted)" }}>Total disetujui</dt>
+            <dd className="font-semibold" style={{ color: "var(--navy)" }}>{formatRupiah(approvedTotal)}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-sm" style={{ color: "var(--navy-muted)" }}>Total saat ini</dt>
+            <dd className="font-display text-lg font-extrabold" style={{ color: "var(--orange-ink)" }}>{formatRupiah(currentTotal)}</dd>
+          </div>
+        </dl>
+        <button type="button" onClick={onContinue} className="btn-primary press mt-6 flex h-12 w-full items-center justify-center rounded-2xl text-sm font-semibold text-white">
+          Lanjutkan ke {paymentLabel}
+        </button>
+      </section>
+    </main>
+  );
 }
 
 /** Layar yang cocok untuk keadaan pesanan menurut server. Tidak ada jalur yang
@@ -389,6 +467,7 @@ function QrisView({
   qrisUrl,
   loading,
   errorMessage,
+  refreshError,
   refreshing,
   onRefresh,
   onRetry,
@@ -397,6 +476,7 @@ function QrisView({
   qrisUrl: string | null;
   loading: boolean;
   errorMessage: string | null;
+  refreshError: string | null;
   refreshing: boolean;
   onRefresh: () => void;
   onRetry: () => void;
@@ -418,6 +498,11 @@ function QrisView({
       </header>
 
       <div className="mx-auto max-w-xl px-4 -mt-4">
+        {refreshError && (
+          <p role="status" className="mt-5 rounded-xl p-3 text-center text-xs" style={{ background: "var(--orange-blush)", color: "var(--orange-ink)" }}>
+            {refreshError}
+          </p>
+        )}
         <div className="card p-5 fade-up">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -465,7 +550,7 @@ function QrisView({
               </p>
               <button
                 onClick={onRetry}
-                className="btn-primary press mt-3 h-10 px-5 rounded-xl text-sm font-semibold text-white"
+                className="btn-primary press mt-3 h-11 px-5 rounded-xl text-sm font-semibold text-white"
               >
                 Coba Lagi
               </button>
@@ -527,7 +612,7 @@ function DownloadQris({ qrisUrl, orderId }: { qrisUrl: string; orderId: string }
     <a
       href={proxyUrl}
       download={`QRIS-${orderId}.png`}
-      className="press mt-4 w-full h-10 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+      className="press mt-4 w-full h-11 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
       style={{ background: "var(--orange)", color: "#fff" }}
     >
       <Download size={16} />
@@ -538,10 +623,12 @@ function DownloadQris({ qrisUrl, orderId }: { qrisUrl: string; orderId: string }
 
 function CashierView({
   order,
+  refreshError,
   refreshing,
   onRefresh,
 }: {
   order: Order;
+  refreshError: string | null;
   refreshing: boolean;
   onRefresh: () => void;
 }) {
@@ -608,6 +695,11 @@ function CashierView({
       </header>
 
       <div className="mx-auto max-w-xl px-4 -mt-4">
+        {refreshError && (
+          <p role="status" className="mt-5 rounded-xl p-3 text-center text-xs" style={{ background: "var(--orange-blush)", color: "var(--orange-ink)" }}>
+            {refreshError}
+          </p>
+        )}
         {/* Kartu QR + kode: kanal utama pesanan ini, jadi diberi bobot visual paling besar. */}
         <div className="card p-5 fade-up text-center">
           <div
@@ -645,7 +737,7 @@ function CashierView({
           <button
             onClick={copyCode}
             disabled={!code}
-            className="press inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-full text-xs font-semibold disabled:opacity-50"
+            className="press inline-flex h-11 items-center gap-1.5 mt-3 px-4 rounded-full text-xs font-semibold disabled:opacity-50"
             style={{ background: "var(--surface)", color: "var(--navy)" }}
           >
             {copied ? <Check size={14} strokeWidth={3} /> : <Copy size={14} />}
@@ -715,12 +807,14 @@ function StatusView({
   order,
   slug,
   reviewUrl,
+  refreshError,
   refreshing,
   onRefresh,
 }: {
   order: Order;
   slug: string;
   reviewUrl: string | null;
+  refreshError: string | null;
   refreshing: boolean;
   onRefresh: () => void;
 }) {
@@ -770,6 +864,11 @@ function StatusView({
       </header>
 
       <div className="mx-auto max-w-xl px-4 pt-5">
+        {refreshError && (
+          <p role="status" className="mb-3 rounded-xl p-3 text-center text-xs" style={{ background: "var(--orange-blush)", color: "var(--orange-ink)" }}>
+            {refreshError}
+          </p>
+        )}
         {/* Status bayar diambil apa adanya dari server. Sebelumnya layar ini bisa
             menampilkan "LUNAS" hanya karena tombol lokal ditekan. */}
         {!paid && (
@@ -799,11 +898,11 @@ function StatusView({
               onClick={onRefresh}
               disabled={refreshing}
               aria-label="Perbarui status pesanan"
-              className="press inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 disabled:opacity-60"
+              className="press inline-flex h-11 w-11 items-center justify-center rounded-full text-xs font-medium disabled:opacity-60"
               style={{ background: "var(--surface)", color: "var(--navy-muted)" }}
             >
               <RefreshCw size={13} className={refreshing ? "animate-spin" : undefined} />
-              Perbarui
+              <span className="sr-only">Perbarui</span>
             </button>
           </div>
           <ol className="relative">

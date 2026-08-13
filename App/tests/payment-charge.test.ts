@@ -14,9 +14,11 @@ type PaymentUpdatePatch = {
 function updateChain(result: { data: unknown[] | null; error: unknown }) {
   const query: {
     eq: () => typeof query;
+    in: () => typeof query;
     select: () => Promise<typeof result>;
   } = {
     eq: () => query,
+    in: () => query,
     select: async () => result,
   };
   return query;
@@ -38,6 +40,7 @@ describe("POST /api/payment/charge (QRIS)", () => {
     single.mockResolvedValue({
       data: {
         id_order: "order-1", customer_token: "token-1", total: 40000,
+        status: "awaiting",
         payment_status: "awaiting_payment",
         payment_qr_url: null, payment_transaction_id: null, payment_idempotency_key: null,
         items: [{ id_menu: "m1", nama_menu: "Nasi", harga_menu: 20000, qty: 2 }],
@@ -106,6 +109,7 @@ describe("POST /api/payment/charge (QRIS)", () => {
     single.mockResolvedValue({
       data: {
         id_order: "order-1", customer_token: "token-1", total: 45000, subtotal: 40000,
+        status: "awaiting",
         service_amount: 1000, tax_amount: 4000, prices_include_tax: false,
         payment_status: "awaiting_payment",
         items: [{ id_menu: "m1", nama_menu: "Nasi", harga_menu: 20000, qty: 2 }],
@@ -130,6 +134,7 @@ describe("POST /api/payment/charge (QRIS)", () => {
     single.mockResolvedValue({
       data: {
         id_order: "order-1", customer_token: "token-1", total: 40000,
+        status: "awaiting",
         payment_status: "pending",
         payment_qr_url: "https://api.sandbox.midtrans.com/v4/qris/tx-1/qr-code",
         payment_transaction_id: "tx-1",
@@ -155,6 +160,7 @@ describe("POST /api/payment/charge (QRIS)", () => {
     single.mockResolvedValue({
       data: {
         id_order: "order-1", customer_token: "token-1", total: 40000,
+        status: "awaiting",
         payment_status: "pending",
         payment_qr_url: "https://api.sandbox.midtrans.com/v4/qris/tx-1/qr-code",
         payment_transaction_id: "tx-1",
@@ -207,6 +213,7 @@ describe("POST /api/payment/charge (QRIS)", () => {
     single.mockResolvedValue({
       data: {
         id_order: "order-1", customer_token: "token-1", total: 40000,
+        status: "awaiting",
         payment_status: "pending", payment_qr_url: null,
         payment_transaction_id: null, payment_idempotency_key: firstKey,
         items: [{ id_menu: "m1", nama_menu: "Nasi", harga_menu: 20000, qty: 2 }],
@@ -228,6 +235,7 @@ describe("POST /api/payment/charge (QRIS)", () => {
     single.mockResolvedValue({
       data: {
         id_order: "order-1", customer_token: "token-1", total: 40000,
+        status: "awaiting",
         payment_status: "pending",
         payment_qr_url: "https://api.sandbox.midtrans.com/v4/qris/legacy/qr-code",
         payment_transaction_id: null, payment_idempotency_key: "attempt-1", items: [],
@@ -379,7 +387,7 @@ describe("POST /api/payment/charge (QRIS)", () => {
     // via .select() and bail with 409 before ever calling Midtrans or reverting anything.
     const updateMock = vi.fn(() => ({
       eq: () => ({
-        eq: () => ({ select: () => Promise.resolve({ data: [], error: null }) }),
+        eq: () => ({ in: () => ({ select: () => Promise.resolve({ data: [], error: null }) }) }),
       }),
     }));
     const eqToken = () => ({ single });
@@ -412,5 +420,42 @@ describe("POST /api/payment/charge (QRIS)", () => {
       body: JSON.stringify({ orderId: "order-1", orderToken: "token-1" }),
     }));
     expect(res.status).toBe(409);
+  });
+
+  it("refuses to charge a cancelled order before contacting Midtrans", async () => {
+    single.mockResolvedValue({ data: {
+      id_order: "order-1", customer_token: "token-1", total: 40000,
+      status: "cancelled", payment_status: "awaiting_payment", items: [],
+    }, error: null });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { POST } = await import("@/app/api/payment/charge/route");
+    const res = await POST(new Request("http://localhost/api/payment/charge", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: "order-1", orderToken: "token-1" }),
+    }));
+
+    expect(res.status).toBe(409);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not charge when cancellation wins after the read but before the pending claim", async () => {
+    const select = vi.fn(async () => ({ data: [], error: null }));
+    const activeStatus = vi.fn(() => ({ select }));
+    const claim = { eq: () => claim, in: activeStatus };
+    update.mockReturnValue(claim);
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { POST } = await import("@/app/api/payment/charge/route");
+    const res = await POST(new Request("http://localhost/api/payment/charge", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: "order-1", orderToken: "token-1" }),
+    }));
+
+    expect(res.status).toBe(409);
+    expect(activeStatus).toHaveBeenCalledWith("status", ["awaiting", "received", "preparing"]);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

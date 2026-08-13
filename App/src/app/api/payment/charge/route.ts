@@ -5,6 +5,7 @@ import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const CHARGE_PER_IP = { limit: 6, windowSeconds: 60 };
 const ALLOWED_QR_HOSTS = new Set(["api.midtrans.com", "api.sandbox.midtrans.com"]);
+const ACTIVE_ORDER_STATUSES = ["awaiting", "received", "preparing"];
 
 type MidtransQrisAction = {
   name?: unknown;
@@ -80,12 +81,15 @@ export async function POST(req: Request) {
 
     const { data: order, error } = await supabaseAdmin
       .from("Orders")
-      .select("id_order,customer_token,total,subtotal,tax_amount,service_amount,prices_include_tax,payment_status,payment_qr_url,payment_transaction_id,payment_idempotency_key,items")
+      .select("id_order,customer_token,total,subtotal,tax_amount,service_amount,prices_include_tax,status,payment_status,payment_qr_url,payment_transaction_id,payment_idempotency_key,items")
       .eq("id_order", orderId)
       .eq("customer_token", orderToken)
       .single();
     if (error || !order) {
       return NextResponse.json({ error: "Pesanan tidak ditemukan" }, { status: 403 });
+    }
+    if (!ACTIVE_ORDER_STATUSES.includes(order.status)) {
+      return NextResponse.json({ error: "Pesanan ini tidak dapat dibayar" }, { status: 409 });
     }
     if (order.payment_status === "paid") {
       return NextResponse.json({ error: "Pembayaran pesanan ini sudah lunas" }, { status: 409 });
@@ -154,6 +158,7 @@ export async function POST(req: Request) {
         .update({ payment_status: "pending", payment_qr_url: null, payment_transaction_id: null, payment_idempotency_key: newIdempotencyKey })
         .eq("id_order", order.id_order)
         .eq("payment_status", "awaiting_payment")
+        .in("status", ACTIVE_ORDER_STATUSES)
         .select("id_order,payment_idempotency_key");
       if (claimError) {
         return NextResponse.json({ error: "Pembayaran sedang diproses" }, { status: 409 });
@@ -271,6 +276,7 @@ export async function POST(req: Request) {
       .eq("id_order", order.id_order)
       .eq("payment_status", "pending")
       .eq("payment_idempotency_key", attemptIdempotencyKey)
+      .in("status", ACTIVE_ORDER_STATUSES)
       .select("payment_qr_url,payment_transaction_id");
     if (qrPersistError || persistedRows?.length !== 1 ||
         persistedRows[0]?.payment_qr_url !== qrisUrl ||
@@ -326,6 +332,7 @@ async function recoverPendingQris(
       .update({ payment_qr_url: qrisUrl, payment_transaction_id: transactionId })
       .eq("id_order", orderId)
       .eq("payment_status", "pending");
+    persistedQuery = persistedQuery.in("status", ACTIVE_ORDER_STATUSES);
     if (isNonEmptyString(transactionIdHint)) {
       // A status lookup by transaction ID must only update that same attempt.
       persistedQuery = persistedQuery.eq("payment_transaction_id", transactionIdHint);
@@ -359,6 +366,7 @@ async function resetPendingQris(
     .update({ payment_status: "awaiting_payment", payment_qr_url: null, payment_transaction_id: null, payment_idempotency_key: null })
     .eq("id_order", orderId)
     .eq("payment_status", "pending");
+  resetQuery = resetQuery.in("status", ACTIVE_ORDER_STATUSES);
   if (isNonEmptyString(transactionId)) resetQuery = resetQuery.eq("payment_transaction_id", transactionId);
   if (isNonEmptyString(idempotencyKey)) resetQuery = resetQuery.eq("payment_idempotency_key", idempotencyKey);
   const { data, error } = await resetQuery.select("id_order");
