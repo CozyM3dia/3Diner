@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Minus, Plus } from "lucide-react";
 import { formatRupiah } from "@/lib/format";
 import type { CartItem, OrderItem } from "@/types";
@@ -10,7 +11,7 @@ type EditableOrderLineProps = {
 export function EditableOrderLine({ item, onQuantityChange }: EditableOrderLineProps) {
   return (
     <article className="checkout-order-line">
-      <div className="checkout-item-thumb" aria-hidden="true">{item.nama_menu.slice(0, 1)}</div>
+      <MenuThumbnail className="checkout-item-thumb" imageUrl={item.image_url} menuName={item.nama_menu} />
       <div className="checkout-line-copy">
         <h3>{item.nama_menu}</h3>
         {item.options?.length ? <p>{item.options.map((option) => option.name).join(" · ")}</p> : null}
@@ -30,14 +31,27 @@ export function EditableOrderLine({ item, onQuantityChange }: EditableOrderLineP
   );
 }
 
-export function QuotedOrderLine({ item }: { item: OrderItem }) {
+export function QuotedOrderLine({ item, imageUrl }: { item: OrderItem; imageUrl?: string | null }) {
   return (
     <div className="checkout-quoted-line">
+      <MenuThumbnail className="checkout-quoted-thumb" imageUrl={imageUrl} menuName={item.nama_menu} />
       <div>
         <p>{item.qty}× {item.nama_menu}</p>
         {item.options?.length ? <span>{item.options.map((option) => option.name).join(" · ")}</span> : null}
       </div>
       <strong>{formatRupiah(item.harga_menu * item.qty)}</strong>
+    </div>
+  );
+}
+
+function MenuThumbnail({ className, imageUrl, menuName }: { className: string; imageUrl?: string | null; menuName: string }) {
+  return (
+    <div className={className}>
+      {imageUrl ? (
+        <Image src={imageUrl} alt={menuName} fill sizes="64px" className="checkout-menu-image" />
+      ) : (
+        <span aria-hidden="true">{menuName.slice(0, 1)}</span>
+      )}
     </div>
   );
 }

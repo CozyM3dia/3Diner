@@ -54,6 +54,7 @@ const quoteOrderMock = vi.mocked(quoteOrder);
 const useCartMock = vi.mocked(useCart);
 
 const cafe = { id_cafe: "cafe-1", nama_cafe: "3Diner" } as never;
+const cartImageUrl = "https://images.example.test/pasta.jpg";
 const canonicalQuote = {
   items: [{
     id_menu: "menu-1",
@@ -73,14 +74,14 @@ const canonicalQuote = {
 
 let cartState: ReturnType<typeof useCart>;
 
-function mockCart({ table = " 7 ", notes = "  tanpa bawang  " }: { table?: string; notes?: string } = {}) {
+function mockCart({ table = " 7 ", notes = "  tanpa bawang  ", imageUrl = cartImageUrl }: { table?: string; notes?: string; imageUrl?: string | null } = {}) {
   cartState = {
     items: [{
       line_key: "menu-1:option-1:",
       id_menu: "menu-1",
       nama_menu: "Nama lokal palsu",
       harga_menu: 1,
-      image_url: null,
+      image_url: imageUrl,
       qty: 2,
       options: [{ id_option_value: "option-1", group_name: "Palsu", name: "Palsu", price_delta: -99_999 }],
     }],
@@ -152,6 +153,26 @@ describe("CartView checkout recovery", () => {
     expect(screen.getAllByText(/60\.060/).length).toBeGreaterThan(0);
   });
 
+  it("renders the cart image in review and reuses it for the canonical quote menu", async () => {
+    const user = userEvent.setup();
+    render(<CartView cafe={cafe} slug="demo" />);
+
+    expect(screen.getByRole("img", { name: "Nama lokal palsu" }).getAttribute("src")).toBe(cartImageUrl);
+
+    await enterConfirmation(user);
+
+    expect(screen.getByRole("img", { name: "Pasta Kanonik" }).getAttribute("src")).toBe(cartImageUrl);
+    expect(screen.queryByText(/Nama lokal palsu/)).toBeNull();
+  });
+
+  it("keeps the initial fallback when a menu has no image", () => {
+    mockCart({ imageUrl: null });
+    render(<CartView cafe={cafe} slug="demo" />);
+
+    expect(screen.queryByRole("img", { name: "Nama lokal palsu" })).toBeNull();
+    expect(screen.getByText("N")).toBeTruthy();
+  });
+
   it("uses native payment radios, exposes the selected payment tile, and retains the cashier choice after editing", async () => {
     const user = userEvent.setup();
     render(<CartView cafe={cafe} slug="demo" />);
@@ -163,10 +184,14 @@ describe("CartView checkout recovery", () => {
     expect(cashier).toHaveProperty("checked", false);
     expect(qris.closest("label")?.getAttribute("data-selected")).toBe("true");
     expect(cashier.closest("label")?.getAttribute("data-selected")).toBe("false");
+    expect(qris.closest("label")?.classList.contains("checkout-payment-tile--selected")).toBe(true);
+    expect(cashier.closest("label")?.classList.contains("checkout-payment-tile--selected")).toBe(false);
     await user.click(cashier);
     expect(cashier).toHaveProperty("checked", true);
     expect(qris.closest("label")?.getAttribute("data-selected")).toBe("false");
     expect(cashier.closest("label")?.getAttribute("data-selected")).toBe("true");
+    expect(qris.closest("label")?.classList.contains("checkout-payment-tile--selected")).toBe(false);
+    expect(cashier.closest("label")?.classList.contains("checkout-payment-tile--selected")).toBe(true);
     expect(screen.getByRole("button", { name: "Kirim & tampilkan kode kasir" })).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Edit pesanan" }));

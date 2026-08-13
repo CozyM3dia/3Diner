@@ -33,6 +33,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
   const quoteRequestGenerationRef = useRef(0);
   const tableValid = table.trim().length > 0;
   const currentCartFingerprint = cartFingerprint(items);
+  const imageUrlsByMenuId = new Map(items.map(({ id_menu, image_url }) => [id_menu, image_url]));
   const currentCartFingerprintRef = useRef(currentCartFingerprint);
   const observedCartFingerprintRef = useRef(currentCartFingerprint);
   currentCartFingerprintRef.current = currentCartFingerprint;
@@ -182,7 +183,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
               onTableBlur={() => setTableTouched(true)}
             />
           ) : quote ? (
-            <CheckoutConfirmation quote={quote} channel={channel} onChannelChange={setChannel} headingRef={confirmationHeadingRef} />
+            <CheckoutConfirmation quote={quote} imageUrlsByMenuId={imageUrlsByMenuId} channel={channel} onChannelChange={setChannel} headingRef={confirmationHeadingRef} />
           ) : null}
           <CheckoutCommitBar
             stage={stage}
