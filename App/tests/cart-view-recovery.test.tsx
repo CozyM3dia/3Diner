@@ -152,15 +152,21 @@ describe("CartView checkout recovery", () => {
     expect(screen.getAllByText(/60\.060/).length).toBeGreaterThan(0);
   });
 
-  it("uses native payment radios and retains the cashier choice after editing", async () => {
+  it("uses native payment radios, exposes the selected payment tile, and retains the cashier choice after editing", async () => {
     const user = userEvent.setup();
     render(<CartView cafe={cafe} slug="demo" />);
     await enterConfirmation(user);
 
+    const qris = screen.getByRole("radio", { name: /QRIS/i });
     const cashier = screen.getByRole("radio", { name: /Bayar di kasir/i });
+    expect(qris).toHaveProperty("checked", true);
     expect(cashier).toHaveProperty("checked", false);
+    expect(qris.closest("label")?.getAttribute("data-selected")).toBe("true");
+    expect(cashier.closest("label")?.getAttribute("data-selected")).toBe("false");
     await user.click(cashier);
     expect(cashier).toHaveProperty("checked", true);
+    expect(qris.closest("label")?.getAttribute("data-selected")).toBe("false");
+    expect(cashier.closest("label")?.getAttribute("data-selected")).toBe("true");
     expect(screen.getByRole("button", { name: "Kirim & tampilkan kode kasir" })).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Edit pesanan" }));
