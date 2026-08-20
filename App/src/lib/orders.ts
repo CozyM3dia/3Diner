@@ -86,14 +86,12 @@ function isMidtransQrisUrl(value: unknown): value is string {
   }
 }
 
-/** Cache lokal hanya menyimpan yang tidak ada di server: token pelanggan dan
- *  identitas kafe untuk tautan kembali. Status pesanan selalu diambil ulang dari
- *  server — localStorage tidak lagi jadi sumber kebenaran. */
+/** Cache lokal hanya menyimpan metadata non-sensitif untuk pemulihan QR.
+ * Status pesanan dan capability customer selalu berasal dari server. */
 interface OrderStub {
   id_order: string;
   cafe_slug: string;
   cafe_name: string;
-  customer_token: string;
   qris_url?: string | null;
 }
 
@@ -105,10 +103,15 @@ export async function createOrder(input: {
   items: CartItem[];
   notes?: string;
   paymentChannel?: "online" | "cashier";
+  quoteId?: string;
+  idempotencyKey?: string;
 }): Promise<Order> {
   const response = await fetch("/api/orders", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey } : {}),
+    },
     body: JSON.stringify({
       cafeId: input.cafeId,
       table: input.table,
@@ -119,6 +122,7 @@ export async function createOrder(input: {
       })),
       notes: input.notes,
       paymentChannel: input.paymentChannel ?? "online",
+      ...(input.quoteId ? { quoteId: input.quoteId } : {}),
     }),
   });
   const data = await response.json();
@@ -138,7 +142,10 @@ export async function createOrder(input: {
 /** Requests the server's canonical, read-only total before the customer commits. */
 export async function quoteOrder(input: {
   cafeId: string;
+  table: string;
   items: CartItem[];
+  notes?: string;
+  paymentChannel?: "online" | "cashier";
 }): Promise<OrderQuote> {
   try {
     const response = await fetch("/api/orders/quote", {
@@ -146,6 +153,9 @@ export async function quoteOrder(input: {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         cafeId: input.cafeId,
+        table: input.table,
+        notes: input.notes ?? "",
+        paymentChannel: input.paymentChannel ?? "online",
         items: input.items.map(({ id_menu, qty, options }) => ({
           id_menu,
           qty,
@@ -153,17 +163,25 @@ export async function quoteOrder(input: {
         })),
       }),
     });
-    const data = (await response.json().catch(() => null)) as { quote?: unknown; error?: unknown } | null;
+    const data = (await response.json().catch(() => null)) as { quote?: unknown; quote_id?: unknown; request_hash?: unknown; expires_at?: unknown; error?: unknown } | null;
     if (!response.ok) {
       const error = typeof data?.error === "string" && SAFE_QUOTE_ERRORS.has(data.error)
         ? data.error
         : "Gagal memuat ringkasan pesanan";
       throw new Error(error);
     }
-    if (!isOrderQuote(data?.quote)) {
+    if (!isOrderQuote(data?.quote) ||
+        typeof data.quote_id !== "string" ||
+        typeof data.request_hash !== "string" ||
+        typeof data.expires_at !== "string") {
       throw new Error("Gagal memuat ringkasan pesanan");
     }
-    return data.quote;
+    return {
+      ...data.quote,
+      quote_id: data.quote_id,
+      request_hash: data.request_hash,
+      expires_at: data.expires_at,
+    };
   } catch (error) {
     if (error instanceof Error && SAFE_QUOTE_ERRORS.has(error.message)) throw error;
     throw new Error("Gagal memuat ringkasan pesanan");
@@ -171,19 +189,17 @@ export async function quoteOrder(input: {
 }
 
 function saveStub(order: Order) {
-  if (!order.customer_token) return;
   try {
     const existing = getStub(order.id_order);
     const stub: OrderStub = {
       id_order: order.id_order,
       cafe_slug: order.cafe_slug,
       cafe_name: order.cafe_name,
-      customer_token: order.customer_token,
       qris_url: existing?.qris_url ?? null,
     };
     localStorage.setItem(key(order.id_order), JSON.stringify(stub));
   } catch {
-    /* storage penuh atau tidak tersedia — pesanan tetap terbuka lewat tautan bertoken */
+    /* Storage penuh atau tidak tersedia — server tetap menjadi sumber kebenaran. */
   }
 }
 
@@ -192,7 +208,12 @@ export function getStub(id: string): OrderStub | null {
     const raw = localStorage.getItem(key(id));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<OrderStub>;
-    return parsed.customer_token ? (parsed as OrderStub) : null;
+    return !Object.prototype.hasOwnProperty.call(parsed, "customer_token") &&
+      typeof parsed.id_order === "string" &&
+      typeof parsed.cafe_slug === "string" &&
+      typeof parsed.cafe_name === "string"
+      ? (parsed as OrderStub)
+      : null;
   } catch {
     return null;
   }

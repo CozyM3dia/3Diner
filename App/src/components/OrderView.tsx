@@ -15,7 +15,7 @@ import {
   Smartphone,
   Copy,
 } from "lucide-react";
-import { chargeOnline, fetchOrder, getQrisUrl, getStub, OrderFetchError, setQrisUrl } from "@/lib/orders";
+import { chargeOnline, fetchOrder, getQrisUrl, OrderFetchError, setQrisUrl } from "@/lib/orders";
 import { formatRupiah } from "@/lib/format";
 import { paymentMethodLabel } from "@/lib/payment-methods";
 import type { Order, OrderItem } from "@/types";
@@ -52,13 +52,9 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
   const reviewTotal = parseReviewTotal(searchParams.get("reviewTotal"));
   const reviewTotalKey = `${orderId}:${reviewTotal}`;
 
-  /** Token dibaca saat dibutuhkan, bukan disimpan di state: getStub menyentuh
-   *  localStorage, yang tidak ada saat render di server. Semua pemanggil di
-   *  bawah ini berjalan setelah komponen terpasang. */
-  const resolveToken = useCallback(
-    () => linkToken ?? getStub(orderId)?.customer_token ?? null,
-    [linkToken, orderId]
-  );
+  /** Capability hanya datang dari link/session state; localStorage tidak lagi
+   *  menyimpan credential customer. */
+  const resolveToken = useCallback(() => linkToken ?? null, [linkToken]);
 
   /** Satu-satunya jalan status masuk ke layar ini: dibaca dari server. */
   const load = useCallback(async (): Promise<Order | null> => {
@@ -208,6 +204,7 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
       <QrisView
         order={order}
         qrisUrl={qrisUrl}
+        token={resolveToken()}
         loading={chargeLoading}
         errorMessage={payError}
         refreshError={refreshError}
@@ -465,6 +462,7 @@ function OnlinePayView({
 function QrisView({
   order,
   qrisUrl,
+  token,
   loading,
   errorMessage,
   refreshError,
@@ -474,6 +472,7 @@ function QrisView({
 }: {
   order: Order;
   qrisUrl: string | null;
+  token: string | null;
   loading: boolean;
   errorMessage: string | null;
   refreshError: string | null;
@@ -557,7 +556,7 @@ function QrisView({
             </div>
           ) : null}
 
-          {qrisUrl && <DownloadQris qrisUrl={qrisUrl} orderId={order.id_order} />}
+          {qrisUrl && <DownloadQris orderId={order.id_order} token={token} />}
         </div>
 
         <div
@@ -606,8 +605,9 @@ function QrisView({
   );
 }
 
-function DownloadQris({ qrisUrl, orderId }: { qrisUrl: string; orderId: string }) {
-  const proxyUrl = `/api/payment/qr-proxy?url=${encodeURIComponent(qrisUrl)}&orderId=${encodeURIComponent(orderId)}`;
+function DownloadQris({ orderId, token }: { orderId: string; token: string | null }) {
+  if (!token) return null;
+  const proxyUrl = `/api/payment/qr-proxy?orderId=${encodeURIComponent(orderId)}&token=${encodeURIComponent(token)}`;
   return (
     <a
       href={proxyUrl}

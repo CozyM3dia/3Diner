@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getStaffCafeId } from "@/lib/staff-context";
+import { requireStaffPermission } from "@/lib/authorization";
 
 export interface MenuResult {
   error?: string;
@@ -21,8 +21,12 @@ function revalidate() {
  *  Ini pekerjaan paling sering di layar menu — bahan habis di tengah hari, menu
  *  harus turun sekarang, tanpa membuka formulir apa pun. */
 export async function setMenuLive(menuId: string, live: boolean): Promise<MenuResult> {
-  const cafeId = await getStaffCafeId();
-  if (!cafeId) return { error: "Sesi tidak berlaku. Masuk ulang." };
+  let cafeId: string;
+  try {
+    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+  } catch {
+    return { error: "Sesi tidak berlaku. Masuk ulang." };
+  }
 
   const { error } = await supabaseAdmin
     .from("Menus")
@@ -41,8 +45,12 @@ export async function setMenuLive(menuId: string, live: boolean): Promise<MenuRe
  *  kehabisan satu bahan bisa mematikan delapan menu sekaligus, dan itu
  *  pekerjaan nyata yang berulang. Sisanya tidak. */
 export async function setManyMenusLive(menuIds: string[], live: boolean): Promise<MenuResult> {
-  const cafeId = await getStaffCafeId();
-  if (!cafeId) return { error: "Sesi tidak berlaku. Masuk ulang." };
+  let cafeId: string;
+  try {
+    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+  } catch {
+    return { error: "Sesi tidak berlaku. Masuk ulang." };
+  }
 
   const ids = [...new Set(menuIds)].filter(Boolean);
   if (ids.length === 0) return { error: "Tidak ada item yang dipilih." };

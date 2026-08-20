@@ -56,6 +56,9 @@ const useCartMock = vi.mocked(useCart);
 const cafe = { id_cafe: "cafe-1", nama_cafe: "3Diner" } as never;
 const cartImageUrl = "https://images.example.test/pasta.jpg";
 const canonicalQuote = {
+  quote_id: "44444444-4444-4444-8444-444444444444",
+  request_hash: "a".repeat(64),
+  expires_at: "2099-01-01T00:00:00.000Z",
   items: [{
     id_menu: "menu-1",
     nama_menu: "Pasta Kanonik",
@@ -143,7 +146,13 @@ describe("CartView checkout recovery", () => {
 
     await enterConfirmation(user);
 
-    expect(quoteOrderMock).toHaveBeenCalledWith({ cafeId: "cafe-1", items: cartState.items });
+    expect(quoteOrderMock).toHaveBeenCalledWith({
+      cafeId: "cafe-1",
+      table: "7",
+      items: cartState.items,
+      notes: "tanpa bawang",
+      paymentChannel: "online",
+    });
     expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Konfirmasi & bayar" }));
     expect(screen.getByText(/Pasta Kanonik/)).toBeTruthy();
     expect(screen.queryByText(/Nama lokal palsu/)).toBeNull();
@@ -326,6 +335,8 @@ describe("CartView checkout recovery", () => {
       items: cartState.items,
       notes: "tanpa bawang",
       paymentChannel: "online",
+      quoteId: canonicalQuote.quote_id,
+      idempotencyKey: expect.any(String),
     });
 
     resolveOrder(successfulOrder());

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getStaffCafeId } from "@/lib/staff-context";
+import { requireStaffPermission } from "@/lib/authorization";
 
 export interface StokResult {
   error?: string;
@@ -29,8 +29,12 @@ export async function adjustStock(
   quantity: number,
   reason: string
 ): Promise<StokResult> {
-  const cafeId = await getStaffCafeId();
-  if (!cafeId) return { error: "Sesi tidak berlaku. Masuk ulang." };
+  let cafeId: string;
+  try {
+    cafeId = (await requireStaffPermission("manage_inventory")).cafeId;
+  } catch {
+    return { error: "Sesi tidak berlaku. Masuk ulang." };
+  }
 
   const trimmed = reason.trim();
   if (!trimmed) return { error: "Alasan wajib diisi." };

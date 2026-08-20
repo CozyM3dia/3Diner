@@ -5,6 +5,7 @@
  */
 
 const TRIPO_BASE = "https://api.tripo3d.ai/v2/openapi";
+const TRIPO_TIMEOUT_MS = 10_000;
 
 export interface TripoTaskOutput {
   model?: string;
@@ -32,6 +33,7 @@ function apiKey(): string {
 async function tripoFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${TRIPO_BASE}${path}`, {
     ...init,
+    signal: init?.signal ?? AbortSignal.timeout(TRIPO_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${apiKey()}`,
       "Content-Type": "application/json",

@@ -32,12 +32,16 @@ describe("POST /api/orders", () => {
     const response = await POST(
       new Request("http://localhost/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "idem-1234567890123456",
+        },
         body: JSON.stringify({
           cafeId: "cafe-1",
           table: "12",
           items: [{ id_menu: "menu-1", qty: 2 }],
           notes: "Tanpa acar",
+          quoteId: "44444444-4444-4444-8444-444444444444",
           total: 1,
         }),
       })
@@ -49,16 +53,16 @@ describe("POST /api/orders", () => {
       orderToken: "token-1",
       checkinCode: null,
     });
-    expect(rpc).toHaveBeenCalledWith("create_order", {
+    expect(rpc).toHaveBeenCalledWith("commit_order_atomic", {
       p_cafe_id: "cafe-1",
       p_table_number: "12",
       p_items: [{ id_menu: "menu-1", qty: 2, options: [] }],
       p_notes: "Tanpa acar",
       p_channel: "online",
+      p_quote_id: "44444444-4444-4444-8444-444444444444",
+      p_idempotency_key: "idem-1234567890123456",
     });
-    // Rute juga memanggil consume_rate_limit lewat spy yang sama, jadi yang
-    // dijaga di sini adalah pesanan dibuat tepat sekali — bukan total panggilan.
-    expect(rpc.mock.calls.filter(([fn]) => fn === "create_order")).toHaveLength(1);
+    expect(rpc.mock.calls.filter(([fn]) => fn === "commit_order_atomic")).toHaveLength(1);
   });
 
   // Ini yang dulu bocor: rute menyusun ulang tiap item menjadi { id_menu, qty }
@@ -73,23 +77,79 @@ describe("POST /api/orders", () => {
     const response = await POST(
       new Request("http://localhost/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "idem-variant-123456",
+        },
         body: JSON.stringify({
           cafeId: "cafe-1",
           table: "12",
           items: [{ id_menu: "menu-1", qty: 1, options }],
+          quoteId: "44444444-4444-4444-8444-444444444444",
         }),
       })
     );
 
     expect(response.status).toBe(201);
-    expect(rpc).toHaveBeenCalledWith("create_order", {
+    expect(rpc).toHaveBeenCalledWith("commit_order_atomic", {
       p_cafe_id: "cafe-1",
       p_table_number: "12",
       p_items: [{ id_menu: "menu-1", qty: 1, options }],
       p_notes: null,
       p_channel: "online",
+      p_quote_id: "44444444-4444-4444-8444-444444444444",
+      p_idempotency_key: "idem-variant-123456",
     });
+  });
+
+  it("uses the atomic commit RPC when quote and idempotency identity are supplied", async () => {
+    const { POST } = await import("@/app/api/orders/route");
+    const response = await POST(
+      new Request("http://localhost/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "idem-1234567890123456",
+        },
+        body: JSON.stringify({
+          cafeId: "cafe-1",
+          table: "12",
+          items: [{ id_menu: "menu-1", qty: 1 }],
+          quoteId: "44444444-4444-4444-8444-444444444444",
+        }),
+      })
+    );
+
+    expect(response.status).toBe(201);
+    expect(rpc).toHaveBeenCalledWith("commit_order_atomic", {
+      p_cafe_id: "cafe-1",
+      p_table_number: "12",
+      p_items: [{ id_menu: "menu-1", qty: 1, options: [] }],
+      p_notes: null,
+      p_channel: "online",
+      p_quote_id: "44444444-4444-4444-8444-444444444444",
+      p_idempotency_key: "idem-1234567890123456",
+    });
+  });
+
+  it("rejects a valid-looking checkout without quote and idempotency metadata", async () => {
+    const { POST } = await import("@/app/api/orders/route");
+    const response = await POST(new Request("http://localhost/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cafeId: "cafe-1",
+        table: "12",
+        items: [{ id_menu: "menu-1", qty: 1 }],
+      }),
+    }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      code: "checkout_metadata_required",
+      error: "Ringkasan pesanan perlu dimuat ulang sebelum dikirim",
+    });
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it.each([

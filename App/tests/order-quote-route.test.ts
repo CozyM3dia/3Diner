@@ -10,7 +10,11 @@ const MENU_ID = "11111111-1111-4111-8111-111111111111";
 const OPTION_ID = "22222222-2222-4222-8222-222222222222";
 const CAFE_ID = "33333333-3333-4333-8333-333333333333";
 
-const canonicalQuote = {
+const issuedQuote = {
+  quote_id: "44444444-4444-4444-8444-444444444444",
+  request_hash: "a".repeat(64),
+  expires_at: "2099-01-01T00:00:00.000Z",
+  quote: {
   items: [
     {
       id_menu: MENU_ID,
@@ -34,7 +38,10 @@ const canonicalQuote = {
   service_amount: 4_400,
   prices_include_tax: false,
   total: 53_240,
+  },
 };
+
+const canonicalQuote = issuedQuote.quote;
 
 async function loadPost() {
   try {
@@ -48,7 +55,7 @@ function quoteRequest(items: unknown, headers?: HeadersInit) {
   return new Request("http://localhost/api/orders/quote", {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },
-    body: JSON.stringify({ cafeId: CAFE_ID, items }),
+    body: JSON.stringify({ cafeId: CAFE_ID, table: "12", notes: "", paymentChannel: "online", items }),
   });
 }
 
@@ -60,8 +67,8 @@ describe("POST /api/orders/quote", () => {
       if (name === "consume_rate_limits") {
         return { data: { allowed: true }, error: null };
       }
-      if (name === "quote_order") {
-        return { data: canonicalQuote, error: null };
+      if (name === "issue_order_quote") {
+        return { data: issuedQuote, error: null };
       }
       return { data: null, error: { message: "unexpected rpc" } };
     });
@@ -80,15 +87,18 @@ describe("POST /api/orders/quote", () => {
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ quote: canonicalQuote });
+    await expect(response.json()).resolves.toEqual(issuedQuote);
     expect(rpc).toHaveBeenCalledWith("consume_rate_limits", {
       p_keys: ["order-quotes:ip:203.0.113.8", `order-quotes:cafe:${CAFE_ID}`],
       p_limits: [10, 120],
       p_window_seconds: 60,
     });
-    expect(rpc).toHaveBeenCalledWith("quote_order", {
+    expect(rpc).toHaveBeenCalledWith("issue_order_quote", {
       p_cafe_id: CAFE_ID,
+      p_table_number: "12",
       p_items: [{ id_menu: MENU_ID, qty: 2, options: [OPTION_ID] }],
+      p_notes: "",
+      p_channel: "online",
     });
   });
 
@@ -119,7 +129,7 @@ describe("POST /api/orders/quote", () => {
   it("maps invalid and malformed quote RPC responses to safe public errors", async () => {
     rpc.mockImplementation(async (name: string) => {
       if (name === "consume_rate_limits") return { data: { allowed: true }, error: null };
-      return { data: { subtotal: 44_000 }, error: null };
+      return { data: { quote: { subtotal: 44_000 } }, error: null };
     });
     const POST = await loadPost();
     expect(POST).toBeTypeOf("function");
@@ -142,12 +152,13 @@ describe("quoteOrder client", () => {
     expect(orders.quoteOrder).toBeTypeOf("function");
     if (!orders.quoteOrder) return;
 
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ quote: canonicalQuote }) });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => issuedQuote });
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(
       orders.quoteOrder({
         cafeId: CAFE_ID,
+        table: "12",
         items: [
           {
             line_key: `${MENU_ID}:${OPTION_ID}:`,
@@ -161,12 +172,20 @@ describe("quoteOrder client", () => {
           },
         ],
       })
-    ).resolves.toEqual(canonicalQuote);
+    ).resolves.toEqual({
+      ...canonicalQuote,
+      quote_id: issuedQuote.quote_id,
+      request_hash: issuedQuote.request_hash,
+      expires_at: issuedQuote.expires_at,
+    });
     expect(fetchMock).toHaveBeenCalledWith("/api/orders/quote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         cafeId: CAFE_ID,
+        table: "12",
+        notes: "",
+        paymentChannel: "online",
         items: [{ id_menu: MENU_ID, qty: 2, options: [OPTION_ID] }],
       }),
     });
@@ -179,7 +198,7 @@ describe("quoteOrder client", () => {
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: "internal secret" }) }));
 
-    await expect(orders.quoteOrder({ cafeId: CAFE_ID, items: [] })).rejects.toThrow(
+    await expect(orders.quoteOrder({ cafeId: CAFE_ID, table: "12", items: [] })).rejects.toThrow(
       "Gagal memuat ringkasan pesanan"
     );
   });

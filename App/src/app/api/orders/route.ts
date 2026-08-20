@@ -15,6 +15,7 @@ interface CreateOrderBody {
   items?: unknown;
   notes?: unknown;
   paymentChannel?: unknown;
+  quoteId?: unknown;
 }
 
 interface CreateOrderResult {
@@ -30,11 +31,17 @@ interface RpcResponseEnvelope {
   error: unknown;
 }
 
+function getCommitError(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  for (const code of ["quote_changed", "quote_already_consumed", "quote_mismatch", "idempotency_key_reused"]) {
+    if (value.includes(code)) return code;
+  }
+  return null;
+}
+
 function isInvalidOrderError(value: unknown): boolean {
-  return (
-    typeof value === "string" &&
-    (value.includes("menu_unavailable") || value.includes("invalid_order"))
-  );
+  return typeof value === "string" &&
+    (value.includes("menu_unavailable") || value.includes("invalid_order"));
 }
 
 function isNonEmptyString(value: unknown): value is string {
@@ -80,9 +87,17 @@ export async function POST(req: Request) {
   const items = parseItems(body?.items);
   const notes = typeof body?.notes === "string" ? body.notes.trim().slice(0, 500) : null;
   const paymentChannel = body?.paymentChannel === "cashier" ? "cashier" : "online";
+  const quoteId = typeof body?.quoteId === "string" ? body.quoteId.trim() : "";
+  const idempotencyKey = req.headers.get("idempotency-key")?.trim() ?? "";
 
   if (!cafeId || !table || !items) {
     return NextResponse.json({ error: "Data pesanan tidak valid" }, { status: 400 });
+  }
+  if (!quoteId || !idempotencyKey) {
+    return NextResponse.json({
+      code: "checkout_metadata_required",
+      error: "Ringkasan pesanan perlu dimuat ulang sebelum dikirim",
+    }, { status: 400 });
   }
 
   // Validasi murah dijalankan lebih dulu supaya permintaan cacat tidak
@@ -99,12 +114,14 @@ export async function POST(req: Request) {
 
   let rpcResponse;
   try {
-    rpcResponse = await supabaseAdmin.rpc("create_order", {
+    rpcResponse = await supabaseAdmin.rpc("commit_order_atomic", {
       p_cafe_id: cafeId,
       p_table_number: table,
       p_items: items,
       p_notes: notes,
       p_channel: paymentChannel,
+      p_quote_id: quoteId,
+      p_idempotency_key: idempotencyKey,
     });
   } catch {
     return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
@@ -116,6 +133,11 @@ export async function POST(req: Request) {
 
   const { data, error } = rpcResponse;
   if (error) {
+    const commitError = getCommitError(getRpcErrorMessage(error));
+    if (commitError) {
+      const status = commitError === "idempotency_key_reused" ? 409 : 422;
+      return NextResponse.json({ code: commitError, error: "Ringkasan pesanan berubah. Muat ulang sebelum dikirim." }, { status });
+    }
     if (isInvalidOrderError(getRpcErrorMessage(error))) {
       return NextResponse.json({ error: "Menu tidak tersedia" }, { status: 400 });
     }

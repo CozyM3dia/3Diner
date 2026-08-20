@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const CHARGE_PER_IP = { limit: 6, windowSeconds: 60 };
+const MIDTRANS_TIMEOUT_MS = 8_000;
 const ALLOWED_QR_HOSTS = new Set(["api.midtrans.com", "api.sandbox.midtrans.com"]);
 const ACTIVE_ORDER_STATUSES = ["awaiting", "received", "preparing"];
 
@@ -205,6 +206,7 @@ export async function POST(req: Request) {
     try {
       res = await fetch(chargeUrl, {
         method: "POST",
+        signal: AbortSignal.timeout(MIDTRANS_TIMEOUT_MS),
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
@@ -302,6 +304,7 @@ async function recoverPendingQris(
   const statusUrl = `${apiBaseUrl}/v2/${encodeURIComponent(statusIdentifier)}/status`;
   try {
     const response = await fetch(statusUrl, {
+      signal: AbortSignal.timeout(MIDTRANS_TIMEOUT_MS),
       headers: {
         Accept: "application/json",
         Authorization: `Basic ${Buffer.from(serverKey + ":").toString("base64")}`,

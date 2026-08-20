@@ -134,13 +134,18 @@ describe("POST /api/orders rate limiting", () => {
   const validBody = {
     cafeId: "cafe-1",
     table: "12",
+    quoteId: "44444444-4444-4444-8444-444444444444",
     items: [{ id_menu: "menu-1", qty: 1 }],
   };
 
   function orderRequest(): Request {
     return new Request("http://localhost/api/orders", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-forwarded-for": "203.0.113.9" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-forwarded-for": "203.0.113.9",
+        "Idempotency-Key": "rate-test-12345678901234",
+      },
       body: JSON.stringify(validBody),
     });
   }
@@ -182,7 +187,7 @@ describe("POST /api/orders rate limiting", () => {
     const response = await POST(orderRequest());
 
     expect(response.status).toBe(201);
-    expect(rpc).toHaveBeenCalledWith("create_order", expect.anything());
+    expect(rpc).toHaveBeenCalledWith("commit_order_atomic", expect.anything());
   });
 
   it("rejects malformed input before spending a rate-limit slot", async () => {

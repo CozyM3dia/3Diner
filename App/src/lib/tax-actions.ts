@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getStaffCafeId } from "@/lib/staff-context";
+import { requireStaffPermission } from "@/lib/authorization";
 
 export interface TaxResult {
   error?: string;
@@ -22,8 +22,12 @@ export async function saveTax(
   servicePct: number,
   includedInPrice: boolean
 ): Promise<TaxResult> {
-  const cafeId = await getStaffCafeId();
-  if (!cafeId) return { error: "Sesi tidak berlaku. Masuk ulang." };
+  let cafeId: string;
+  try {
+    cafeId = (await requireStaffPermission("manage_settings")).cafeId;
+  } catch {
+    return { error: "Sesi tidak berlaku. Masuk ulang." };
+  }
 
   if (!Number.isFinite(taxPct) || taxPct < 0 || taxPct > 100) {
     return { error: "Pajak harus antara 0 dan 100." };

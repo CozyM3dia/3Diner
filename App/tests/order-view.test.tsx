@@ -63,8 +63,8 @@ const order = (overrides: Record<string, unknown> = {}) => ({
 describe("OrderView QRIS entry", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    navigation.search = "";
-    getStub.mockReturnValue({ customer_token: "token-1" });
+    navigation.search = "token=token-1";
+    getStub.mockReturnValue(null);
     getQrisUrl.mockReturnValue(null);
     chargeOnline.mockResolvedValue("https://api.sandbox.midtrans.com/v2/qris/tx-1/qr-code");
   });
@@ -117,8 +117,8 @@ describe("OrderView QRIS entry", () => {
 describe("OrderView recovery and terminal states", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    navigation.search = "";
-    getStub.mockReturnValue({ customer_token: "stub-token" });
+    navigation.search = "token=stub-token";
+    getStub.mockReturnValue(null);
     getQrisUrl.mockReturnValue(null);
     chargeOnline.mockResolvedValue("https://api.sandbox.midtrans.com/v2/qris/tx-1/qr-code");
   });
@@ -265,7 +265,7 @@ describe("OrderView recovery and terminal states", () => {
     const { unmount } = render(<OrderView slug="senja-kopi" orderId="order-1" />);
 
     await screen.findByRole("heading", { name: "Pembayaran Berhasil" });
-    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 15_000);
+    expect(setIntervalSpy.mock.calls.some((call) => call[1] === 15_000)).toBe(true);
     const pollHandle = setIntervalSpy.mock.results.find(
       (_result, index) => setIntervalSpy.mock.calls[index]?.[1] === 15_000
     )?.value;

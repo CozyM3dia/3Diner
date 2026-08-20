@@ -40,7 +40,7 @@ describe("quoteOrder client errors", () => {
       Response.json({ error: "Menu tidak tersedia" }, { status: 400 })
     ));
 
-    await expect(quoteOrder({ cafeId: "cafe-1", items: [] })).rejects.toThrow("Menu tidak tersedia");
+    await expect(quoteOrder({ cafeId: "cafe-1", table: "7", items: [] })).rejects.toThrow("Menu tidak tersedia");
   });
 
   it.each([
@@ -49,7 +49,7 @@ describe("quoteOrder client errors", () => {
   ])("uses the generic quote error for %s", async (_label, response) => {
     vi.stubGlobal("fetch", vi.fn(response));
 
-    await expect(quoteOrder({ cafeId: "cafe-1", items: [] })).rejects.toThrow("Gagal memuat ringkasan pesanan");
+    await expect(quoteOrder({ cafeId: "cafe-1", table: "7", items: [] })).rejects.toThrow("Gagal memuat ringkasan pesanan");
   });
 });
 
@@ -82,7 +82,7 @@ describe("fetchOrder client recovery", () => {
     await expect(fetchOrder("order-1", "token-1")).rejects.toMatchObject({ kind: "transient" });
   });
 
-  it("returns a valid order and saves its token recovery stub", async () => {
+  it("returns a valid order and saves only a non-sensitive recovery stub", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(Response.json({
@@ -115,7 +115,7 @@ describe("fetchOrder client recovery", () => {
     });
     expect(setItem).toHaveBeenCalledWith(
       "3diner.order.order-1",
-      expect.stringContaining('"customer_token":"token-1"')
+      expect.not.stringContaining("customer_token")
     );
   });
 });

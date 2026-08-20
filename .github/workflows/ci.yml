@@ -46,10 +46,16 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Start local Supabase stack
+        run: npx supabase@2.115.0 start
+
+      - name: Reset local Supabase database
+        run: npx supabase@2.115.0 db reset --local --yes
+
       - name: Test
         run: npm run test:ci
 
-      # Ratchet, not a full sweep: main currently carries 37 pre-existing
+      # Ratchet, not a full sweep: main currently carries 39 pre-existing
       # eslint errors (mostly react-hooks/set-state-in-effect and explicit
       # any in the 3D viewer). Gating the whole repo would fail every PR on
       # day one, so this blocks only on files the PR actually touches. The
@@ -72,3 +78,7 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: npx supabase@2.115.0 stop

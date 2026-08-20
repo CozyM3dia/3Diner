@@ -6,13 +6,20 @@ vi.mock("@/lib/supabase-admin", () => ({
   supabaseAdmin: { rpc },
 }));
 
+let requestSequence = 0;
+
 function createOrderRequest() {
+  requestSequence += 1;
   return new Request("http://localhost/api/orders", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Idempotency-Key": `inventory-test-${String(requestSequence).padStart(16, "0")}`,
+    },
     body: JSON.stringify({
       cafeId: "cafe-1",
       table: "12",
+      quoteId: "44444444-4444-4444-8444-444444444444",
       items: [{ id_menu: "menu-1", qty: 2 }],
     }),
   });

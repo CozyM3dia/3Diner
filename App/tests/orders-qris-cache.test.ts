@@ -10,12 +10,11 @@ describe("QRIS URL cache", () => {
     vi.stubGlobal("localStorage", { getItem, setItem });
   });
 
-  it("keeps the active QRIS URL alongside the existing order stub", () => {
+  it("keeps only the non-sensitive QRIS URL alongside order metadata", () => {
     const stub = {
       id_order: "order-1",
       cafe_slug: "kedai",
       cafe_name: "Kedai",
-      customer_token: "token-1",
     };
     let stored = JSON.stringify(stub);
     getItem.mockImplementation(() => stored);
@@ -29,7 +28,20 @@ describe("QRIS URL cache", () => {
       "3diner.order.order-1",
       JSON.stringify({ ...stub, qris_url: "https://api.sandbox.midtrans.com/v4/qris/tx-1/qr-code" })
     );
+    expect(stored).not.toContain("customer_token");
     expect(getQrisUrl("order-1")).toBe("https://api.sandbox.midtrans.com/v4/qris/tx-1/qr-code");
+  });
+
+  it("rejects legacy stubs that contain a customer token", () => {
+    getItem.mockReturnValue(JSON.stringify({
+      id_order: "order-1",
+      cafe_slug: "kedai",
+      cafe_name: "Kedai",
+      customer_token: "token-1",
+      qris_url: "https://api.sandbox.midtrans.com/v4/qris/tx-1/qr-code",
+    }));
+
+    expect(getQrisUrl("order-1")).toBeNull();
   });
 
   it("ignores a QR URL that did not come from a Midtrans QR host", () => {
@@ -37,7 +49,6 @@ describe("QRIS URL cache", () => {
       id_order: "order-1",
       cafe_slug: "kedai",
       cafe_name: "Kedai",
-      customer_token: "token-1",
       qris_url: "https://evil.example/track.png",
     }));
 

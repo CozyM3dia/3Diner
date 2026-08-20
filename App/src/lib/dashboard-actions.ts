@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "./supabase-admin";
 import { createClient } from "./supabase/server";
 import { getOwnerCafeSlug } from "./analytics";
+import { requireOwnerCafe } from "./authorization";
 import { optionGroupsValidationError, type OptionGroupDraft } from "./menu-option-drafts";
 
 export interface ActionResult {
@@ -30,24 +31,14 @@ function nonnegativeNumber(fd: FormData, key: string): number | null {
   return value;
 }
 
-/** Resolve the cafe_id owned by the authenticated user, or null.
- *
- *  Sebelumnya dua query Cafes (satu by owner_id, satu by slug) ditambah auth.
- *  Kolom id_cafe bisa diambil langsung by owner_id — satu query, satu roundtrip.
- *  Dibungkus cache() agar dedupe dalam satu proses request. */
+/** Resolve the cafe_id for an active owner. Layouts are not an authorization boundary. */
 export const getAuthCafeId = cache(async (): Promise<string | null> => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data } = await supabaseAdmin
-    .from("Cafes")
-    .select("id_cafe")
-    .eq("owner_id", user.id)
-    .limit(1)
-    .maybeSingle();
-  return (data?.id_cafe as string) ?? null;
+  try {
+    const { cafeId } = await requireOwnerCafe();
+    return cafeId;
+  } catch {
+    return null;
+  }
 });
 
 function str(fd: FormData, k: string): string | null {

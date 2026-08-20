@@ -16,7 +16,7 @@ const withPWA = withPWAInit({
       // hashes can leave the page completely unstyled after a deployment.
       // Dashboard routes are excluded: they require auth and serve real-time data.
       {
-        urlPattern: /^https:\/\/3diner\.vercel\.app\/(?!dashboard|login|api)[^_].*/,
+        urlPattern: /^https:\/\/3diner\.vercel\.app\/(?!dashboard(?:\/|$)|dashboard-v2(?:\/|$)|kasir(?:\/|$)|login(?:\/|$)|api(?:\/|$)|_next(?:\/|$))[^_].*/,
         handler: "NetworkFirst",
         options: {
           cacheName: "pages-cache-v2",

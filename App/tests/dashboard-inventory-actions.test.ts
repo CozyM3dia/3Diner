@@ -5,6 +5,7 @@ const rpc = vi.fn();
 const revalidatePath = vi.fn();
 const getOwnerCafeSlug = vi.fn();
 const getUser = vi.fn();
+const getStaffContext = vi.fn();
 
 vi.mock("@/lib/supabase-admin", () => ({
   supabaseAdmin: { from, rpc },
@@ -18,6 +19,10 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock("@/lib/analytics", () => ({
   getOwnerCafeSlug,
+}));
+
+vi.mock("@/lib/staff-context", () => ({
+  getStaffContext,
 }));
 
 vi.mock("next/cache", () => ({
@@ -50,6 +55,15 @@ describe("inventory dashboard actions", () => {
     vi.clearAllMocks();
     rpc.mockResolvedValue({ data: {}, error: null });
     getUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    getStaffContext.mockResolvedValue({
+      cafe_id: "cafe-1",
+      cafe_name: "Kafe",
+      cafe_slug: "cafe-slug",
+      user_id: "user-1",
+      full_name: "Owner",
+      role: "owner",
+      is_active: true,
+    });
     getOwnerCafeSlug.mockResolvedValue("cafe-slug");
     from.mockImplementation((table: string) => {
       if (table === "Cafes") {
@@ -77,7 +91,7 @@ describe("inventory dashboard actions", () => {
     );
 
     expect(result).toEqual({ error: "Satuan bahan tidak valid." });
-    expect(from).toHaveBeenCalledTimes(1);
+    expect(from).not.toHaveBeenCalled();
   });
 
   it("returns the new menu id from createMenu for recipe sequencing", async () => {
@@ -261,7 +275,7 @@ describe("inventory dashboard actions", () => {
     ]);
 
     expect(result).toEqual({ error: "Satu bahan tidak boleh muncul dua kali di resep yang sama." });
-    expect(from).toHaveBeenCalledTimes(1);
+    expect(from).not.toHaveBeenCalled();
   });
 
   it.each([

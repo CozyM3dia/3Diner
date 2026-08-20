@@ -206,6 +206,9 @@ export interface OrderItem {
 
 /** Read-only canonical checkout quote returned before the customer commits. */
 export interface OrderQuote {
+  quote_id?: string
+  request_hash?: string
+  expires_at?: string
   items: OrderItem[]
   subtotal: number
   tax_pct: number

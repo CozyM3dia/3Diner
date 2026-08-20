@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getStaffCafeId } from "@/lib/staff-context";
+import { requireStaffPermission } from "@/lib/authorization";
 
 export interface EditorResult {
   error?: string;
@@ -38,8 +38,12 @@ function revalidate(menuId: string) {
  *  membuat total pesanan berkurang saat item ditambahkan, dan itu bukan diskon
  *  melainkan kebocoran. */
 export async function saveMenuBasics(menuId: string, basics: MenuBasics): Promise<EditorResult> {
-  const cafeId = await getStaffCafeId();
-  if (!cafeId) return { error: "Sesi tidak berlaku. Masuk ulang." };
+  let cafeId: string;
+  try {
+    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+  } catch {
+    return { error: "Sesi tidak berlaku. Masuk ulang." };
+  }
 
   const nama = basics.nama_menu.trim();
   if (!nama) return { error: "Nama menu wajib diisi." };
@@ -74,8 +78,12 @@ export async function saveMenuSchedule(
   menuId: string,
   schedule: MenuSchedule
 ): Promise<EditorResult> {
-  const cafeId = await getStaffCafeId();
-  if (!cafeId) return { error: "Sesi tidak berlaku. Masuk ulang." };
+  let cafeId: string;
+  try {
+    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+  } catch {
+    return { error: "Sesi tidak berlaku. Masuk ulang." };
+  }
 
   const start = schedule.schedule_start?.trim() || null;
   const end = schedule.schedule_end?.trim() || null;

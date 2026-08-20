@@ -9,12 +9,22 @@ const QUOTES_PER_CAFE = { limit: 120, windowSeconds: 60 };
 
 interface QuoteOrderBody {
   cafeId?: unknown;
+  table?: unknown;
+  notes?: unknown;
+  paymentChannel?: unknown;
   items?: unknown;
 }
 
 interface RpcResponseEnvelope {
   data: unknown;
   error: unknown;
+}
+
+interface IssuedQuote {
+  quote_id: string;
+  request_hash: string;
+  expires_at: string;
+  quote: unknown;
 }
 
 function isFiniteNonNegativeNumber(value: unknown): value is number {
@@ -59,6 +69,17 @@ function isOrderQuote(value: unknown): value is OrderQuote {
   );
 }
 
+function isIssuedQuote(value: unknown): value is IssuedQuote {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const issued = value as Record<string, unknown>;
+  return typeof issued.quote_id === "string" &&
+    /^[0-9a-f-]{36}$/i.test(issued.quote_id) &&
+    typeof issued.request_hash === "string" &&
+    /^[0-9a-f]{64}$/.test(issued.request_hash) &&
+    typeof issued.expires_at === "string" &&
+    isOrderQuote(issued.quote);
+}
+
 function isRpcResponseEnvelope(value: unknown): value is RpcResponseEnvelope {
   return (
     typeof value === "object" && value !== null && !Array.isArray(value) &&
@@ -78,9 +99,12 @@ function isInvalidOrderError(value: unknown): boolean {
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as QuoteOrderBody | null;
   const cafeId = typeof body?.cafeId === "string" ? body.cafeId.trim() : "";
+  const table = typeof body?.table === "string" ? body.table.trim().slice(0, 30) : "";
+  const notes = typeof body?.notes === "string" ? body.notes.trim().slice(0, 500) : "";
+  const paymentChannel = body?.paymentChannel === "cashier" ? "cashier" : "online";
   const items = parseItems(body?.items);
 
-  if (!cafeId || !items) {
+  if (!cafeId || !table || !items) {
     return NextResponse.json({ error: "Data pesanan tidak valid" }, { status: 400 });
   }
 
@@ -95,9 +119,12 @@ export async function POST(req: Request) {
 
   let rpcResponse: unknown;
   try {
-    rpcResponse = await supabaseAdmin.rpc("quote_order", {
+    rpcResponse = await supabaseAdmin.rpc("issue_order_quote", {
       p_cafe_id: cafeId,
+      p_table_number: table,
       p_items: items,
+      p_notes: notes,
+      p_channel: paymentChannel,
     });
   } catch {
     return NextResponse.json({ error: "Gagal memuat ringkasan pesanan" }, { status: 502 });
@@ -112,9 +139,9 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ error: "Gagal memuat ringkasan pesanan" }, { status: 502 });
   }
-  if (!isOrderQuote(rpcResponse.data)) {
+  if (!isIssuedQuote(rpcResponse.data)) {
     return NextResponse.json({ error: "Gagal memuat ringkasan pesanan" }, { status: 502 });
   }
 
-  return NextResponse.json({ quote: rpcResponse.data });
+  return NextResponse.json(rpcResponse.data);
 }

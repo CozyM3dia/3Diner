@@ -28,6 +28,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
   const [isQuoting, setIsQuoting] = useState(false);
   const [quoteFingerprint, setQuoteFingerprint] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const idempotencyKeyRef = useRef<string | null>(null);
   const confirmationHeadingRef = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const quoteRequestGenerationRef = useRef(0);
@@ -80,7 +81,13 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
     try {
       setNeedsQuoteRetry(false);
       setIsQuoting(true);
-      const freshQuote = await quoteOrder({ cafeId: cafe.id_cafe, items });
+      const freshQuote = await quoteOrder({
+        cafeId: cafe.id_cafe,
+        table: table.trim(),
+        items,
+        notes: notes.trim(),
+        paymentChannel: channel,
+      });
       if (
         requestGeneration !== quoteRequestGenerationRef.current ||
         requestFingerprint !== currentCartFingerprintRef.current
@@ -120,15 +127,26 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
       focusTable();
       return;
     }
-    if (!quote || quoteFingerprint !== currentCartFingerprint) {
+    if (!quote || quoteFingerprint !== currentCartFingerprint ||
+        !quote.quote_id || !quote.request_hash || !quote.expires_at) {
       setStage("review");
       setNeedsQuoteRetry(true);
       setError("Ringkasan pesanan perlu dimuat ulang sebelum dikirim.");
       return;
     }
 
+    const quoteExpiresAt = Date.parse(quote.expires_at);
+    if (!Number.isFinite(quoteExpiresAt) || quoteExpiresAt <= Date.now()) {
+      invalidateQuote();
+      setStage("review");
+      setNeedsQuoteRetry(true);
+      setError("Ringkasan pesanan sudah kedaluwarsa. Muat ulang sebelum dikirim.");
+      return;
+    }
+
     setError(null);
     setIsSubmitting(true);
+    idempotencyKeyRef.current ??= crypto.randomUUID();
     try {
       const order = await createOrder({
         cafeId: cafe.id_cafe,
@@ -138,6 +156,8 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
         items,
         notes: notes.trim(),
         paymentChannel: channel,
+        quoteId: quote.quote_id,
+        idempotencyKey: idempotencyKeyRef.current,
       });
       clear();
       const token = encodeURIComponent(order.customer_token ?? "");

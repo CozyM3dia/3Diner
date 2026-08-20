@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getAuthCafeId } from "@/lib/dashboard-actions";
 import { getTripoTask, pickModelUrl } from "@/lib/tripo";
+import { readBoundedArrayBuffer } from "@/lib/bounded-response";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -30,9 +31,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Tripo tidak mengembalikan model ${isUsdz ? "USDZ" : "GLB"}.` }, { status: 502 });
     }
 
-    const dl = await fetch(modelUrl);
-    if (!dl.ok) return NextResponse.json({ error: `Gagal mengunduh model (${dl.status}).` }, { status: 502 });
-    const buf = Buffer.from(await dl.arrayBuffer());
+    const dl = await fetch(modelUrl, {
+      redirect: "error",
+      signal: AbortSignal.timeout(10_000),
+      cache: "no-store",
+    });
+    if (!dl.ok) return NextResponse.json({ error: "Gagal mengunduh model." }, { status: 502 });
+    const contentLength = Number(dl.headers.get("content-length") ?? 0);
+    if (Number.isFinite(contentLength) && contentLength > MAX_GLB_BYTES) {
+      return NextResponse.json({ error: "Model melebihi batas 60MB." }, { status: 413 });
+    }
+    const buf = Buffer.from(await readBoundedArrayBuffer(dl, MAX_GLB_BYTES));
     if (buf.byteLength === 0) return NextResponse.json({ error: "File model kosong." }, { status: 502 });
     if (buf.byteLength > MAX_GLB_BYTES) {
       return NextResponse.json({ error: "Model melebihi batas 60MB." }, { status: 413 });
