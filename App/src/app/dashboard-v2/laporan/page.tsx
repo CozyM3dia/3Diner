@@ -44,14 +44,14 @@ export default async function OwnerReportPage({ searchParams }: PageProps) {
 
   // Deret dihitung sekali, dipakai untuk grafik DAN untuk kalimatnya — kalau
   // dihitung dua kali, keduanya bisa menyimpulkan puncak yang berbeda.
-  // RPC sudah mengembalikan deret per hari (WIB); buildDailySeries mengisi hari
-  // kosong supaya bentuk grafik tidak memadatkan waktu.
+  // Kedua deret sudah digrouping per hari (WIB) di Postgres; buildDailySeries
+  // mengisi hari kosong supaya bentuk grafik tidak memadatkan waktu.
   const revenueSeries = buildDailySeries(
     page.dailyRevenue.map((d) => ({ created_at: d.day + "T12:00:00+07:00", value: d.value })),
     days
   );
   const openSeries = buildDailySeries(
-    page.openTimestamps.map((t) => ({ created_at: t, value: 1 })),
+    page.openDaily.map((d) => ({ created_at: d.day + "T12:00:00+07:00", value: d.value })),
     days
   );
 

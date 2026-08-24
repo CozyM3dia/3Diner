@@ -107,14 +107,44 @@ export default function OrderView({ slug, orderId }: { slug: string; orderId: st
   useEffect(() => {
     if (loadState !== "loaded" || !order || isKitchenTerminal(order)) return;
 
+    // Tab tersembunyi tidak perlu data segar: tiap tick = 1 RPC rate-limit +
+    // 1 RPC baca di Postgres. Saat kembali terlihat, refresh langsung sekali.
     const interval = view === "qris" ? POLL_PAY_MS : POLL_SLOW_MS;
-    const timer = setInterval(() => {
-      void load().then((fresh) => {
-        if (fresh) setView(viewForOrder(fresh));
-      });
-    }, interval);
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const startTimer = () => {
+      if (timer === null) {
+        timer = setInterval(() => {
+          void load().then((fresh) => {
+            if (fresh) setView(viewForOrder(fresh));
+          });
+        }, interval);
+      }
+    };
+    const stopTimer = () => {
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
 
-    return () => clearInterval(timer);
+    const onVisibility = () => {
+      if (document.hidden) stopTimer();
+      else {
+        void load().then((fresh) => {
+          if (fresh) setView(viewForOrder(fresh));
+        });
+        startTimer();
+      }
+    };
+
+    if (document.hidden) stopTimer();
+    else startTimer();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      stopTimer();
+    };
   }, [loadState, view, order, load]);
 
   async function refreshNow() {

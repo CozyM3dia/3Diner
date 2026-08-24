@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { readBoundedArrayBuffer } from "@/lib/bounded-response";
+import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const ALLOWED_QR_HOSTS = new Set(["api.midtrans.com", "api.sandbox.midtrans.com"]);
 const MAX_QR_BYTES = 2_000_000;
 const FETCH_TIMEOUT_MS = 5_000;
+// QR untuk pasangan (orderId, transaksi) tidak pernah berubah, tapi status
+// pending bisa berakhir — cache singkat memotong Supabase read + fetch Midtrans
+// pada buka ulang/cetak berulang tanpa menyajikan QR yang sudah mati terlalu lama.
+const QR_CACHE_SECONDS = 60;
+const PROXY_PER_IP = { limit: 30, windowSeconds: 60 };
 
 function isAllowedQrUrl(raw: string): boolean {
   try {
@@ -29,6 +35,11 @@ export async function GET(req: Request) {
   const token = searchParams.get("token")?.trim();
 
   if (!orderId || !token || searchParams.has("url")) return unauthorized();
+
+  // Endpoint ini melakukan Supabase read + fetch keluar ke Midtrans per hit;
+  // tanpa limiter ia adalah vektor amplifikasi termurah di aplikasi.
+  const limit = await consumeRateLimit(`qr-proxy:ip:${clientIp(req)}`, PROXY_PER_IP.limit, PROXY_PER_IP.windowSeconds);
+  if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
 
   const { data: order, error: orderError } = await supabaseAdmin
     .from("Orders")
@@ -72,7 +83,9 @@ export async function GET(req: Request) {
       headers: {
         "Content-Type": contentType,
         "Content-Disposition": `attachment; filename="QRIS-${safeOrderId(orderId)}.png"`,
-        "Cache-Control": "no-store",
+        // Gambar QR bersifat privat per pesanan; browser boleh memegangnya
+        // sebentar, tapi CDN/shared cache tidak boleh.
+        "Cache-Control": `private, max-age=${QR_CACHE_SECONDS}`,
       },
     });
   } catch {

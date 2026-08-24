@@ -9,6 +9,10 @@ import { parseItems } from "@/lib/order-request";
 const ORDERS_PER_IP = { limit: 10, windowSeconds: 60 };
 const ORDERS_PER_CAFE = { limit: 120, windowSeconds: 60 };
 
+/** cafeId dipakai sebagai key limiter sebelum RPC; tanpa validasi UUID,
+ *  body acak bisa menggembungkan tabel Rate_Limits dengan bucket sampah. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 interface CreateOrderBody {
   cafeId?: unknown;
   table?: unknown;
@@ -91,6 +95,9 @@ export async function POST(req: Request) {
   const idempotencyKey = req.headers.get("idempotency-key")?.trim() ?? "";
 
   if (!cafeId || !table || !items) {
+    return NextResponse.json({ error: "Data pesanan tidak valid" }, { status: 400 });
+  }
+  if (!UUID_RE.test(cafeId)) {
     return NextResponse.json({ error: "Data pesanan tidak valid" }, { status: 400 });
   }
   if (!quoteId || !idempotencyKey) {

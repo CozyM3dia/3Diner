@@ -17,7 +17,7 @@ function createOrderRequest() {
       "Idempotency-Key": `inventory-test-${String(requestSequence).padStart(16, "0")}`,
     },
     body: JSON.stringify({
-      cafeId: "cafe-1",
+      cafeId: "11111111-1111-4111-8111-111111111111",
       table: "12",
       quoteId: "44444444-4444-4444-8444-444444444444",
       items: [{ id_menu: "menu-1", qty: 2 }],
@@ -28,7 +28,7 @@ function createOrderRequest() {
 function createValidOrder() {
   return {
     id_order: "order-1",
-    cafe_id: "cafe-1",
+    cafe_id: "11111111-1111-4111-8111-111111111111",
     table_number: "12",
     items: [{ id_menu: "menu-1", nama_menu: "Nasi Goreng", harga_menu: 20_000, qty: 2 }],
     total: 40_000,

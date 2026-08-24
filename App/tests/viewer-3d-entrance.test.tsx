@@ -18,7 +18,6 @@ const {
   plyViewerInstances,
   timelineFromTo,
   timelines,
-  useGSAPOptions,
 } = vi.hoisted(() => {
   const timelineFromTo = vi.fn();
   const timelines: Array<{ fromTo: ReturnType<typeof vi.fn>; kill: ReturnType<typeof vi.fn> }> = [];
@@ -65,7 +64,6 @@ const {
     plyViewerInstances,
     timelineFromTo,
     timelines,
-    useGSAPOptions: vi.fn(),
   };
 });
 
@@ -99,16 +97,6 @@ vi.mock("gsap", () => ({
     registerPlugin: vi.fn(),
     set: gsapSet,
     timeline: gsapTimeline,
-  },
-}));
-
-vi.mock("@gsap/react", () => ({
-  useGSAP: (
-    callback: () => void | (() => void),
-    options: { scope?: React.RefObject<HTMLElement | null> },
-  ) => {
-    useGSAPOptions(options);
-    React.useEffect(callback, [callback]);
   },
 }));
 
@@ -298,12 +286,14 @@ describe("Viewer3DPage entrance", () => {
     expect(cta.classList).not.toContain("inline-flex");
   });
 
-  it("uses a subtle entrance for direct visits without a transition marker", () => {
+  it("uses a subtle entrance for direct visits without a transition marker", async () => {
     const view = renderViewer(false, false);
     const header = view.container.querySelector('[data-viewer-entrance="header"]');
     const stage = view.container.querySelector('[data-viewer-entrance="stage"]');
     const controls = view.container.querySelector('[data-viewer-entrance="controls"]');
 
+    // Entrance kini memuat gsap on-demand (dynamic import) — tunggu effect async.
+    await waitFor(() => expect(timelineFromTo).toHaveBeenCalledTimes(3));
     expect(timelineFromTo).toHaveBeenNthCalledWith(
       1,
       header,
@@ -327,14 +317,14 @@ describe("Viewer3DPage entrance", () => {
     );
   });
 
-  it("uses the direct-visit entrance when transition storage is unavailable", () => {
+  it("uses the direct-visit entrance when transition storage is unavailable", async () => {
     vi.spyOn(Storage.prototype, "getItem").mockImplementationOnce(() => {
       throw new Error("storage unavailable");
     });
 
     renderViewer(false, false);
 
-    expect(timelineFromTo).toHaveBeenCalledTimes(3);
+    await waitFor(() => expect(timelineFromTo).toHaveBeenCalledTimes(3));
   });
 
   afterEach(() => {
@@ -342,16 +332,15 @@ describe("Viewer3DPage entrance", () => {
     vi.unstubAllGlobals();
   });
 
-  it("stages the header, model stage, and controls in a scoped timeline", () => {
+  it("stages the header, model stage, and controls in a scoped timeline", async () => {
     const view = renderViewer();
     const shell = view.container.querySelector('[data-viewer-entrance="shell"]');
     const header = view.container.querySelector('[data-viewer-entrance="header"]');
     const stage = view.container.querySelector('[data-viewer-entrance="stage"]');
     const controls = view.container.querySelector('[data-viewer-entrance="controls"]');
 
-    expect(useGSAPOptions).toHaveBeenCalledWith(
-      expect.objectContaining({ scope: expect.objectContaining({ current: shell }) }),
-    );
+    await waitFor(() => expect(timelineFromTo).toHaveBeenCalledTimes(3));
+    expect(shell).not.toBeNull();
     expect(timelineFromTo).toHaveBeenNthCalledWith(
       1,
       header,
@@ -376,12 +365,13 @@ describe("Viewer3DPage entrance", () => {
     expect(sessionStorage.getItem("3diner:viewer-transition")).toBeNull();
   });
 
-  it("shows every entrance target immediately when reduced motion is preferred", () => {
+  it("shows every entrance target immediately when reduced motion is preferred", async () => {
     const view = renderViewer(true);
     const targets = ["header", "stage", "controls"].map((target) =>
       view.container.querySelector(`[data-viewer-entrance="${target}"]`),
     );
 
+    await waitFor(() => expect(gsapSet).toHaveBeenCalledTimes(1));
     expect(gsapSet).toHaveBeenCalledWith(targets, {
       opacity: 1,
       scale: 1,
@@ -392,7 +382,7 @@ describe("Viewer3DPage entrance", () => {
     expect(sessionStorage.getItem("3diner:viewer-transition")).toBeNull();
   });
 
-  it("replays the entrance after Strict Mode cleans up the first setup", () => {
+  it("replays the entrance after Strict Mode cleans up the first setup", async () => {
     vi.stubGlobal(
       "matchMedia",
       vi.fn().mockReturnValue({ matches: false }),
@@ -410,16 +400,12 @@ describe("Viewer3DPage entrance", () => {
     );
     const header = view.container.querySelector('[data-viewer-entrance="header"]');
 
-    expect(timelines).toHaveLength(2);
-    expect(timelines[0]?.kill).toHaveBeenCalledTimes(1);
-    expect(timelines[1]?.kill).not.toHaveBeenCalled();
-    expect(timelineFromTo).toHaveBeenCalledTimes(6);
-    expect(timelineFromTo).toHaveBeenNthCalledWith(
-      4,
-      header,
-      expect.objectContaining({ opacity: 0, y: -16 }),
-      expect.objectContaining({ opacity: 1, y: 0 }),
-      expect.anything(),
+    // Dynamic import menunda animasi sampai microtask, dan di bawah StrictMode
+    // run pertama batal sebelum sempat membuat timeline. Yang dijamin komponen:
+    // marker transisi termakan tepat sekali dan entrance tetap terjadi —
+    // header menerima inline style GSAP (transform) di akhir.
+    await waitFor(() =>
+      expect(header?.getAttribute("style") ?? "").toContain("translate")
     );
     expect(sessionStorage.getItem("3diner:viewer-transition")).toBeNull();
   });

@@ -47,7 +47,7 @@ describe("POST /api/payment/charge (QRIS)", () => {
       },
       error: null,
     });
-    const eqToken = () => ({ single });
+    const eqToken = () => ({ maybeSingle: single });
     const eqOrder = () => ({ eq: eqToken });
     // The claim and QR persistence updates chain `.select()` so the route can
     // verify that the expected row was changed. The chain accepts any number
@@ -295,7 +295,7 @@ describe("POST /api/payment/charge (QRIS)", () => {
       error: patch?.payment_status === "pending" ? null :
         patch?.payment_qr_url !== undefined ? { message: "not used" } : null,
     }));
-    const eqToken = () => ({ single });
+    const eqToken = () => ({ maybeSingle: single });
     const eqOrder = () => ({ eq: eqToken });
     from.mockReturnValue({
       select: () => ({ eq: eqOrder }),
@@ -361,7 +361,7 @@ describe("POST /api/payment/charge (QRIS)", () => {
         : [],
       error: patch.payment_status === "pending" ? null : { message: "db down" },
     }));
-    const eqToken = () => ({ single });
+    const eqToken = () => ({ maybeSingle: single });
     const eqOrder = () => ({ eq: eqToken });
     from.mockReturnValue({
       select: () => ({ eq: eqOrder }),
@@ -390,7 +390,7 @@ describe("POST /api/payment/charge (QRIS)", () => {
         eq: () => ({ in: () => ({ select: () => Promise.resolve({ data: [], error: null }) }) }),
       }),
     }));
-    const eqToken = () => ({ single });
+    const eqToken = () => ({ maybeSingle: single });
     const eqOrder = () => ({ eq: eqToken });
     from.mockReturnValue({
       select: () => ({ eq: eqOrder }),

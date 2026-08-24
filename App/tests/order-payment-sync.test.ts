@@ -192,7 +192,7 @@ describe("POST /api/payment/webhook", () => {
     });
     update.mockReturnValue({ eq: eq2 });
     from2.mockReturnValue({
-      select: () => ({ eq: () => ({ single: () => Promise.resolve({ ...orderRead, data: orderRead.data && { ...orderRead.data, payment_status: orderStatus } }) }) }),
+      select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ ...orderRead, data: orderRead.data && { ...orderRead.data, payment_status: orderStatus } }) }) }),
       update,
     });
     rpc2.mockResolvedValue({ data: { ok: true }, error: null });

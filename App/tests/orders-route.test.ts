@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const rpc = vi.fn();
 const successfulOrder = {
   id_order: "order-1",
-  cafe_id: "cafe-1",
+  cafe_id: "11111111-1111-4111-8111-111111111111",
   table_number: "12",
   items: [{ id_menu: "menu-1", nama_menu: "Nasi Goreng", harga_menu: 20_000, qty: 2 }],
   total: 40_000,
@@ -37,7 +37,7 @@ describe("POST /api/orders", () => {
           "Idempotency-Key": "idem-1234567890123456",
         },
         body: JSON.stringify({
-          cafeId: "cafe-1",
+          cafeId: "11111111-1111-4111-8111-111111111111",
           table: "12",
           items: [{ id_menu: "menu-1", qty: 2 }],
           notes: "Tanpa acar",
@@ -54,7 +54,7 @@ describe("POST /api/orders", () => {
       checkinCode: null,
     });
     expect(rpc).toHaveBeenCalledWith("commit_order_atomic", {
-      p_cafe_id: "cafe-1",
+      p_cafe_id: "11111111-1111-4111-8111-111111111111",
       p_table_number: "12",
       p_items: [{ id_menu: "menu-1", qty: 2, options: [] }],
       p_notes: "Tanpa acar",
@@ -82,7 +82,7 @@ describe("POST /api/orders", () => {
           "Idempotency-Key": "idem-variant-123456",
         },
         body: JSON.stringify({
-          cafeId: "cafe-1",
+          cafeId: "11111111-1111-4111-8111-111111111111",
           table: "12",
           items: [{ id_menu: "menu-1", qty: 1, options }],
           quoteId: "44444444-4444-4444-8444-444444444444",
@@ -92,7 +92,7 @@ describe("POST /api/orders", () => {
 
     expect(response.status).toBe(201);
     expect(rpc).toHaveBeenCalledWith("commit_order_atomic", {
-      p_cafe_id: "cafe-1",
+      p_cafe_id: "11111111-1111-4111-8111-111111111111",
       p_table_number: "12",
       p_items: [{ id_menu: "menu-1", qty: 1, options }],
       p_notes: null,
@@ -112,7 +112,7 @@ describe("POST /api/orders", () => {
           "Idempotency-Key": "idem-1234567890123456",
         },
         body: JSON.stringify({
-          cafeId: "cafe-1",
+          cafeId: "11111111-1111-4111-8111-111111111111",
           table: "12",
           items: [{ id_menu: "menu-1", qty: 1 }],
           quoteId: "44444444-4444-4444-8444-444444444444",
@@ -122,7 +122,7 @@ describe("POST /api/orders", () => {
 
     expect(response.status).toBe(201);
     expect(rpc).toHaveBeenCalledWith("commit_order_atomic", {
-      p_cafe_id: "cafe-1",
+      p_cafe_id: "11111111-1111-4111-8111-111111111111",
       p_table_number: "12",
       p_items: [{ id_menu: "menu-1", qty: 1, options: [] }],
       p_notes: null,
@@ -138,7 +138,7 @@ describe("POST /api/orders", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        cafeId: "cafe-1",
+        cafeId: "11111111-1111-4111-8111-111111111111",
         table: "12",
         items: [{ id_menu: "menu-1", qty: 1 }],
       }),
@@ -154,20 +154,20 @@ describe("POST /api/orders", () => {
 
   it.each([
     ["a blank cafe ID", { cafeId: " ", table: "12", items: [{ id_menu: "menu-1", qty: 1 }] }],
-    ["a blank table", { cafeId: "cafe-1", table: " ", items: [{ id_menu: "menu-1", qty: 1 }] }],
-    ["an empty item list", { cafeId: "cafe-1", table: "12", items: [] }],
+    ["a blank table", { cafeId: "11111111-1111-4111-8111-111111111111", table: " ", items: [{ id_menu: "menu-1", qty: 1 }] }],
+    ["an empty item list", { cafeId: "11111111-1111-4111-8111-111111111111", table: "12", items: [] }],
     [
       "more than 50 items",
       {
-        cafeId: "cafe-1",
+        cafeId: "11111111-1111-4111-8111-111111111111",
         table: "12",
         items: Array.from({ length: 51 }, () => ({ id_menu: "menu-1", qty: 1 })),
       },
     ],
-    ["an out-of-range quantity", { cafeId: "cafe-1", table: "12", items: [{ id_menu: "menu-1", qty: 51 }] }],
+    ["an out-of-range quantity", { cafeId: "11111111-1111-4111-8111-111111111111", table: "12", items: [{ id_menu: "menu-1", qty: 51 }] }],
     [
       "an option id that is not a uuid",
-      { cafeId: "cafe-1", table: "12", items: [{ id_menu: "menu-1", qty: 1, options: ["nope"] }] },
+      { cafeId: "11111111-1111-4111-8111-111111111111", table: "12", items: [{ id_menu: "menu-1", qty: 1, options: ["nope"] }] },
     ],
   ])("rejects %s without calling the inventory RPC", async (_description, body) => {
     const { POST } = await import("@/app/api/orders/route");

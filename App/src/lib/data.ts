@@ -23,6 +23,13 @@ export const getMenusByCafeId = cache(async (cafeId: string): Promise<Menu[]> =>
   return fn(cafeId);
 });
 
+export const getMenuPageBySlug = cache(async (
+  slug: string
+): Promise<{ cafe: Cafe; menus: Menu[]; announcement: Announcement | null } | null> => {
+  const { getMenuPageBySlug: fn } = await getSupabaseFns();
+  return fn(slug);
+});
+
 export async function logEvent(
   payload: Pick<AnalyticsLog, "cafe_id" | "menu_id" | "event_type" | "duration">
 ): Promise<void> {

@@ -206,9 +206,9 @@ export function summarizeTax(
   );
 }
 
-/** Batas baris kejadian yang ditarik untuk deret harian. Cacahnya tetap dari
- *  count() yang tidak terbatas, jadi angka besar tetap benar walau grafiknya
- *  dibangun dari cuplikan. */
+/** Batas baris kejadian yang ditarik untuk deret harian.
+ *  @deprecated Deret harian kini diagregasi di Postgres (analytics_event_summary);
+ *  konstanta ini hanya tersisa untuk kompatibilitas. */
 export const EVENT_ROW_CAP = 5000;
 
 export interface ReportPage {
@@ -224,8 +224,8 @@ export interface ReportPage {
   /** Kontribusi per menu (harga dari baris pesanan), urut menurun omzet. */
   perItem: { name: string; qty: number; revenue: number }[];
   events: { open: number; view3d: number; order: number };
-  /** Waktu tiap kali menu dibuka, untuk deret harian. */
-  openTimestamps: string[];
+  /** Cacah klik menu per hari (WIB), exact — bukan cuplikan terbatas. */
+  openDaily: { day: string; value: number }[];
   error: string | null;
 }
 
@@ -243,7 +243,7 @@ export async function getReportPage(
     dailyRevenue: [],
     perItem: [],
     events: { open: 0, view3d: 0, order: 0 },
-    openTimestamps: [],
+    openDaily: [],
     error: null,
   };
   if (!cafeId) return { ...empty, error: "Kafe belum terhubung ke akun ini." };
@@ -252,30 +252,11 @@ export async function getReportPage(
   start.setUTCDate(start.getUTCDate() - (days - 1));
   const since = start.toISOString();
 
-  const countEvents = (type: string) =>
-    supabaseAdmin
-      .from("Analytics_Logs")
-      .select("id_log", { count: "exact", head: true })
-      .eq("cafe_id", cafeId)
-      .eq("event_type", type)
-      .gte("created_at", since);
-
-  // Agregasi omzet, pajak, tally menu, dan deret harian dihitung di Postgres
-  // (report_analytics) — tidak lagi menarik semua baris Orders (termasuk items)
-  // ke Node. Cacah & waktu buka menu tetap dari Analytics_Logs.
-  const [ordersResult, open, view3d, order, openRows] = await Promise.all([
+  // Dua roundtrip total: report_analytics untuk Orders, analytics_event_summary
+  // untuk corong tamu + deret harian click_menu (exact, digrouping di Postgres).
+  const [ordersResult, eventResult] = await Promise.all([
     supabaseAdmin.rpc("report_analytics", { p_cafe_id: cafeId, p_start: since, p_end: null }),
-    countEvents("click_menu"),
-    countEvents("view_3d"),
-    countEvents("click_order"),
-    supabaseAdmin
-      .from("Analytics_Logs")
-      .select("created_at")
-      .eq("cafe_id", cafeId)
-      .eq("event_type", "click_menu")
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
-      .limit(EVENT_ROW_CAP),
+    supabaseAdmin.rpc("analytics_event_summary", { p_cafe_id: cafeId, p_start: since }),
   ]);
 
   if (ordersResult.error) return { ...empty, error: ordersResult.error.message };
@@ -285,6 +266,8 @@ export async function getReportPage(
   const asArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
   const taxRaw = (agg.tax && typeof agg.tax === "object" ? agg.tax : {}) as Record<string, unknown>;
   const orderCount = num(agg.order_count);
+
+  const ev = (eventResult.data ?? {}) as Record<string, unknown>;
 
   return {
     paidRevenue: num(agg.paid_revenue),
@@ -308,11 +291,14 @@ export async function getReportPage(
       return { name: r.name as string, qty: num(r.qty), revenue: num(r.revenue) };
     }),
     events: {
-      open: open.count ?? 0,
-      view3d: view3d.count ?? 0,
-      order: order.count ?? 0,
+      open: num(ev.open),
+      view3d: num(ev.view3d),
+      order: num(ev.order),
     },
-    openTimestamps: (openRows.data ?? []).map((r) => r.created_at as string),
-    error: null,
+    openDaily: asArray(ev.open_daily).map((d) => {
+      const r = d as Record<string, unknown>;
+      return { day: r.day as string, value: num(r.value) };
+    }),
+    error: eventResult.error ? eventResult.error.message : null,
   };
 }

@@ -133,53 +133,58 @@ export async function POST(req: Request) {
 
     // Model is env-overridable so a wrong/renamed model id can be fixed without redeploy.
     const model = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: SYSTEM_PROMPT },
-              { inline_data: { mime_type: mime, data: base64 } },
-            ],
+    // Semua kode setelah claim dibungkus agar credit selalu kembali bila
+    // res.json()/parser melempar — bukan salah kafe untuk kegagalan itu.
+    let menus: DraftMenu[];
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: SYSTEM_PROMPT },
+                { inline_data: { mime_type: mime, data: base64 } },
+              ],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: RESPONSE_SCHEMA,
+            temperature: 0.2,
           },
-        ],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: RESPONSE_SCHEMA,
-          temperature: 0.2,
-        },
-      }),
-    });
+        }),
+      });
 
-    // Setiap jalur keluar yang gagal mengembalikan credit — termasuk foto yang
-    // tidak terbaca, yang bukan salah kafe.
-    if (!res.ok) {
-      await refundAiCredit(cafeId, CREDIT_COST.menuExtract);
-      const errText = await res.text();
-      let msg = `Gemini error (${res.status})`;
-      try {
-        const j = JSON.parse(errText);
-        msg = j?.error?.message ?? msg;
-      } catch {
-        /* keep default */
+      if (!res.ok) {
+        const errText = await res.text();
+        let msg = `Gemini error (${res.status})`;
+        try {
+          const j = JSON.parse(errText);
+          msg = j?.error?.message ?? msg;
+        } catch {
+          /* keep default */
+        }
+        return NextResponse.json({ error: msg }, { status: 502 });
       }
-      return NextResponse.json({ error: msg }, { status: 502 });
-    }
 
-    const data = await res.json();
-    const rawText: string =
-      data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
+      const data = await res.json();
+      const rawText: string =
+        data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
 
-    if (!rawText) {
+      if (!rawText) {
+        return NextResponse.json({ error: "AI tidak mengembalikan data." }, { status: 502 });
+      }
+
+      menus = parseGeminiMenus(rawText);
+    } catch (err) {
       await refundAiCredit(cafeId, CREDIT_COST.menuExtract);
-      return NextResponse.json({ error: "AI tidak mengembalikan data." }, { status: 502 });
+      throw err;
     }
 
-    const menus = parseGeminiMenus(rawText);
     if (menus.length === 0) {
       await refundAiCredit(cafeId, CREDIT_COST.menuExtract);
       return NextResponse.json(
@@ -190,7 +195,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ menus });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[api/menu/extract]", err);
+    return NextResponse.json(
+      { error: "Gagal memproses dokumen menu. Coba lagi." },
+      { status: 500 }
+    );
   }
 }

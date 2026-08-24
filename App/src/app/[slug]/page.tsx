@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { MapPin, Star } from "lucide-react";
-import { getCafeBySlug, getMenusByCafeId, getActiveAnnouncement } from "@/lib/data";
+import { getCafeBySlug, getMenuPageBySlug } from "@/lib/data";
 import MenuBrowser from "@/components/MenuBrowser";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 
@@ -28,13 +28,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function CafeMenuPage({ params }: PageProps) {
   const { slug } = await params;
 
-  const cafe = await getCafeBySlug(slug);
-  if (!cafe) notFound();
-
-  const [menus, announcement] = await Promise.all([
-    getMenusByCafeId(cafe.id_cafe),
-    getActiveAnnouncement(cafe.id_cafe),
-  ]);
+  // Satu roundtrip untuk cafe + menus + announcement (sebelumnya waterfall 2 fase).
+  const pageData = await getMenuPageBySlug(slug);
+  if (!pageData) notFound();
+  const { cafe, menus, announcement } = pageData;
 
   return (
     <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "96px" }}>

@@ -2,14 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { X, Loader2, RotateCcw, ScanLine, Move3d } from "lucide-react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
 import { fitCameraToModel } from "@/lib/fit-camera";
 import GlbViewer from "./GlbViewer";
 import CaptureShareButton from "./CaptureShareButton";
 import dynamic from "next/dynamic";
-
-gsap.registerPlugin(useGSAP);
 
 const ARSession = dynamic(() => import("./ARSession"), { ssr: false });
 const TRANSITION_MARKER = "3diner:viewer-transition";
@@ -79,37 +75,53 @@ export default function Viewer3DPage({
     setPreloadedGltf(gltf);
   }, []);
 
-  useGSAP(() => {
-    const targets = [headerRef.current, stageRef.current, controlsRef.current];
-    if (targets.some((target) => !target)) return;
+  // GSAP dimuat on-demand: halaman ini adalah tujuan lazy-load dari
+  // Menu3DTransitionLink — mengimpor gsap statis justru membatalkan penghematan
+  // ~70KB bundle pelanggan yang disengaja di sisi link.
+  useEffect(() => {
+    let cancelled = false;
+    let cleanup: (() => void) | null = null;
 
-    if (entranceDecisionRef.current === null) {
-      try {
-        entranceDecisionRef.current = sessionStorage.getItem(TRANSITION_MARKER) === "true";
-        if (entranceDecisionRef.current) sessionStorage.removeItem(TRANSITION_MARKER);
-      } catch {
-        entranceDecisionRef.current = false;
+    void (async () => {
+      const { default: gsap } = await import("gsap");
+      if (cancelled) return;
+
+      const targets = [headerRef.current, stageRef.current, controlsRef.current];
+      if (targets.some((target) => !target)) return;
+
+      if (entranceDecisionRef.current === null) {
+        try {
+          entranceDecisionRef.current = sessionStorage.getItem(TRANSITION_MARKER) === "true";
+          if (entranceDecisionRef.current) sessionStorage.removeItem(TRANSITION_MARKER);
+        } catch {
+          entranceDecisionRef.current = false;
+        }
       }
-    }
 
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      gsap.set(targets, { opacity: 1, scale: 1, x: 0, y: 0 });
-      return;
-    }
+      if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+        gsap.set(targets, { opacity: 1, scale: 1, x: 0, y: 0 });
+        return;
+      }
 
-    const enteredFromMenu = entranceDecisionRef.current;
-    const headerFrom = enteredFromMenu ? { opacity: 0, y: -16 } : { opacity: 0.6, y: -8 };
-    const stageFrom = enteredFromMenu ? { opacity: 0, scale: 0.97 } : { opacity: 0.65, scale: 0.99 };
-    const controlsFrom = enteredFromMenu ? { opacity: 0, y: 18 } : { opacity: 0.6, y: 8 };
+      const enteredFromMenu = entranceDecisionRef.current;
+      const headerFrom = enteredFromMenu ? { opacity: 0, y: -16 } : { opacity: 0.6, y: -8 };
+      const stageFrom = enteredFromMenu ? { opacity: 0, scale: 0.97 } : { opacity: 0.65, scale: 0.99 };
+      const controlsFrom = enteredFromMenu ? { opacity: 0, y: 18 } : { opacity: 0.6, y: 8 };
 
-    const timeline = gsap.timeline();
-    timeline
-      .fromTo(headerRef.current, headerFrom, { duration: enteredFromMenu ? 0.28 : 0.22, ease: "power2.out", opacity: 1, y: 0 }, 0)
-      .fromTo(stageRef.current, stageFrom, { duration: enteredFromMenu ? 0.42 : 0.3, ease: "power2.out", opacity: 1, scale: 1 }, enteredFromMenu ? 0.05 : 0.02)
-      .fromTo(controlsRef.current, controlsFrom, { duration: enteredFromMenu ? 0.32 : 0.24, ease: "power2.out", opacity: 1, y: 0 }, enteredFromMenu ? 0.12 : 0.06);
+      const timeline = gsap.timeline();
+      timeline
+        .fromTo(headerRef.current, headerFrom, { duration: enteredFromMenu ? 0.28 : 0.22, ease: "power2.out", opacity: 1, y: 0 }, 0)
+        .fromTo(stageRef.current, stageFrom, { duration: enteredFromMenu ? 0.42 : 0.3, ease: "power2.out", opacity: 1, scale: 1 }, enteredFromMenu ? 0.05 : 0.02)
+        .fromTo(controlsRef.current, controlsFrom, { duration: enteredFromMenu ? 0.32 : 0.24, ease: "power2.out", opacity: 1, y: 0 }, enteredFromMenu ? 0.12 : 0.06);
 
-    return () => timeline.kill();
-  }, { scope: shellRef });
+      cleanup = () => timeline.kill();
+    })();
+
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, []);
 
   const initViewer = useCallback(async (generation: number, signal: AbortSignal) => {
     const isCurrent = () => (

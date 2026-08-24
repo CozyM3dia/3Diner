@@ -92,49 +92,54 @@ export async function POST(req: Request) {
     if (!claim.ok) return claim.response!;
 
     const model = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: buildPrompt(name) }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: RESPONSE_SCHEMA,
-          temperature: 0.5,
-        },
-      }),
-    });
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
     // Setiap jalur keluar yang gagal mengembalikan credit: kafe tidak boleh
     // membayar jatah untuk hasil yang tidak pernah mereka terima.
-    if (!res.ok) {
-      await refundAiCredit(cafeId, CREDIT_COST.menuDetails);
-      const errText = await res.text();
-      let msg = `Gemini error (${res.status})`;
-      try { msg = JSON.parse(errText)?.error?.message ?? msg; } catch {}
-      return NextResponse.json({ error: msg }, { status: 502 });
-    }
-
-    const data = await res.json();
-    const rawText: string =
-      data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
-    if (!rawText) {
-      await refundAiCredit(cafeId, CREDIT_COST.menuDetails);
-      return NextResponse.json({ error: "AI tidak mengembalikan data." }, { status: 502 });
-    }
-
     let parsed: unknown;
-    try { parsed = JSON.parse(stripFences(rawText)); }
-    catch {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: buildPrompt(name) }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: RESPONSE_SCHEMA,
+            temperature: 0.5,
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        let msg = `Gemini error (${res.status})`;
+        try { msg = JSON.parse(errText)?.error?.message ?? msg; } catch {}
+        return NextResponse.json({ error: msg }, { status: 502 });
+      }
+
+      const data = await res.json();
+      const rawText: string =
+        data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
+      if (!rawText) {
+        return NextResponse.json({ error: "AI tidak mengembalikan data." }, { status: 502 });
+      }
+
+      try { parsed = JSON.parse(stripFences(rawText)); }
+      catch {
+        return NextResponse.json({ error: "Respon AI bukan JSON valid." }, { status: 502 });
+      }
+    } catch (err) {
       await refundAiCredit(cafeId, CREDIT_COST.menuDetails);
-      return NextResponse.json({ error: "Respon AI bukan JSON valid." }, { status: 502 });
+      throw err;
     }
 
     return NextResponse.json(normalizeDetails(parsed));
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[api/menu/generate-details]", err);
+    return NextResponse.json(
+      { error: "Gagal membuat detail menu. Coba lagi." },
+      { status: 500 }
+    );
   }
 }

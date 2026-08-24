@@ -27,6 +27,51 @@ export async function getCafeBySlug(slug: string): Promise<Cafe | null> {
   return data as Cafe;
 }
 
+const MENU_COLUMNS =
+  "id_menu, cafe_id, nama_menu, harga_menu, description_menu, category, image_url, model_3d_url, is_active, discount_pct, prep_time_minutes, calories, schedule_days, schedule_start, schedule_end";
+
+/** Fetch cafe + menus + active announcement in ONE roundtrip.
+ *
+ *  Sebelumnya halaman [slug] menjalankan waterfall 2 fase (cafe dulu, lalu
+ *  menus ∥ announcement). Embedding PostgREST menghemat satu roundtrip ke
+ *  region Supabase pada setiap cache-miss/revalidate ISR. */
+export async function getMenuPageBySlug(
+  slug: string
+): Promise<{ cafe: Cafe; menus: Menu[]; announcement: Announcement | null } | null> {
+  const { data, error } = await supabase
+    .from("Cafes")
+    .select(
+      `id_cafe, slug_url, nama_cafe, cover_url, logo_url, greeting, alamat_cafe, google_maps_review_url,
+       Menus!cafe_id(${MENU_COLUMNS}),
+       Announcements!cafe_id(id, cafe_id, message, bg_color, type, is_active)`
+    )
+    .eq("slug_url", slug)
+    .eq("status_lunas", true)
+    .eq("Announcements.is_active", true)
+    .order("sort_order", { referencedTable: "Menus", ascending: true, nullsFirst: false })
+    .order("created_at", { referencedTable: "Menus", ascending: true })
+    .order("updated_at", { referencedTable: "Announcements", ascending: false })
+    .limit(1, { referencedTable: "Announcements" })
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const row = data as unknown as {
+    id_cafe: string;
+    Menus?: Menu[];
+    Announcements?: Announcement[];
+  };
+
+  const menus = (row.Menus ?? []).filter((m) => isMenuAvailableNow(m));
+  const announcements = row.Announcements ?? [];
+
+  return {
+    cafe: data as unknown as Cafe,
+    menus,
+    announcement: announcements[0] ?? null,
+  };
+}
+
 // ─────────────────────────────────────────────
 // Menu queries
 // ─────────────────────────────────────────────

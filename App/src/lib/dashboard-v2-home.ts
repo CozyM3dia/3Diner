@@ -98,44 +98,24 @@ export async function getHomeData(cafeId: string | null): Promise<HomeData> {
   const weekAgoStart = daysAgoIso(7);
   const weekAgoEnd = daysAgoIso(6);
 
-  const [inventory, recipes, menus, cafe, ordersToday, ordersLastWeek, viewsToday, viewsLastWeek, everOrder] =
-    await Promise.all([
-      supabaseAdmin
-        .from("Inventory_Items")
-        .select("id_inventory_item,name,current_qty,minimum_qty")
-        .eq("cafe_id", cafeId),
-      supabaseAdmin.from("Menu_Recipes").select("menu_id,inventory_item_id").eq("cafe_id", cafeId),
-      supabaseAdmin.from("Menus").select("id_menu,nama_menu,model_3d_url,is_active").eq("cafe_id", cafeId),
-      supabaseAdmin.from("Cafes").select("tax_configured_at").eq("id_cafe", cafeId).maybeSingle(),
-      supabaseAdmin
-        .from("Orders")
-        .select("total,status,payment_status")
-        .eq("cafe_id", cafeId)
-        .gte("created_at", todayStart),
-      supabaseAdmin
-        .from("Orders")
-        .select("total,status,payment_status")
-        .eq("cafe_id", cafeId)
-        .gte("created_at", weekAgoStart)
-        .lt("created_at", weekAgoEnd),
-      supabaseAdmin
-        .from("Analytics_Logs")
-        .select("id_log", { count: "exact", head: true })
-        .eq("cafe_id", cafeId)
-        .eq("event_type", "click_menu")
-        .gte("created_at", todayStart),
-      supabaseAdmin
-        .from("Analytics_Logs")
-        .select("id_log", { count: "exact", head: true })
-        .eq("cafe_id", cafeId)
-        .eq("event_type", "click_menu")
-        .gte("created_at", weekAgoStart)
-        .lt("created_at", weekAgoEnd),
-      supabaseAdmin
-        .from("Orders")
-        .select("id_order", { count: "exact", head: true })
-        .eq("cafe_id", cafeId),
-    ]);
+  // Tugas antrean butuh baris penuh (inventory/recipes/menus/cafe), tapi angka
+  // figur semuanya agregat: satu RPC menggantikan lima query yang sebelumnya
+  // menarik semua baris Orders hari ini + minggu lalu ke Node.
+  const [inventory, recipes, menus, cafe, figuresResult] = await Promise.all([
+    supabaseAdmin
+      .from("Inventory_Items")
+      .select("id_inventory_item,name,current_qty,minimum_qty")
+      .eq("cafe_id", cafeId),
+    supabaseAdmin.from("Menu_Recipes").select("menu_id,inventory_item_id").eq("cafe_id", cafeId),
+    supabaseAdmin.from("Menus").select("id_menu,nama_menu,model_3d_url,is_active").eq("cafe_id", cafeId),
+    supabaseAdmin.from("Cafes").select("tax_configured_at").eq("id_cafe", cafeId).maybeSingle(),
+    supabaseAdmin.rpc("home_figures", {
+      p_cafe_id: cafeId,
+      p_today_start: todayStart,
+      p_compare_start: weekAgoStart,
+      p_compare_end: weekAgoEnd,
+    }),
+  ]);
 
   const tasks: HomeTask[] = [];
 
@@ -203,35 +183,36 @@ export async function getHomeData(cafeId: string | null): Promise<HomeData> {
 
   const { shown, hidden } = pickTasks(tasks);
 
-  const failure =
-    ordersToday.error ?? ordersLastWeek.error ?? viewsToday.error ?? viewsLastWeek.error ?? null;
+  const failure = figuresResult.error ?? null;
 
-  const sum = (rows: { total: number | null }[] | null) =>
-    (rows ?? []).reduce((s, r) => s + (r.total ?? 0), 0);
-  const paid = (rows: { payment_status?: string; total: number | null }[] | null) =>
-    (rows ?? []).filter((r) => r.payment_status === "paid");
-  const completed = (rows: { status?: string }[] | null) =>
-    (rows ?? []).filter((r) => r.status === "completed").length;
+  const fig = (figuresResult.data ?? {}) as Record<string, unknown>;
+  const num = (v: unknown): number => Number(v) || 0;
+  const todayPaid = num(fig.today_paid_revenue);
+  const comparePaid = num(fig.compare_paid_revenue);
+  const todayCompleted = num(fig.today_completed);
+  const compareCompleted = num(fig.compare_completed);
+  const viewsTodayCount = num(fig.views_today);
+  const viewsCompareCount = num(fig.views_compare);
 
   const figures: HomeFigure[] | null = failure
     ? null
     : [
         {
-          value: sum(paid(ordersToday.data)),
+          value: todayPaid,
           label: "Omzet diterima hari ini · Rp",
-          comparison: describeDelta(sum(paid(ordersToday.data)), sum(paid(ordersLastWeek.data)), "rupiah"),
+          comparison: describeDelta(todayPaid, comparePaid, "rupiah"),
         },
         {
-          value: completed(ordersToday.data),
+          value: todayCompleted,
           label: "Pesanan selesai",
-          comparison: describeDelta(completed(ordersToday.data), completed(ordersLastWeek.data), "count"),
+          comparison: describeDelta(todayCompleted, compareCompleted, "count"),
         },
         {
           // Dinamai apa adanya. Yang direkam adalah menu dibuka, bukan QR
           // dipindai — menyebutnya "Scan QR" akan mengklaim data yang tidak ada.
-          value: viewsToday.count ?? 0,
+          value: viewsTodayCount,
           label: "Menu dibuka tamu",
-          comparison: describeDelta(viewsToday.count ?? 0, viewsLastWeek.count ?? 0, "count"),
+          comparison: describeDelta(viewsTodayCount, viewsCompareCount, "count"),
         },
       ];
 
@@ -241,6 +222,6 @@ export async function getHomeData(cafeId: string | null): Promise<HomeData> {
     figures,
     figuresError: failure ? failure.message : null,
     cashierOnDuty: null,
-    everSoldAnything: (everOrder.count ?? 0) > 0,
+    everSoldAnything: num(fig.ever_orders) > 0,
   };
 }

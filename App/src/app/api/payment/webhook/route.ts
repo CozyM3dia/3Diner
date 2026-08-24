@@ -20,7 +20,10 @@ function isNonEmptyString(value: unknown): value is string {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json() as MidtransNotification;
+    // Notifikasi rusak harus 400 agar Midtrans berhenti mengulang; 500 justru
+    // memicu retry storm.
+    const body = await req.json().catch(() => null) as MidtransNotification | null;
+    if (!body) return NextResponse.json({ error: "Invalid notification" }, { status: 400 });
     const { order_id, status_code, gross_amount, signature_key, transaction_status, payment_type, transaction_id } = body;
     if (
       !isNonEmptyString(order_id) || !isNonEmptyString(status_code) ||
@@ -41,11 +44,13 @@ export async function POST(req: Request) {
     }
 
     const { data: order, error: orderReadError } = await supabaseAdmin
-      .from("Orders").select("total,payment_status,status,payment_transaction_id").eq("id_order", order_id).single();
+      .from("Orders").select("total,payment_status,status,payment_transaction_id").eq("id_order", order_id).maybeSingle();
     if (orderReadError) {
+      console.error("[api/payment/webhook] read order failed", orderReadError);
       return NextResponse.json({ error: "Gagal membaca pesanan" }, { status: 503 });
     }
     if (!order) {
+      // Order tidak dikenal = 4xx, bukan 5xx, supaya Midtrans berhenti retry.
       return NextResponse.json({ error: "Pesanan tidak ditemukan" }, { status: 404 });
     }
     if (Number(gross_amount) !== Number(order.total)) {
@@ -134,7 +139,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[api/payment/webhook] unhandled error", err);
+    return NextResponse.json({ error: "Gagal memproses notifikasi" }, { status: 500 });
   }
 }

@@ -74,12 +74,31 @@ const EMPTY: OrdersPage = {
   error: null,
 };
 
+/** Kursor keyset majemuk: "<created_at>|<id_order>".
+ *
+ *  created_at saja tidak cukup — dua pesanan bisa berbagi timestamp yang sama
+ *  (commit atomik yang sama), dan paging dengan lt(created_at) akan melompati
+ *  semua kecuali baris pertama dari grup seri. Tiebreaker id_order membuat
+ *  total order deterministik. */
+export function encodeCursor(row: { created_at: string; id_order: string }): string {
+  return `${row.created_at}|${row.id_order}`;
+}
+
+function parseCursor(cursor: string): { createdAt: string; idOrder: string } | null {
+  const sep = cursor.lastIndexOf("|");
+  if (sep <= 0) return null;
+  const createdAt = cursor.slice(0, sep);
+  const idOrder = cursor.slice(sep + 1);
+  if (!createdAt || !idOrder) return null;
+  return { createdAt, idOrder };
+}
+
 /** Riwayat pesanan dengan kursor, bukan offset.
  *
  *  Daftar ini menerima baris baru saat sedang dibaca. Offset menggeser jendela
  *  setiap ada yang masuk, sehingga sebuah baris bisa terlewat sama sekali — dan
  *  pesanan yang terlewat berarti pesanan yang tidak dikerjakan. Kursor keyset
- *  pada created_at tidak bisa melewatkan baris.
+ *  pada (created_at, id_order) tidak bisa melewatkan baris.
  *
  *  Scroll tak hingga dilarang di seluruh dashboard karena alasan yang sama,
  *  ditambah satu lagi: ia tidak punya akhir, jadi "sudah saya periksa semua"
@@ -92,6 +111,7 @@ export async function getOrdersPage(
   if (!cafeId) return { ...EMPTY, error: "Kafe belum terhubung ke akun ini." };
 
   const statuses = statusesForTab(tab);
+  const parsedCursor = cursor ? parseCursor(cursor) : null;
 
   let query = supabaseAdmin
     .from("Orders")
@@ -100,10 +120,19 @@ export async function getOrdersPage(
     )
     .eq("cafe_id", cafeId)
     .order("created_at", { ascending: false })
+    .order("id_order", { ascending: false })
     .limit(PAGE_SIZE + 1);
 
   if (statuses) query = query.in("status", statuses);
-  if (cursor) query = query.lt("created_at", cursor);
+  if (parsedCursor) {
+    // Keyset majemuk dalam SATU ekspresi or(): created_at < X ATAU
+    // (created_at = X DAN id_order < Y). Nilai dikutip agar karakter timestamp
+    // aman dari parser PostgREST.
+    const q = `"${parsedCursor.createdAt}"`;
+    query = query.or(
+      `created_at.lt.${q},and(created_at.eq.${q},id_order.lt."${parsedCursor.idOrder}")`
+    );
+  }
 
   // Agregasi counts + total dipindah ke Postgres (orders_dashboard_summary).
   // Sebelumnya dua full scan Orders (semua total,status + semua status) dibawa
@@ -138,7 +167,9 @@ export async function getOrdersPage(
     filteredCount,
     filteredTotal,
     counts,
-    nextCursor: hasMore ? rows[rows.length - 1]?.created_at ?? null : null,
+    nextCursor: hasMore && rows[rows.length - 1]
+      ? encodeCursor(rows[rows.length - 1])
+      : null,
     offsetLabel: from === null ? null : { from, to: rows.length },
     error: summaryResult.error ? summaryResult.error.message : null,
   };

@@ -27,6 +27,8 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
   const [needsQuoteRetry, setNeedsQuoteRetry] = useState(false);
   const [isQuoting, setIsQuoting] = useState(false);
   const [quoteFingerprint, setQuoteFingerprint] = useState<string | null>(null);
+  /** Kanal yang dipakai saat quote aktif diterbitkan. */
+  const [quoteChannel, setQuoteChannel] = useState<PaymentChannel | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const idempotencyKeyRef = useRef<string | null>(null);
   const confirmationHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -54,9 +56,56 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
 
   function invalidateQuote() {
     quoteRequestGenerationRef.current += 1;
+    // Key idempotensi harus ikut dirotasi: server menolak key yang sama dengan
+    // payload berbeda (idempotency_key_reused), jadi setiap permintaan baru
+    // setelah edit wajib memakai key segar.
+    idempotencyKeyRef.current = null;
     setQuote(null);
     setQuoteFingerprint(null);
+    setQuoteChannel(null);
     setIsQuoting(false);
+  }
+
+  function changeChannel(next: PaymentChannel) {
+    if (next === channel) return;
+    // Quote terikat pada kanal pembayaran lewat request_hash: commit dengan
+    // quote kanal lama selalu ditolak sebagai quote_mismatch. Quote baru
+    // diterbitkan di tempat; quote lama tetap tampil sampai yang baru siap
+    // supaya layar konfirmasi tidak berkedip kosong.
+    setChannel(next);
+    idempotencyKeyRef.current = null;
+    const requestGeneration = ++quoteRequestGenerationRef.current;
+    const requestFingerprint = currentCartFingerprintRef.current;
+    setError(null);
+    void (async () => {
+      try {
+        setIsQuoting(true);
+        const freshQuote = await quoteOrder({
+          cafeId: cafe.id_cafe,
+          table: table.trim(),
+          items,
+          notes: notes.trim(),
+          paymentChannel: next,
+        });
+        if (
+          requestGeneration !== quoteRequestGenerationRef.current ||
+          requestFingerprint !== currentCartFingerprintRef.current
+        ) {
+          setStage("review");
+          return;
+        }
+        setQuote(freshQuote);
+        setQuoteFingerprint(requestFingerprint);
+        setQuoteChannel(next);
+      } catch (quoteError) {
+        if (requestGeneration !== quoteRequestGenerationRef.current) return;
+        setStage("review");
+        setNeedsQuoteRetry(true);
+        setError(quoteError instanceof Error ? quoteError.message : "Gagal memuat ringkasan pesanan.");
+      } finally {
+        if (requestGeneration === quoteRequestGenerationRef.current) setIsQuoting(false);
+      }
+    })();
   }
 
   function focusTable() {
@@ -97,6 +146,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
       }
       setQuote(freshQuote);
       setQuoteFingerprint(requestFingerprint);
+      setQuoteChannel(channel);
       setStage("confirmation");
     } catch (quoteError) {
       if (requestGeneration !== quoteRequestGenerationRef.current) return;
@@ -128,6 +178,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
       return;
     }
     if (!quote || quoteFingerprint !== currentCartFingerprint ||
+        quoteChannel !== channel ||
         !quote.quote_id || !quote.request_hash || !quote.expires_at) {
       setStage("review");
       setNeedsQuoteRetry(true);
@@ -203,7 +254,7 @@ export default function CartView({ cafe, slug }: { cafe: Cafe; slug: string }) {
               onTableBlur={() => setTableTouched(true)}
             />
           ) : quote ? (
-            <CheckoutConfirmation quote={quote} imageUrlsByMenuId={imageUrlsByMenuId} channel={channel} onChannelChange={setChannel} headingRef={confirmationHeadingRef} />
+            <CheckoutConfirmation quote={quote} imageUrlsByMenuId={imageUrlsByMenuId} channel={channel} onChannelChange={changeChannel} headingRef={confirmationHeadingRef} />
           ) : null}
           <CheckoutCommitBar
             stage={stage}

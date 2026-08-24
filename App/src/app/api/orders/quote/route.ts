@@ -7,6 +7,9 @@ import type { OrderItem, OrderQuote, SelectedOption } from "@/types";
 const QUOTES_PER_IP = { limit: 10, windowSeconds: 60 };
 const QUOTES_PER_CAFE = { limit: 120, windowSeconds: 60 };
 
+/** Sama seperti route commit: cafeId masuk key limiter, wajib UUID. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 interface QuoteOrderBody {
   cafeId?: unknown;
   table?: unknown;
@@ -105,6 +108,9 @@ export async function POST(req: Request) {
   const items = parseItems(body?.items);
 
   if (!cafeId || !table || !items) {
+    return NextResponse.json({ error: "Data pesanan tidak valid" }, { status: 400 });
+  }
+  if (!UUID_RE.test(cafeId)) {
     return NextResponse.json({ error: "Data pesanan tidak valid" }, { status: 400 });
   }
 

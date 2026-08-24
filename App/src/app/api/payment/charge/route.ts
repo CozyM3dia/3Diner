@@ -80,14 +80,21 @@ export async function POST(req: Request) {
     const limit = await consumeRateLimit(`charge:ip:${clientIp(req)}`, CHARGE_PER_IP.limit, CHARGE_PER_IP.windowSeconds);
     if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
 
+    // maybeSingle: token salah ATAU order hilang = data null (bukan error),
+    // sedangkan kegagalan query sesungguhnya tetap terlihat sebagai error —
+    // DB yang sedang gagal tidak boleh dilaporkan "Pesanan tidak ditemukan".
     const { data: order, error } = await supabaseAdmin
       .from("Orders")
       .select("id_order,customer_token,total,subtotal,tax_amount,service_amount,prices_include_tax,status,payment_status,payment_qr_url,payment_transaction_id,payment_idempotency_key,items")
       .eq("id_order", orderId)
       .eq("customer_token", orderToken)
-      .single();
-    if (error || !order) {
-      return NextResponse.json({ error: "Pesanan tidak ditemukan" }, { status: 403 });
+      .maybeSingle();
+    if (error) {
+      console.error("[api/payment/charge] read order failed", error);
+      return NextResponse.json({ error: "Gagal membaca pesanan. Coba lagi." }, { status: 503 });
+    }
+    if (!order) {
+      return NextResponse.json({ error: "Pesanan tidak ditemukan" }, { status: 404 });
     }
     if (!ACTIVE_ORDER_STATUSES.includes(order.status)) {
       return NextResponse.json({ error: "Pesanan ini tidak dapat dibayar" }, { status: 409 });
@@ -216,7 +223,8 @@ export async function POST(req: Request) {
         body: JSON.stringify(body),
       });
       data = await res.json() as MidtransQrisResponse | null;
-    } catch {
+    } catch (midtransErr) {
+      console.error("[api/payment/charge] midtrans charge failed", midtransErr);
       // The request may have reached Midtrans even though the response was
       // lost. Query by merchant order ID before allowing a retry, otherwise a
       // retry could create a second active QRIS transaction.
@@ -288,8 +296,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ qris_url: qrisUrl });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[api/payment/charge] unhandled error", err);
+    return NextResponse.json({ error: "Gagal memproses pembayaran. Coba lagi." }, { status: 500 });
   }
 }
 

@@ -97,13 +97,13 @@ describe("consumeRateLimits", () => {
     const result = await consumeRateLimits(
       [
         { key: "orders:ip:203.0.113.9", limit: 10 },
-        { key: "orders:cafe:cafe-1", limit: 120 },
+        { key: "orders:cafe:11111111-1111-4111-8111-111111111111", limit: 120 },
       ],
       60
     );
 
     expect(rpc).toHaveBeenCalledWith("consume_rate_limits", {
-      p_keys: ["orders:ip:203.0.113.9", "orders:cafe:cafe-1"],
+      p_keys: ["orders:ip:203.0.113.9", "orders:cafe:11111111-1111-4111-8111-111111111111"],
       p_limits: [10, 120],
       p_window_seconds: 60,
     });
@@ -132,7 +132,7 @@ describe("consumeRateLimits", () => {
 
 describe("POST /api/orders rate limiting", () => {
   const validBody = {
-    cafeId: "cafe-1",
+    cafeId: "11111111-1111-4111-8111-111111111111",
     table: "12",
     quoteId: "44444444-4444-4444-8444-444444444444",
     items: [{ id_menu: "menu-1", qty: 1 }],
@@ -171,7 +171,7 @@ describe("POST /api/orders rate limiting", () => {
         data: {
           order: {
             id_order: "order-1",
-            cafe_id: "cafe-1",
+            cafe_id: "11111111-1111-4111-8111-111111111111",
             table_number: "12",
             items: [{ id_menu: "menu-1", nama_menu: "Kopi", harga_menu: 20000, qty: 1 }],
             total: 20000,
