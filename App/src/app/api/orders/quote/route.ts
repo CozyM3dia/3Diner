@@ -132,20 +132,27 @@ export async function POST(req: Request) {
       p_notes: notes,
       p_channel: paymentChannel,
     });
-  } catch {
+  } catch (err) {
+    // Pesan ke pelanggan sengaja generik, tapi penyebabnya wajib tercatat:
+    // bug `p_quote_id` (42703) dan pgcrypto search_path (42883) sama-sama
+    // lolos tanpa jejak karena error RPC dulu dibuang di sini.
+    console.error("[api/orders/quote] rpc threw", { cafeId, err });
     return NextResponse.json({ error: "Gagal memuat ringkasan pesanan" }, { status: 502 });
   }
 
   if (!isRpcResponseEnvelope(rpcResponse)) {
+    console.error("[api/orders/quote] malformed rpc envelope", { cafeId });
     return NextResponse.json({ error: "Gagal memuat ringkasan pesanan" }, { status: 502 });
   }
   if (rpcResponse.error) {
     if (isInvalidOrderError(rpcResponse.error)) {
       return NextResponse.json({ error: "Menu tidak tersedia" }, { status: 400 });
     }
+    console.error("[api/orders/quote] issue_order_quote failed", { cafeId, error: rpcResponse.error });
     return NextResponse.json({ error: "Gagal memuat ringkasan pesanan" }, { status: 502 });
   }
   if (!isIssuedQuote(rpcResponse.data)) {
+    console.error("[api/orders/quote] unexpected quote shape", { cafeId });
     return NextResponse.json({ error: "Gagal memuat ringkasan pesanan" }, { status: 502 });
   }
 

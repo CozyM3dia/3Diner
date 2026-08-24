@@ -130,11 +130,15 @@ export async function POST(req: Request) {
       p_quote_id: quoteId,
       p_idempotency_key: idempotencyKey,
     });
-  } catch {
+  } catch (err) {
+    // Pesan generik tetap dikirim ke pelanggan, tapi sebabnya harus terlihat
+    // di log server — kalau tidak, kegagalan commit jadi tak terdiagnosis.
+    console.error("[api/orders] rpc threw", { cafeId, err });
     return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
   }
 
   if (!isRpcResponseEnvelope(rpcResponse)) {
+    console.error("[api/orders] malformed rpc envelope", { cafeId });
     return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
   }
 
@@ -149,6 +153,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Menu tidak tersedia" }, { status: 400 });
     }
 
+    console.error("[api/orders] commit_order_atomic failed", { cafeId, error });
     return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
   }
 
@@ -175,6 +180,7 @@ export async function POST(req: Request) {
   }
 
   if (!isOrder(result?.order) || !isNonEmptyString(result.orderToken)) {
+    console.error("[api/orders] unexpected commit payload shape", { cafeId });
     return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
   }
 
