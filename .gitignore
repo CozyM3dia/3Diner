@@ -26,3 +26,10 @@ Thumbs.db
 
 # Local isolated Git worktrees
 .worktrees/
+
+# ── Agent tooling / scratch state ───────────────────────
+# .superpowers/brainstorm menyimpan token dev-server dan PID; .commandcode
+# menyimpan setelan lokal. Keduanya per-mesin, bukan bagian proyek.
+.commandcode/
+.superpowers/
+App/tmp/
