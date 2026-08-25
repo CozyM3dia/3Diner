@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { Box } from "lucide-react";
+import { menuOrderBarScrollMargin } from "@/lib/menu-order-bar";
 
 const TRANSITION_MARKER = "3diner:viewer-transition";
 
@@ -187,7 +188,7 @@ export default function Menu3DTransitionLink({
       scroll={false}
       onClick={handleClick}
       className="btn-navy press w-full h-[52px] rounded-2xl inline-flex items-center justify-center gap-2.5 font-semibold text-[15px]"
-      style={{ scrollMarginBottom: "calc(var(--menu-order-bar-space) + 12px)" }}
+      style={{ scrollMarginBottom: menuOrderBarScrollMargin(12) }}
     >
       <Box size={18} strokeWidth={2} />
       Lihat Model 3D
