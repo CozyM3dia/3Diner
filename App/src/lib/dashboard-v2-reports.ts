@@ -1,6 +1,13 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { startOfTodayWIB } from "@/lib/dashboard-today";
 import type { OrderItem } from "@/types";
+import { peakIndex, type DailyPoint } from "@/lib/dashboard-v2-reports-view";
+
+/** Tipe & helper chart untuk komponen klien hidup di
+ *  `dashboard-v2-reports-view.ts` (murni, tanpa database); modul ini
+ *  server-only lewat supabaseAdmin. Re-export menjaga impor lama tetap hidup. */
+export { peakIndex } from "@/lib/dashboard-v2-reports-view";
+export type { DailyPoint } from "@/lib/dashboard-v2-reports-view";
 
 export const REPORT_MODES = ["penjualan", "tamu", "menu", "pajak"] as const;
 export type ReportMode = (typeof REPORT_MODES)[number];
@@ -26,13 +33,6 @@ export type Period = (typeof PERIODS)[number];
 export function parsePeriod(value: string | undefined): Period {
   const n = Number(value);
   return (PERIODS as readonly number[]).includes(n) ? (n as Period) : 30;
-}
-
-export interface DailyPoint {
-  /** Tanggal WIB, "yyyy-mm-dd". */
-  day: string;
-  label: string;
-  value: number;
 }
 
 /** Deret harian yang MEMUAT hari kosong.
@@ -73,23 +73,6 @@ function wibDayKey(d: Date): string {
     month: "2-digit",
     day: "2-digit",
   }).format(d);
-}
-
-/** Batang yang disorot: satu, dan yang tertinggi.
- *
- *  Efferd dan dua referensi lain melakukan hal yang sama — grafik monokrom
- *  dengan satu batang digelapkan. Sorotan itu bukan kategori; ia menjawab
- *  "mana yang paling menonjol" tanpa menambah hue. */
-export function peakIndex(points: DailyPoint[]): number {
-  let best = -1;
-  let bestValue = 0;
-  points.forEach((p, i) => {
-    if (p.value > bestValue) {
-      bestValue = p.value;
-      best = i;
-    }
-  });
-  return best;
 }
 
 /** Kalimat yang menjelaskan bentuk grafiknya.

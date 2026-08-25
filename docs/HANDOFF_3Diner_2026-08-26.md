@@ -2,7 +2,7 @@
 
 ## Status: Phase 0 — Foundation ✅ SELESAI & TERVERIFIKASI
 
-**Verifikasi akhir (26 Aug):** 62 file / 564 test PASS · typecheck bersih · eslint 13 file tersentuh nol temuan.
+**Verifikasi akhir (26 Aug):** 62 file / 564 test PASS · typecheck bersih · eslint semua file tersentuh nol temuan · **production build sukses**.
 **Catatan insiden:** subagent worker-2 kena 429 upstream di tengah tugas (OwnerShell); sisa kerjanya dituntaskan langsung oleh orchestrator tanpa retry subagent (prosedur skill ox-alpha-rate-limit). Worker-1 sukses normal.
 
 **Rencana induk:** `docs/DASHBOARD-REBUILD-PLAN.md` · **Eksekusi:** `docs/DASHBOARD-IMPLEMENTATION-PLAN.md` (hasil audit 26 Aug; Tripo ditunda, UI 1:1 Dream POS)
@@ -16,6 +16,7 @@
 | Skala token dv2 | `App/src/app/globals.css` (blok akhir) | `--dv2-space-1..8`, `--dv2-z-scrim/sheet`, `--dv2-fs-*`; CSS pill/sheet/icon-btn/field/focus-ring |
 | Primitive konsol | `App/src/components/dashboard-v2/primitives.tsx` | Tabs (counter), StatusPill (--pill var), SlideOver (Radix: Escape/scrim/focus trap), EmptyState, Field (role=alert). Tanpa hex baru — semua var(--dash-*)/semantic |
 | Shell responsive | `App/src/components/dashboard-v2/OwnerShell.tsx` + blok "Phase 0c" globals.css | Hamburger ≤768px (aria-expanded/controls, Escape, klik-luar via pointerdown, tutup saat pindah rute dengan pola adjust-during-render — bukan effect-setState); desktop >768px tidak berubah |
+| Pemisahan client/server lib | `dashboard-v2-{orders,stock,menu,reports}[-view].ts` + retarget impor di OrdersTable/OrderDetailSheet/StockTable/MenuTableV2/BarSeries | Guard server-only MENEMUKAN 4 kebocoran nyata: helper view murni dipisah ke `*-view.ts` (client-safe), modul lama jadi lapisan data murni (re-export menjaga kompatibilitas). Pola wajib untuk modul baru Phase 1+ |
 | DESIGN.md diperluas | `DESIGN.md` | Section baru "Owner Console Design": token contract + tabel primitives + auth/error semantics |
 | Test baru | `staff-context-shape` (4), `auth-routing-rejection` (5), `dv2-primitives` (9), `owner-shell-responsive` (4) = 22 test | Semua jsdom test pakai pragma environment + afterEach(cleanup) |
 

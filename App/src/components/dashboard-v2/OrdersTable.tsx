@@ -7,7 +7,7 @@ import {
   STATUS_TEXT,
   summarizeItems,
   type OrderRowV2,
-} from "@/lib/dashboard-v2-orders";
+} from "@/lib/dashboard-v2-orders-view";
 import OrderDetailSheet from "@/components/dashboard-v2/OrderDetailSheet";
 
 interface Props {

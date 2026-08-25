@@ -1,5 +1,5 @@
-import type { DailyPoint } from "@/lib/dashboard-v2-reports";
-import { peakIndex } from "@/lib/dashboard-v2-reports";
+import type { DailyPoint } from "@/lib/dashboard-v2-reports-view";
+import { peakIndex } from "@/lib/dashboard-v2-reports-view";
 
 interface Props {
   points: DailyPoint[];

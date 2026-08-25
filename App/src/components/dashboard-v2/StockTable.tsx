@@ -6,7 +6,7 @@ import {
   STOCK_LEVEL_LABEL,
   stockLevel,
   type StockRow,
-} from "@/lib/dashboard-v2-stock";
+} from "@/lib/dashboard-v2-stock-view";
 import { adjustStock, markPurchased, type AdjustMode } from "@/lib/stok-actions";
 
 interface Props {

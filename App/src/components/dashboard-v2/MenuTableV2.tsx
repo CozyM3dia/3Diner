@@ -7,7 +7,7 @@ import {
   modelState,
   MODEL_STATE_LABEL,
   type MenuRow,
-} from "@/lib/dashboard-v2-menu";
+} from "@/lib/dashboard-v2-menu-view";
 import { setManyMenusLive, setMenuLive } from "@/lib/menu-actions-v2";
 
 interface Props {

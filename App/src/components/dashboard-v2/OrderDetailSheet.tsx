@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { formatRupiah } from "@/lib/format";
 import { buildReceiptHtml, printReceipt } from "@/lib/receipt-html";
-import { describePayment, STATUS_TEXT, type OrderRowV2 } from "@/lib/dashboard-v2-orders";
+import { describePayment, STATUS_TEXT, type OrderRowV2 } from "@/lib/dashboard-v2-orders-view";
 
 interface Props {
   order: OrderRowV2;
