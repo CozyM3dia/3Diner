@@ -51,7 +51,7 @@ export default async function MenuDetailPage({ params }: PageProps) {
     : [];
 
   return (
-    <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "96px" }}>
+    <main className="min-h-dvh" style={{ background: "var(--paper)" }}>
       <DetailHeader cafeName={cafe.nama_cafe} slug={slug} />
 
       {/* Hero image */}

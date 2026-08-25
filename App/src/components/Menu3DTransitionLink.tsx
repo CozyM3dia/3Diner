@@ -14,6 +14,11 @@ interface Menu3DTransitionLinkProps {
   heroId: string;
 }
 
+function heroIsOnScreen(hero: Element): boolean {
+  const bounds = hero.getBoundingClientRect();
+  return bounds.bottom > 0 && bounds.top < window.innerHeight;
+}
+
 export default function Menu3DTransitionLink({
   href,
   menuName,
@@ -25,21 +30,12 @@ export default function Menu3DTransitionLink({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timelineRef = useRef<any | null>(null);
   const navigatingRef = useRef(false);
+  const navigatedRef = useRef(false);
   const mountedRef = useRef(true);
 
-  // Bersih-bersih saat komponen lepas. GSAP dimuat on-demand (baru ada kalau
-  // pengguna mengetuk), jadi cukup hentikan timeline + buang portal yang ada.
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      timelineRef.current?.kill();
-      portalRef.current?.remove();
-      portalRef.current = null;
-    };
-  }, []);
-
   const navigate = () => {
+    if (navigatedRef.current) return;
+    navigatedRef.current = true;
     try {
       sessionStorage.setItem(TRANSITION_MARKER, "true");
     } catch {
@@ -48,6 +44,24 @@ export default function Menu3DTransitionLink({
       router.push(href);
     }
   };
+
+  // Bersih-bersih saat komponen lepas. GSAP dimuat on-demand (baru ada kalau
+  // pengguna mengetuk), jadi cukup hentikan timeline + buang portal yang ada.
+  // Kalau ketukan sudah mulai navigasi, jangan batalkan hanya karena re-render
+  // melepaskan tautan dari DOM — itu yang membuat ketukan pertama "hanya
+  // menggulir" lalu butuh ketukan kedua.
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      timelineRef.current?.kill();
+      portalRef.current?.remove();
+      portalRef.current = null;
+      if (navigatingRef.current) navigate();
+    };
+    // navigate closes over href/router; both are stable for this island's life.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [href]);
 
   const handleClick = async (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (
@@ -72,7 +86,9 @@ export default function Menu3DTransitionLink({
     }
 
     const hero = document.getElementById(heroId);
-    if (!hero) {
+    // CTA di bawah lipatan: hero sudah di luar layar, morph tidak kelihatan,
+    // dan menunggu GSAP hanya membuka jendela race (re-render melepaskan tautan).
+    if (!hero || !heroIsOnScreen(hero)) {
       navigate();
       return;
     }
@@ -125,44 +141,53 @@ export default function Menu3DTransitionLink({
 
     // GSAP dimuat hanya saat animasi benar-benar diminta, bukan saat halaman
     // detail menu dibuka — menghemat ~70KB dari bundle pelanggan.
-    const [{ default: gsap }] = await Promise.all([import("gsap")]);
-    if (!mountedRef.current || !portalRef.current) return;
+    try {
+      const [{ default: gsap }] = await Promise.all([import("gsap")]);
+      if (!mountedRef.current || !portalRef.current) {
+        navigate();
+        return;
+      }
 
-    timelineRef.current = gsap
-      .timeline()
-      .fromTo(
-        portal,
-        {
-          scaleX: bounds.width / window.innerWidth,
-          scaleY: bounds.height / window.innerHeight,
-          x: bounds.left,
-          y: bounds.top,
-        },
-        {
-          duration: 0.68,
-          ease: "power3.inOut",
-          scaleX: 1,
-          scaleY: 1,
-          x: 0,
-          y: 0,
-        },
-      )
-      .set(portal, { borderRadius: 0 }, 0.68)
-      .to(shade, { duration: 0.36, ease: "power2.in", opacity: 0.94 }, "-=0.3")
-      .fromTo(
-        label,
-        { opacity: 0, y: 18 },
-        { duration: 0.3, ease: "power2.out", opacity: 1, y: 0 },
-        "-=0.18",
-      )
-      .call(navigate, undefined, "-=0.12");
+      timelineRef.current = gsap
+        .timeline()
+        .fromTo(
+          portal,
+          {
+            scaleX: bounds.width / window.innerWidth,
+            scaleY: bounds.height / window.innerHeight,
+            x: bounds.left,
+            y: bounds.top,
+          },
+          {
+            duration: 0.68,
+            ease: "power3.inOut",
+            scaleX: 1,
+            scaleY: 1,
+            x: 0,
+            y: 0,
+          },
+        )
+        .set(portal, { borderRadius: 0 }, 0.68)
+        .to(shade, { duration: 0.36, ease: "power2.in", opacity: 0.94 }, "-=0.3")
+        .fromTo(
+          label,
+          { opacity: 0, y: 18 },
+          { duration: 0.3, ease: "power2.out", opacity: 1, y: 0 },
+          "-=0.18",
+        )
+        .call(navigate, undefined, "-=0.12");
+    } catch {
+      navigate();
+    }
   };
 
   return (
     <Link
       href={href}
+      scroll={false}
       onClick={handleClick}
       className="btn-navy press w-full h-[52px] rounded-2xl inline-flex items-center justify-center gap-2.5 font-semibold text-[15px]"
+      style={{ scrollMarginBottom: "calc(var(--menu-order-bar-space) + 12px)" }}
     >
       <Box size={18} strokeWidth={2} />
       Lihat Model 3D

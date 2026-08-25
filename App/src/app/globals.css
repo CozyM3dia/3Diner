@@ -30,6 +30,11 @@
   --shadow-lg: 0 18px 44px rgba(2,44,96,0.14), 0 6px 14px rgba(2,44,96,0.08);
   --shadow-orange: 0 6px 20px rgba(253,80,2,0.28);
 
+  /* Space reserved for the fixed "Tambah ke Pesanan" bar on dish detail.
+     12px top padding + 52px button + 12px bottom padding + safe area + a
+     little air so the last block (3D CTA, reviews) is not tucked under it. */
+  --menu-order-bar-space: calc(env(safe-area-inset-bottom, 0px) + 120px);
+
   /* Motion — Jakub-polish: smooth ease-out, production-subtle */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.33, 1, 0.68, 1);
@@ -536,7 +541,21 @@ model-viewer::part(default-ar-button) { display: none !important; }
 .checkout-item-thumb, .checkout-quoted-thumb { position: relative; display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; overflow: hidden; border-radius: 12px; background: #E9EDF0; color: #52677D; font-weight: 700; }
 .checkout-item-thumb { width: 64px; height: 64px; }
 .checkout-quoted-thumb { width: 48px; height: 48px; border-radius: 10px; font-size: 13px; }
-.checkout-menu-image { object-fit: cover; transition: transform 220ms var(--ease-out); }
+.checkout-thumb-pending::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, #E9EDF0 0%, #F7F9FB 45%, #E9EDF0 100%);
+  background-size: 200% 100%;
+  animation: checkout-thumb-shimmer 1.1s ease-in-out infinite;
+}
+.checkout-menu-image { position: relative; z-index: 1; object-fit: cover; background: #E9EDF0; transition: transform 220ms var(--ease-out); }
+@keyframes checkout-thumb-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
 .checkout-order-line:focus-within .checkout-menu-image { transform: scale(1.045); }
 @media (hover: hover) {
   .checkout-order-line:hover .checkout-menu-image { transform: scale(1.045); }
@@ -631,6 +650,7 @@ model-viewer::part(default-ar-button) { display: none !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   .checkout-page .animate-spin { animation: none !important; }
+  .checkout-thumb-pending::before { animation: none; }
   .checkout-menu-image, .checkout-payment-tile, .checkout-payment-tile-icon, .checkout-quantity button { transition: none; }
   .checkout-payment-tile--selected .checkout-payment-tile-check { animation: none; }
 }
