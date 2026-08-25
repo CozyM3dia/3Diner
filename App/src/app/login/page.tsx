@@ -7,6 +7,11 @@ import { Loader2, LogIn } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { resolveHomeRoute } from "@/lib/auth-routing";
 
+const ALASAN: Record<string, string> = {
+  "bukan-staf": "Akun ini belum terdaftar sebagai staf kafe mana pun. Hubungi pemilik kafe.",
+  nonaktif: "Akses akun ini sedang dinonaktifkan. Hubungi pemilik kafe.",
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -31,15 +36,23 @@ export default function LoginPage() {
     // Peran yang menentukan tujuan, bukan pilihan di layar ini: pemilik ke
     // konsolnya, kasir ke antrean pesanan. Pemilih peran di layar masuk adalah
     // pertanyaan yang jawabannya sudah dimiliki sistem.
-    const home = await resolveHomeRoute();
-    if (!home) {
-      await supabase.auth.signOut();
-      setError("Akun ini belum terdaftar sebagai staf kafe mana pun. Hubungi pemilik kafe.");
+    const result = await resolveHomeRoute();
+    // `=== null` (bukan falsy check): home bertipe string|null, dan hanya null
+    // yang menandai penolakan — sekaligus memampukan discriminant narrowing.
+    if (result.home === null) {
+      // Kegagalan memeriksa ≠ bukan staf: sesi tetap hidup supaya orang bisa
+      // mencoba lagi tanpa mengetik ulang password. Alasan dari redirect
+      // (?alasan=) memakai pesan yang sama dengan alasan di sini.
+      setError(
+        result.reason === "gagal-muat"
+          ? "Gagal memeriksa peranmu. Coba lagi."
+          : ALASAN[result.reason]
+      );
       setLoading(false);
       return;
     }
 
-    router.push(home);
+    router.push(result.home);
     router.refresh();
   }
 
@@ -107,7 +120,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <p className="text-xs" style={{ color: "#FD5002" }}>
+            <p className="text-xs" style={{ color: "#FD5002" }} role="alert">
               {error}
             </p>
           )}

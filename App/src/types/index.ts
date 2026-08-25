@@ -275,7 +275,9 @@ export interface Staff {
 }
 
 /** Hasil `get_staff_context()`. `role` null berarti user terautentikasi tapi
- *  tidak terdaftar sebagai staf kafe mana pun — beda dari gagal memuat. */
+ *  tidak terdaftar sebagai staf kafe mana pun — beda dari gagal memuat.
+ *  `error: true` menandai kegagalan memuat (RPC/database), sehingga pemanggil
+ *  bisa menawarkan "coba lagi" alih-alih mengusir orang dengan pesan salah. */
 export interface StaffContext {
   cafe_id?: string
   cafe_name?: string
@@ -284,6 +286,8 @@ export interface StaffContext {
   full_name?: string
   role: StaffRole | null
   is_active?: boolean
+  /** true hanya saat konteks GAGAL dimuat — bukan "bukan staf". */
+  error?: boolean
 }
 
 /** Tujuan setelah login ditentukan peran, bukan pilihan di layar masuk.

@@ -1823,3 +1823,201 @@ html:has(.dash-root), body:has(.dash-root) {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.55; }
 }
+
+/* ════════ Phase 0 — skala token & primitive konsol (26 Aug 2026) ════════
+   Skala bersama untuk seluruh konsol owner. Penamaan meneruskan prefiks dv2
+   supaya tetap satu keluarga dengan yang sudah berjalan — BUKAN lapisan token
+   kedua (keputusan induk §0.3). Rujukan nilai: brand/UI_TOKENS.md. */
+
+:root {
+  /* Spacing — tangga 4pt; dipakai lewat var(), tidak ada angka liar. */
+  --dv2-space-1: 4px;
+  --dv2-space-2: 8px;
+  --dv2-space-3: 12px;
+  --dv2-space-4: 16px;
+  --dv2-space-5: 20px;
+  --dv2-space-6: 24px;
+  --dv2-space-8: 32px;
+
+  /* Z-index — lapisan eksplisit; scrim < sheet < toast. Nav/sticky milik
+     shell sudah aman di bawah 40, jadi mereka tidak didefinisikan ulang. */
+  --dv2-z-scrim: 40;
+  --dv2-z-sheet: 50;
+
+  /* Typography — Poppins (UI_TOKENS §Typography), tabular untuk angka. */
+  --dv2-fs-caption: 11px;
+  --dv2-fs-body: 13px;
+  --dv2-fs-title: 16px;
+}
+
+/* ── Status pill (gaya badge Active/Expired template) ── */
+.dv2-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: var(--dv2-fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--pill, var(--dash-muted));
+  background: color-mix(in srgb, var(--pill, var(--dash-muted)) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pill, var(--dash-muted)) 38%, transparent);
+  white-space: nowrap;
+}
+
+/* ── SlideOver ── */
+.dv2-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 8, 18, 0.62);
+  backdrop-filter: blur(2px);
+  z-index: var(--dv2-z-scrim);
+}
+.dv2-sheet {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100dvh;
+  width: min(480px, 100%);
+  display: flex;
+  flex-direction: column;
+  background: var(--dash-panel);
+  border-left: 1px solid var(--dash-border-strong);
+  box-shadow: var(--shadow-dashboard);
+  z-index: var(--dv2-z-sheet);
+  outline: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dv2-scrim { animation: dv2-fade-in 160ms var(--ease-out, ease-out); }
+  .dv2-sheet { animation: dv2-slide-in 200ms cubic-bezier(0.22, 1, 0.36, 1); }
+}
+@keyframes dv2-fade-in { from { opacity: 0; } }
+@keyframes dv2-slide-in { from { transform: translateX(24px); opacity: 0; } }
+
+.dv2-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--dv2-space-3);
+  padding: var(--dv2-space-5) var(--dv2-space-6);
+  border-bottom: 1px solid var(--dash-border);
+}
+.dv2-sheet-heading { display: flex; flex-direction: column; gap: 2px; }
+.dv2-sheet-title {
+  margin: 0;
+  font-size: var(--dv2-fs-title);
+  font-weight: 700;
+  color: var(--dash-text);
+}
+.dv2-sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--dv2-space-5) var(--dv2-space-6);
+}
+.dv2-sheet-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--dv2-space-3);
+  padding: var(--dv2-space-4) var(--dv2-space-6);
+  border-top: 1px solid var(--dash-border);
+}
+
+/* ── Icon button (tutup panel, action kecil) ── */
+.dv2-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--dash-border-strong);
+  color: var(--dash-secondary);
+  cursor: pointer;
+}
+.dv2-icon-btn:hover { background: var(--dash-raised); color: var(--dash-text); }
+
+/* ── Empty state ── */
+.dv2-empty {
+  align-items: center;
+  text-align: center;
+  padding: var(--dv2-space-8) var(--dv2-space-6);
+}
+.dv2-empty .dv2-state-body { max-width: 42ch; }
+.dv2-empty .dv2-btn-solid { margin-top: var(--dv2-space-4); }
+
+/* ── Form field ── */
+.dv2-field { display: flex; flex-direction: column; gap: 6px; }
+.dv2-field-label {
+  font-size: var(--dv2-fs-caption);
+  font-weight: 600;
+  color: var(--dash-secondary);
+}
+.dv2-field-req { color: var(--orange); }
+.dv2-input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--dash-raised);
+  border: 1px solid var(--dash-border-strong);
+  color: var(--dash-text);
+  font: inherit;
+  font-size: var(--dv2-fs-body);
+}
+.dv2-input::placeholder { color: var(--dash-muted); }
+.dv2-input[aria-invalid="true"] { border-color: var(--semantic-danger); }
+.dv2-field-hint { margin: 0; font-size: var(--dv2-fs-caption); color: var(--dash-muted); }
+.dv2-field-error { margin: 0; font-size: var(--dv2-fs-caption); color: var(--semantic-danger); }
+
+/* Fokus terlihat di kanvas gelap (UI_TOKENS §Focus Ring): cincin oranye. */
+.dv2-icon-btn:focus-visible,
+.dv2-input:focus-visible,
+.dv2-pill:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+/* ════════ Phase 0c — shell responsive (26 Aug 2026) ════════
+   Di layar sempit nav menjadi panel yang dibuka sengaja lewat tombol.
+   Desktop (>768px) tidak berubah sama sekali: tombolnya tidak dirender ke
+   layout, nav tetap seperti semula. */
+
+.dv2-nav-toggle { display: none; }
+
+@media (max-width: 768px) {
+  .dv2-nav-toggle {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid var(--dash-border-strong);
+    color: var(--dash-secondary);
+    cursor: pointer;
+    margin-left: var(--dv2-space-3);
+  }
+  .dv2-nav-toggle:hover { background: var(--dash-raised); color: var(--dash-text); }
+
+  /* Panel: tertutup secara default, terbuka penuh lebar saat .dv2-nav-open. */
+  .dv2-nav { display: none; }
+  .dv2-nav.dv2-nav-open {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--dv2-space-1);
+    width: 100%;
+    padding: var(--dv2-space-3) 0;
+    border-bottom: 1px solid var(--dash-border-strong);
+  }
+}
+
+.dv2-nav-toggle:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+/* Buka panel pelan dan hanya untuk yang tidak meminta gerak dikurangi. */
+@media (prefers-reduced-motion: no-preference) {
+  .dv2-nav.dv2-nav-open { animation: dv2-fade-in 160ms ease-out; }
+}

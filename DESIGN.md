@@ -42,3 +42,35 @@ Do not render a three-step progress rail. Completion lives on the order route, n
 ## Anti-patterns
 
 - No ornamental gradients, sheen animations, decorative progress rail, urgency pulse, generic card soup, repeated summaries, ambiguous “Kirim pesanan” copy, or orange buttons with failing white-text contrast.
+
+---
+
+# Owner Console Design (dashboard-v2)
+
+Ditambahkan 26 Aug 2026 (Phase 0 rebuild dashboard) supaya cakupan dokumen ini tidak berhenti di checkout. Rujukan nilai warna/typography/radius: `brand/UI_TOKENS.md`.
+
+## Direction
+
+Konsol owner adalah ruang kerja gelap yang operasional-first: menjawab "apa yang terjadi, apa yang butuh tindakan saya" dalam hitungan detik. Data-dense tetapi premium — hierarchy dari surface layering (`--dash-canvas → panel → raised`) dan whitespace, bukan dari border dan shadow di setiap kartu. Angka memakai tabular figures; lebar konten desktop dibatasi ±1.200–1.440px.
+
+## Token Contract
+
+- Satu-satunya sumber warna: 11 token `--dash-*` + `--semantic-*` + `--orange*`/`--navy*` brand di `globals.css`. **Tidak ada hex baru di file komponen** (gate Phase 0).
+- Skala bersama baru, prefiks `--dv2-*`: spacing 4–32px (`--dv2-space-1..8`), z-index lapisan (`--dv2-z-scrim/sheet`), font-size caption/body/title.
+- Penamaan meneruskan keluarga `.dv2-*` yang ada — bukan lapisan token kedua. Preseden bentrok nama `.dv2-bar` vs chart bar sudah tercatat di komentar globals.css; periksa nama baru terhadapnya.
+
+## Primitives (`src/components/dashboard-v2/primitives.tsx`)
+
+| Primitive | Catatan perilaku |
+|---|---|
+| `Tabs` | label ber-counter gaya template `(48)`; counter hanya untuk angka yang bisa mencapai nol |
+| `StatusPill` | pill badge (Active/Expired-style); warna lewat CSS var `--pill`, tone dari token |
+| `SlideOver` | panel detail kanan; Escape/scrim/tombol tutup + focus trap via Radix |
+| `EmptyState` | judul + penjelasan + satu CTA nyata; tanpa handler = tanpa tombol (bukan tombol mati) |
+| `Field` | input + label terikat `htmlFor`; error `role="alert"` + `aria-invalid`; hint hanya saat valid |
+
+Setiap kontrol wajib punya behavior nyata — anti-pola template Dream POS (link mati, filter dekoratif, pagination kosong) dilarang menular. State loading (skeleton `RouteSkeleton`), empty, error inline, disabled beralasan adalah syarat keluar tiap layar.
+
+## Auth & Error Semantics
+
+`StaffContext.error: true` membedakan *gagal memuat* dari *bukan staf*. Layar masuk menampilkan tiga pesan berbeda (salah kredensial / bukan staf / nonaktif / gagal periksa → coba lagi) dan tidak me-signOut saat pemeriksaan gagal. Fokus terlihat di kanvas gelap: outline oranye 2px offset 2px (`UI_TOKENS §Focus Ring`).
