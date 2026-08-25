@@ -1,8 +1,10 @@
 # Rencana full rebuild dashboard 3Diner
 
-**Status:** Disetujui untuk dieksekusi setelah revisi audit 22 Agustus 2026  
-**Tanggal:** 22 Agustus 2026  
+**Status:** Disetujui untuk dieksekusi — scope final
+**Tanggal:** 22 Agustus 2026
+**Pembaruan keputusan:** 26 Agustus 2026
 **Referensi inspirasi:** [Dream POS Restaurant Demo](https://dreamspos.dreamstechnologies.com/restaurant-pos/html/index.html)
+**Rencana eksekusi terperinci:** [DASHBOARD-IMPLEMENTATION-PLAN.md](./DASHBOARD-IMPLEMENTATION-PLAN.md) (hasil audit 26 Aug 2026; termasuk keputusan: UI mengikuti template Dream POS 1:1 — fitur tanpa padanan seperti generasi model 3D & menu 3D/AR dirancang kreatif dalam bahasa visual template, integrasi Tripo API ditunda dengan upload manual tetap fungsional)
 
 ## 0. Keadaan sekarang
 
@@ -28,6 +30,9 @@ Keputusan berikut sudah dieksekusi dan **tidak boleh dibatalkan diam-diam**. Mem
 3. **Badge berangka hanya untuk antrean yang bisa dinolkan.** Satu badge yang tidak pernah bisa kosong merusak kepercayaan pada semua badge.
 4. **Auth digate di layout, bukan di middleware.** `src/app/dashboard-v2/layout.tsx` memanggil `getStaffContext()` lalu `canOpenOwnerConsole()`.
 5. **Token visual sudah ada.** Konsol memakai palet `--dash-*` (canvas gelap) yang sudah terdefinisi di `globals.css`.
+6. **Owner bersifat monitor-only untuk order.** Owner dapat melihat order, payment, performa, dan aktivitas; perubahan status order tetap hanya dilakukan melalui `/kasir`.
+7. **AI dan 3D adalah fitur inti, bukan fitur yang dikorbankan saat rebuild.** Menu extraction, AI detail generation, credit meter, model generation, upload model, preview 3D, dan AR tetap harus hadir di dashboard baru.
+8. **UI ditargetkan recreation 1:1 secara visual.** Layout dan perilaku yang terlihat mengikuti template Dream POS, sementara palette, typography treatment, logo, foto, icon treatment, dan aset 3D/AR menggunakan identitas 3Diner.
 
 ### 0.3 Konsekuensi untuk rencana ini
 
@@ -39,9 +44,16 @@ Keputusan berikut sudah dieksekusi dan **tidak boleh dibatalkan diam-diam**. Mem
 
 Dashboard 3Diner akan di-rebuild secara penuh pada lapisan **UI, information architecture, dan interaction design** dengan mengambil inspirasi dari Dream POS.
 
-Rebuild ini bukan penyalinan source code, asset, brand, atau tampilan Dream POS secara satu banding satu. Dream POS digunakan sebagai referensi untuk kepadatan informasi, struktur operasional, dan pola workflow restoran. Identitas, data, dan keunggulan 3Diner tetap menjadi inti:
+Rebuild ini menargetkan **recreation 1:1 terhadap UI yang terlihat dan perilaku interaksinya**: komposisi layout, navigasi, spacing, hierarchy, cards, table, tabs, filter, slide-over/modal, responsive behavior, hover/focus state, loading state, empty state, dan error state.
+
+Yang tidak disalin adalah source code, markup internal, brand, font berlisensi, atau asset proprietary Dream POS. Dream POS dipakai sebagai referensi visual dan workflow; implementasinya tetap memakai stack, data, contract, palette, dan asset 3Diner. Bila font atau asset asli tidak tersedia, targetnya adalah fidelity visual setinggi mungkin dengan pengganti 3Diner yang setara.
+
+Identitas, data, dan keunggulan 3Diner tetap menjadi inti:
 
 - smart menu dengan 3D/AR;
+- palette warna dan token visual 3Diner;
+- logo, foto makanan, icon treatment, dan asset visual 3Diner;
+- AI menu extraction, AI detail generation, credit meter, dan Tripo 3D generation;
 - QR ordering;
 - QRIS dan cash check-in;
 - inventory, recipe, dan stock deduction;
@@ -79,16 +91,20 @@ Beranda harus menjawab tiga pertanyaan dalam beberapa detik:
 
 KPI tetap ada, tetapi tidak boleh mengambil seluruh ruang dari live order, stok kritis, payment, dan task operasional.
 
-### 3.2 3Diner, bukan Dream POS dengan logo baru
+### 3.2 Recreation 1:1 dengan identitas 3Diner
 
-Elemen yang menjadi ciri 3Diner harus terlihat di setiap modul:
+Struktur visual Dream POS direcreate sedekat mungkin, tetapi seluruh lapisan brand diganti dengan identitas 3Diner:
 
-- preview foto dan model 3D pada menu;
+- palette yang bersumber dari token `--dash-*` dan token brand 3Diner;
+- logo dan asset visual 3Diner, bukan asset demo Dream POS;
+- foto menu dan model GLB/USDZ yang tersedia di domain 3Diner;
+- preview foto, model 3D, dan AR pada Menu workspace;
 - status `3D ready`, `AR ready`, atau `belum ada model`;
-- price dalam Rupiah;
+- AI action untuk extraction, detail generation, dan model generation;
+- harga dalam Rupiah;
 - QRIS sebagai workflow payment utama;
 - istilah Bahasa Indonesia yang konsisten;
-- visual brand 3Diner, bukan Bootstrap default.
+- seluruh button, tab, filter, pagination, modal, dan slide-over memiliki behavior nyata.
 
 ### 3.3 Data-dense tetapi tetap premium
 
@@ -211,7 +227,18 @@ Editor tetap mempertahankan tab yang ada:
 - 3D dan AR;
 - Resep.
 
-Perlu diketahui sebelum menjadwalkan: di `src/components/dashboard-v2/MenuEditor.tsx` tab **Varian, 3D & AR, dan Resep masih `PendingTab`** — hanya membaca keadaan ("item ini punya N grup varian"), belum bisa menyunting. Penyuntingnya masih hidup di legacy sebagai `MenuOptionsEditor`, `Tripo3DGenerator`, `FileUpload`, dan `RecipeEditor`. Memindahkannya adalah pekerjaan write-path terbesar di seluruh rebuild ini, bukan pekerjaan tata letak. Rinciannya di Lampiran A.
+Perlu diketahui sebelum menjadwalkan: di `src/components/dashboard-v2/MenuEditor.tsx` tab **Varian, 3D & AR, dan Resep masih `PendingTab`** — hanya membaca keadaan ("item ini punya N grup varian"), belum bisa menyunting. Penyuntingnya masih hidup di legacy sebagai `MenuOptionsEditor`, `Tripo3DGenerator`, `FileUpload`, dan `RecipeEditor`. `MenuExtractor`, `AiCreditMeter`, dan AI detail generation juga tetap harus dipindahkan sebagai workflow fungsional, bukan dihilangkan dari template baru. Memindahkannya adalah pekerjaan write-path terbesar di seluruh rebuild ini, bukan pekerjaan tata letak. Rinciannya di Lampiran A.
+
+Integrasi AI/3D minimal harus mencakup:
+
+- ekstraksi menu berbasis AI;
+- pembuatan detail menu berbasis AI;
+- meter dan validasi credit;
+- generate model 3D;
+- upload dan save GLB/USDZ;
+- preview model dan AR;
+- status model pada list/grid menu;
+- fallback/error state ketika generation atau upload gagal.
 
 ### 5.4 Stok
 
@@ -277,6 +304,7 @@ Section yang belum tersedia di backend tidak boleh ditampilkan sebagai tombol ak
 | Kanban orders | Hanya di `/kasir` bila memang dibutuhkan. Tidak dibangun di konsol owner (lihat 5.2) |
 | Kitchen page | Modul KDS terpisah setelah queue Kasir stabil |
 | Menu grid | Menu 3D grid dengan photo, model status, stock, dan preview |
+| AI dan 3D workflow | Menu extraction, AI detail, credit meter, Tripo generation, upload, preview, dan AR menggunakan contract 3Diner |
 | Table management | Ditambahkan hanya jika bisnis membutuhkan dine-in/table workflow |
 | Reservation | Domain baru dengan schema dan lifecycle sendiri |
 | Reports | Tab report dengan source data 3Diner, bukan dummy table |
@@ -333,8 +361,10 @@ Bukan mendefinisikan sistem baru — **memperluas yang sudah ada.** `globals.css
 ### Phase 2 — Menu dan Stok
 
 - rebuild Menu grid/list;
+- recreate layout dan interaction template dengan palette serta asset 3Diner;
 - tampilkan kesiapan 3D/AR;
 - **pindahkan penyunting Varian, 3D & AR, dan Resep dari legacy ke `MenuEditor` v2**, menggantikan `PendingTab`;
+- pindahkan MenuExtractor, AiCreditMeter, AI detail generation, Tripo3DGenerator, FileUpload, dan save model sebagai workflow yang benar-benar dapat digunakan;
 - rebuild stock overview, low-stock state, recipes, dan movements.
 
 **Gate keluar:** baris Menu di Lampiran A seluruhnya berstatus `selesai`. Selama masih ada satu `PendingTab` di jalur sunting, Phase 2 belum selesai walau tampilannya sudah rapi.
@@ -395,13 +425,16 @@ Sampai Phase 3.5 selesai, setiap phase bisa dibatalkan dengan mengembalikan navi
 
 Dashboard rebuild dianggap siap jika:
 
+- UI target memiliki fidelity visual 1:1 terhadap struktur template yang disepakati, dengan palette, typography treatment, logo, foto, icon treatment, dan aset 3Diner;
+- tidak ada source code atau asset proprietary Dream POS yang disalin;
 - seluruh route utama menggunakan shell baru secara konsisten;
 - tidak ada tombol aktif yang hanya menuju `#` atau tidak melakukan apa-apa;
 - seluruh list memiliki loading, empty, error, dan pagination state;
 - seluruh form memiliki validation dan feedback save yang jelas;
 - live order tidak rusak saat dashboard dibuka di desktop dan mobile;
+- owner tetap monitor-only untuk perubahan status order; tidak ada mutasi status order dari Beranda atau `dashboard-v2/pesanan`;
 - status payment dan status order tidak tercampur;
-- menu 3D, option, recipe, dan stock tetap dapat dibuka dari alur normal;
+- menu 3D, option, recipe, stock, AI extraction, AI detail, credit meter, upload model, generation model, dan AR tetap dapat digunakan dari alur normal;
 - layout tervalidasi pada viewport sekitar 390px, 768px, dan 1440px;
 - keyboard navigation dan focus state dapat digunakan;
 - `npm run test:ci` tetap pass;
@@ -413,6 +446,7 @@ Dashboard rebuild dianggap siap jika:
 - middleware menggate `/dashboard-v2` dan `tests/middleware-auth-gate.test.ts` menguji rute itu;
 - tidak ada pemanggilan `supabaseAdmin` baru di luar server component atau server action yang sudah memeriksa peran;
 - tidak ada tipe `any` baru pada file yang disentuh;
+- seluruh kontrol yang terlihat pada recreation template memiliki action nyata atau state disabled dengan alasan yang jelas;
 - keyboard navigation diuji langsung: tab order masuk akal, focus terlihat pada canvas gelap, dan slide-over bisa ditutup dengan Escape;
 - ukuran bundle rute konsol tidak naik lebih dari 10% dibanding sebelum phase berjalan, atau kenaikannya dijelaskan.
 
@@ -443,9 +477,9 @@ Visual Dream POS boleh menjadi referensi, tetapi masalah search, pagination, sta
 Dashboard baru selesai ketika owner dapat masuk dan menjalankan pekerjaan harian dari satu pengalaman yang konsisten:
 
 1. melihat kondisi cafe;
-2. memproses order;
+2. memantau order, payment, dan aktivitas operasional; pemrosesan status tetap dilakukan di `/kasir`;
 3. mengecek payment;
-4. mengelola menu dan ketersediaan;
+4. mengelola menu, varian, recipe, ketersediaan, AI workflow, dan asset 3D/AR;
 5. memantau stok;
 6. membaca laporan;
 7. mengubah settings yang memang tersedia;
