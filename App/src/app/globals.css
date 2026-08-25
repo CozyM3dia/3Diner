@@ -2278,3 +2278,87 @@ html:has(.dash-root), body:has(.dash-root) {
 .login-glass-meta { display: block; margin-top: 2px; color: rgba(255, 255, 255, 0.72); font-size: 12px; }
 .login-pills { display: flex; gap: 6px; margin-top: 14px; }
 .login-glass-cap { margin: 14px 0 0; color: rgba(255, 255, 255, 0.66); font-size: 11px; }
+
+/* Ilustrasi kanan-bawah ala Dream POS (staf dengan POS → versi 3Diner:
+   HP hologram menu). Latar foto hitam dilenyapkan mix-blend screen agar
+   ilustrasi tampak berdiri di atas gradient navy, tanpa kotak hitam. */
+.login-figure {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -10px;
+  height: min(48vh, 440px);
+  background: url("/marketing/hero-phone-dish-v2.png") no-repeat bottom center / contain;
+  mix-blend-mode: screen;
+  opacity: 0.92;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to top, #000 76%, transparent);
+  mask-image: linear-gradient(to top, #000 76%, transparent);
+}
+/* Konten teks berada DI ATAS ilustrasi; ornamen (orbit/glow) tetap absolute
+   sesuai rule-nya sendiri — jangan pakai :not() yang menimpa posisi mereka. */
+.login-kicker,
+.login-headline,
+.login-rightsub,
+.login-glass { position: relative; }
+
+/* ════════ View DAFTAR (struktur Majoo, token 3Diner) ════════ */
+.signup-wa { display: flex; gap: 8px; }
+.signup-wa .login-input-wrap { flex: 1; }
+.signup-verif {
+  flex: none;
+  height: 46px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--navy-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  /* Disabled dengan alasan (kriteria induk §9): OTP WhatsApp butuh provider
+     yang belum ada — bukan tombol yang pura-pura bekerja. */
+  cursor: not-allowed;
+}
+.signup-referral { margin: 0; font-size: 13px; color: var(--navy-muted); }
+.signup-refwrap { display: none; }
+.signup-refwrap.show { display: flex; }
+.signup-ok {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #0B7C63;
+  background: color-mix(in srgb, var(--semantic-success) 10%, var(--white));
+  border: 1px solid color-mix(in srgb, var(--semantic-success) 40%, transparent);
+}
+.login-tabs {
+  display: inline-flex;
+  margin-bottom: 24px;
+  border-radius: 999px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  padding: 3px;
+}
+.login-tab {
+  height: 34px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--navy-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+.login-tab[aria-selected="true"] {
+  background: var(--navy);
+  color: var(--white);
+}
+.login-tab:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
