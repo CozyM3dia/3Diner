@@ -11,7 +11,7 @@ import MenuOrderPanel from "../src/components/MenuOrderPanel";
 import {
   MENU_ORDER_BAR_CHROME_PX,
   MENU_ORDER_BAR_SPACE_PX,
-  menuOrderBarSpaceCalc,
+  menuOrderBarSpacerStyle,
 } from "../src/lib/menu-order-bar";
 import type { Menu } from "../src/types";
 
@@ -78,18 +78,20 @@ describe("dish-detail order bar vs 3D CTA", () => {
     cleanup();
   });
 
-  it("keeps the CSS token in sync with the JS reservation and a var() fallback", () => {
+  it("keeps the CSS token in sync with the JS reservation and a pixel spacer", () => {
     const css = fs.readFileSync(path.resolve(process.cwd(), "src/app/globals.css"), "utf8");
     expect(css).toContain(
       `--menu-order-bar-space: calc(env(safe-area-inset-bottom, 0px) + ${MENU_ORDER_BAR_SPACE_PX}px)`,
     );
-    expect(css).toMatch(/\.menu-order-bar-spacer\s*\{[^}]*height:\s*var\(--menu-order-bar-space,/);
+    expect(css).toMatch(new RegExp(`\\.menu-order-bar-spacer\\s*\\{[^}]*height:\\s*${MENU_ORDER_BAR_SPACE_PX}px`));
+    expect(css).toMatch(/\.menu-order-bar-spacer\s*\{[^}]*padding-bottom:\s*env\(safe-area-inset-bottom/);
   });
 
   it("reserves more in-flow space than the sticky bar chrome", () => {
     expect(MENU_ORDER_BAR_SPACE_PX).toBeGreaterThanOrEqual(MENU_ORDER_BAR_CHROME_PX + 16);
-    expect(menuOrderBarSpaceCalc()).toContain(`${MENU_ORDER_BAR_SPACE_PX}px`);
-    expect(menuOrderBarSpaceCalc()).not.toContain("--menu-order-bar-space");
+    expect(menuOrderBarSpacerStyle().height).toBe(`${MENU_ORDER_BAR_SPACE_PX}px`);
+    expect(menuOrderBarSpacerStyle().height).not.toContain("--menu-order-bar-space");
+    expect(menuOrderBarSpacerStyle().paddingBottom).toContain("safe-area-inset-bottom");
   });
 
   it("places a real-height spacer below the 3D CTA and above the overlay bar", () => {
@@ -114,8 +116,10 @@ describe("dish-detail order bar vs 3D CTA", () => {
     expect(bar).toBeInstanceOf(HTMLElement);
     expect(cta.compareDocumentPosition(spacer as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect((spacer as Node).compareDocumentPosition(bar as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect((spacer as HTMLElement).style.height).toBe(menuOrderBarSpaceCalc());
-    expect((spacer as HTMLElement).style.height).not.toBe("var(--menu-order-bar-space)");
+    expect((spacer as HTMLElement).style.height).toBe(`${MENU_ORDER_BAR_SPACE_PX}px`);
+    expect((spacer as HTMLElement).style.height).not.toContain("--");
+    expect((spacer as HTMLElement).style.boxSizing).toBe("content-box");
+    expect((spacer as HTMLElement).className).toContain("menu-order-bar-spacer");
     expect(addButton.closest("[data-menu-order-bar]")).toBe(bar);
   });
 

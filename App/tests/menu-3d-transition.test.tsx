@@ -6,7 +6,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Menu3DTransitionLink from "../src/components/Menu3DTransitionLink";
-import { menuOrderBarSpaceCalc } from "../src/lib/menu-order-bar";
+import { menuOrderBarScrollMargin } from "../src/lib/menu-order-bar";
 
 const { routerPush, timeline, timelineCall, timelineFromTo, timelineSet, timelineTo } = vi.hoisted(() => {
   const call = vi.fn(
@@ -279,7 +279,7 @@ describe("Menu3DTransitionLink", () => {
   it("uses a pixel calc for scroll-margin so the order-bar token cannot collapse", () => {
     renderLink();
     const link = screen.getByRole("link", { name: "Lihat Model 3D" });
-    expect(link.style.scrollMarginBottom).toBe(menuOrderBarSpaceCalc(12));
+    expect(link.style.scrollMarginBottom).toBe(menuOrderBarScrollMargin(12));
     expect(link.style.scrollMarginBottom).not.toContain("--menu-order-bar-space");
   });
 });

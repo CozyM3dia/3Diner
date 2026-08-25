@@ -12,11 +12,26 @@ export const MENU_ORDER_BAR_GAP_PX = 44;
 /** Reserved in-flow space below dish-detail content, excluding safe-area. */
 export const MENU_ORDER_BAR_SPACE_PX = MENU_ORDER_BAR_CHROME_PX + MENU_ORDER_BAR_GAP_PX;
 
-/** CSS height for the dish-detail spacer / scroll-margin.
+const SAFE_AREA_BOTTOM = "env(safe-area-inset-bottom, 0px)";
+
+/** In-flow stand-in for the fixed order bar.
  *
- *  Inline `var(--menu-order-bar-space)` is not enough: that token is easy to
- *  drop from the cascade (it is not a Tailwind utility), and an empty spacer
- *  then collapses. Always emit a `calc()` with a pixel fallback. */
-export function menuOrderBarSpaceCalc(extraPx = 0): string {
-  return `calc(env(safe-area-inset-bottom, 0px) + ${MENU_ORDER_BAR_SPACE_PX + extraPx}px)`;
+ *  Height is a pixel length, not `var(--menu-order-bar-space)`: that token is
+ *  easy to drop from the cascade (it is not a Tailwind utility), and an empty
+ *  spacer then collapses. `content-box` keeps safe-area padding *outside* the
+ *  120px so notched devices still clear the bar. */
+export function menuOrderBarSpacerStyle(): {
+  boxSizing: "content-box";
+  height: string;
+  paddingBottom: string;
+} {
+  return {
+    boxSizing: "content-box",
+    height: `${MENU_ORDER_BAR_SPACE_PX}px`,
+    paddingBottom: SAFE_AREA_BOTTOM,
+  };
+}
+
+export function menuOrderBarScrollMargin(extraPx = 0): string {
+  return `${MENU_ORDER_BAR_SPACE_PX + extraPx}px`;
 }

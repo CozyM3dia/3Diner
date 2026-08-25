@@ -499,10 +499,13 @@ model-viewer::part(default-ar-button) { display: none !important; }
 }
 .checkout-quantity button:first-child,
 .menu-order-quantity button:first-child { background: var(--white); }
-/* In-flow stand-in for the fixed order bar. Fallback calc keeps height if
-   --menu-order-bar-space is missing from the cascade. */
+/* In-flow stand-in for the fixed order bar. Pixel height (not a custom
+   property alone) plus safe-area padding. content-box so padding does not
+   eat the 120px under Tailwind's border-box preflight. */
 .menu-order-bar-spacer {
-  height: var(--menu-order-bar-space, calc(env(safe-area-inset-bottom, 0px) + 120px));
+  box-sizing: content-box;
+  height: 120px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   flex-shrink: 0;
   pointer-events: none;
 }

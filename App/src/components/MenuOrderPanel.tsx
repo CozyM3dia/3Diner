@@ -7,7 +7,7 @@ import { useCart } from "@/lib/cart";
 import { logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
 import { effectivePrice } from "@/lib/menu-availability";
-import { menuOrderBarSpaceCalc } from "@/lib/menu-order-bar";
+import { menuOrderBarSpacerStyle } from "@/lib/menu-order-bar";
 import { cartLineKey, type Menu, type MenuOptionGroup, type SelectedOption } from "@/types";
 
 /** Pemilih varian dirender inline di halaman detail, bukan di modal atau sheet.
@@ -126,14 +126,14 @@ export default function MenuOrderPanel({
       )}
 
       {/* Cadangan di alur dokumen: bilah `position:fixed` di bawah tidak boleh
-          menutupi CTA 3D atau copy terakhir. Height memakai calc() langsung —
+          menutupi CTA 3D atau copy terakhir. Height pixel + padding safe-area —
           spacer yang hanya `var(--menu-order-bar-space)` runtuh ke 0 kalau
           token itu tidak ada di cascade. */}
       <div
         aria-hidden="true"
         data-menu-order-bar-spacer=""
         className="menu-order-bar-spacer"
-        style={{ height: menuOrderBarSpaceCalc() }}
+        style={menuOrderBarSpacerStyle()}
       />
 
       {!isActive ? (
