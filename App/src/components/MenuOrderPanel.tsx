@@ -124,6 +124,10 @@ export default function MenuOrderPanel({
         </div>
       )}
 
+      {/* Cadangan di alur dokumen: bilah `position:fixed` di bawah tidak boleh
+          menutupi CTA 3D atau copy terakhir. */}
+      <div aria-hidden="true" style={{ height: "var(--menu-order-bar-space)" }} />
+
       {!isActive ? (
         <div className="fixed bottom-0 inset-x-0 z-40 px-4 pt-3" style={barStyle}>
           <div className="max-w-xl mx-auto">

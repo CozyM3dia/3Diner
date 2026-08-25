@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
@@ -10,9 +11,20 @@ interface DetailHeaderProps {
   slug: string;
 }
 
-export default function DetailHeader({ cafeName, slug }: DetailHeaderProps) {
+export default function DetailHeader({ slug }: DetailHeaderProps) {
   const router = useRouter();
   const { count } = useCart();
+
+  // Next + `html { scroll-behavior: smooth }` sering meninggalkan halaman
+  // detail di tengah guliran (hero terpotong) karena restorasi dari grid menu.
+  // Paksa ke puncak tanpa animasi supaya hero utuh di ketukan pertama.
+  useEffect(() => {
+    const html = document.documentElement;
+    const previous = html.style.scrollBehavior;
+    html.style.scrollBehavior = "auto";
+    window.scrollTo(0, 0);
+    html.style.scrollBehavior = previous;
+  }, []);
 
   const circle =
     "press w-11 h-11 rounded-full inline-flex items-center justify-center shrink-0";

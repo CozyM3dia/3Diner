@@ -2,13 +2,14 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { cartLineKey, type CartItem, type Menu, type SelectedOption } from "@/types";
+import { cartStorageKey, readGuestCart, writeGuestCart } from "@/lib/cart-storage";
 
 interface CartState {
   items: CartItem[];
@@ -26,10 +27,75 @@ interface CartState {
   clear: () => void;
 }
 
+type CartSnapshot = { items: CartItem[]; table: string; notes: string };
+
+const EMPTY_CART: CartSnapshot = { items: [], table: "", notes: "" };
+const listeners = new Map<string, Set<() => void>>();
+const snapshotCache = new Map<string, { raw: string | null; value: CartSnapshot }>();
+
 const CartContext = createContext<CartState | null>(null);
 
-function storageKey(slug: string) {
-  return `3diner.cart.${slug}`;
+function emitCart(slug: string) {
+  snapshotCache.delete(slug);
+  for (const listener of listeners.get(slug) ?? []) listener();
+}
+
+function subscribeCart(slug: string, onStoreChange: () => void) {
+  try {
+    const key = cartStorageKey(slug);
+    const raw = localStorage.getItem(key);
+    if (raw && !readGuestCart(raw)) {
+      localStorage.removeItem(key);
+      snapshotCache.delete(slug);
+    }
+  } catch {
+    /* ignore corrupt storage */
+  }
+
+  let set = listeners.get(slug);
+  if (!set) {
+    set = new Set();
+    listeners.set(slug, set);
+  }
+  set.add(onStoreChange);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === cartStorageKey(slug)) onStoreChange();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    set.delete(onStoreChange);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function readSnapshot(slug: string): CartSnapshot {
+  try {
+    const raw = localStorage.getItem(cartStorageKey(slug));
+    const cached = snapshotCache.get(slug);
+    if (cached && cached.raw === raw) return cached.value;
+
+    const parsed = readGuestCart(raw);
+    const value: CartSnapshot = parsed
+      ? { items: parsed.items, table: parsed.table, notes: parsed.notes }
+      : EMPTY_CART;
+    snapshotCache.set(slug, { raw, value });
+    return value;
+  } catch {
+    return EMPTY_CART;
+  }
+}
+
+function writeSnapshot(slug: string, next: CartSnapshot) {
+  try {
+    localStorage.setItem(cartStorageKey(slug), writeGuestCart(next));
+  } catch {
+    /* storage full / unavailable */
+  }
+  emitCart(slug);
+}
+
+function updateCart(slug: string, updater: (prev: CartSnapshot) => CartSnapshot) {
+  writeSnapshot(slug, updater(readSnapshot(slug)));
 }
 
 export function CartProvider({
@@ -39,47 +105,15 @@ export function CartProvider({
   slug: string;
   children: ReactNode;
 }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [table, setTableState] = useState("");
-  const [notes, setNotesState] = useState("");
-  const [hydrated, setHydrated] = useState(false);
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => subscribeCart(slug, onStoreChange),
+    [slug],
+  );
+  const getSnapshot = useCallback(() => readSnapshot(slug), [slug]);
+  const getServerSnapshot = useCallback(() => EMPTY_CART, []);
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  // Load persisted cart on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey(slug));
-      if (raw) {
-        const parsed = JSON.parse(raw) as { items?: CartItem[]; table?: string; notes?: string };
-        // Keranjang yang disimpan sebelum varian ada tidak punya line_key.
-        setItems(
-          (parsed.items ?? []).map((item) => ({
-            ...item,
-            options: item.options ?? [],
-            line_key:
-              item.line_key ??
-              cartLineKey(item.id_menu, (item.options ?? []).map((o) => o.id_option_value)),
-          }))
-        );
-        setTableState(parsed.table ?? "");
-        setNotesState(parsed.notes ?? "");
-      }
-    } catch {
-      /* ignore corrupt storage */
-    }
-    setHydrated(true);
-  }, [slug]);
-
-  // Persist on change (after hydration to avoid clobbering)
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      localStorage.setItem(storageKey(slug), JSON.stringify({ items, table, notes }));
-    } catch {
-      /* storage full / unavailable */
-    }
-  }, [items, table, notes, slug, hydrated]);
-
-  function add(menu: Menu, qty = 1, options: SelectedOption[] = []) {
+  const add = useCallback((menu: Menu, qty = 1, options: SelectedOption[] = []) => {
     if (qty <= 0) return;
     const lineKey = cartLineKey(
       menu.id_menu,
@@ -90,66 +124,75 @@ export function CartProvider({
     const unitPrice =
       menu.harga_menu + options.reduce((sum, o) => sum + o.price_delta, 0);
 
-    setItems((prev) => {
-      const existing = prev.find((i) => i.line_key === lineKey);
+    updateCart(slug, (prev) => {
+      const existing = prev.items.find((i) => i.line_key === lineKey);
       if (existing) {
-        return prev.map((i) => (i.line_key === lineKey ? { ...i, qty: i.qty + qty } : i));
+        return {
+          ...prev,
+          items: prev.items.map((i) => (i.line_key === lineKey ? { ...i, qty: i.qty + qty } : i)),
+        };
       }
-      return [
+      return {
         ...prev,
-        {
-          line_key: lineKey,
-          id_menu: menu.id_menu,
-          nama_menu: menu.nama_menu,
-          harga_menu: unitPrice,
-          image_url: menu.image_url ?? null,
-          qty,
-          options,
-        },
-      ];
+        items: [
+          ...prev.items,
+          {
+            line_key: lineKey,
+            id_menu: menu.id_menu,
+            nama_menu: menu.nama_menu,
+            harga_menu: unitPrice,
+            image_url: menu.image_url ?? null,
+            qty,
+            options,
+          },
+        ],
+      };
     });
-  }
+  }, [slug]);
 
-  function setQty(lineKey: string, qty: number) {
-    setItems((prev) =>
-      qty <= 0
-        ? prev.filter((i) => i.line_key !== lineKey)
-        : prev.map((i) => (i.line_key === lineKey ? { ...i, qty } : i))
-    );
-  }
+  const setQty = useCallback((lineKey: string, qty: number) => {
+    updateCart(slug, (prev) => ({
+      ...prev,
+      items:
+        qty <= 0
+          ? prev.items.filter((i) => i.line_key !== lineKey)
+          : prev.items.map((i) => (i.line_key === lineKey ? { ...i, qty } : i)),
+    }));
+  }, [slug]);
 
-  function remove(lineKey: string) {
-    setItems((prev) => prev.filter((i) => i.line_key !== lineKey));
-  }
+  const remove = useCallback((lineKey: string) => {
+    updateCart(slug, (prev) => ({
+      ...prev,
+      items: prev.items.filter((i) => i.line_key !== lineKey),
+    }));
+  }, [slug]);
 
-  function setTable(t: string) {
-    setTableState(t);
-  }
+  const setTable = useCallback((t: string) => {
+    updateCart(slug, (prev) => ({ ...prev, table: t }));
+  }, [slug]);
 
-  function setNotes(n: string) {
-    setNotesState(n);
-  }
+  const setNotes = useCallback((n: string) => {
+    updateCart(slug, (prev) => ({ ...prev, notes: n }));
+  }, [slug]);
 
-  function clear() {
-    setItems([]);
-    setTableState("");
-    setNotesState("");
-  }
+  const clear = useCallback(() => {
+    writeSnapshot(slug, EMPTY_CART);
+  }, [slug]);
 
   const { count, total } = useMemo(() => {
     let c = 0;
     let t = 0;
-    for (const i of items) {
+    for (const i of snapshot.items) {
       c += i.qty;
       t += i.qty * i.harga_menu;
     }
     return { count: c, total: t };
-  }, [items]);
+  }, [snapshot.items]);
 
   const value: CartState = {
-    items,
-    table,
-    notes,
+    items: snapshot.items,
+    table: snapshot.table,
+    notes: snapshot.notes,
     count,
     total,
     add,
