@@ -7,6 +7,7 @@ import { useCart } from "@/lib/cart";
 import { logEvent } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
 import { effectivePrice } from "@/lib/menu-availability";
+import { menuOrderBarSpaceCalc } from "@/lib/menu-order-bar";
 import { cartLineKey, type Menu, type MenuOptionGroup, type SelectedOption } from "@/types";
 
 /** Pemilih varian dirender inline di halaman detail, bukan di modal atau sheet.
@@ -125,11 +126,18 @@ export default function MenuOrderPanel({
       )}
 
       {/* Cadangan di alur dokumen: bilah `position:fixed` di bawah tidak boleh
-          menutupi CTA 3D atau copy terakhir. */}
-      <div aria-hidden="true" style={{ height: "var(--menu-order-bar-space)" }} />
+          menutupi CTA 3D atau copy terakhir. Height memakai calc() langsung —
+          spacer yang hanya `var(--menu-order-bar-space)` runtuh ke 0 kalau
+          token itu tidak ada di cascade. */}
+      <div
+        aria-hidden="true"
+        data-menu-order-bar-spacer=""
+        className="menu-order-bar-spacer"
+        style={{ height: menuOrderBarSpaceCalc() }}
+      />
 
       {!isActive ? (
-        <div className="fixed bottom-0 inset-x-0 z-40 px-4 pt-3" style={barStyle}>
+        <div data-menu-order-bar="" className="fixed bottom-0 inset-x-0 z-40 px-4 pt-3" style={barStyle}>
           <div className="max-w-xl mx-auto">
             <div
               className="w-full h-[52px] rounded-2xl flex items-center justify-center gap-2"
@@ -145,7 +153,7 @@ export default function MenuOrderPanel({
           </div>
         </div>
       ) : (
-        <div className="fixed bottom-0 inset-x-0 z-40 px-4 pt-3" style={barStyle}>
+        <div data-menu-order-bar="" className="fixed bottom-0 inset-x-0 z-40 px-4 pt-3" style={barStyle}>
           <div className="flex items-center gap-2 max-w-xl mx-auto">
             {qty === 0 ? (
               <button

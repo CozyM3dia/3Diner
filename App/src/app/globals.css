@@ -31,8 +31,9 @@
   --shadow-orange: 0 6px 20px rgba(253,80,2,0.28);
 
   /* Space reserved for the fixed "Tambah ke Pesanan" bar on dish detail.
-     12px top padding + 52px button + 12px bottom padding + safe area + a
-     little air so the last block (3D CTA, reviews) is not tucked under it. */
+     Keep the 120px in sync with MENU_ORDER_BAR_SPACE_PX in menu-order-bar.ts.
+     Referenced from .menu-order-bar-spacer so the token stays in the cascade;
+     the React spacer also sets the same calc() inline as a fallback. */
   --menu-order-bar-space: calc(env(safe-area-inset-bottom, 0px) + 120px);
 
   /* Motion — Jakub-polish: smooth ease-out, production-subtle */
@@ -498,6 +499,13 @@ model-viewer::part(default-ar-button) { display: none !important; }
 }
 .checkout-quantity button:first-child,
 .menu-order-quantity button:first-child { background: var(--white); }
+/* In-flow stand-in for the fixed order bar. Fallback calc keeps height if
+   --menu-order-bar-space is missing from the cascade. */
+.menu-order-bar-spacer {
+  height: var(--menu-order-bar-space, calc(env(safe-area-inset-bottom, 0px) + 120px));
+  flex-shrink: 0;
+  pointer-events: none;
+}
 .checkout-action-bar {
   background: var(--navy);
   border-top: 1px solid rgba(255,255,255,0.14) !important;
