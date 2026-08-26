@@ -1,0 +1,168 @@
+/* ════════ Phase 1 — Pesanan (struktur Orders Dream POS, token 3Diner) ════════ */
+
+/* Toolbar di atas tabel: cari, saring pembayaran, toggle tampilan. */
+.pesanan-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--dv2-space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--dv2-space-4);
+}
+.pesanan-search {
+  flex: 1;
+  min-width: 200px;
+  max-width: 320px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--dash-border-strong);
+  background: var(--dash-raised);
+  color: var(--dash-text);
+  font: inherit;
+  font-size: var(--dv2-fs-body);
+}
+.pesanan-search::placeholder { color: var(--dash-muted); }
+.pesanan-search:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 1px;
+}
+.pesanan-select {
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--dash-border-strong);
+  background: var(--dash-raised);
+  color: var(--dash-secondary);
+  font: inherit;
+  font-size: var(--dv2-fs-body);
+}
+.pesanan-viewtoggle {
+  display: inline-flex;
+  border: 1px solid var(--dash-border-strong);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.pesanan-viewtoggle button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--dash-muted);
+  cursor: pointer;
+}
+.pesanan-viewtoggle button[aria-pressed="true"] {
+  background: var(--dash-raised);
+  color: var(--orange);
+}
+.pesanan-viewtoggle button:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: -2px;
+}
+.pesanan-scope { font-size: var(--dv2-fs-caption); color: var(--dash-muted); }
+
+/* Mode kartu (grid): padanan kartu order template. */
+.pesanan-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--dv2-space-4);
+}
+@media (max-width: 768px) {
+  .pesanan-grid { grid-template-columns: 1fr; }
+}
+.pesanan-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dv2-space-3);
+  padding: var(--dv2-space-4);
+  border-radius: var(--radius-card);
+  background: var(--dash-panel);
+  border: 1px solid var(--dash-border);
+}
+.pesanan-card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--dv2-space-3);
+}
+.pesanan-token {
+  font-size: var(--dv2-fs-title);
+  font-weight: 800;
+  color: var(--dash-text);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.pesanan-time { font-size: var(--dv2-fs-caption); color: var(--dash-muted); white-space: nowrap; }
+.pesanan-items {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dash-secondary);
+  font-size: var(--dv2-fs-body);
+}
+.pesanan-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pesanan-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dv2-space-3);
+  padding-top: var(--dv2-space-3);
+  border-top: 1px solid var(--dash-border);
+}
+.pesanan-total { font-weight: 800; color: var(--dash-text); font-variant-numeric: tabular-nums; }
+
+/* Menu aksi titik-tiga: native <details>, tanpa state tambahan. */
+.pesanan-menu { position: relative; }
+.pesanan-menu summary {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border-strong);
+  color: var(--dash-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+.pesanan-menu summary::-webkit-details-marker { display: none; }
+.pesanan-menu summary:hover { background: var(--dash-raised); color: var(--dash-text); }
+.pesanan-menu summary:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+.pesanan-menu-pop {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: var(--dv2-z-scrim);
+  min-width: 190px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--dash-raised);
+  border: 1px solid var(--dash-border-strong);
+  box-shadow: var(--shadow-dashboard);
+  display: flex;
+  flex-direction: column;
+}
+.pesanan-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dash-text);
+  font: inherit;
+  font-size: var(--dv2-fs-body);
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+}
+.pesanan-menu-item:hover { background: color-mix(in srgb, var(--orange) 12%, transparent); }
+.pesanan-menu-item:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: -2px;
+}
