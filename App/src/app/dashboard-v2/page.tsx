@@ -25,7 +25,7 @@ type OrderItemJson = { id_menu?: string; nama_menu?: string; harga_menu?: number
 type O = {
   id_order: string; total: number | null; status: string | null;
   payment_status: string | null; table_number: string | null;
-  customer_name?: string | null; items: OrderItemJson[] | null; created_at: string;
+  items: OrderItemJson[] | null; created_at: string;
 };
 
 function Kpi({ icon: Icon, tone, value, delta, label }: {
@@ -139,12 +139,12 @@ export default async function DpDashboardPage() {
 
   // ── Data nyata (skema DB sesungguhnya) ──
   const todayIso = startOfTodayWIB();
-  const since7 = new Date(new Date(todayIso).getTime() - 6 * 864e5);
+  const since7 = new Date(new Date(todayIso).getTime() - 29 * 864e5); // 30 hari
 
   const [ordersRes, menusRes] = await Promise.all([
     supabaseAdmin
       .from("Orders")
-      .select("id_order,total,status,payment_status,table_number,customer_name,items,created_at")
+      .select("id_order,total,status,payment_status,table_number,items,created_at")
       .eq("cafe_id", cafeId)
       .gte("created_at", since7.toISOString())
       .order("created_at", { ascending: false })
@@ -161,14 +161,14 @@ export default async function DpDashboardPage() {
   const revenueToday = paid.reduce((s, o) => s + (o.total ?? 0), 0);
   const avgValue = paid.length ? revenueToday / paid.length : 0;
 
-  // Deret harian pendapatan 7 hari (hari kosong tetap muncul dengan nilai 0).
-  const fmtDay = new Intl.DateTimeFormat("id-ID", { weekday: "short" });
+  // Deret harian pendapatan 30 hari (hari kosong tetap muncul dengan nilai 0).
+  const fmtDay = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short" });
   const daily: { label: string; value: number }[] = [];
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 30; i++) {
     const d = new Date(since7.getTime() + i * 864e5);
     const key = d.toISOString().slice(0, 10);
     daily.push({
-      label: fmtDay.format(d),
+      label: i % 5 === 4 ? fmtDay.format(d) : "", // label tiap-5 agar tak sesak
       value: paid.filter(o => o.created_at.slice(0, 10) === key).reduce((s, o) => s + (o.total ?? 0), 0),
     });
   }
@@ -216,7 +216,7 @@ export default async function DpDashboardPage() {
         <section className="dp-card" aria-label="Total pendapatan">
           <div className="dp-card-head">
             <h2 className="dp-card-title">Total Revenue</h2>
-            <span className="dp-kpi-lbl">7 hari terakhir</span>
+            <span className="dp-kpi-lbl">30 hari terakhir</span>
           </div>
           <div className="dp-card-body">
             <RevenueChart points={daily} />
@@ -270,7 +270,7 @@ export default async function DpDashboardPage() {
             {active.length === 0 && <p className="dp-muted-note">Tidak ada pesanan berjalan.</p>}
             {active.map(o => {
               const st = pillFor(o.status);
-              const who = (o.customer_name ?? (o.table_number ? `Meja ${o.table_number}` : "Tamu")).slice(0, 22);
+              const who = o.table_number ? `Meja ${o.table_number}` : "Tamu";
               return (
                 <div key={o.id_order} className="dp-order-row">
                   <span className="dp-init" style={{ background: o.status === "ready" ? "#22c55e" : "#0d76e1" }}>
