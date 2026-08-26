@@ -15,7 +15,6 @@ import {
   MonitorIcon,
   PackageIcon,
   PuzzleIcon,
-  SearchIcon,
   SettingsIcon,
   ShieldCheckIcon,
   TagsIcon,
@@ -165,11 +164,6 @@ export default function DpShell({
           >
             <MenuIcon className="h-[18px] w-[18px]" />
           </button>
-
-          <label className="dp-search">
-            <SearchIcon className="h-4 w-4 shrink-0" />
-            <input type="text" placeholder="Search something..." aria-label="Cari" />
-          </label>
 
           <div className="dp-top-right">
             <span className="dp-top-date">
