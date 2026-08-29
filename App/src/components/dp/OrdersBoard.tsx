@@ -81,7 +81,7 @@ export default function OrdersBoard({ orders }: { orders: BoardOrder[] }) {
 
   // 6 kartu ringkasan atas — angka nyata dari data yang ada.
   const stats = [
-    { icon: BadgeCheckIcon, tone: "#0d76e1", bg: "rgba(13,118,225,.1)", label: "Semua Pesanan", n: orders.length },
+    { icon: BadgeCheckIcon, tone: "#fd5002", bg: "rgba(253,80,2,.1)", label: "Semua Pesanan", n: orders.length },
     { icon: TimerIcon, tone: "#e86c1f", bg: "rgba(232,108,31,.12)", label: "Menunggu", n: count("awaiting") },
     { icon: PackageCheckIcon, tone: "#8b5cf6", bg: "rgba(139,92,246,.12)", label: "Siap Diantar", n: count("ready") },
     { icon: BikeIcon, tone: "#17b26a", bg: "rgba(23,178,106,.12)", label: "Selesai", n: done },

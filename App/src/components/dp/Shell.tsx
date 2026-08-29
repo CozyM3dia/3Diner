@@ -123,7 +123,7 @@ export default function DpShell({
       {/* ── Sidebar dua kolom ala template ── */}
       <aside className={`dp-side${open ? " dp-side-open" : ""}`} ref={sideRef}>
         <div className="dp-rail">
-          <div className="dp-logo" aria-hidden>3D</div>
+          <div className="dp-logo" aria-hidden />
           {[LayoutGridIcon, MonitorIcon, ClipboardListIcon, CookingPotIcon].map((Icon, i) => (
             <span key={i} className={`dp-rail-btn${i === 0 && pathname === "/dashboard-v2" ? " dp-rail-on" : ""}`}>
               <Icon className="h-[17px] w-[17px]" />

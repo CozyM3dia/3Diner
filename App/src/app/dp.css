@@ -1,18 +1,21 @@
 /* ════════════════════════════════════════════════════════════════════
-   DP — Faithful Dream POS recreation (template: dreamspos restaurant-pos)
-   Nilai diambil langsung dari computed style template (26 Aug 2026).
-   JANGAN campur dengan token lama; namespace dp-* terpisah.
+   DP — Dream POS recreation + LAPISAN DNA 3DINER (29 Aug 2026, §6.7)
+   Struktur & ukuran tetap template; warna & logo kini dari brand:
+   navy #022C60 dominan, orange #FD5002 aksen (~70/20/10), Poppins.
+   Nama variabel --dp-blue/--dp-blue-soft DIPERTAHANKAN (dipakai konsisten
+   di semua halaman) — nilainya kini token brand. Rujukan: docs/BRAND-DESIGN.md
    ════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --dp-bg: #f8f8f8;
+  --dp-bg: #f3f6fa;         /* kanvas abu kebiruan setipe navy brand */
   --dp-surface: #ffffff;
-  --dp-border: #e2e8f0;
-  --dp-text: #475569;
-  --dp-heading: #0f172a;
-  --dp-muted: #64748b;
-  --dp-blue: #0d76e1;
-  --dp-blue-soft: #e8f2fd;
+  --dp-border: #cfd9e4;     /* brand: border/divider */
+  --dp-text: #1a3b6a;       /* brand: navy muda */
+  --dp-heading: #022c60;    /* brand: navy utama */
+  --dp-muted: #51698f;      /* brand: navy desaturasi (teks sekunder) */
+  --dp-blue: #fd5002;       /* brand: orange aksen (aktif, CTA, link) */
+  --dp-blue-soft: #fce8df;  /* brand: orange tint lembut (bg icon/pill) */
+  --dp-accent-ink: #c2410c; /* orange gelap utk teks kecil di atas putih/tint (kontras) */
   --dp-green: #22c55e;
   --dp-red: #ff3636;
   --dp-rail-w: 62px;
@@ -20,7 +23,8 @@
 }
 
 /* ── Kerangka ── */
-.dp-root { display: flex; min-height: 100vh; background: var(--dp-bg); }
+.dp-root { display: flex; min-height: 100vh; background: var(--dp-bg);
+  font-family: var(--font-poppins), "Poppins", system-ui, sans-serif; }
 .dp-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 
 /* ── Sidebar dua kolom: rail ikon + panel label ── */
@@ -28,15 +32,18 @@
 
 .dp-rail { width: var(--dp-rail-w); background: var(--dp-surface); border-right: 1px solid var(--dp-border);
   display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 6px; }
-.dp-logo { width: 34px; height: 34px; border-radius: 10px; background: var(--dp-blue); color: #fff;
-  display: grid; place-items: center; margin-bottom: 10px; font-weight: 700; }
+.dp-logo { width: 34px; height: 34px; border-radius: 10px; background: #fff; border: 1px solid var(--dp-border);
+  display: grid; place-items: center; margin-bottom: 10px; overflow: hidden;
+  /* Mark kubus 3Diner asli (SVG transparan dari Asset/Logo 3Diner Only.svg) */
+  background-image: url("/brand/logo-mark-t.svg"); background-repeat: no-repeat;
+  background-position: center; background-size: 88%; }
 .dp-rail-btn { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center;
   color: var(--dp-muted); position: relative; }
 .dp-rail-btn:hover { background: var(--dp-bg); color: var(--dp-heading); }
 .dp-rail-on { background: var(--dp-blue-soft); color: var(--dp-blue); }
 .dp-rail-dot { position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--dp-red); }
 .dp-avatar { margin-top: auto; width: 32.4px; height: 32.4px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--dp-blue), #7ab8f5); color: #fff; display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--dp-heading), #1a3b6a); color: #fff; display: grid; place-items: center;
   font-size: 11px; font-weight: 600; }
 
 .dp-menu { width: var(--dp-menu-w); background: var(--dp-surface); border-right: 1px solid var(--dp-border);
@@ -111,7 +118,7 @@
 .dp-sell-cat { font-size: 11.5px; color: var(--dp-muted); }
 .dp-sell-right { margin-left: auto; text-align: right; }
 .dp-sell-price { font-size: 13px; font-weight: 600; color: var(--dp-heading); }
-.dp-sell-qty { font-size: 11px; color: var(--dp-blue); }
+.dp-sell-qty { font-size: 11px; color: var(--dp-accent-ink); }
 .dp-bar { height: 4px; border-radius: 999px; background: var(--dp-bg); margin-top: 5px; overflow: hidden; }
 .dp-bar > i { display: block; height: 100%; background: var(--dp-blue); border-radius: 999px; }
 
@@ -131,7 +138,7 @@
 .dp-order-meta { font-size: 11.5px; color: var(--dp-muted); }
 .dp-pill { font-size: 10.5px; font-weight: 600; border-radius: 999px; padding: 3px 9px; }
 .dp-pill-pending { color: #b45309; background: #fef3c7; }
-.dp-pill-preparing { color: var(--dp-blue); background: var(--dp-blue-soft); }
+.dp-pill-preparing { color: var(--dp-accent-ink); background: var(--dp-blue-soft); }
 .dp-pill-ready { color: #15803d; background: #dcfce7; }
 .dp-add-btn { height: 32px; padding: 0 12px; border-radius: 6px; background: var(--dp-blue); color: #fff;
   font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
@@ -309,7 +316,7 @@
 .dp-form-foot .dp-add-btn { height: 36px; }
 .dp-form-ok { margin-right: auto; font-size: 13px; color: #14b51d; }
 .dp-form-error { margin-right: auto; font-size: 13px; color: var(--dp-red); }
-.dp-notice { margin-top: 12px; background: var(--dp-blue-soft); color: var(--dp-blue);
+.dp-notice { margin-top: 12px; background: var(--dp-blue-soft); color: var(--dp-accent-ink);
   border-radius: 6px; padding: 8px 12px; font-size: 13px; }
 
 /* Pengunggah gambar: pratinjau 7.5rem + dua tombol bulat (bentuk template) */

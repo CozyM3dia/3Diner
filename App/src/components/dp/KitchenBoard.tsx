@@ -63,8 +63,8 @@ function durasi(ms: number) {
 }
 
 const TAHAP = {
-  baru: { label: "Pesanan Baru", warna: "#475569", icon: NewspaperIcon },
-  dapur: { label: "Di Dapur", warna: "#ffa80b", icon: Package2Icon },
+  baru: { label: "Pesanan Baru", warna: "#022c60", icon: NewspaperIcon },
+  dapur: { label: "Di Dapur", warna: "#fd5002", icon: Package2Icon },
   telat: { label: `Lewat ${LATE_MINUTES} Menit`, warna: "#ff3636", icon: ClockAlertIcon },
   siap: { label: "Siap", warna: "#14b51d", icon: CheckCheckIcon },
 } as const;

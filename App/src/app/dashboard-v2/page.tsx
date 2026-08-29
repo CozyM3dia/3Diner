@@ -34,7 +34,7 @@ function Kpi({ icon: Icon, tone, value, delta, label }: {
   value: string; delta?: { pct: number }; label: string;
 }) {
   const tones = {
-    blue: ["#e8f2fd", "#0d76e1"],
+    blue: ["#fce8df", "#fd5002"],
     green: ["#ecfdf3", "#16a34a"],
     amber: ["#fef3c7", "#b45309"],
     violet: ["#f3e8ff", "#9333ea"],
@@ -84,10 +84,10 @@ function RevenueChart({ points }: { points: { label: string; value: number }[] }
             </g>
           );
         })}
-        <path d={`${path} L${xy[xy.length - 1].x},${H - PADY} L${PADX},${H - PADY} Z`} fill="#0d76e1" opacity=".08" />
-        <path d={path} fill="none" stroke="#0d76e1" strokeWidth="2.4" strokeLinejoin="round" />
+        <path d={`${path} L${xy[xy.length - 1].x},${H - PADY} L${PADX},${H - PADY} Z`} fill="#fd5002" opacity=".08" />
+        <path d={path} fill="none" stroke="#fd5002" strokeWidth="2.4" strokeLinejoin="round" />
         {xy.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="3.2" fill="#fff" stroke="#0d76e1" strokeWidth="2" />
+          <circle key={i} cx={p.x} cy={p.y} r="3.2" fill="#fff" stroke="#fd5002" strokeWidth="2" />
         ))}
         {points.map((p, i) => (
           <text key={i} x={xy[i].x} y={H - 6} textAnchor="middle" fontSize="10" fill="#64748b">{p.label}</text>
@@ -97,7 +97,7 @@ function RevenueChart({ points }: { points: { label: string; value: number }[] }
   );
 }
 
-const CAT_COLORS = ["#0d76e1", "#22c55e", "#f59e0b", "#a855f7", "#ef4444"];
+const CAT_COLORS = ["#fd5002", "#022c60", "#22c55e", "#f59e0b", "#a855f7"];
 
 /** Donut chart SVG — pengganti ApexCharts `category-chart`. */
 function CategoryDonut({ data }: { data: { name: string; count: number }[] }) {
@@ -273,7 +273,7 @@ export default async function DpDashboardPage() {
               const who = o.table_number ? `Meja ${o.table_number}` : "Tamu";
               return (
                 <div key={o.id_order} className="dp-order-row">
-                  <span className="dp-init" style={{ background: o.status === "ready" ? "#22c55e" : "#0d76e1" }}>
+                  <span className="dp-init" style={{ background: o.status === "ready" ? "#22c55e" : "#022c60" }}>
                     {who.slice(0, 2).toUpperCase()}
                   </span>
                   <span className="min-w-0 flex-1">

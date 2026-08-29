@@ -4,8 +4,8 @@
 > Siapa pun (Claude, Cursor, kamu sendiri bulan depan) membaca ini dulu sebelum menulis kode.
 > **Terakhir diperbarui:** 29 Agustus 2026 · **Baca penuh. Jangan revert keputusan di §4.**
 
-**Ringkas:** kerangka + 9 halaman selesai dan terverifikasi di browser. Yang tersisa hanya
-dua modul tanpa data (Reservation, Addons) dan lapisan DNA 3Diner (§6.7).
+**Ringkas:** kerangka + 9 halaman + **lapisan DNA 3Diner (§6.7)** selesai dan terverifikasi di browser.
+Yang tersisa hanya dua modul tanpa sumber data (Reservation, Addons — ⏸ sengaja, bukan utang).
 
 ---
 
@@ -132,11 +132,24 @@ Pilihan: biarkan `soon: true`, atau buat halaman empty-state jujur gaya template
 Tak ada padanan data. `Menu_Option_Groups` / `Menu_Option_Values` ada tapi **0 baris**;
 kalau nanti diisi, itulah kandidat sumber data Addons.
 
-### 6.7 Lapisan DNA 3Diner — PEKERJAAN BERIKUTNYA
-Font/logo/aksen 3Diner menggantikan biru template. Satu PR terpisah, sentuh **hanya**
-`dp.css` + `Shell.tsx`, **tanpa mengubah struktur halaman**. Rujukan: `docs/BRAND-DESIGN.md`,
-`docs/DESIGN.md`. Titik sentuh utama: variabel `--dp-blue` / `--dp-blue-soft` di `dp.css`
-(dipakai konsisten di semua halaman, jadi satu perubahan menjalar rapi) dan `.dp-logo`.
+### 6.7 Lapisan DNA 3Diner — ✅ SELESAI (29 Agu 2026)
+Struktur & ukuran halaman TIDAK berubah; yang berganti hanya warna, logo, dan font:
+- **Token `dp.css` revalued** ke brand: `--dp-heading` → navy `#022c60`, `--dp-blue` →
+  orange `#fd5002` (nama variabel dipertahankan), `--dp-blue-soft` → tint `#fce8df`,
+  `--dp-border` → `#cfd9e4`, `--dp-text` → `#1a3b6a`, `--dp-muted` → `#51698f`,
+  `--dp-bg` → `#f3f6fa`. Token baru `--dp-accent-ink: #c2410c` untuk teks kecil
+  berwarna aksen di atas putih/tint (kontras WCAG — orange murni #fd5002 di putih
+  hanya untuk elemen besar: tombol, stroke, bar).
+- **Logo mark asli**: `Asset/Logo 3Diner Only.svg` di-stripe background full-canvas-nya
+  (path `#FDFDFD` pertama) → `App/public/brand/logo-mark-t.svg` (transparan), dipakai
+  via CSS background `.dp-logo` ( hindari next/image+SVG).
+- **Poppins eksplisit** di `.dp-root` via `var(--font-poppins)` (font global yang sudah ada).
+- **Chart/dashboard/orders/kitchen**: hex template `#0d76e1` di-replace token brand
+  (line chart stroke `#fd5002`, donut palet `[orange, navy, green, amber, violet]`,
+  TAHAP dapur: navy/orange, kartu stat orders: icon pertama orange).
+- Verifikasi: DOM assertion — `--dp-blue=#fd5002`, `--dp-heading=#022c60`,
+  logo svg terpasang, stroke chart `#fd5002`, stroke ikon stat `#fd5002`, Poppins aktif;
+  tsc/lint/build/461 test hijau.
 
 ## 7. Arsitektur & pola yang berjalan
 
