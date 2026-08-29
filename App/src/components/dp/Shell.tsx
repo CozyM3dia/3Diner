@@ -64,12 +64,12 @@ const NAV_GRUP: NavGroup[] = [
   },
   {
     key: "katalog",
-    title: "Katalog",
+    title: "Menu Management",
     icon: PackageIcon,
     items: [
       { label: "Categories", href: "/dashboard-v2/kategori", icon: TagsIcon },
       { label: "Items", href: "/dashboard-v2/items", icon: PackageIcon },
-      { label: "Addons", icon: PuzzleIcon, soon: true },
+      { label: "Addons", href: "/dashboard-v2/addons", icon: PuzzleIcon },
     ],
   },
   {

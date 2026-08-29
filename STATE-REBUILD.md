@@ -100,7 +100,7 @@ bisa diambil dengan `re.findall(r'href="([a-z0-9-]+\.html)"', html)` dari halama
 | 6.5c | Manage Staffs | `/dashboard-v2/pengaturan/staf` | ✅ read-only |
 | 6.5d | Roles & Permissions | `/dashboard-v2/pengaturan/peran` | ✅ read-only |
 | 6.5e | QR Smart Menu | `/dashboard-v2/pengaturan/qr` | ✅ port dari legacy |
-| 6.6 | Addons | — | ⏸ `soon` — tak ada padanan data |
+| 6.6 | Addons | `/dashboard-v2/addons` | ✅ CRUD nyata (Menu_Option_*) — Coupons eksplisit TIDAK dibuat |
 | 6.7 | Lapisan DNA 3Diner | — | ✅ selesai 29 Agu 2026 |
 
 ### Pola yang berulang di SEMUA halaman: template kaya, data kita tipis
@@ -129,9 +129,16 @@ membuat kedua papan itu kosong terus padahal 18 pesanan memang masih terbuka.
 `expires_at`), **bukan** booking meja. Jangan dipakai sebagai sumber data reservasi.
 Pilihan: biarkan `soon: true`, atau buat halaman empty-state jujur gaya template.
 
-### 6.6 Addons — sama
-Tak ada padanan data. `Menu_Option_Groups` / `Menu_Option_Values` ada tapi **0 baris**;
-kalau nanti diisi, itulah kandidat sumber data Addons.
+### 6.6 Addons — ✅ CRUD nyata (29 Agu 2026)
+Template `addons.html`: tabel Item | Addon | Price | Status | Actions + modal Add/Edit.
+Pemetaan data: Item = menu (via grup), Addon = `Menu_Option_Values.name`,
+Price = `price_delta`, Status = `is_active` (klik badge = toggle). Grup diambil dari
+`Menu_Option_Groups` (dibuat otomatis min 0/max 5 saat menu pertama dapat addon).
+Write-path: `src/lib/addon-actions.ts` (create/update/toggle/delete, gate `manage_menu`,
+scope `cafe_id`, cegah duplikat nama dalam grup). Dropdown menu modal Add diambil dari
+tabel `Menus` (bukan dari addon rows) agar menu tanpa addon pun bisa dipilih.
+**Coupons eksplisit tidak dibuat** — permintaan pengguna; nav Menu Management berisi
+Categories, Items, Addons saja.
 
 ### 6.7 Lapisan DNA 3Diner — ✅ SELESAI (29 Agu 2026)
 Struktur & ukuran halaman TIDAK berubah; yang berganti hanya warna, logo, dan font:

@@ -416,3 +416,35 @@
 .dp-qr-custom-body .dp-switch input:focus-visible + i { outline: 2px solid var(--dp-blue); outline-offset: 2px; }
 
 @media (max-width: 992px) { .dp-qr-grid { grid-template-columns: 1fr; } }
+
+/* ════════════════════════════════════════════════════════════════════
+   Modal (template: .modal-content radius 6, backdrop gelap) + aksi baris
+   ════════════════════════════════════════════════════════════════════ */
+.dp-modal-backdrop {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(2, 20, 44, .45);
+  display: grid; place-items: center; padding: 20px;
+}
+.dp-modal {
+  width: 100%; max-width: 480px;
+  background: var(--dp-surface);
+  border: 1px solid var(--dp-border);
+  border-radius: 6px;
+  box-shadow: 0 24px 60px rgba(2, 20, 44, .28);
+  max-height: min(86vh, 720px);
+  overflow-y: auto;
+}
+.dp-modal-sm { max-width: 400px; }
+.dp-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--dp-border);
+}
+.dp-modal-head h2 { margin: 0; font-size: 15px; font-weight: 600; color: var(--dp-heading); }
+.dp-modal-body { padding: 16px 18px; }
+.dp-row-actions { display: inline-flex; gap: 8px; }
+.dp-modal .dp-hint { margin-bottom: 0; }
+.dp-modal select.dp-input, .dp-modal input.dp-input { background: var(--dp-surface); }
+
+@media (max-width: 560px) {
+  .dp-modal-backdrop { padding: 12px; align-items: end; }
+}
