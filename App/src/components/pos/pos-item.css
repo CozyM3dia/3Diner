@@ -1,0 +1,55 @@
+/* ── Item Details modal (ala template Item Details) ── */
+.dp-item-modal { max-width: 720px; }
+.dp-item-modal-body { display: grid; grid-template-columns: 260px 1fr; gap: 16px; }
+.dp-item-photo {
+  border-radius: 10px; background: var(--dp-bg); padding: 10px; align-self: start;
+  display: grid; place-items: center; min-height: 220px;
+}
+.dp-item-photo img { border-radius: 8px; width: 100%; height: auto; object-fit: cover; }
+.dp-item-photo-empty { width: 100%; height: 200px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--dp-bg), var(--dp-border)); }
+.dp-item-info h3 { margin: 0 0 4px; font-size: 17px; font-weight: 700; color: var(--dp-heading); }
+.dp-item-desc { margin: 0; font-size: 13px; color: var(--dp-muted); line-height: 1.5; }
+.dp-item-section { border: 0; margin: 14px 0 0; padding: 0; }
+.dp-item-section legend { font-size: 13px; font-weight: 700; color: var(--dp-heading); padding: 0; margin-bottom: 8px; }
+.dp-item-sizes { display: flex; gap: 8px; flex-wrap: wrap; }
+.dp-size-btn {
+  border: 1px solid var(--dp-border); border-radius: 6px; background: var(--dp-surface);
+  padding: 7px 14px; font: inherit; font-size: 13px; color: var(--dp-text); cursor: pointer;
+  display: inline-flex; flex-direction: column; align-items: center; gap: 1px;
+}
+.dp-size-btn small { font-size: 10px; color: var(--dp-muted); }
+.dp-size-btn:hover { background: var(--dp-bg); }
+.dp-size-on { border-color: var(--dp-blue); background: var(--dp-blue-soft); color: var(--dp-heading); font-weight: 600; }
+.dp-size-on small { color: var(--dp-accent-ink); }
+.dp-item-qty { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 13px; color: var(--dp-muted); }
+.dp-item-total { font-size: 16px; font-weight: 800; color: var(--dp-heading); margin-right: auto; }
+.dp-item-ordermeta { font-size: 12px; font-weight: 400; color: var(--dp-muted); margin-left: 6px; }
+
+/* Picker menu dalam modal pesanan aktif */
+.dp-item-picker {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px; margin-top: 10px; max-height: 300px; overflow-y: auto;
+}
+.dp-pick-card {
+  display: flex; gap: 8px; align-items: center; border: 1px solid var(--dp-border);
+  border-radius: 6px; background: var(--dp-surface); padding: 6px 8px; cursor: pointer;
+  text-align: left; font: inherit;
+}
+.dp-pick-card:hover { background: var(--dp-bg); }
+.dp-pick-on { border-color: var(--dp-blue); background: var(--dp-blue-soft); }
+.dp-pick-thumb { width: 44px; height: 44px; border-radius: 6px; overflow: hidden; flex: none; background: var(--dp-bg); }
+.dp-pick-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dp-pick-thumb-empty { display: block; width: 100%; height: 100%; background: linear-gradient(135deg, var(--dp-bg), var(--dp-border)); }
+.dp-pick-body { min-width: 0; display: grid; gap: 1px; }
+.dp-pick-name { font-size: 12px; font-weight: 600; color: var(--dp-heading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-pick-price { font-size: 11px; color: var(--dp-muted); }
+
+/* ── Grid aksi bawah POS (ala template: CTA full + 6 tombol) ── */
+.pos-actions-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pos-cta { grid-column: 1 / -1; height: 44px; font-size: 14px; }
+
+@media (max-width: 768px) {
+  .dp-item-modal-body { grid-template-columns: 1fr; }
+  .dp-item-photo { min-height: 160px; }
+}

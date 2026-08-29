@@ -4,17 +4,22 @@ import { useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  CalculatorIcon,
+  FileTextIcon,
+  FilesIcon,
   MinusIcon,
   PlusIcon,
   PrinterIcon,
+  ScrollTextIcon,
   SearchIcon,
   ShoppingBagIcon,
   ShoppingCartIcon,
-  Trash2Icon,
   UtensilsIcon,
   XIcon,
+  ZapIcon,
 } from "lucide-react";
 import { buildReceiptHtml, printReceipt } from "@/lib/receipt-html";
+import PosItemModalInline from "@/components/pos/PosItemModal";
 import type { OrderItem, OrderStatus, SelectedOption } from "@/types";
 
 /** POS ala template pos.html Dream POS, dengan tulis-path nyata.
@@ -163,6 +168,10 @@ export default function PosBoard({
   const [payOpen, setPayOpen] = useState(false);
   const [payMode, setPayMode] = useState<"cash" | "qris">("cash");
   const [qrisUrl, setQrisUrl] = useState<string | null>(null);
+  /** Item Details untuk pesanan aktif (modal ala template pos.html). */
+  const [recentFor, setRecentFor] = useState<PosRecent | null>(null);
+  /** Menu yg dilihat detail-nya dari dalam pesanan aktif. */
+  const [detailMenu, setDetailMenu] = useState<PosMenu | null>(null);
 
   const live = committed === null;
   const activeGroups = optFor ? optionGroups.filter(g => g.menuId === optFor.id) : [];
@@ -433,11 +442,12 @@ export default function PosBoard({
             </div>
             <div className="pos-recent-row">
               {recent.map(o => (
-                <Link
+                <button
                   key={o.id}
-                  href="/dashboard-v2/pesanan"
+                  type="button"
                   className="pos-recent-card"
-                  title={`Buka di papan Pesanan: ${o.id.slice(0, 6)}`}
+                  title={`Buka Item Details: ${o.id.slice(0, 6)}`}
+                  onClick={() => setRecentFor(o)}
                 >
                   <span className="pos-recent-id">#{o.id.slice(0, 5)}</span>
                   <span className="pos-recent-meja">
@@ -449,7 +459,7 @@ export default function PosBoard({
                   <span className={`pos-st ${STATUS_CLASS[o.status] ?? ""}`}>
                     {STATUS_LABEL[o.status] ?? o.status}
                   </span>
-                </Link>
+                </button>
               ))}
             </div>
           </section>
@@ -737,31 +747,29 @@ export default function PosBoard({
           <b>{quoted ? rupiah(quoted.total) : "—"}</b>
         </div>
 
-        <div className="pos-actions">
+        <div className="pos-actions pos-actions-grid">
           {live ? (
             <>
               <button
                 type="button"
-                className="pos-btn pos-btn-primary"
+                className="pos-btn pos-btn-primary pos-cta"
                 disabled={busy || lines.length === 0}
                 onClick={() => startTransition(() => void commit(false))}
               >
                 Place an Order
               </button>
-              <button
-                type="button"
-                className="pos-btn"
-                disabled={busy || lines.length === 0}
-                onClick={() => startTransition(() => void commit(true))}
-              >
-                Simpan Draf
+              <button type="button" className="pos-btn" disabled={busy || lines.length === 0} onClick={() => startTransition(() => void commit(true))}>
+                <FilesIcon className="h-4 w-4" /> Draft
+              </button>
+              <button type="button" className="pos-btn" disabled={busy || lines.length === 0} onClick={() => startTransition(() => void refreshQuote())}>
+                <CalculatorIcon className="h-4 w-4" /> Ringkasan
               </button>
             </>
           ) : (
             <>
               <button
                 type="button"
-                className="pos-btn pos-btn-primary"
+                className="pos-btn pos-btn-primary pos-cta"
                 onClick={() => {
                   setPayMode("cash");
                   setQrisUrl(null);
@@ -770,15 +778,11 @@ export default function PosBoard({
               >
                 Bayar
               </button>
-              <button
-                type="button"
-                className="pos-btn"
-                onClick={() => committed && printStruk(committed.id, committed.token)}
-              >
-                <PrinterIcon className="h-4 w-4" /> Struk
+              <button type="button" className="pos-btn" onClick={() => committed && printStruk(committed.id, committed.token)}>
+                <PrinterIcon className="h-4 w-4" /> Print
               </button>
-              <button type="button" className="pos-btn pos-btn-danger" onClick={() => void batalPesanan()}>
-                <Trash2Icon className="h-4 w-4" /> Batalkan
+              <button type="button" className="pos-btn" onClick={() => committed && printStruk(committed.id, committed.token)}>
+                <FileTextIcon className="h-4 w-4" /> Invoice
               </button>
               <button
                 type="button"
@@ -788,8 +792,17 @@ export default function PosBoard({
                   setPayOpen(false);
                 }}
               >
-                Pesanan Baru
+                <FilesIcon className="h-4 w-4" /> Draft
               </button>
+              <button type="button" className="pos-btn pos-btn-danger" onClick={() => void batalPesanan()}>
+                <XIcon className="h-4 w-4" /> Cancel
+              </button>
+              <button type="button" className="pos-btn" onClick={() => void batalPesanan()}>
+                <ZapIcon className="h-4 w-4" /> Void
+              </button>
+              <Link className="pos-btn" href="/dashboard-v2/pesanan">
+                <ScrollTextIcon className="h-4 w-4" /> Transactions
+              </Link>
             </>
           )}
         </div>
@@ -805,6 +818,58 @@ export default function PosBoard({
           </p>
         )}
       </aside>
+
+      {/* ══════════ Modal: Item Details pesanan aktif ══════════ */}
+      {recentFor && (
+        <div className="dp-modal-backdrop" onClick={() => { setRecentFor(null); setDetailMenu(null); }}>
+          <div className="dp-modal dp-item-modal" role="dialog" aria-modal="true" aria-label="Item Details pesanan" onClick={e => e.stopPropagation()}>
+            <div className="dp-modal-head">
+              <h2>
+                Item Details · #{recentFor.id.slice(0, 5)}{" "}
+                <span className="dp-item-ordermeta">
+                  {/^(Bungkus|Delivery)$/i.test(recentFor.table) ? recentFor.table : `Meja ${recentFor.table}`} · {rupiah(recentFor.total)}
+                </span>
+              </h2>
+              <button type="button" className="pos-line-x" aria-label="Tutup" onClick={() => { setRecentFor(null); setDetailMenu(null); }}>
+                <XIcon className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="dp-modal-body">
+              <p className="dp-hint">
+                Pilih menu di bawah untuk menambahkannya ke pesanan #{recentFor.id.slice(0, 5)}.
+                Perubahan ditulis ulang di server (stok &amp; harga divalidasi penuh).
+              </p>
+              <div className="dp-item-picker">
+                {menus.filter(m => m.isActive).map(m => (
+                  <button key={m.id} type="button" className={`dp-pick-card${detailMenu?.id === m.id ? " dp-pick-on" : ""}`} onClick={() => setDetailMenu(m)}>
+                    <span className="dp-pick-thumb">
+                      {m.imageUrl ? (
+                        <Image src={m.imageUrl} alt="" width={56} height={56} sizes="56px" loading="eager" />
+                      ) : (
+                        <span className="dp-pick-thumb-empty" aria-hidden />
+                      )}
+                    </span>
+                    <span className="dp-pick-body">
+                      <span className="dp-pick-name">{m.name}</span>
+                      <span className="dp-pick-price">{rupiah(hargaJual(m))}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {detailMenu && (
+                <PosItemModalInline
+                  menu={detailMenu}
+                  optionGroups={optionGroups}
+                  order={{ id: recentFor.id, table: recentFor.table }}
+                  cafeId={cafeId}
+                  onClose={() => setDetailMenu(null)}
+                  onDone={() => { setRecentFor(null); setDetailMenu(null); }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ══════════ Modal: opsi menu ══════════ */}
       {optFor && (

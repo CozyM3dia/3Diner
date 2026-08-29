@@ -2,6 +2,7 @@ import { getStaffContext } from "@/lib/staff-context";
 import { canOpenOwnerConsole } from "@/lib/staff-context";
 import DpShell from "@/components/dp/Shell";
 import "../dp.css";
+import "@/components/pos/pos-item.css";
 import { redirect } from "next/navigation";
 
 export const metadata = {
