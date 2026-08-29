@@ -448,3 +448,12 @@
 @media (max-width: 560px) {
   .dp-modal-backdrop { padding: 12px; align-items: end; }
 }
+
+/* ── Blok kredensial staf baru (tampil sekali) ── */
+.dp-staff-cred { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.dp-staff-cred-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.dp-staff-cred-row code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px; background: var(--dp-bg); border-radius: 4px; padding: 4px 8px;
+  color: var(--dp-heading);
+}

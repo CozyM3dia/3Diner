@@ -97,7 +97,7 @@ bisa diambil dengan `re.findall(r'href="([a-z0-9-]+\.html)"', html)` dari halama
 | 6.4 | Reservation | — | ⏸ `soon` — tak ada tabelnya |
 | 6.5a | Store Settings | `/dashboard-v2/pengaturan` | ✅ bisa menyimpan |
 | 6.5b | Tax Settings | `/dashboard-v2/pengaturan/pajak` | ✅ bisa menyimpan |
-| 6.5c | Manage Staffs | `/dashboard-v2/pengaturan/staf` | ✅ read-only |
+| 6.5c | Manage Staffs | `/dashboard-v2/pengaturan/staf` | ✅ CRUD: tambah akun+peran, nonaktif/aktifkan |
 | 6.5d | Roles & Permissions | `/dashboard-v2/pengaturan/peran` | ✅ read-only |
 | 6.5e | QR Smart Menu | `/dashboard-v2/pengaturan/qr` | ✅ port dari legacy |
 | 6.6 | Addons | `/dashboard-v2/addons` | ✅ CRUD nyata (Menu_Option_*) — Coupons eksplisit TIDAK dibuat |
@@ -185,8 +185,8 @@ App/src/
 │  │                                   grup aktif ikut halaman (pencocokan terpanjang), klik manual
 │  │                                   di-reset saat pindah rute. NAV di NAV_GRUP.
 │  ├─ OrdersBoard.tsx  ItemsGrid.tsx  CategoriesTable.tsx  KitchenBoard.tsx
-│  ├─ StoreSettingsForm.tsx  TaxSettingsForm.tsx  QrSmartMenuDp.tsx
-└─ lib/  (staff-context.ts, supabase-admin.ts, dashboard-today.ts, authorization.ts, *-actions.ts)
+│  ├─ StoreSettingsForm.tsx  TaxSettingsForm.tsx  QrSmartMenuDp.tsx  AddonsTable.tsx  StaffManager.tsx
+└─ lib/  (staff-context.ts, supabase-admin.ts, dashboard-today.ts, authorization.ts, staff-actions.ts, addon-actions.ts, *-actions.ts)
 ```
 
 **Pola halaman baru:** `page.tsx` server → gate auth → query `supabaseAdmin` (kolom persis §5)
