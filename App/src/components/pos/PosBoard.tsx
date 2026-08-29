@@ -1,23 +1,30 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
+  BikeIcon,
   MinusIcon,
   PlusIcon,
   PrinterIcon,
   SearchIcon,
+  ShoppingBagIcon,
   ShoppingCartIcon,
   Trash2Icon,
+  UtensilsIcon,
   XIcon,
 } from "lucide-react";
 import { buildReceiptHtml, printReceipt } from "@/lib/receipt-html";
-import type { OrderItem, SelectedOption } from "@/types";
+import type { OrderItem, OrderStatus, SelectedOption } from "@/types";
 
 /** POS ala template pos.html Dream POS, dengan tulis-path nyata.
  *  Alur: pilih menu (varian/catatan via panel opsi) -> keranjang -> quote
  *  (subtotal/pajak/service dari server) -> commit (kirim dapur / simpan draf)
- *  -> tunai (mark_order_cash_paid) / QRIS (charge) -> struk / batal. */
+ *  -> tunai (mark_order_cash_paid) / QRIS (charge) -> struk / batal.
+ *
+ *  Tipe pesanan (Dine In/Take Away/Delivery) menentukan isi kolom
+ *  table_number yang dikirim ke server — bukan hiasan. */
 
 export type PosMenu = {
   id: string;
@@ -40,6 +47,15 @@ export type PosMenuOption = {
 };
 
 export type PosCategoryChip = { name: string; count: number };
+
+export type PosRecent = {
+  id: string;
+  table: string;
+  total: number;
+  status: OrderStatus;
+  paymentStatus: string;
+  createdAt: string;
+};
 
 export interface PosQuote {
   items: OrderItem[];
@@ -66,6 +82,8 @@ type Line = {
   note: string;
 };
 
+type OrderType = "dine" | "takeaway" | "delivery";
+
 const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 
 function hargaJual(m: PosMenu): number {
@@ -73,9 +91,34 @@ function hargaJual(m: PosMenu): number {
   return Math.round(m.price * (1 - d / 100));
 }
 
+function lineRate(line: Line): number {
+  return hargaJual(line.menu) + line.options.reduce((s, o) => s + o.price_delta, 0);
+}
+
 function lineLabel(line: Line): string {
   if (line.options.length === 0) return line.menu.name;
-  return `${line.menu.name} · ${line.options.map(o => o.name).join(", ")}`;
+  return line.menu.name;
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  received: "Baru",
+  preparing: "Di Dapur",
+  ready: "Siap",
+  completed: "Selesai",
+  cancelled: "Batal",
+  awaiting: "Menunggu",
+};
+
+const STATUS_CLASS: Record<string, string> = {
+  received: "pos-st-baru",
+  preparing: "pos-st-dapur",
+  ready: "pos-st-siap",
+  completed: "pos-st-selesai",
+  awaiting: "pos-st-dapur",
+};
+
+function umurMenit(iso: string): number {
+  return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
 }
 
 export default function PosBoard({
@@ -87,6 +130,7 @@ export default function PosBoard({
   menus,
   optionGroups,
   categories,
+  recent,
 }: {
   cafeId: string;
   cafeName: string;
@@ -96,10 +140,12 @@ export default function PosBoard({
   menus: PosMenu[];
   optionGroups: PosMenuOption[];
   categories: PosCategoryChip[];
+  recent: PosRecent[];
 }) {
   const [cat, setCat] = useState("Semua Menu");
   const [q, setQ] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
+  const [orderType, setOrderType] = useState<OrderType>("dine");
   const [table, setTable] = useState("");
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState<{ kind: "ok" | "err" | "info"; text: string } | null>(null);
@@ -110,16 +156,24 @@ export default function PosBoard({
   const [optNote, setOptNote] = useState("");
   const [optErr, setOptErr] = useState<string | null>(null);
 
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [noteKey, setNoteKey] = useState<string | null>(null);
+
   const [quote, setQuote] = useState<PosQuote | null>(null);
   const [committed, setCommitted] = useState<PosCommitted | null>(null);
   const [payOpen, setPayOpen] = useState(false);
   const [payMode, setPayMode] = useState<"cash" | "qris">("cash");
   const [qrisUrl, setQrisUrl] = useState<string | null>(null);
-  const printRef = useRef<PosCommitted | null>(null);
 
   const live = committed === null;
   const activeGroups = optFor ? optionGroups.filter(g => g.menuId === optFor.id) : [];
   const lineCount = lines.reduce((s, l) => s + l.qty, 0);
+
+  /** Nilai table_number yang dikirim: tipe non-dine memakai label tetap. */
+  const tableValue =
+    orderType === "dine" ? table.trim() : orderType === "takeaway" ? "Bungkus" : "Delivery";
+  const tableLabel =
+    orderType === "dine" ? table.trim() || "-" : orderType === "takeaway" ? "Bungkus" : "Delivery";
 
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -136,20 +190,21 @@ export default function PosBoard({
     setOptErr(null);
     setOptNote("");
     if (groups.length === 0) {
-      addLine(m, [], "");
+      addLine(m, []);
       return;
     }
     setOptFor(m);
     setOptPick(new Map());
   }
 
-  function addLine(m: PosMenu, options: SelectedOption[], itemNote: string) {
-    const key = [m.id, options.map(o => o.id_option_value).sort().join("|"), itemNote].join("#");
+  function addLine(m: PosMenu, options: SelectedOption[]) {
+    const key = [m.id, options.map(o => o.id_option_value).sort().join("|")].join("#");
     setLines(prev => {
       const hit = prev.find(l => l.key === key);
       if (hit) return prev.map(l => (l.key === key ? { ...l, qty: l.qty + 1 } : l));
-      return [...prev, { key, menu: m, qty: 1, options, note: itemNote }];
+      return [...prev, { key, menu: m, qty: 1, options, note: "" }];
     });
+    setSelectedKey(key);
     setQuote(null);
   }
 
@@ -159,6 +214,13 @@ export default function PosBoard({
         .map(l => (l.key === key ? { ...l, qty: l.qty + delta } : l))
         .filter(l => l.qty > 0),
     );
+    setQuote(null);
+  }
+
+  function removeLine(key: string) {
+    setLines(prev => prev.filter(l => l.key !== key));
+    if (selectedKey === key) setSelectedKey(null);
+    if (noteKey === key) setNoteKey(null);
     setQuote(null);
   }
 
@@ -180,7 +242,7 @@ export default function PosBoard({
         return;
       }
     }
-    addLine(optFor, picked, optNote.trim());
+    addLine(optFor, picked);
     setOptFor(null);
   }
 
@@ -218,7 +280,7 @@ export default function PosBoard({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         cafeId,
-        table: table.trim() || "1",
+        table: tableValue || "1",
         notes: note.trim(),
         paymentChannel: "cashier",
         items: lines.map(l => ({
@@ -242,9 +304,8 @@ export default function PosBoard({
   }
 
   async function commit(draft: boolean): Promise<PosCommitted | null> {
-    const t = table.trim();
-    if (!t) {
-      setMsg({ kind: "err", text: "Isi nomor meja dulu (atau tulis 0 untuk take away)." });
+    if (orderType === "dine" && !table.trim()) {
+      setMsg({ kind: "err", text: "Isi nomor meja untuk Dine In (atau pilih Take Away)." });
       return null;
     }
     if (lines.length === 0) return null;
@@ -257,7 +318,7 @@ export default function PosBoard({
       headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
       body: JSON.stringify({
         cafeId,
-        table: t,
+        table: tableValue || "1",
         notes: note.trim(),
         paymentChannel: "cashier",
         quoteId: qq.quoteId,
@@ -276,15 +337,12 @@ export default function PosBoard({
       return null;
     }
 
-    const c: PosCommitted = {
-      id: data.order.id_order,
-      token: data.orderToken,
-      table: t,
-    };
+    const c: PosCommitted = { id: data.order.id_order, token: data.orderToken, table: tableValue };
     setCommitted(c);
-    printRef.current = c;
     setLines([]);
     setNote("");
+    setSelectedKey(null);
+    setNoteKey(null);
     setQuote(null);
     setMsg({
       kind: "ok",
@@ -300,8 +358,8 @@ export default function PosBoard({
       buildReceiptHtml(
         {
           id_order: orderId,
-          table_number: committed?.table ?? table,
-          items: (quote?.items ?? []).length > 0 ? quote!.items : [],
+          table_number: committed?.table ?? tableValue,
+          items: quote?.items ?? [],
           total: quote?.total ?? 0,
           payment_method: "cash",
           payment_status: "unpaid",
@@ -358,155 +416,280 @@ export default function PosBoard({
     setPayOpen(false);
   }
 
+  const now = new Date();
+  const tanggalCetak = now.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  const jamCetak = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+
   const quoted = quote;
 
   return (
     <div className="pos-root">
-      {/* ══════════ KOLOM KIRI: katalog ══════════ */}
+      {/* ══════════ KOLOM KIRI: pesanan aktif + katalog ══════════ */}
       <div className="pos-main">
-        <div className="pos-toolbar">
-          <div>
-            <h1 className="pos-title">Point of Sale</h1>
-            <p className="pos-sub">
-              {cafeName} · Kasir {staffName}
-            </p>
-          </div>
-          <div className="pos-toolbar-right">
-            <span className="pos-meja-lbl">Meja</span>
-            <input
-              className="pos-meja"
-              value={table}
-              onChange={e => {
-                setTable(e.target.value);
-                setQuote(null);
-              }}
-              placeholder="mis. 12"
-              aria-label="Nomor meja"
-              disabled={!live}
-            />
-          </div>
-        </div>
-
-        <div className="pos-cats" role="tablist" aria-label="Kategori menu">
-          {categories.map(c => (
-            <button
-              key={c.name}
-              type="button"
-              role="tab"
-              aria-selected={cat === c.name}
-              className={`pos-cat${cat === c.name ? " pos-cat-on" : ""}`}
-              onClick={() => setCat(c.name)}
-            >
-              {c.name}
-              <span className="pos-cat-n">{c.count}</span>
-            </button>
-          ))}
-        </div>
-
-        <label className="pos-search">
-          <SearchIcon className="h-4 w-4" />
-          <input
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            placeholder="Cari menu"
-            aria-label="Cari menu"
-          />
-        </label>
-
-        {visible.length === 0 ? (
-          <div className="pos-empty">Tidak ada menu yang cocok.</div>
-        ) : (
-          <div className="pos-grid">
-            {visible.map(m => {
-              const sale = hargaJual(m);
-              const hasDisc = sale !== m.price;
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  className="pos-card"
-                  onClick={() => openOptions(m)}
+        {recent.length > 0 && (
+          <section className="pos-recent" aria-label="Pesanan aktif hari ini">
+            <div className="pos-recent-head">
+              <h2>Pesanan Aktif</h2>
+              <Link className="pos-recent-link" href="/dashboard-v2/pesanan">
+                Semua Pesanan
+              </Link>
+            </div>
+            <div className="pos-recent-row">
+              {recent.map(o => (
+                <Link
+                  key={o.id}
+                  href="/dashboard-v2/pesanan"
+                  className="pos-recent-card"
+                  title={`Buka di papan Pesanan: ${o.id.slice(0, 6)}`}
                 >
-                  <span className="pos-card-img">
-                    {m.imageUrl ? (
-                      <Image src={m.imageUrl} alt="" width={320} height={200} />
-                    ) : (
-                      <span className="pos-card-img-empty" aria-hidden />
-                    )}
-                    {hasDisc && <span className="pos-flag pos-flag-sale">Diskon {m.discountPct}%</span>}
+                  <span className="pos-recent-id">#{o.id.slice(0, 5)}</span>
+                  <span className="pos-recent-meja">
+                    {/^(Bungkus|Delivery)$/i.test(o.table) ? o.table : `Meja ${o.table}`}
                   </span>
-                  <span className="pos-card-cat">{m.category ?? "Menu"}</span>
-                  <span className="pos-card-name">{m.name}</span>
-                  <span className="pos-card-foot">
-                    <span className="pos-card-price">
-                      {hasDisc && <s>{rupiah(m.price)}</s>} {rupiah(sale)}
-                    </span>
-                    <span className="pos-card-add" aria-hidden>
-                      <PlusIcon className="h-4 w-4" />
-                    </span>
+                  <span className="pos-recent-meta">
+                    {umurMenit(o.createdAt)} mnt · {rupiah(o.total)}
                   </span>
-                </button>
-              );
-            })}
-          </div>
+                  <span className={`pos-st ${STATUS_CLASS[o.status] ?? ""}`}>
+                    {STATUS_LABEL[o.status] ?? o.status}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
         )}
+
+        <section className="pos-catalog" aria-label="Menu">
+          <div className="pos-catalog-head">
+            <h2>Menu Categories</h2>
+            <span className="pos-kasir">Kasir: {staffName}</span>
+          </div>
+          <div className="pos-cats" role="tablist" aria-label="Kategori menu">
+            {categories.map(c => (
+              <button
+                key={c.name}
+                type="button"
+                role="tab"
+                aria-selected={cat === c.name}
+                className={`pos-cat${cat === c.name ? " pos-cat-on" : ""}`}
+                onClick={() => setCat(c.name)}
+              >
+                {c.name}
+                <span className="pos-cat-n">{c.count}</span>
+              </button>
+            ))}
+          </div>
+
+          <label className="pos-search">
+            <SearchIcon className="h-4 w-4" />
+            <input
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="Cari menu"
+              aria-label="Cari menu"
+            />
+          </label>
+
+          {visible.length === 0 ? (
+            <div className="pos-empty">Tidak ada menu yang cocok.</div>
+          ) : (
+            <div className="pos-grid">
+              {visible.map(m => {
+                const sale = hargaJual(m);
+                const hasDisc = sale !== m.price;
+                return (
+                  <button key={m.id} type="button" className="pos-card" onClick={() => openOptions(m)}>
+                    <span className="pos-card-img">
+                      {m.imageUrl ? (
+                        <Image src={m.imageUrl} alt="" width={320} height={200} />
+                      ) : (
+                        <span className="pos-card-img-empty" aria-hidden />
+                      )}
+                      {hasDisc && <span className="pos-flag">Diskon {m.discountPct}%</span>}
+                    </span>
+                    <span className="pos-card-cat">{m.category ?? "Menu"}</span>
+                    <span className="pos-card-name">{m.name}</span>
+                    <span className="pos-card-foot">
+                      <span className="pos-card-price">
+                        {hasDisc && <s>{rupiah(m.price)}</s>} {rupiah(sale)}
+                      </span>
+                      <span className="pos-card-add" aria-hidden>
+                        <PlusIcon className="h-4 w-4" />
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
 
       {/* ══════════ KOLOM KANAN: keranjang ══════════ */}
       <aside className="pos-cart" aria-label="Pesanan berjalan">
-        <div className="pos-cart-head">
-          <span className="pos-cart-title">
-            <ShoppingCartIcon className="h-4 w-4" /> Pesanan
+        <div className="pos-cart-orderhead">
+          <span className="pos-cart-ordertitle">
+            {live ? "Pesanan Baru" : `Order #${committed!.id.slice(0, 5)}`}
           </span>
-          <span className="pos-cart-count">{lineCount} item</span>
+          <span className="pos-cart-orderdate">
+            {tanggalCetak}, {jamCetak}
+          </span>
         </div>
 
-        <p className="pos-cat-note">Meja {table.trim() || "-"}</p>
+        <div className="pos-otype" role="tablist" aria-label="Tipe pesanan">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={orderType === "dine"}
+            className={`pos-otype-btn${orderType === "dine" ? " pos-otype-on" : ""}`}
+            onClick={() => setOrderType("dine")}
+          >
+            <UtensilsIcon className="h-3.5 w-3.5" /> Dine In
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={orderType === "takeaway"}
+            className={`pos-otype-btn${orderType === "takeaway" ? " pos-otype-on" : ""}`}
+            onClick={() => setOrderType("takeaway")}
+          >
+            <ShoppingBagIcon className="h-3.5 w-3.5" /> Take Away
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={orderType === "delivery"}
+            className={`pos-otype-btn${orderType === "delivery" ? " pos-otype-on" : ""}`}
+            onClick={() => setOrderType("delivery")}
+          >
+            <BikeIcon className="h-3.5 w-3.5" /> Delivery
+          </button>
+        </div>
+
+        {orderType === "dine" ? (
+          <input
+            className="pos-meja"
+            value={table}
+            onChange={e => {
+              setTable(e.target.value);
+              setQuote(null);
+            }}
+            placeholder="Nomor meja, mis. 12"
+            aria-label="Nomor meja"
+            disabled={!live}
+          />
+        ) : (
+          <p className="pos-otype-note">
+            {orderType === "takeaway" ? "Pesanan dibawa pulang" : "Pesanan diantar ke alamat tamu"} —
+            tercatat sebagai “{tableLabel}”.
+          </p>
+        )}
+
+        <div className="pos-cart-head">
+          <span className="pos-cart-title">
+            <ShoppingCartIcon className="h-4 w-4" /> Ordered Menus
+          </span>
+          <span className="pos-cart-count">Total : {lineCount}</span>
+        </div>
 
         <div className="pos-cart-items">
           {lines.length === 0 ? (
             <p className="pos-empty">Keranjang kosong. Klik menu di kiri untuk menambah.</p>
           ) : (
-            lines.map(l => (
-              <div key={l.key} className="pos-line">
-                <div className="pos-line-head">
-                  <span className="pos-line-name">{lineLabel(l)}</span>
-                  <button
-                    type="button"
-                    className="pos-line-x"
-                    aria-label={`Hapus ${l.menu.name}`}
-                    onClick={() => changeQty(l.key, -l.qty)}
-                  >
-                    <XIcon className="h-3.5 w-3.5" />
-                  </button>
+            lines.map(l => {
+              const open = selectedKey === l.key;
+              return (
+                <div key={l.key} className={`pos-line${open ? " pos-line-sel" : ""}`}>
+                  <div className="pos-line-main">
+                    <span className="pos-line-thumb">
+                      {l.menu.imageUrl ? (
+                        <Image src={l.menu.imageUrl} alt="" width={56} height={56} />
+                      ) : (
+                        <span className="pos-line-thumb-empty" aria-hidden />
+                      )}
+                    </span>
+                    <div className="pos-line-body">
+                      <button
+                        type="button"
+                        className="pos-line-name"
+                        onClick={() => setSelectedKey(open ? null : l.key)}
+                        aria-expanded={open}
+                      >
+                        {lineLabel(l)}
+                      </button>
+                      {l.options.length > 0 && (
+                        <span className="pos-chips">
+                          {l.options.map(o => (
+                            <span key={o.id_option_value} className="pos-chip">
+                              {o.name}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                      <div className="pos-line-row">
+                        <span className="pos-stepper">
+                          <button type="button" aria-label="Kurangi" onClick={() => changeQty(l.key, -1)}>
+                            <MinusIcon className="h-3.5 w-3.5" />
+                          </button>
+                          <b>{l.qty}</b>
+                          <button type="button" aria-label="Tambah" onClick={() => changeQty(l.key, 1)}>
+                            <PlusIcon className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                        {l.note ? (
+                          <span className="pos-line-noteprev" title={l.note}>
+                            {l.note}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="pos-line-addnote"
+                            onClick={() => setNoteKey(noteKey === l.key ? null : l.key)}
+                          >
+                            Add Note
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="pos-line-x"
+                          aria-label={`Hapus ${l.menu.name}`}
+                          onClick={() => removeLine(l.key)}
+                        >
+                          <XIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {open && (
+                    <div className="pos-line-detail">
+                      <div>
+                        <span>Item Rate</span>
+                        <b>{rupiah(lineRate(l))}</b>
+                      </div>
+                      <div>
+                        <span>Amount</span>
+                        <b>{rupiah(lineRate(l) * l.qty)}</b>
+                      </div>
+                    </div>
+                  )}
+
+                  {noteKey === l.key && (
+                    <input
+                      className="pos-line-note"
+                      value={l.note}
+                      onChange={e => setLineNote(l.key, e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") setNoteKey(null);
+                      }}
+                      onBlur={() => setNoteKey(null)}
+                      autoFocus
+                      placeholder="Catatan untuk dapur (Enter untuk simpan)"
+                      aria-label={`Catatan ${l.menu.name}`}
+                    />
+                  )}
                 </div>
-                <div className="pos-line-row">
-                  <span className="pos-stepper">
-                    <button
-                      type="button"
-                      aria-label="Kurangi"
-                      onClick={() => changeQty(l.key, -1)}
-                    >
-                      <MinusIcon className="h-3.5 w-3.5" />
-                    </button>
-                    <b>{l.qty}</b>
-                    <button type="button" aria-label="Tambah" onClick={() => changeQty(l.key, 1)}>
-                      <PlusIcon className="h-3.5 w-3.5" />
-                    </button>
-                  </span>
-                  <span className="pos-line-amt">
-                    {rupiah((hargaJual(l.menu) + l.options.reduce((s, o) => s + o.price_delta, 0)) * l.qty)}
-                  </span>
-                </div>
-                <input
-                  className="pos-line-note"
-                  value={l.note}
-                  onChange={e => setLineNote(l.key, e.target.value)}
-                  placeholder="Catatan untuk dapur (opsional)"
-                  aria-label={`Catatan ${l.menu.name}`}
-                />
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -521,10 +704,11 @@ export default function PosBoard({
         </label>
 
         <div className="pos-summary">
+          <h3>Payment Summary</h3>
           {quoted ? (
             <>
               <div>
-                <span>Subtotal</span>
+                <span>Sub Total</span>
                 <b>{rupiah(quoted.subtotal)}</b>
               </div>
               {quoted.service_amount > 0 && (
@@ -537,17 +721,18 @@ export default function PosBoard({
                 <span>Pajak ({quoted.tax_pct}%)</span>
                 <b>{rupiah(quoted.tax_amount)}</b>
               </div>
-              <div className="pos-total">
-                <span>Total</span>
-                <b>{rupiah(quoted.total)}</b>
-              </div>
             </>
           ) : (
             <p className="pos-hint">
-              Ringkasan (pajak & service) dihitung server saat menekan tombol aksi.
+              Ringkasan dihitung server saat menekan tombol aksi.
               {!taxConfigured && " Tarif pajak kafe belum diatur."}
             </p>
           )}
+        </div>
+
+        <div className="pos-amount">
+          <span>Amount to be Paid</span>
+          <b>{quoted ? rupiah(quoted.total) : "—"}</b>
         </div>
 
         <div className="pos-actions">
@@ -559,7 +744,7 @@ export default function PosBoard({
                 disabled={busy || lines.length === 0}
                 onClick={() => startTransition(() => void commit(false))}
               >
-                Kirim ke Dapur
+                Place an Order
               </button>
               <button
                 type="button"
@@ -586,13 +771,7 @@ export default function PosBoard({
               <button
                 type="button"
                 className="pos-btn"
-                onClick={() =>
-                  committed &&
-                  printStruk(
-                    committed.id,
-                    committed.token,
-                  )
-                }
+                onClick={() => committed && printStruk(committed.id, committed.token)}
               >
                 <PrinterIcon className="h-4 w-4" /> Struk
               </button>
@@ -615,7 +794,9 @@ export default function PosBoard({
 
         {msg && (
           <p
-            className={msg.kind === "err" ? "pos-msg pos-msg-err" : msg.kind === "ok" ? "pos-msg pos-msg-ok" : "pos-msg"}
+            className={
+              msg.kind === "err" ? "pos-msg pos-msg-err" : msg.kind === "ok" ? "pos-msg pos-msg-ok" : "pos-msg"
+            }
             role="status"
           >
             {msg.text}
@@ -626,7 +807,13 @@ export default function PosBoard({
       {/* ══════════ Modal: opsi menu ══════════ */}
       {optFor && (
         <div className="pos-modal-backdrop" onClick={() => setOptFor(null)}>
-          <div className="pos-modal" role="dialog" aria-modal="true" aria-label={`Opsi ${optFor.name}`} onClick={e => e.stopPropagation()}>
+          <div
+            className="pos-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Opsi ${optFor.name}`}
+            onClick={e => e.stopPropagation()}
+          >
             <div className="pos-modal-head">
               <h2>{optFor.name}</h2>
               <button type="button" className="pos-line-x" aria-label="Tutup" onClick={() => setOptFor(null)}>
@@ -676,7 +863,7 @@ export default function PosBoard({
                 Batal
               </button>
               <button type="button" className="pos-btn pos-btn-primary" onClick={confirmOptions}>
-                Tambah ke Keranjang
+                Add to Cart
               </button>
             </div>
           </div>
@@ -686,7 +873,13 @@ export default function PosBoard({
       {/* ══════════ Modal: pembayaran ══════════ */}
       {payOpen && committed && (
         <div className="pos-modal-backdrop" onClick={() => setPayOpen(false)}>
-          <div className="pos-modal" role="dialog" aria-modal="true" aria-label="Pembayaran" onClick={e => e.stopPropagation()}>
+          <div
+            className="pos-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Pembayaran"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="pos-modal-head">
               <h2>Bayar {committed.id.slice(0, 6)}</h2>
               <button type="button" className="pos-line-x" aria-label="Tutup" onClick={() => setPayOpen(false)}>
@@ -696,7 +889,7 @@ export default function PosBoard({
             <div className="pos-modal-body">
               <p className="pos-pay-total">
                 {quoted ? rupiah(quoted.total) : "Muat ulang ringkasan"}{" "}
-                <span>· meja {committed.table}</span>
+                <span>· {/^(Bungkus|Delivery)$/i.test(committed.table) ? committed.table : `meja ${committed.table}`}</span>
               </p>
               <div className="pos-pay-tabs" role="tablist" aria-label="Metode pembayaran">
                 <button

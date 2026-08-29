@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation";
 import { getStaffContext } from "@/lib/staff-context";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import PosBoard, { type PosMenu, type PosMenuOption, type PosCategoryChip } from "@/components/pos/PosBoard";
+import { startOfTodayWIB } from "@/lib/dashboard-today";
+import PosBoard, {
+  type PosMenu,
+  type PosMenuOption,
+  type PosCategoryChip,
+  type PosRecent,
+} from "@/components/pos/PosBoard";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "POS · 3Diner" };
@@ -18,7 +24,9 @@ export default async function PosPage() {
 
   const cafeId = ctx.cafe_id ?? "";
 
-  const [menusRes, groupsRes, cafeRes] = await Promise.all([
+  const since = startOfTodayWIB();
+
+  const [menusRes, groupsRes, cafeRes, recentRes] = await Promise.all([
     supabaseAdmin
       .from("Menus")
       .select("id_menu,nama_menu,harga_menu,discount_pct,image_url,category,is_active")
@@ -36,9 +44,17 @@ export default async function PosPage() {
       .limit(200),
     supabaseAdmin
       .from("Cafes")
-      .select("nama_cafe,alamat_cafe,tax_rate_pct,service_charge_pct,prices_include_tax,tax_configured_at")
+      .select("nama_cafe,alamat_cafe,tax_configured_at")
       .eq("id_cafe", cafeId)
       .single(),
+    supabaseAdmin
+      .from("Orders")
+      .select("id_order,table_number,total,status,payment_status,created_at")
+      .eq("cafe_id", cafeId)
+      .not("status", "in", "(completed,cancelled)")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(6),
   ]);
 
   const cafe = cafeRes.data;
@@ -88,6 +104,18 @@ export default async function PosPage() {
     ...[...seenCat.entries()].map(([name, count]) => ({ name, count })),
   ];
 
+  const recent: PosRecent[] = ((recentRes.data ?? []) as unknown as Array<{
+    id_order: string; table_number: string; total: number; status: PosRecent["status"];
+    payment_status: string; created_at: string;
+  }>).map(o => ({
+    id: o.id_order,
+    table: o.table_number,
+    total: o.total,
+    status: o.status,
+    paymentStatus: o.payment_status,
+    createdAt: o.created_at,
+  }));
+
   return (
     <PosBoard
       cafeId={cafeId}
@@ -98,6 +126,7 @@ export default async function PosPage() {
       menus={menus}
       optionGroups={optionGroups}
       categories={categories}
+      recent={recent}
     />
   );
 }
