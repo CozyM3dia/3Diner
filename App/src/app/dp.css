@@ -149,3 +149,54 @@
 @media (prefers-reduced-motion: no-preference) {
   .dp-side { transition: transform .18s ease; }
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   Header halaman (dipakai Pesanan & Items) — template: h3 kiri, tools kanan
+   ════════════════════════════════════════════════════════════════════ */
+.dp-page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.dp-page-head h1 { font-size: 20px; font-weight: 600; color: var(--dp-heading); margin: 0; }
+.dp-page-head-tools { display: flex; align-items: center; gap: 8px; }
+.dp-field { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px;
+  background: var(--dp-surface); border: 1px solid var(--dp-border); border-radius: 6px; color: var(--dp-muted); }
+.dp-field input { border: 0; outline: 0; background: transparent; font: inherit; font-size: 13px;
+  color: var(--dp-heading); width: 160px; }
+
+/* ── Items: grid kartu produk (template col-lg-3 / col-md-4 / col-sm-6) ── */
+.dp-items-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+.dp-food { padding: 20px; }
+.dp-food-media { position: relative; margin-bottom: 12px; }
+.dp-food-img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; display: block; }
+.dp-food-img-empty { display: grid; place-items: center; background: var(--dp-bg); color: var(--dp-muted); }
+.dp-food-menu { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 36px;
+  background: var(--dp-surface); display: flex; align-items: center; justify-content: center;
+  color: var(--dp-text); opacity: 0; transition: opacity .3s ease; }
+.dp-food:hover .dp-food-menu, .dp-food-menu:focus-visible, .dp-food-menu[aria-expanded="true"] { opacity: 1; }
+.dp-food-drop { position: absolute; top: 46px; right: 10px; z-index: 5; min-width: 150px; padding: 6px;
+  background: var(--dp-surface); border: 1px solid var(--dp-border); border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(15,23,42,.12); }
+.dp-food-drop-item { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 6px;
+  font-size: 13px; color: var(--dp-text); }
+.dp-food-drop-item:hover { background: var(--dp-bg); color: var(--dp-heading); }
+.dp-food-name { font-size: 14px; font-weight: 600; color: var(--dp-heading); margin: 0 0 6px; line-height: 1.35; }
+.dp-food-name a:hover { color: var(--dp-blue); }
+.dp-food-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dp-food-price { font-size: 14px; color: var(--dp-text); }
+.dp-food-flag { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--dp-text); }
+.dp-food-flag i { width: 9px; height: 9px; border-radius: 2px; background: var(--dp-green); flex: none; }
+.dp-food-flag-off i { background: var(--dp-red); }
+
+/* ── Empty state jujur ── */
+.dp-empty { padding: 40px 20px; text-align: center; font-size: 13.5px; color: var(--dp-muted); }
+
+/* ── Pager (template .pagination-nav) ── */
+.dp-pager { display: flex; justify-content: center; gap: 8px; }
+.dp-pager button { min-width: 33px; height: 37px; padding: 0 10px; border-radius: 6px;
+  border: 1px solid var(--dp-border); background: var(--dp-surface); color: var(--dp-text);
+  font-size: 14px; font-weight: 500; }
+.dp-pager button:hover:not(:disabled) { background: var(--dp-bg); color: var(--dp-blue); }
+.dp-pager button:disabled { opacity: .45; cursor: not-allowed; }
+.dp-pager .dp-pager-on { background: var(--dp-blue); border-color: var(--dp-blue); color: #fff; }
+
+@media (max-width: 1200px) { .dp-items-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 900px)  { .dp-items-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px)  { .dp-items-grid { grid-template-columns: 1fr; } }
