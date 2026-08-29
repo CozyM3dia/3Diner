@@ -237,3 +237,53 @@
 .dp-badge { display: inline-block; font-size: 13px; font-weight: 500; padding: 2px 8px; border-radius: 6px; }
 .dp-badge-success { color: #14b51d; background: #eef9f1; }
 .dp-badge-danger { color: #ff3636; background: #fff0ed; }
+
+/* ════════════════════════════════════════════════════════════════════
+   Kitchen KDS (template: kitchen.html) — pil ringkasan + kartu berwarna
+   Warna header dari template: bg-gray #475569, bg-secondary #FFA80B,
+   bg-danger #FF3636, bg-success #14B51D. card-header padding 15px 20px.
+   ════════════════════════════════════════════════════════════════════ */
+.dp-kds-pills { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dp-kds-pill { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 8px;
+  border-radius: 999px; border: 1px solid var(--dp-border); background: var(--dp-surface);
+  font-size: 13px; font-weight: 500; color: var(--dp-heading); }
+.dp-kds-pill-ic { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: #fff; }
+.dp-kds-pill b { font-size: 18px; font-weight: 600; margin-left: 4px; }
+
+.dp-kds-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start; }
+.dp-kds-card { overflow: hidden; }
+.dp-kds-head { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 0.9375rem 1.25rem; color: #fff; }
+.dp-kds-head-left { display: flex; align-items: center; gap: 8px; }
+.dp-kds-head b { font-size: 14px; font-weight: 600; }
+.dp-kds-avatar { width: 38px; height: 38px; border-radius: 50%; background: #fff; color: var(--dp-heading);
+  display: grid; place-items: center; flex: none; }
+.dp-kds-type { display: block; font-size: 13px; font-weight: 400; margin-top: 2px; opacity: .92; }
+.dp-kds-code { background: #fff; color: var(--dp-heading); font-size: 13px; font-weight: 500;
+  padding: 2px 8px; border-radius: 6px; }
+
+.dp-kds-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  padding: 0.9375rem 1.25rem; border-bottom: 1px solid var(--dp-border); font-size: 14px; color: var(--dp-text); }
+.dp-kds-meta b { color: var(--dp-heading); font-weight: 600; }
+.dp-kds-body { padding: 0.9375rem 1.25rem; }
+.dp-kds-items { display: flex; flex-direction: column; margin-bottom: 16px; }
+.dp-kds-items li { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 0 0 12px; margin-bottom: 12px; border-bottom: 1px dashed var(--dp-border);
+  font-size: 14px; font-weight: 500; color: var(--dp-heading); }
+.dp-kds-items li:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+/* .dot template: 12×12, border 1px, radius 2, isi kotak kecil di tengah */
+.dp-dot { width: 12px; height: 12px; border: 1px solid currentColor; border-radius: 2px;
+  display: inline-grid; place-items: center; margin-right: 8px; vertical-align: -1px; }
+.dp-dot::before { content: ""; width: 6px; height: 6px; border-radius: 1px; background: currentColor; }
+.dp-kds-note { display: flex; align-items: center; gap: 6px; background: var(--dp-bg); border-radius: 6px;
+  padding: 4px 8px; font-size: 13.5px; font-weight: 500; color: var(--dp-heading); margin-bottom: 16px; }
+.dp-kds-progress { display: flex; align-items: center; gap: 12px; }
+.dp-progress-track { flex: 1 1 auto; height: 4px; border-radius: 20px; background: var(--dp-border); overflow: hidden; }
+.dp-progress-track > i { display: block; height: 100%; border-radius: 20px; }
+.dp-kds-clock { display: inline-flex; align-items: center; gap: 4px; font-size: 13.5px; color: var(--dp-text);
+  font-variant-numeric: tabular-nums; }
+.dp-kds-foot { margin-top: 12px; font-size: 12px; color: var(--dp-muted); }
+
+@media (max-width: 1200px) { .dp-kds-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 768px)  { .dp-kds-grid { grid-template-columns: 1fr; } }
+.dp-page-sub { font-size: 13px; color: var(--dp-muted); margin-top: 2px; }

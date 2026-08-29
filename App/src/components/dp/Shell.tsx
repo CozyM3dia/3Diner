@@ -37,7 +37,7 @@ const NAV_MAIN: NavItem[] = [
   { label: "Dashboard", href: "/dashboard-v2", icon: LayoutGridIcon },
   { label: "POS", href: "/kasir", icon: MonitorIcon },
   { label: "Orders", href: "/dashboard-v2/pesanan", icon: ClipboardListIcon },
-  { label: "Kitchen (KDS)", icon: CookingPotIcon, soon: true },
+  { label: "Kitchen (KDS)", href: "/dashboard-v2/dapur", icon: CookingPotIcon },
   { label: "Reservation", icon: CalendarDaysIcon, soon: true },
   { label: "Categories", href: "/dashboard-v2/kategori", icon: TagsIcon },
   { label: "Items", href: "/dashboard-v2/items", icon: PackageIcon },
