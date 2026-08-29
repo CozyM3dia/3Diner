@@ -11,7 +11,7 @@ const successfulOrder = {
 };
 
 vi.mock("@/lib/supabase-admin", () => ({
-  supabaseAdmin: { rpc },
+  supabaseAdmin: { rpc, from: () => ({ insert: async () => ({ error: null }) }) },
 }));
 
 describe("POST /api/orders", () => {

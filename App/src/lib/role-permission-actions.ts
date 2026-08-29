@@ -32,8 +32,9 @@ export async function savePermission(
 
   if (!SEMUA_PERMISI.includes(permission)) return { error: "Permission tidak dikenal." };
 
-  // Anti-kunci-dirinya: siapa pun yang menyimpan WAJIB tetap punya manage_settings.
-  if (selfRole === "owner" && !next.owner) {
+  // Anti-kunci-dirinya: owner WAJIB tetap punya manage_settings — satu-satunya
+  // permission yang membuka halaman ini. Permission lain bebas diubah.
+  if (permission === "manage_settings" && selfRole === "owner" && !next.owner) {
     return { error: "Owner harus tetap punya akses Pengaturan — tanpa itu tidak ada yang bisa memulihkan wewenang." };
   }
   // Kasir tak boleh diberi manage_settings: halaman settings memanggil

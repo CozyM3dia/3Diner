@@ -118,6 +118,16 @@ export async function markCashPaid(orderId: string): Promise<KasirResult> {
   if (result?.error) return { error: readError(result.error) };
   if (!result?.ok) return { error: "Gagal menandai lunas." };
 
+  const { createNotifications } = await import("@/lib/notifications");
+  await createNotifications(cafeId, [
+    {
+      type: "inbox",
+      title: `Pembayaran tunai diterima · #${orderId.slice(0, 5)}`,
+      body: "Pesanan ditandai lunas oleh kasir.",
+      href: "/dashboard-v2/pesanan",
+    },
+  ]);
+
   revalidateSurfaces();
   return {};
 }

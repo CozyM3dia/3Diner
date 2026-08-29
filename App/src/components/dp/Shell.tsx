@@ -22,6 +22,10 @@ import {
   TagsIcon,
   UsersIcon,
 } from "lucide-react";
+import ThemeToggle from "@/components/dp/ThemeToggle";
+import NotificationBell from "@/components/dp/NotificationBell";
+import ProfileMenu from "@/components/dp/ProfileMenu";
+import type { NotifRow } from "@/lib/notifications";
 import type { Route } from "next";
 
 /** Item navigasi meniru sidebar Dream POS (restaurant-pos).
@@ -90,11 +94,15 @@ export default function DpShell({
   cafeName,
   userInitial,
   userName,
+  userRole,
+  notifRows,
   children,
 }: {
   cafeName: string;
   userInitial: string;
   userName: string;
+  userRole: string;
+  notifRows: NotifRow[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -185,7 +193,7 @@ export default function DpShell({
             <BellIcon className="h-[17px] w-[17px]" />
             <span className="dp-rail-dot" />
           </span>
-          <div className="dp-avatar" title={userName}>{userInitial}</div>
+          <ProfileMenu userName={userName} role={userRole} initial={userInitial} planLabel="Owner" />
         </div>
 
         <nav className="dp-menu" aria-label="Navigasi utama">
@@ -228,11 +236,9 @@ export default function DpShell({
               <CalendarDaysIcon className="h-4 w-4" />
               {new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(new Date())}
             </span>
-            <button type="button" className="dp-iconbtn" aria-label="Notifikasi">
-              <BellIcon className="h-[18px] w-[18px]" />
-              <span className="dp-rail-dot" />
-            </button>
-            <div className="dp-avatar !mt-0" title={userName}>{userInitial}</div>
+            <NotificationBell rows={notifRows} />
+            <ThemeToggle />
+            <ProfileMenu userName={userName} role={userRole} initial={userInitial} planLabel="Owner" />
           </div>
         </header>
 

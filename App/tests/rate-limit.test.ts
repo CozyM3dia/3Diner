@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const rpc = vi.fn();
 
-vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: { rpc } }));
+vi.mock("@/lib/supabase-admin", () => ({
+  supabaseAdmin: { rpc, from: () => ({ insert: async () => ({ error: null }) }) },
+}));
 
 beforeEach(() => {
   vi.clearAllMocks();

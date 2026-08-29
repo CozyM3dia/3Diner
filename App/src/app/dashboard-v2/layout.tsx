@@ -1,5 +1,6 @@
 import { getStaffContext } from "@/lib/staff-context";
 import { canOpenOwnerConsole } from "@/lib/staff-context";
+import { getNotifications } from "@/lib/notifications";
 import DpShell from "@/components/dp/Shell";
 import "../dp.css";
 import "@/components/pos/pos-item.css";
@@ -16,11 +17,15 @@ export default async function DashboardV2Layout({ children }: { children: React.
   if (!ctx.role) redirect("/login");
   if (!canOpenOwnerConsole(ctx.role)) redirect("/kasir");
 
+  const notif = ctx.cafe_id ? await getNotifications(ctx.cafe_id) : { rows: [], unread: 0, unreadByType: { order: 0, kitchen: 0, inbox: 0 } };
+
   return (
     <DpShell
       cafeName={ctx.cafe_name ?? "Kafe kamu"}
       userInitial={(ctx.full_name ?? "O").slice(0, 1).toUpperCase()}
       userName={ctx.full_name ?? ""}
+      userRole={ctx.role === "owner" ? "Owner" : "Kasir"}
+      notifRows={notif.rows}
     >
       {children}
     </DpShell>

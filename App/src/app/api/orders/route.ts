@@ -184,6 +184,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Gagal membuat pesanan" }, { status: 502 });
   }
 
+  const newOrderId = result.order.id_order as string;
+  const tableLabel = (result.order as { table_number?: string }).table_number ?? "?";
+  const itemCount = Array.isArray(result.order.items) ? result.order.items.reduce((s, l) => s + (l.qty ?? 1), 0) : 0;
+  const notifCafeId = typeof cafeId === "string" ? cafeId : "";
+  if (notifCafeId) {
+    const { createNotifications } = await import("@/lib/notifications");
+    await createNotifications(notifCafeId, [
+      {
+        type: "order",
+        title: `Pesanan baru · #${newOrderId.slice(0, 5)}`,
+        body: `Meja ${tableLabel} · ${itemCount} item menunggu konfirmasi.`,
+        href: "/dashboard-v2/pesanan",
+      },
+      {
+        type: "kitchen",
+        title: `Masuk dapur · #${newOrderId.slice(0, 5)}`,
+        body: `${itemCount} item siap dimasak.`,
+        href: "/dashboard-v2/dapur",
+      },
+    ]);
+  }
+
   return NextResponse.json(
     { order: result.order, orderToken: result.orderToken, checkinCode: result.checkinCode ?? null },
     { status: 201 }

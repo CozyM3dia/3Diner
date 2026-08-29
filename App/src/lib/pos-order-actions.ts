@@ -2,6 +2,7 @@
 
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getStaffCafeId, getStaffContext } from "@/lib/staff-context";
+import { createNotifications } from "@/lib/notifications";
 import type { SelectedOption } from "@/types";
 
 export interface ExistingOrderLine {
@@ -96,10 +97,21 @@ export async function addLineToExistingOrder(
   });
 
   if (error) return { error: readErr(error.message) };
-  const result = data as { error?: string; order?: { id_order?: string } } | null;
+  const result = data as { error?: string; order?: { id_order?: string; total?: number } } | null;
   if (result?.error === "insufficient_inventory") return { error: readErr("insufficient_inventory") };
   if (result?.error) return { error: readErr(result.error) };
   if (!result?.order?.id_order) return { error: "Gagal memperbarui pesanan." };
+
+  const newId = result.order.id_order;
+  await createNotifications(cafeId, [
+    {
+      type: "order",
+      title: `Pesanan diperbarui · #${newId.slice(0, 5)}`,
+      body: `${lines.length} item ditambahkan kasir via POS (total ${result.order.total != null ? Math.round(result.order.total).toLocaleString("id-ID") : "-"})`.replace("total -", "meja " + cur.table_number),
+      href: "/dashboard-v2/pesanan",
+    },
+    { type: "kitchen", title: `Item baru untuk dapur · #${newId.slice(0, 5)}`, body: "Cek papan Dapur untuk item tambahan.", href: "/dashboard-v2/dapur" },
+  ]);
 
   // Order lama dibatalkan (bukan dihapus) supaya riwayat & jejak stok tetap utuh.
   const actor = (await getStaffContext()).user_id ?? null;
