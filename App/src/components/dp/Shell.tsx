@@ -16,6 +16,7 @@ import {
   PackageIcon,
   PercentIcon,
   PuzzleIcon,
+  QrCodeIcon,
   SettingsIcon,
   ShieldCheckIcon,
   TagsIcon,
@@ -78,6 +79,7 @@ const NAV_GRUP: NavGroup[] = [
     items: [
       { label: "Store Settings", href: "/dashboard-v2/pengaturan", icon: SettingsIcon },
       { label: "Tax Settings", href: "/dashboard-v2/pengaturan/pajak", icon: PercentIcon },
+      { label: "QR Smart Menu", href: "/dashboard-v2/pengaturan/qr", icon: QrCodeIcon },
       { label: "Roles & Permissions", href: "/dashboard-v2/pengaturan/peran", icon: ShieldCheckIcon },
       { label: "Manage Staffs", href: "/dashboard-v2/pengaturan/staf", icon: UsersIcon },
     ],

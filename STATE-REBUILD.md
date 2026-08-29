@@ -99,8 +99,9 @@ bisa diambil dengan `re.findall(r'href="([a-z0-9-]+\.html)"', html)` dari halama
 | 6.5b | Tax Settings | `/dashboard-v2/pengaturan/pajak` | ✅ bisa menyimpan |
 | 6.5c | Manage Staffs | `/dashboard-v2/pengaturan/staf` | ✅ read-only |
 | 6.5d | Roles & Permissions | `/dashboard-v2/pengaturan/peran` | ✅ read-only |
+| 6.5e | QR Smart Menu | `/dashboard-v2/pengaturan/qr` | ✅ port dari legacy |
 | 6.6 | Addons | — | ⏸ `soon` — tak ada padanan data |
-| 6.7 | Lapisan DNA 3Diner | — | ⬜ BELUM — pekerjaan berikutnya |
+| 6.7 | Lapisan DNA 3Diner | — | ✅ selesai 29 Agu 2026 |
 
 ### Pola yang berulang di SEMUA halaman: template kaya, data kita tipis
 
@@ -167,6 +168,7 @@ App/src/
 │     └─ pengaturan/
 │        ├─ page.tsx                → <StoreSettingsForm>  (updateCafeSettings)
 │        ├─ pajak/page.tsx          → <TaxSettingsForm>    (saveTax → RPC set_cafe_tax)
+│        ├─ qr/page.tsx             → <QrSmartMenuDp>      (QR menu publik dari Cafes.slug_url)
 │        ├─ staf/page.tsx           ← tabel Staff, read-only, tanpa komponen klien
 │        └─ peran/page.tsx          ← matriks dari PERMISSIONS, read-only
 ├─ components/dp/
@@ -176,7 +178,7 @@ App/src/
 │  │                                   grup aktif ikut halaman (pencocokan terpanjang), klik manual
 │  │                                   di-reset saat pindah rute. NAV di NAV_GRUP.
 │  ├─ OrdersBoard.tsx  ItemsGrid.tsx  CategoriesTable.tsx  KitchenBoard.tsx
-│  └─ StoreSettingsForm.tsx  TaxSettingsForm.tsx
+│  ├─ StoreSettingsForm.tsx  TaxSettingsForm.tsx  QrSmartMenuDp.tsx
 └─ lib/  (staff-context.ts, supabase-admin.ts, dashboard-today.ts, authorization.ts, *-actions.ts)
 ```
 
