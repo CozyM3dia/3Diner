@@ -90,6 +90,7 @@ bisa diambil dengan `re.findall(r'href="([a-z0-9-]+\.html)"', html)` dari halama
 | § | Halaman | Route | Status |
 |---|---|---|---|
 | — | Shell + Dashboard | `/dashboard-v2` | ✅ |
+| — | POS (full) | `/dashboard-v2/pos` | ✅ katalog+keranjang+varian+commit+tunai/QRIS+struk |
 | — | Orders | `/dashboard-v2/pesanan` | ✅ |
 | 6.1 | Items | `/dashboard-v2/items` | ✅ |
 | 6.2 | Categories | `/dashboard-v2/kategori` | ✅ |
@@ -176,17 +177,14 @@ App/src/
 │        ├─ page.tsx                → <StoreSettingsForm>  (updateCafeSettings)
 │        ├─ pajak/page.tsx          → <TaxSettingsForm>    (saveTax → RPC set_cafe_tax)
 │        ├─ qr/page.tsx             → <QrSmartMenuDp>      (QR menu publik dari Cafes.slug_url)
-│        ├─ staf/page.tsx           ← tabel Staff, read-only, tanpa komponen klien
-│        └─ peran/page.tsx          ← matriks dari PERMISSIONS, read-only
-├─ components/dp/
-│  ├─ Shell.tsx                     ← sidebar 2 kolom BERTAB (pola two-col sidebar template):
-│  │                                   rail ikon = tombol tab pengelompokan (Menu Utama/Operasional/
-│  │                                   Katalog/Pengaturan) yang mengganti isi panel label;
-│  │                                   grup aktif ikut halaman (pencocokan terpanjang), klik manual
-│  │                                   di-reset saat pindah rute. NAV di NAV_GRUP.
-│  ├─ OrdersBoard.tsx  ItemsGrid.tsx  CategoriesTable.tsx  KitchenBoard.tsx
-│  ├─ StoreSettingsForm.tsx  TaxSettingsForm.tsx  QrSmartMenuDp.tsx  AddonsTable.tsx  StaffManager.tsx
-└─ lib/  (staff-context.ts, supabase-admin.ts, dashboard-today.ts, authorization.ts, staff-actions.ts, addon-actions.ts, *-actions.ts)
+│        ├─ staf/page.tsx           → <StaffManager>       (tambah/nonaktif/aktifkan staf)
+│        └─ peran/page.tsx          → <PermissionsMatrix>  (override runtime Role_Permissions)
+│     └─ pos/page.tsx               → <PosBoard>           (POS full: quote/commit RPC, tunai, QRIS)
+├─ components/
+│  ├─ dp/ (Shell, OrdersBoard, ItemsGrid, CategoriesTable, KitchenBoard,
+│  │        StoreSettingsForm, TaxSettingsForm, QrSmartMenuDp, AddonsTable,
+│  │        StaffManager, PermissionsMatrix)
+│  └─ pos/PosBoard.tsx              ← POS lengkap (katalog, keranjang, opsi, bayar)
 ```
 
 **Pola halaman baru:** `page.tsx` server → gate auth → query `supabaseAdmin` (kolom persis §5)

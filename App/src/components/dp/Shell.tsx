@@ -56,7 +56,7 @@ const NAV_GRUP: NavGroup[] = [
     title: "Operasional",
     icon: ClipboardListIcon,
     items: [
-      { label: "POS", href: "/kasir", icon: MonitorIcon },
+      { label: "POS", href: "/dashboard-v2/pos", icon: MonitorIcon },
       { label: "Orders", href: "/dashboard-v2/pesanan", icon: ClipboardListIcon },
       { label: "Kitchen (KDS)", href: "/dashboard-v2/dapur", icon: CookingPotIcon },
       { label: "Reservation", icon: CalendarDaysIcon, soon: true },
