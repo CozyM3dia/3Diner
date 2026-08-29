@@ -90,7 +90,7 @@ bisa diambil dengan `re.findall(r'href="([a-z0-9-]+\.html)"', html)` dari halama
 | § | Halaman | Route | Status |
 |---|---|---|---|
 | — | Shell + Dashboard | `/dashboard-v2` | ✅ |
-| — | POS (full) | `/dashboard-v2/pos` | ✅ katalog+keranjang+varian+commit+tunai/QRIS+struk |
+| — | POS (full) | `/dashboard-v2/pos` | ✅ katalog+keranjang+varian+commit+tunai/QRIS+struk; modal Item Details (tambah item ke order aktif); panel bawah CTA+6 tombol |
 | — | Orders | `/dashboard-v2/pesanan` | ✅ |
 | 6.1 | Items | `/dashboard-v2/items` | ✅ |
 | 6.2 | Categories | `/dashboard-v2/kategori` | ✅ |
