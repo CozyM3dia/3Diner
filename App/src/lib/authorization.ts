@@ -12,7 +12,10 @@ export class AuthorizationError extends Error {
   }
 }
 
-const PERMISSIONS: Record<StaffPermission, StaffRole[]> = {
+/** Peta wewenang per peran. Diekspor supaya halaman Roles & Permissions
+ *  menampilkan aturan yang BENAR-BENAR ditegakkan di sini, bukan salinan yang
+ *  bisa menyimpang diam-diam. */
+export const PERMISSIONS: Record<StaffPermission, StaffRole[]> = {
   operate_orders: ["owner", "cashier"],
   manage_menu: ["owner"],
   manage_inventory: ["owner"],
