@@ -1,7 +1,10 @@
+import { getEffectivePermissions } from "@/lib/role-permissions";
 import { getStaffContext } from "@/lib/staff-context";
+import { PERMISSIONS, type StaffPermission } from "@/lib/permissions-default";
 import type { StaffRole } from "@/types";
 
-export type StaffPermission = "operate_orders" | "manage_menu" | "manage_inventory" | "manage_settings";
+export { PERMISSIONS };
+export type { StaffPermission };
 
 export class AuthorizationError extends Error {
   readonly code = "FORBIDDEN" as const;
@@ -11,16 +14,6 @@ export class AuthorizationError extends Error {
     this.name = "AuthorizationError";
   }
 }
-
-/** Peta wewenang per peran. Diekspor supaya halaman Roles & Permissions
- *  menampilkan aturan yang BENAR-BENAR ditegakkan di sini, bukan salinan yang
- *  bisa menyimpang diam-diam. */
-export const PERMISSIONS: Record<StaffPermission, StaffRole[]> = {
-  operate_orders: ["owner", "cashier"],
-  manage_menu: ["owner"],
-  manage_inventory: ["owner"],
-  manage_settings: ["owner"],
-};
 
 export interface AuthorizedStaff {
   cafeId: string;
@@ -48,7 +41,12 @@ export async function requireOwnerCafe(): Promise<AuthorizedStaff> {
 
 export async function requireStaffPermission(permission: StaffPermission): Promise<AuthorizedStaff> {
   const staff = await requireActiveStaff();
-  if (!PERMISSIONS[permission].includes(staff.role)) throw new AuthorizationError();
+  // Wewenang EFEKTIF = bawaan kode + override runtime per-kafe
+  // (tabel Role_Permissions, disunting dari halaman Roles & Permissions).
+  const { matrix } = await getEffectivePermissions(staff.cafeId);
+  const cell = matrix[permission];
+  const allowed = staff.role === "owner" ? cell.owner : cell.cashier;
+  if (!allowed) throw new AuthorizationError();
   return staff;
 }
 

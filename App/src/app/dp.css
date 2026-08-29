@@ -457,3 +457,23 @@
   font-size: 13px; background: var(--dp-bg); border-radius: 4px; padding: 4px 8px;
   color: var(--dp-heading);
 }
+
+/* ── Matriks Roles & Permissions yang bisa disunting ── */
+.dp-perm-toggle {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--dp-border); background: var(--dp-surface);
+  color: var(--dp-muted); font-size: 14px; font-weight: 700;
+  display: inline-grid; place-items: center; cursor: pointer;
+}
+.dp-perm-toggle:hover:not(:disabled) { background: var(--dp-bg); color: var(--dp-heading); }
+.dp-perm-toggle:disabled { opacity: .45; cursor: not-allowed; }
+.dp-perm-on {
+  background: #eef9f1; border-color: #14b51d; color: #14b51d;
+}
+.dp-perm-setup { padding: 16px 18px; }
+.dp-perm-sql {
+  margin: 0 0 12px; padding: 12px 14px; overflow-x: auto;
+  background: var(--dp-bg); border: 1px solid var(--dp-border); border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; line-height: 1.5; color: var(--dp-text); white-space: pre;
+}

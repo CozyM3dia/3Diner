@@ -4,6 +4,20 @@ const getStaffContext = vi.fn();
 
 vi.mock("@/lib/staff-context", () => ({ getStaffContext }));
 
+// requireStaffPermission kini membaca matriks efektif (bawaan kode + override
+// per-kafe). Di unit test, matriksnya di-mock sama dengan bawaan kode.
+vi.mock("@/lib/role-permissions", () => ({
+  getEffectivePermissions: vi.fn(async () => ({
+    matrix: {
+      operate_orders: { owner: true, cashier: true, override: false },
+      manage_menu: { owner: true, cashier: false, override: false },
+      manage_inventory: { owner: true, cashier: false, override: false },
+      manage_settings: { owner: true, cashier: false, override: false },
+    },
+    tableMissing: false,
+  })),
+}));
+
 describe("authorization guards", () => {
   beforeEach(() => {
     vi.clearAllMocks();

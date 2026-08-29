@@ -98,7 +98,7 @@ bisa diambil dengan `re.findall(r'href="([a-z0-9-]+\.html)"', html)` dari halama
 | 6.5a | Store Settings | `/dashboard-v2/pengaturan` | ✅ bisa menyimpan |
 | 6.5b | Tax Settings | `/dashboard-v2/pengaturan/pajak` | ✅ bisa menyimpan |
 | 6.5c | Manage Staffs | `/dashboard-v2/pengaturan/staf` | ✅ CRUD: tambah akun+peran, nonaktif/aktifkan |
-| 6.5d | Roles & Permissions | `/dashboard-v2/pengaturan/peran` | ✅ read-only |
+| 6.5d | Roles & Permissions | `/dashboard-v2/pengaturan/peran` | ✅ matriks bisa disunting (override runtime per-kafe) |
 | 6.5e | QR Smart Menu | `/dashboard-v2/pengaturan/qr` | ✅ port dari legacy |
 | 6.6 | Addons | `/dashboard-v2/addons` | ✅ CRUD nyata (Menu_Option_*) — Coupons eksplisit TIDAK dibuat |
 | 6.7 | Lapisan DNA 3Diner | — | ✅ selesai 29 Agu 2026 |
@@ -254,7 +254,10 @@ jalan" — angka di layar dicocokkan dengan isi database; (f) cek read-only:
 aksi mutasi; (g) satu commit per halaman, pesan commit mencatat penyimpangan dari template + alasannya.
 
 **Keseluruhan:** ✅ tercapai — semua item nav tanpa `soon: true` punya halaman hidup.
-Tersisa hanya §6.7 (DNA 3Diner) sebagai PR terpisah.
+Wewenang kini EFEKTIF: bawaan kode (`permissions-default.ts`) + override runtime per-kafe
+(tabel `Role_Permissions`, migrasi 2026-08-29) yang disunting dari halaman Roles &
+Permissions; `requireStaffPermission` membaca hasil gabungannya. Guard: owner tak bisa
+kehilangan `manage_settings`, `manage_settings` untuk Kasir tak bisa diaktifkan dari UI.
 
 ## 11. Referensi
 
