@@ -823,15 +823,39 @@ span.dp-dt-nav { border: 0; background: none; cursor: default; }
 .pos-recent-head h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--dp-heading); }
 .pos-recent-link { font-size: 12px; color: var(--dp-accent-ink); text-decoration: none; font-weight: 600; }
 .pos-recent-link:hover { text-decoration: underline; }
-.pos-recent-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(190px, 1fr); gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.pos-recent-row {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(196px, 1fr); gap: 10px;
+  overflow-x: auto; padding-bottom: 4px;
+  /* Scrollbar tak terlihat: konten di-snap, tepi memudar sebagai petunjuk. */
+  scrollbar-width: none;
+}
+.pos-recent-row::-webkit-scrollbar { display: none; }
+.pos-recent-row {
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 26px), transparent 100%);
+}
+.pos-recent-row > :last-child { margin-right: 8px; }
 .pos-recent-card {
-  display: grid; gap: 2px; border: 1px solid var(--dp-border); border-radius: 6px;
+  display: flex; flex-direction: column; gap: 6px; text-align: left;
+  border: 1px solid var(--dp-border); border-left-width: 3px; border-radius: 6px;
   background: var(--dp-surface); padding: 10px 12px; text-decoration: none;
+  transition: border-color .15s, transform .1s;
 }
 .pos-recent-card:hover { border-color: var(--dp-blue); }
-.pos-recent-id { font-size: 12px; font-weight: 700; color: var(--dp-heading); }
-.pos-recent-meja { font-size: 12px; color: var(--dp-text); }
-.pos-recent-meta { font-size: 11px; color: var(--dp-muted); }
+.pos-recent-card:active { transform: scale(.985); }
+.pos-rc-urgent { border-left-color: #dc2626; }
+.pos-rc-warn { border-left-color: #d97706; }
+.pos-rc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pos-recent-id { font-size: 12px; font-weight: 800; color: var(--dp-heading); letter-spacing: .02em; }
+.pos-rc-mid { display: flex; align-items: center; gap: 6px; color: var(--dp-muted); }
+.pos-recent-meja { font-size: 12px; font-weight: 600; color: var(--dp-text); }
+.pos-rc-qty {
+  margin-left: auto; font-size: 10px; font-weight: 700; color: var(--dp-accent-ink);
+  background: var(--dp-blue-soft); border-radius: 999px; padding: 1px 7px;
+}
+.pos-rc-bot { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.pos-rc-umur { font-size: 11px; color: var(--dp-muted); }
+.pos-rc-late { color: #b91c1c; font-weight: 700; }
+.pos-recent-total { font-size: 13px; font-weight: 800; color: var(--dp-heading); }
 .pos-st { justify-self: start; font-size: 10px; font-weight: 700; border-radius: 999px; padding: 2px 8px; }
 .pos-st-baru { background: var(--dp-blue-soft); color: var(--dp-accent-ink); }
 .pos-st-dapur { background: #fef3c7; color: #92400e; }
@@ -1006,3 +1030,7 @@ html[data-theme="dark"] .dp-kds-code { background: #1a2b47; }
 /* Elemen utilitas putih hardcoded di dp.css */
 html[data-theme="dark"] .dp-switch i::after { background: #c7d5ea; }
 html[data-theme="dark"] .pos-qris img { background: #1a2b47; }
+
+/* RSP — Pengaturan Struk: permukaan mengikuti tema; kertas pratinjau tetap putih */
+html[data-theme="dark"] .rsp-paper { background: #fff; }
+html[data-theme="dark"] .rsp-preview { background: #fff; }

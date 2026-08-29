@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  BikeIcon,
   CalculatorIcon,
   FileTextIcon,
   FilesIcon,
@@ -59,6 +60,8 @@ export type PosRecent = {
   status: OrderStatus;
   paymentStatus: string;
   createdAt: string;
+  menuCount: number;
+  itemCount: number;
 };
 
 export interface PosQuote {
@@ -125,11 +128,29 @@ function umurMenit(iso: string): number {
   return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
 }
 
+/** Nomor order tampilan: 6 hex pertama UUID -> desimal 5 digit.
+ *  Memotong UUID mentah (#ec704) persis seperti kode warna CSS. */
+function nomorOrder(id: string): string {
+  const n = parseInt(id.replace(/-/g, "").slice(0, 6), 16) % 100000;
+  return `#${String(n).padStart(5, "0")}`;
+}
+
+/** Umur terformat manusiawi: "baru saja", "12 mnt", "1 j 51 mnt". */
+function umurLabel(iso: string): string {
+  const m = umurMenit(iso);
+  if (m < 1) return "baru saja";
+  if (m < 60) return `${m} mnt`;
+  const j = Math.floor(m / 60);
+  const sisa = m % 60;
+  return sisa ? `${j} j ${sisa} mnt` : `${j} j`;
+}
+
 export default function PosBoard({
   cafeId,
   cafeName,
   cafeAddress,
   taxConfigured,
+  receiptSettings,
   staffName,
   menus,
   optionGroups,
@@ -140,6 +161,8 @@ export default function PosBoard({
   cafeName: string;
   cafeAddress: string | null;
   taxConfigured: boolean;
+  /** Preferensi Pengaturan Struk — diteruskan apa adanya ke builder. */
+  receiptSettings?: Record<string, unknown> | null;
   staffName: string;
   menus: PosMenu[];
   optionGroups: PosMenuOption[];
@@ -372,7 +395,13 @@ export default function PosBoard({
           created_at: new Date().toISOString(),
           notes: note.trim() || null,
         },
-        { name: cafeName, address: cafeAddress, taxConfigured },
+        {
+          name: cafeName,
+          address: cafeAddress,
+          taxConfigured,
+          cashierName: staffName,
+          receipt: receiptSettings ?? null,
+        },
       ),
     );
     void token;
@@ -441,26 +470,42 @@ export default function PosBoard({
               </Link>
             </div>
             <div className="pos-recent-row">
-              {recent.map(o => (
-                <button
-                  key={o.id}
-                  type="button"
-                  className="pos-recent-card"
-                  title={`Buka Item Details: ${o.id.slice(0, 6)}`}
-                  onClick={() => setRecentFor(o)}
-                >
-                  <span className="pos-recent-id">#{o.id.slice(0, 5)}</span>
-                  <span className="pos-recent-meja">
-                    {/^(Bungkus|Delivery)$/i.test(o.table) ? o.table : `Meja ${o.table}`}
-                  </span>
-                  <span className="pos-recent-meta">
-                    {umurMenit(o.createdAt)} mnt · {rupiah(o.total)}
-                  </span>
-                  <span className={`pos-st ${STATUS_CLASS[o.status] ?? ""}`}>
-                    {STATUS_LABEL[o.status] ?? o.status}
-                  </span>
-                </button>
-              ))}
+              {recent.map(o => {
+                const umur = umurMenit(o.createdAt);
+                // Umur panjang = tekanan operasional: tepi kartu menyala.
+                const urgency =
+                  umur >= 60 ? " pos-rc-urgent" : umur >= 30 ? " pos-rc-warn" : "";
+                const layanan = /^(Bungkus)$/i.test(o.table)
+                  ? { icon: ShoppingBagIcon, label: "Bungkus" }
+                  : { icon: BikeIcon, label: `Meja ${o.table}` };
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    className={`pos-recent-card${urgency}`}
+                    title={`Buka Item Details: ${nomorOrder(o.id)}`}
+                    onClick={() => setRecentFor(o)}
+                  >
+                    <span className="pos-rc-top">
+                      <span className="pos-recent-id">{nomorOrder(o.id)}</span>
+                      <span className={`pos-st ${STATUS_CLASS[o.status] ?? ""}`}>
+                        {STATUS_LABEL[o.status] ?? o.status}
+                      </span>
+                    </span>
+                    <span className="pos-rc-mid">
+                      <layanan.icon className="h-3.5 w-3.5" />
+                      <span className="pos-recent-meja">{layanan.label}</span>
+                      <span className="pos-rc-qty">{o.itemCount} item</span>
+                    </span>
+                    <span className="pos-rc-bot">
+                      <span className={`pos-rc-umur${umur >= 60 ? " pos-rc-late" : ""}`}>
+                        {umurLabel(o.createdAt)}
+                      </span>
+                      <b className="pos-recent-total">{rupiah(o.total)}</b>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </section>
         )}

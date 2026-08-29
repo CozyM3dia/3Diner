@@ -44,12 +44,12 @@ export default async function PosPage() {
       .limit(200),
     supabaseAdmin
       .from("Cafes")
-      .select("nama_cafe,alamat_cafe,tax_configured_at")
+      .select("nama_cafe,alamat_cafe,tax_configured_at,receipt_settings,logo_url")
       .eq("id_cafe", cafeId)
       .single(),
     supabaseAdmin
       .from("Orders")
-      .select("id_order,table_number,total,status,payment_status,created_at")
+      .select("id_order,table_number,total,status,payment_status,created_at,items")
       .eq("cafe_id", cafeId)
       .not("status", "in", "(completed,cancelled)")
       .gte("created_at", since)
@@ -106,7 +106,7 @@ export default async function PosPage() {
 
   const recent: PosRecent[] = ((recentRes.data ?? []) as unknown as Array<{
     id_order: string; table_number: string; total: number; status: PosRecent["status"];
-    payment_status: string; created_at: string;
+    payment_status: string; created_at: string; items: Array<{ qty?: number }> | null;
   }>).map(o => ({
     id: o.id_order,
     table: o.table_number,
@@ -114,6 +114,8 @@ export default async function PosPage() {
     status: o.status,
     paymentStatus: o.payment_status,
     createdAt: o.created_at,
+    menuCount: (o.items ?? []).length,
+    itemCount: (o.items ?? []).reduce((s, it) => s + (it.qty ?? 1), 0),
   }));
 
   return (
@@ -122,6 +124,7 @@ export default async function PosPage() {
       cafeName={cafe?.nama_cafe ?? "Kafe"}
       cafeAddress={cafe?.alamat_cafe ?? null}
       taxConfigured={Boolean(cafe?.tax_configured_at)}
+      receiptSettings={(cafe?.receipt_settings as Record<string, unknown> | null) ?? null}
       staffName={ctx.full_name ?? "Kasir"}
       menus={menus}
       optionGroups={optionGroups}
