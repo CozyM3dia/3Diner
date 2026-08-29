@@ -48,8 +48,13 @@ Baseline kualitas: `npx tsc --noEmit` ✓ · `npx eslint src/... --max-warnings 
 
 | Tabel | Kolom yang dipakai |
 |---|---|
-| `Orders` | `id_order` (string, token panjang → tampil `#` + 5 char akhir), `total` (number), `status` (`awaiting` \| `ready` \| `preparing` \| `on_delivery` \| `completed` \| `cancelled`), `payment_status` (`paid` \| lainnya), `table_number` (string \| null), `items` (**JSONB array**: `{ id_menu?, nama_menu?, harga_menu?, qty? }`), `created_at` (ISO), `cafe_id` |
-| `Menus` | `id_menu`, `nama_menu`, `harga_menu`, `image_url` (URL storage, bisa null), `category` (**teks langsung**, mis. "Main Course", "Pastry", "Minuman"), `cafe_id` |
+| `Orders` | `id_order` (string, token panjang → tampil `#` + 5 char akhir), `total` (number), `status`, `payment_status`, `table_number` (string \| null), `items` (**JSONB array**: `{ id_menu?, nama_menu?, harga_menu?, qty? }`), `created_at` (ISO), `cafe_id`, plus `completed_at`, `cancelled_at`, `subtotal`, `tax_amount`, `service_amount`, `payment_method` |
+| `Menus` | `id_menu`, `nama_menu`, `harga_menu`, `image_url` (URL storage, bisa null), `category` (**teks langsung**, default `'Lainnya'`), `is_active` (bool, default true — `!== false` = tayang), `created_at`, `cafe_id`, plus `description_menu`, `prep_time_minutes`, `discount_pct`, `sort_order`, `schedule_*` |
+
+**Koreksi enum (diverifikasi lewat check constraint Postgres, 29 Agu 2026):**
+- `Orders.status` = `awaiting` \| `received` \| `preparing` \| `ready` \| `completed` \| `cancelled`. Draf sebelumnya menulis `on_delivery` — **kolom itu tidak ada di constraint**, dan `received` (default) sempat terlewat.
+- `Orders.payment_status` = `unpaid` \| `awaiting_payment` \| `awaiting_checkin` \| `pending` \| `paid`.
+- Tabel di database: `Cafes, Menus, Orders, Order_Quotes, Order_Idempotency_Keys, Order_Reservations, Inventory_Items, Inventory_Movements, Menu_Recipes, Menu_Option_Groups, Menu_Option_Values, Menu_Option_Recipes, Staff, Announcements, Analytics_Logs, Rate_Limits`. **Tidak ada tabel Categories maupun tabel reservasi meja** — `Order_Reservations` itu hold stok, bukan booking meja (lihat §6.4). `Staff` ADA (kolom `full_name`, `role` = `owner`\|`cashier`, `is_active`) → §6.5 Manage Staffs bisa read-only nyata.
 
 - Kategori = agregasi dari teks `Menus.category` (donut di Dashboard dari sini). Tidak ada relasi FK.
 - Waktu "hari ini" pakai helper `startOfTodayWIB()` dari `src/lib/dashboard-today.ts` (WIB, bukan UTC).
@@ -68,14 +73,16 @@ Sebanyak mungkin spesifikasi visual diambil langsung dari template live:
 Penyesuaian data nyata: titik Veg/Non-Veg template → **Live/Offline dari `Menus.is_active`** (`is_active !== false` = tayang). Kebab template berisi Edit/Delete/Hide; hanya **Edit** ditampilkan karena hanya itu yang punya implementasi nyata → `/dashboard/menu/[id]/edit`. "Add New" → `/dashboard/menu/new`. Search menyaring `nama_menu` + `category`. Pager 12/halaman.
 File: `src/app/dashboard-v2/items/page.tsx` (server) + `src/components/dp/ItemsGrid.tsx` (client) + blok CSS Items di `dp.css`. Sekalian ditambahkan `.dp-page-head` yang selama ini dipakai halaman Pesanan tapi tidak pernah didefinisikan.
 
-### 6.2 Categories (`/dashboard-v2/kategori`)
-Template `categories.html`: tabel kartu (nama kategori dari distinct `Menus.category`, jumlah item, foto pertama item sebagai thumbnail). Read-only dulu.
+### 6.2 Categories (`/dashboard-v2/kategori`) — ✅ SELESAI (29 Agu 2026)
+Template `categories.html`: kartu berisi toolbar (search kiri, kontrol kanan) + tabel `Category / No of Items / Created On / Status / Actions`. Ukuran template: sel `0.75rem 1rem` warna body, `thead th` 13px warna dark, avatar 2rem rounded, badge 13px/500 pad `2px 8px` radius 6 (soft-success `#14B51D`/`#EEF9F1`, soft-danger `#FF3636`/`#FFF0ED`).
+Agregasi dari `Menus.category` (tak ada tabel Categories): thumbnail = foto item pertama, jumlah item, `Menu Pertama` = `Menus.created_at` terlama, Status = berapa item `is_active`. Export/Filter/Column template DILEWATI (tak ada implementasi nyata); Sort by dipertahankan dan berfungsi. Actions template (edit/hapus kategori) diganti tautan nyata ke `/dashboard-v2/items?q=<kategori>` — halaman Items kini menerima `?q=`.
+File: `src/app/dashboard-v2/kategori/page.tsx` + `src/components/dp/CategoriesTable.tsx`.
 
 ### 6.3 Kitchen KDS (`/dashboard-v2/dapur`) — read-only
 Template `kitchen.html`: kolom per status (Requested/Preparing/Done ala template → pakai `awaiting`/`preparing`/`ready`), kartu item + qty + waktu berjalan. **Read-only murni** (mutasi tetap di Kasir) — tampilkan, jangan beri tombol.
 
 ### 6.4 Reservation (`/dashboard-v2/reservasi`)
-Cek dulu apakah ada tabel reservasi di Supabase (probe schema). Kalau belum ada → halaman empty-state nyata ("Belum ada data reservasi") gaya template, tanpa data karangan.
+**Sudah diprobe (29 Agu 2026): tidak ada tabel reservasi meja.** `Order_Reservations` adalah hold stok inventaris (kolom `inventory_item_id`, `reserved_qty`, `expires_at`), bukan booking meja — jangan dipakai sebagai sumber data reservasi. Jadi: halaman empty-state nyata gaya template, atau biarkan `soon: true`.
 
 ### 6.5 Settings (`/dashboard-v2/pengaturan`)
 Gabungan Store Settings / Roles / Staffs dari template. Pajak: pakai `saveTax` dari `src/lib/tax-actions.ts` (sudah ada, form existing bisa diport ke gaya dp). Roles & staff: read-only dulu kecuali data sudah ada.
