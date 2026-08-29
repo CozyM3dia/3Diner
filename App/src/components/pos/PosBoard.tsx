@@ -4,7 +4,6 @@ import { useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  BikeIcon,
   MinusIcon,
   PlusIcon,
   PrinterIcon,
@@ -23,7 +22,7 @@ import type { OrderItem, OrderStatus, SelectedOption } from "@/types";
  *  (subtotal/pajak/service dari server) -> commit (kirim dapur / simpan draf)
  *  -> tunai (mark_order_cash_paid) / QRIS (charge) -> struk / batal.
  *
- *  Tipe pesanan (Dine In/Take Away/Delivery) menentukan isi kolom
+ *  Tipe pesanan (Dine In/Take Away) menentukan isi kolom
  *  table_number yang dikirim ke server — bukan hiasan. */
 
 export type PosMenu = {
@@ -82,7 +81,7 @@ type Line = {
   note: string;
 };
 
-type OrderType = "dine" | "takeaway" | "delivery";
+type OrderType = "dine" | "takeaway";
 
 const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 
@@ -169,11 +168,9 @@ export default function PosBoard({
   const activeGroups = optFor ? optionGroups.filter(g => g.menuId === optFor.id) : [];
   const lineCount = lines.reduce((s, l) => s + l.qty, 0);
 
-  /** Nilai table_number yang dikirim: tipe non-dine memakai label tetap. */
-  const tableValue =
-    orderType === "dine" ? table.trim() : orderType === "takeaway" ? "Bungkus" : "Delivery";
-  const tableLabel =
-    orderType === "dine" ? table.trim() || "-" : orderType === "takeaway" ? "Bungkus" : "Delivery";
+  /** Nilai table_number yang dikirim: takeaway memakai label tetap. */
+  const tableValue = orderType === "dine" ? table.trim() : "Bungkus";
+  const tableLabel = orderType === "dine" ? table.trim() || "-" : "Bungkus";
 
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -500,7 +497,14 @@ export default function PosBoard({
                   <button key={m.id} type="button" className="pos-card" onClick={() => openOptions(m)}>
                     <span className="pos-card-img">
                       {m.imageUrl ? (
-                        <Image src={m.imageUrl} alt="" width={320} height={200} />
+                        <Image
+                          src={m.imageUrl}
+                          alt=""
+                          width={320}
+                          height={200}
+                          sizes="(max-width: 1024px) 45vw, 220px"
+                          loading="eager"
+                        />
                       ) : (
                         <span className="pos-card-img-empty" aria-hidden />
                       )}
@@ -554,15 +558,6 @@ export default function PosBoard({
           >
             <ShoppingBagIcon className="h-3.5 w-3.5" /> Take Away
           </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={orderType === "delivery"}
-            className={`pos-otype-btn${orderType === "delivery" ? " pos-otype-on" : ""}`}
-            onClick={() => setOrderType("delivery")}
-          >
-            <BikeIcon className="h-3.5 w-3.5" /> Delivery
-          </button>
         </div>
 
         {orderType === "dine" ? (
@@ -602,7 +597,14 @@ export default function PosBoard({
                   <div className="pos-line-main">
                     <span className="pos-line-thumb">
                       {l.menu.imageUrl ? (
-                        <Image src={l.menu.imageUrl} alt="" width={56} height={56} />
+                        <Image
+                          src={l.menu.imageUrl}
+                          alt=""
+                          width={56}
+                          height={56}
+                          sizes="56px"
+                          loading="eager"
+                        />
                       ) : (
                         <span className="pos-line-thumb-empty" aria-hidden />
                       )}
