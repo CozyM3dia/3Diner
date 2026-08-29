@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { EllipsisVerticalIcon, ImageOffIcon, PencilLineIcon, SearchIcon } from "lucide-react";
+import { EllipsisVerticalIcon, ImageOffIcon, PencilLineIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { useMenuEdit } from "@/components/dp/MenuEditorHost";
 
 /** Grid Items ala Dream POS `items.html`: header (judul + search + Add New),
  *  kartu produk 4 kolom (foto, nama, harga, penanda titik status), pager.
@@ -37,6 +37,7 @@ export default function ItemsGrid({
   const [q, setQ] = useState(initialQuery);
   const [page, setPage] = useState(0);
   const [openId, setOpenId] = useState<string | null>(null);
+  const { openCreate, openEdit } = useMenuEdit();
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -69,9 +70,9 @@ export default function ItemsGrid({
             />
             <SearchIcon className="h-4 w-4" />
           </label>
-          <Link href="/dashboard-v2/menu/new" className="dp-add-btn">
-            + Add New
-          </Link>
+          <button type="button" className="dp-add-btn" onClick={openCreate}>
+            <PlusIcon className="h-4 w-4" /> Add New
+          </button>
         </div>
       </div>
 
@@ -110,15 +111,17 @@ export default function ItemsGrid({
                 </button>
                 {openId === it.id_menu && (
                   <div className="dp-food-drop">
-                    <Link href={`/dashboard-v2/menu/${it.id_menu}/edit`} className="dp-food-drop-item">
+                    <button type="button" className="dp-food-drop-item" onClick={() => openEdit(it.id_menu)}>
                       <PencilLineIcon className="h-4 w-4" />
                       Edit Item
-                    </Link>
+                    </button>
                   </div>
                 )}
               </div>
               <h2 className="dp-food-name">
-                <Link href={`/dashboard-v2/menu/${it.id_menu}/edit`}>{it.nama_menu}</Link>
+                <button type="button" className="dp-food-name-btn" onClick={() => openEdit(it.id_menu)}>
+                  {it.nama_menu}
+                </button>
               </h2>
               <div className="dp-food-foot">
                 <span className="dp-food-price">{rupiah(it.harga_menu ?? 0)}</span>

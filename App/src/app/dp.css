@@ -812,6 +812,56 @@ span.dp-dt-nav { border: 0; background: none; cursor: default; }
   .dp-dt-calwrap { grid-template-columns: 1fr; }
 }
 
+/* ── Drawer editor menu (floating, pola modal Edit Item Dream POS) ── */
+.dp-mdrawer-root { position: fixed; inset: 0; z-index: 80; }
+.dp-mdrawer-backdrop {
+  position: absolute; inset: 0; background: rgba(2, 44, 96, .38); backdrop-filter: blur(2px);
+  animation: dp-fade .18s ease-out;
+}
+.dp-mdrawer {
+  position: absolute; top: 0; right: 0; bottom: 0; width: min(520px, 94vw);
+  background: var(--dp-bg); border-left: 1px solid var(--dp-border);
+  box-shadow: -24px 0 60px rgba(2, 44, 96, .18);
+  display: flex; flex-direction: column; overflow: hidden;
+  animation: dp-slide-in .22s cubic-bezier(.16, 1, .3, 1);
+}
+@keyframes dp-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dp-slide-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .dp-mdrawer-backdrop, .dp-mdrawer { animation: none; }
+}
+.dp-mdrawer-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  background: var(--dp-surface); border-bottom: 1px solid var(--dp-border); padding: 16px 20px;
+}
+.dp-mdrawer-title { margin: 0; font-size: 17px; font-weight: 800; color: var(--dp-heading); }
+.dp-mdrawer-sub { margin: 2px 0 0; font-size: 12px; color: var(--dp-muted); }
+.dp-mdrawer-x {
+  width: 30px; height: 30px; border-radius: 999px; border: 1px solid var(--dp-border);
+  background: var(--dp-surface); color: var(--dp-text); cursor: pointer;
+  display: grid; place-items: center; flex: none;
+}
+.dp-mdrawer-x:hover { background: var(--dp-bg); color: var(--dp-heading); }
+.dp-mdrawer-body { flex: 1; overflow-y: auto; padding: 16px 20px 20px; }
+.dp-mdrawer-status {
+  display: flex; align-items: center; gap: 8px; color: var(--dp-muted);
+  font-size: 13px; padding: 24px 4px;
+}
+/* Kartu form di dalam drawer: putih di atas bg abu drawer. */
+.dp-mdrawer .dp-menuf-foot { border-radius: 6px; }
+
+/* Nama menu pada kartu Items jadi tombol pembuka drawer */
+.dp-food-name-btn {
+  border: 0; background: none; padding: 0; text-align: left; cursor: pointer;
+  font: inherit; color: inherit; width: 100%;
+}
+.dp-food-name-btn:hover { color: var(--dp-accent-ink); }
+.dp-food-drop button.dp-food-drop-item { width: 100%; border: 0; background: none; font: inherit; }
+
+@media (max-width: 640px) {
+  .dp-mdrawer { width: 100vw; }
+}
+
 @media (max-width: 1024px) {
   .pos-root { grid-template-columns: 1fr; }
   .pos-cart { position: static; max-height: none; }

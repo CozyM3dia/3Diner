@@ -116,3 +116,58 @@ function revalidateAll() {
   revalidatePath("/dashboard-v2", "layout");
   revalidatePath("/", "layout");
 }
+
+/** Data awal untuk editor floating (dipanggil Items saat membuka panel edit):
+ *  satu query menu + daftar kategori unik kafe. Null bila menu bukan milik
+ *  kafe ini. */
+export async function getMenuEditorData(id: string): Promise<{
+  error?: string;
+  values?: Partial<MenuFormValues>;
+  imageUrl?: string | null;
+  categories?: string[];
+}> {
+  let cafeId: string;
+  try {
+    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+  } catch {
+    return { error: "Sesi tidak berlaku. Masuk ulang." };
+  }
+
+  const [menuRes, catRes] = await Promise.all([
+    supabaseAdmin
+      .from("Menus")
+      .select(
+        "id_menu,nama_menu,harga_menu,discount_pct,description_menu,category,image_url,prep_time_minutes,calories,ingredients"
+      )
+      .eq("id_menu", id)
+      .eq("cafe_id", cafeId)
+      .maybeSingle(),
+    supabaseAdmin.from("Menus").select("category").eq("cafe_id", cafeId),
+  ]);
+  if (menuRes.error) return { error: menuRes.error.message };
+  if (!menuRes.data) return { error: "Menu tidak ditemukan." };
+
+  const m = menuRes.data as {
+    nama_menu: string | null; harga_menu: number | null; discount_pct: number | null;
+    description_menu: string | null; category: string | null; image_url: string | null;
+    prep_time_minutes: number | null; calories: number | null; ingredients: string | null;
+  };
+  const categories = Array.from(
+    new Set((catRes.data ?? []).map(r => (r.category ?? "").trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b, "id"));
+
+  return {
+    values: {
+      nama_menu: m.nama_menu ?? "",
+      deskripsi: m.description_menu ?? "",
+      category: m.category ?? "",
+      harga_menu: m.harga_menu ?? 0,
+      discount_pct: m.discount_pct ?? null,
+      serve_time_minutes: m.prep_time_minutes ?? null,
+      calories: m.calories ?? null,
+      ingredients: m.ingredients ?? "",
+    },
+    imageUrl: m.image_url,
+    categories,
+  };
+}
