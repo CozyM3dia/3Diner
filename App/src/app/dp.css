@@ -18,6 +18,7 @@
   --dp-accent-ink: #c2410c; /* orange gelap utk teks kecil di atas putih/tint (kontras) */
   --dp-green: #22c55e;
   --dp-red: #ff3636;
+  --dp-series-2: #022c60;  /* seri data ke-2: navy (donut dsb) */
   --dp-rail-w: 62px;
   --dp-menu-w: 214px;
 }
@@ -728,6 +729,84 @@
 }
 .dp-profile-logout:hover { background: var(--dp-border); }
 
+/* ── Date range picker dashboard ── */
+.dp-rangebar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.dp-range-note { font-size: 12px; color: var(--dp-muted); }
+.dp-dt { position: relative; }
+.dp-dt-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px;
+  border: 1px solid var(--dp-border); border-radius: 6px; background: var(--dp-surface);
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--dp-heading); cursor: pointer;
+}
+.dp-dt-btn:hover { background: var(--dp-bg); }
+.dp-dt-panel {
+  position: absolute; left: 0; top: calc(100% + 10px); width: 620px; max-width: calc(100vw - 40px);
+  background: var(--dp-surface); border: 1px solid var(--dp-border); border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(2, 44, 96, .16); z-index: 70; padding: 14px;
+}
+.dp-dt-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.dp-dt-preset {
+  border: 1px solid var(--dp-border); background: var(--dp-surface); border-radius: 999px;
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--dp-text);
+  padding: 5px 13px; cursor: pointer;
+}
+.dp-dt-preset:hover { background: var(--dp-bg); }
+.dp-dt-preset-on { background: var(--dp-heading); border-color: var(--dp-heading); color: #fff; }
+.dp-dt-calwrap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.dp-dt-mhead {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+}
+.dp-dt-mhead b { font-size: 13px; font-weight: 700; color: var(--dp-heading); }
+.dp-dt-nav {
+  width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--dp-border);
+  background: var(--dp-surface); display: grid; place-items: center; cursor: pointer;
+  color: var(--dp-text);
+}
+.dp-dt-nav:hover { background: var(--dp-bg); }
+span.dp-dt-nav { border: 0; background: none; cursor: default; }
+.dp-dt-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.dp-dt-dow {
+  text-align: center; font-size: 10px; font-weight: 700; color: var(--dp-muted);
+  padding: 4px 0; text-transform: uppercase;
+}
+.dp-dt-day {
+  position: relative; aspect-ratio: 1 / 1; border: 0; border-radius: 6px; background: none;
+  font: inherit; font-size: 12px; color: var(--dp-text); cursor: pointer;
+}
+.dp-dt-day:hover { background: var(--dp-bg); }
+.dp-dt-out { color: var(--dp-muted); opacity: .45; }
+.dp-dt-in { background: var(--dp-blue-soft); color: var(--dp-heading); border-radius: 0; }
+.dp-dt-in:hover { background: var(--dp-blue-soft); }
+.dp-dt-edge { background: var(--dp-blue); color: #fff; font-weight: 700; border-radius: 6px; }
+.dp-dt-edge:hover { background: var(--dp-blue); }
+.dp-dt-today::after {
+  content: ""; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
+  width: 4px; height: 4px; border-radius: 50%; background: currentColor;
+}
+.dp-dt-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px solid var(--dp-border); margin-top: 12px; padding-top: 10px;
+}
+.dp-dt-sel { font-size: 12px; font-weight: 700; color: var(--dp-heading); }
+.dp-dt-actions { display: flex; gap: 8px; }
+.dp-dt-clear {
+  display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--dp-border);
+  background: var(--dp-surface); border-radius: 6px; padding: 6px 12px;
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--dp-muted); cursor: pointer;
+}
+.dp-dt-clear:hover { background: var(--dp-bg); }
+.dp-dt-apply {
+  border: 0; background: var(--dp-blue); color: #fff; border-radius: 6px; padding: 6px 16px;
+  font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.dp-dt-apply:hover { filter: brightness(1.05); }
+.dp-dt-apply:disabled { opacity: .6; cursor: default; }
+
+@media (max-width: 760px) {
+  .dp-dt-panel { width: calc(100vw - 32px); }
+  .dp-dt-calwrap { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 1024px) {
   .pos-root { grid-template-columns: 1fr; }
   .pos-cart { position: static; max-height: none; }
@@ -883,10 +962,10 @@ html[data-theme="dark"] {
   --dp-dt-amber-tint: rgba(251, 191, 36, 0.14);
   --dp-dt-amber-ink: #fbbf24;
   --dp-dt-violet-tint: rgba(196, 181, 253, 0.14);
+  --dp-series-2: #4a7bc4;   /* seri ke-2 di dark: biru navy terang, bukan putih */
 }
 
 html[data-theme="dark"] .dp-root { background: var(--dp-bg); }
-html[data-theme="dark"] .dp-logo { background: #1a2b47; border-color: var(--dp-border); }
 html[data-theme="dark"] .dp-search { background: var(--dp-bg); }
 
 /* Shadow diredam: elevasi gelap andalkan border */
@@ -899,6 +978,11 @@ html[data-theme="dark"] .dp-food-modal {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 html[data-theme="dark"] .dp-side-open { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+
+/* Pra-ada tanpa definisi: teks placeholder kartu (kontras benar di kedua tema) */
+.dp-muted-note { margin: 0; font-size: 13px; color: var(--dp-muted); }
+html[data-theme="dark"] .dp-init { background: #1a2b47 !important; } /* avatar inisial: override inline navy/putih */
+html[data-theme="dark"] .dp-logo { background-color: #eef4fd; background-image: url("/brand/logo-mark-t.svg"); border-color: transparent; } /* chip terang utk logo navy; JANGAN pakai shorthand `background:` — me-reset background-image */
 
 /* Kartu stats KPI dashboard (hardcoded tint terang) */
 html[data-theme="dark"] .dp-delta-up { color: #4ade80; background: rgba(74, 222, 128, 0.12); }
