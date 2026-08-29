@@ -283,6 +283,7 @@ export async function updateCafeSettings(fd: FormData): Promise<ActionResult> {
   const { error } = await supabaseAdmin.from("Cafes").update(payload).eq("id_cafe", cafeId);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard-v2/pengaturan");
   return {};
 }
 

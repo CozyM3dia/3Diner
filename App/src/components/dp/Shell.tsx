@@ -14,6 +14,7 @@ import {
   MenuIcon,
   MonitorIcon,
   PackageIcon,
+  PercentIcon,
   PuzzleIcon,
   SettingsIcon,
   ShieldCheckIcon,
@@ -45,7 +46,8 @@ const NAV_MAIN: NavItem[] = [
 ];
 
 const NAV_SETTING: NavItem[] = [
-  { label: "Store Settings", icon: SettingsIcon, soon: true },
+  { label: "Store Settings", href: "/dashboard-v2/pengaturan", icon: SettingsIcon },
+  { label: "Tax Settings", href: "/dashboard-v2/pengaturan/pajak", icon: PercentIcon },
   { label: "Roles & Permissions", icon: ShieldCheckIcon, soon: true },
   { label: "Manage Staffs", icon: UsersIcon, soon: true },
 ];
@@ -86,8 +88,15 @@ export default function DpShell({
     };
   }, [open]);
 
-  const isActive = (item: NavItem) =>
-    !!item.href && (item.href === "/dashboard-v2" ? pathname === item.href : pathname.startsWith(item.href));
+  // Rute bersarang (`/pengaturan` vs `/pengaturan/pajak`) membuat startsWith
+  // menyalakan dua item sekaligus. Yang menyala adalah pencocokan TERPANJANG.
+  const cocok = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const hrefTerpanjang = [...NAV_MAIN, ...NAV_SETTING]
+    .map(i => i.href)
+    .filter((h): h is Route => !!h && cocok(h))
+    .sort((a, b) => b.length - a.length)[0];
+
+  const isActive = (item: NavItem) => !!item.href && item.href === hrefTerpanjang;
 
   const renderItem = (item: NavItem) => {
     const cls = `dp-item${isActive(item) ? " dp-item-on" : ""}${item.soon ? " dp-item-soon" : ""}`;
