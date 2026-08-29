@@ -34,22 +34,54 @@ type NavItem = {
   soon?: boolean;
 };
 
-const NAV_MAIN: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard-v2", icon: LayoutGridIcon },
-  { label: "POS", href: "/kasir", icon: MonitorIcon },
-  { label: "Orders", href: "/dashboard-v2/pesanan", icon: ClipboardListIcon },
-  { label: "Kitchen (KDS)", href: "/dashboard-v2/dapur", icon: CookingPotIcon },
-  { label: "Reservation", icon: CalendarDaysIcon, soon: true },
-  { label: "Categories", href: "/dashboard-v2/kategori", icon: TagsIcon },
-  { label: "Items", href: "/dashboard-v2/items", icon: PackageIcon },
-  { label: "Addons", icon: PuzzleIcon, soon: true },
-];
+/** Rail ikon = TAB pengelompokan menu (pola two-col sidebar template Dream POS):
+ *  klik ikon di rail mengganti isi panel label. */
+type NavGroup = {
+  key: string;
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: NavItem[];
+};
 
-const NAV_SETTING: NavItem[] = [
-  { label: "Store Settings", href: "/dashboard-v2/pengaturan", icon: SettingsIcon },
-  { label: "Tax Settings", href: "/dashboard-v2/pengaturan/pajak", icon: PercentIcon },
-  { label: "Roles & Permissions", href: "/dashboard-v2/pengaturan/peran", icon: ShieldCheckIcon },
-  { label: "Manage Staffs", href: "/dashboard-v2/pengaturan/staf", icon: UsersIcon },
+const NAV_GRUP: NavGroup[] = [
+  {
+    key: "utama",
+    title: "Menu Utama",
+    icon: LayoutGridIcon,
+    items: [{ label: "Dashboard", href: "/dashboard-v2", icon: LayoutGridIcon }],
+  },
+  {
+    key: "operasional",
+    title: "Operasional",
+    icon: ClipboardListIcon,
+    items: [
+      { label: "POS", href: "/kasir", icon: MonitorIcon },
+      { label: "Orders", href: "/dashboard-v2/pesanan", icon: ClipboardListIcon },
+      { label: "Kitchen (KDS)", href: "/dashboard-v2/dapur", icon: CookingPotIcon },
+      { label: "Reservation", icon: CalendarDaysIcon, soon: true },
+    ],
+  },
+  {
+    key: "katalog",
+    title: "Katalog",
+    icon: PackageIcon,
+    items: [
+      { label: "Categories", href: "/dashboard-v2/kategori", icon: TagsIcon },
+      { label: "Items", href: "/dashboard-v2/items", icon: PackageIcon },
+      { label: "Addons", icon: PuzzleIcon, soon: true },
+    ],
+  },
+  {
+    key: "pengaturan",
+    title: "Pengaturan",
+    icon: SettingsIcon,
+    items: [
+      { label: "Store Settings", href: "/dashboard-v2/pengaturan", icon: SettingsIcon },
+      { label: "Tax Settings", href: "/dashboard-v2/pengaturan/pajak", icon: PercentIcon },
+      { label: "Roles & Permissions", href: "/dashboard-v2/pengaturan/peran", icon: ShieldCheckIcon },
+      { label: "Manage Staffs", href: "/dashboard-v2/pengaturan/staf", icon: UsersIcon },
+    ],
+  },
 ];
 
 export default function DpShell({
@@ -65,13 +97,16 @@ export default function DpShell({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [tabManual, setTabManual] = useState<string | null>(null);
   const sideRef = useRef<HTMLElement>(null);
 
-  // Tutup drawer saat pindah halaman — pola adjust-during-render (bukan effect).
+  // Tutup drawer & kembalikan tab ke grup halaman saat pindah rute
+  // — pola adjust-during-render (bukan effect).
   const [lastPath, setLastPath] = useState(pathname);
   if (pathname !== lastPath) {
     setLastPath(pathname);
     setOpen(false);
+    setTabManual(null);
   }
 
   useEffect(() => {
@@ -90,13 +125,20 @@ export default function DpShell({
 
   // Rute bersarang (`/pengaturan` vs `/pengaturan/pajak`) membuat startsWith
   // menyalakan dua item sekaligus. Yang menyala adalah pencocokan TERPANJANG.
+  const semuaItem = NAV_GRUP.flatMap(g => g.items);
   const cocok = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
-  const hrefTerpanjang = [...NAV_MAIN, ...NAV_SETTING]
+  const hrefTerpanjang = semuaItem
     .map(i => i.href)
     .filter((h): h is Route => !!h && cocok(h))
     .sort((a, b) => b.length - a.length)[0];
 
   const isActive = (item: NavItem) => !!item.href && item.href === hrefTerpanjang;
+
+  // Tab rail aktif = grup yang memuat halaman sekarang, kecuali pengguna
+  // sedang menjelajahi grup lain lewat klik ikon tab di rail.
+  const grupDariPath = NAV_GRUP.find(g => g.items.some(isActive))?.key ?? "utama";
+  const tabAktif = tabManual ?? grupDariPath;
+  const grupTampil = NAV_GRUP.find(g => g.key === tabAktif) ?? NAV_GRUP[0];
 
   const renderItem = (item: NavItem) => {
     const cls = `dp-item${isActive(item) ? " dp-item-on" : ""}${item.soon ? " dp-item-soon" : ""}`;
@@ -124,10 +166,18 @@ export default function DpShell({
       <aside className={`dp-side${open ? " dp-side-open" : ""}`} ref={sideRef}>
         <div className="dp-rail">
           <div className="dp-logo" aria-hidden />
-          {[LayoutGridIcon, MonitorIcon, ClipboardListIcon, CookingPotIcon].map((Icon, i) => (
-            <span key={i} className={`dp-rail-btn${i === 0 && pathname === "/dashboard-v2" ? " dp-rail-on" : ""}`}>
-              <Icon className="h-[17px] w-[17px]" />
-            </span>
+          {NAV_GRUP.map(g => (
+            <button
+              key={g.key}
+              type="button"
+              className={`dp-rail-btn${g.key === tabAktif ? " dp-rail-on" : ""}`}
+              title={g.title}
+              aria-pressed={g.key === tabAktif}
+              aria-label={g.title}
+              onClick={() => setTabManual(g.key)}
+            >
+              <g.icon className="h-[17px] w-[17px]" />
+            </button>
           ))}
           <span className="dp-rail-btn" aria-hidden>
             <BellIcon className="h-[17px] w-[17px]" />
@@ -146,11 +196,8 @@ export default function DpShell({
             <ChevronDownIcon className="h-4 w-4 text-[var(--dp-muted)]" />
           </div>
 
-          <div className="dp-nav-label">Main Menu</div>
-          {NAV_MAIN.map(renderItem)}
-
-          <div className="dp-nav-label">Settings</div>
-          {NAV_SETTING.map(renderItem)}
+          <div className="dp-nav-label">{grupTampil.title}</div>
+          {grupTampil.items.map(renderItem)}
 
           <form action="/api/auth/signout" method="post" className="mt-3">
             <button type="submit" className="dp-item w-full border-0 bg-transparent text-left">

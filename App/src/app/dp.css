@@ -38,7 +38,9 @@
   background-image: url("/brand/logo-mark-t.svg"); background-repeat: no-repeat;
   background-position: center; background-size: 88%; }
 .dp-rail-btn { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center;
-  color: var(--dp-muted); position: relative; }
+  color: var(--dp-muted); position: relative;
+  /* reset <button> (rail kini tab nyata, bukan span dekoratif) */
+  background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
 .dp-rail-btn:hover { background: var(--dp-bg); color: var(--dp-heading); }
 .dp-rail-on { background: var(--dp-blue-soft); color: var(--dp-blue); }
 .dp-rail-dot { position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--dp-red); }

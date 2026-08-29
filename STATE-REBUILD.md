@@ -170,7 +170,11 @@ App/src/
 │        ├─ staf/page.tsx           ← tabel Staff, read-only, tanpa komponen klien
 │        └─ peran/page.tsx          ← matriks dari PERMISSIONS, read-only
 ├─ components/dp/
-│  ├─ Shell.tsx                     ← sidebar 2 kolom + topbar; NAV di NAV_MAIN / NAV_SETTING
+│  ├─ Shell.tsx                     ← sidebar 2 kolom BERTAB (pola two-col sidebar template):
+│  │                                   rail ikon = tombol tab pengelompokan (Menu Utama/Operasional/
+│  │                                   Katalog/Pengaturan) yang mengganti isi panel label;
+│  │                                   grup aktif ikut halaman (pencocokan terpanjang), klik manual
+│  │                                   di-reset saat pindah rute. NAV di NAV_GRUP.
 │  ├─ OrdersBoard.tsx  ItemsGrid.tsx  CategoriesTable.tsx  KitchenBoard.tsx
 │  └─ StoreSettingsForm.tsx  TaxSettingsForm.tsx
 └─ lib/  (staff-context.ts, supabase-admin.ts, dashboard-today.ts, authorization.ts, *-actions.ts)
@@ -183,6 +187,8 @@ butuh komponen klien sama sekali.
 
 **Penanda nav aktif** memakai pencocokan href **terpanjang**, bukan `startsWith` biasa —
 kalau tidak, `/pengaturan` ikut menyala saat berada di `/pengaturan/pajak`.
+Rail ikon adalah **tab** (bukan link): mengganti grup menu di panel label; grup yang
+menyala mengikuti halaman aktif, klik manual pengguna menimpa sampai pindah rute.
 
 **Class dp yang bisa dipakai ulang** (semua sudah ada di `dp.css`):
 `.dp-card` `.dp-card-body` `.dp-page-head` `.dp-page-sub` `.dp-field` `.dp-empty`
