@@ -26,8 +26,15 @@ const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 
 const PAGE_SIZE = 12;
 
-export default function ItemsGrid({ items }: { items: GridItem[] }) {
-  const [q, setQ] = useState("");
+export default function ItemsGrid({
+  items,
+  initialQuery = "",
+}: {
+  items: GridItem[];
+  /** Terisi saat datang dari kartu kategori (`/dashboard-v2/items?q=Pastry`). */
+  initialQuery?: string;
+}) {
+  const [q, setQ] = useState(initialQuery);
   const [page, setPage] = useState(0);
   const [openId, setOpenId] = useState<string | null>(null);
 

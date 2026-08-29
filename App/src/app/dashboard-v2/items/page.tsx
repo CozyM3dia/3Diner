@@ -8,7 +8,8 @@ export const dynamic = "force-dynamic";
 
 /** Halaman Items — recreation `items.html` Dream POS.
  *  Skema nyata: Menus(id_menu, nama_menu, harga_menu, image_url, category, is_active). */
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q } = await searchParams;
   const ctx = await getStaffContext();
   if (!canOpenOwnerConsole(ctx.role)) redirect("/login");
 
@@ -28,5 +29,5 @@ export default async function Page() {
     is_active: m.is_active !== false,
   }));
 
-  return <ItemsGrid items={items} />;
+  return <ItemsGrid items={items} initialQuery={q ?? ""} />;
 }

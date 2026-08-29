@@ -39,7 +39,7 @@ const NAV_MAIN: NavItem[] = [
   { label: "Orders", href: "/dashboard-v2/pesanan", icon: ClipboardListIcon },
   { label: "Kitchen (KDS)", icon: CookingPotIcon, soon: true },
   { label: "Reservation", icon: CalendarDaysIcon, soon: true },
-  { label: "Categories", icon: TagsIcon, soon: true },
+  { label: "Categories", href: "/dashboard-v2/kategori", icon: TagsIcon },
   { label: "Items", href: "/dashboard-v2/items", icon: PackageIcon },
   { label: "Addons", icon: PuzzleIcon, soon: true },
 ];

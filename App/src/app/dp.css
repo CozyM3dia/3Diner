@@ -200,3 +200,40 @@
 @media (max-width: 1200px) { .dp-items-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 900px)  { .dp-items-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px)  { .dp-items-grid { grid-template-columns: 1fr; } }
+
+/* ════════════════════════════════════════════════════════════════════
+   Categories — tabel di dalam kartu (template: categories.html)
+   .table cell 0.75rem 1rem; thead th 13px warna dark; badge 13px/500 radius 6
+   ════════════════════════════════════════════════════════════════════ */
+.dp-table-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; margin-bottom: 24px; }
+.dp-btn-white { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px;
+  border-radius: 6px; border: 1px solid var(--dp-border); background: var(--dp-surface);
+  color: var(--dp-heading); font-size: 13px; font-weight: 500; }
+.dp-btn-white:hover { background: var(--dp-bg); }
+.dp-btn-link { color: var(--dp-text); }
+.dp-btn-link:hover { color: var(--dp-blue); }
+.dp-drop-wrap { position: relative; }
+.dp-drop { position: absolute; top: 40px; right: 0; z-index: 5; min-width: 150px; padding: 6px;
+  background: var(--dp-surface); border: 1px solid var(--dp-border); border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(15,23,42,.12); display: flex; flex-direction: column; }
+.dp-drop-item { text-align: left; padding: 7px 9px; border-radius: 6px; font-size: 13px; color: var(--dp-text); }
+.dp-drop-item:hover { background: var(--dp-bg); color: var(--dp-heading); }
+.dp-drop-item-on { color: var(--dp-blue); font-weight: 600; }
+
+.dp-table-wrap { overflow-x: auto; }
+.dp-table { width: 100%; border-collapse: collapse; background: var(--dp-surface);
+  border: 1px solid var(--dp-border); white-space: nowrap; }
+.dp-table th, .dp-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--dp-border);
+  text-align: left; font-size: 13.5px; color: var(--dp-text); }
+.dp-table thead th { font-size: 13px; color: var(--dp-heading); font-weight: 600; }
+.dp-table tbody tr:last-child td { border-bottom: 0; }
+.dp-cell-cat { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--dp-heading); }
+.dp-avatar-sm { width: 2rem; height: 2rem; border-radius: 50%; overflow: hidden; flex: none;
+  background: var(--dp-bg); color: var(--dp-muted); display: grid; place-items: center; }
+.dp-avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Badge template: badge-soft-success #14B51D/#EEF9F1, soft-danger #FF3636/#FFF0ED */
+.dp-badge { display: inline-block; font-size: 13px; font-weight: 500; padding: 2px 8px; border-radius: 6px; }
+.dp-badge-success { color: #14b51d; background: #eef9f1; }
+.dp-badge-danger { color: #ff3636; background: #fff0ed; }
