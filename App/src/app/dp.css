@@ -297,6 +297,11 @@
 @media (max-width: 1200px) { .dp-kds-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 768px)  { .dp-kds-grid { grid-template-columns: 1fr; } }
 .dp-page-sub { font-size: 13px; color: var(--dp-muted); margin-top: 2px; }
+.dp-back-link {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600;
+  color: var(--dp-muted); text-decoration: none; margin-bottom: 6px;
+}
+.dp-back-link:hover { color: var(--dp-accent-ink); }
 
 /* ════════════════════════════════════════════════════════════════════
    Form (template: store-settings.html / tax-settings.html)

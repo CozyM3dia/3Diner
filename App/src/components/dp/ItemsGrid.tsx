@@ -69,7 +69,7 @@ export default function ItemsGrid({
             />
             <SearchIcon className="h-4 w-4" />
           </label>
-          <Link href="/dashboard/menu/new" className="dp-add-btn">
+          <Link href="/dashboard-v2/menu/new" className="dp-add-btn">
             + Add New
           </Link>
         </div>
@@ -110,7 +110,7 @@ export default function ItemsGrid({
                 </button>
                 {openId === it.id_menu && (
                   <div className="dp-food-drop">
-                    <Link href={`/dashboard/menu/${it.id_menu}/edit`} className="dp-food-drop-item">
+                    <Link href={`/dashboard-v2/menu/${it.id_menu}/edit`} className="dp-food-drop-item">
                       <PencilLineIcon className="h-4 w-4" />
                       Edit Item
                     </Link>
@@ -118,7 +118,7 @@ export default function ItemsGrid({
                 )}
               </div>
               <h2 className="dp-food-name">
-                <Link href={`/dashboard/menu/${it.id_menu}/edit`}>{it.nama_menu}</Link>
+                <Link href={`/dashboard-v2/menu/${it.id_menu}/edit`}>{it.nama_menu}</Link>
               </h2>
               <div className="dp-food-foot">
                 <span className="dp-food-price">{rupiah(it.harga_menu ?? 0)}</span>

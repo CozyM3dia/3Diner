@@ -193,7 +193,6 @@ export default function DpShell({
             <BellIcon className="h-[17px] w-[17px]" />
             <span className="dp-rail-dot" />
           </span>
-          <ProfileMenu userName={userName} role={userRole} initial={userInitial} planLabel="Owner" />
         </div>
 
         <nav className="dp-menu" aria-label="Navigasi utama">
