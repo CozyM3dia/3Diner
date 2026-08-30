@@ -47,9 +47,10 @@ export async function getStaffCafeId(): Promise<string | null> {
  *
  *  Pemilik ikut boleh: di kafe satu orang, pemiliklah kasirnya, dan memaksanya
  *  membuat akun kedua hanya untuk melayani meja adalah pekerjaan yang tidak
- *  menghasilkan apa-apa. */
+ *  menghasilkan apa-apa. `staff` = peran operasional outlet dengan hak
+ *  default setara kasir (dapat diperketat per-kafe dari matriks wewenang). */
 export function canOpenCashierConsole(role: StaffRole | null): boolean {
-  return role === "cashier" || role === "owner";
+  return role === "cashier" || role === "staff" || role === "owner";
 }
 
 /** Boleh membuka papan dapur (KDS). Pemilik ikut boleh — sama seperti kasir,
@@ -58,7 +59,10 @@ export function canOpenKitchenConsole(role: StaffRole | null): boolean {
   return role === "kitchen" || role === "owner";
 }
 
-/** Boleh membuka konsol pemilik. */
+/** Boleh membuka konsol pemilik. Manager masuk di sini juga: lingkup kerjanya
+ *  operasional outlet, laporan, stok, dan approval (Word §4) — dan halaman
+ *  khusus-pemilik (billing, staf, wewenang) tetap digerbangi
+ *  requireStaffPermission("manage_settings") yang default-nya owner-only. */
 export function canOpenOwnerConsole(role: StaffRole | null): boolean {
-  return role === "owner";
+  return role === "owner" || role === "manager";
 }

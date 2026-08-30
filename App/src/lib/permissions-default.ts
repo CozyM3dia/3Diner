@@ -4,6 +4,10 @@ import type { StaffRole } from "@/types";
  *  runtime (hanya tipe) supaya bisa diimpor authorization.ts maupun
  *  role-permissions.ts tanpa membuat ketergantungan melingkar.
  *
+ *  Lima peran mengikuti Word §4. Manager = mata-mata operasional outlet
+ *  (lihat semua, ubah menu & inventaris, tapi TIDAK mengatur toko/staf).
+ *  Staff = operasional outlet, hak default setara kasir.
+ *
  *  Ini nilai default bila kafe tidak punya override di tabel Role_Permissions;
  *  getEffectivePermissions menggabungkannya dengan override runtime per-kafe
  *  yang disunting dari halaman Roles & Permissions. */
@@ -14,8 +18,18 @@ export type StaffPermission =
   | "manage_settings";
 
 export const PERMISSIONS: Record<StaffPermission, StaffRole[]> = {
-  operate_orders: ["owner", "cashier"],
-  manage_menu: ["owner"],
-  manage_inventory: ["owner"],
+  operate_orders: ["owner", "manager", "cashier", "staff"],
+  manage_menu: ["owner", "manager"],
+  manage_inventory: ["owner", "manager"],
   manage_settings: ["owner"],
 };
+
+/** Bawaan matriks Lihat per permission dalam bentuk sel 5-peran —
+ *  dipakai role-permissions.ts untuk menyusun matriks efektif. */
+export function permissionDefaultCell(permission: StaffPermission): Record<StaffRole, boolean> {
+  const out = {} as Record<StaffRole, boolean>;
+  for (const role of Object.keys(PERMISSIONS[permission]) as StaffRole[]) {
+    out[role] = PERMISSIONS[permission].includes(role);
+  }
+  return out;
+}

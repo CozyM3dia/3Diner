@@ -260,7 +260,15 @@ export interface Order {
 
 // ── Staf & peran (memisahkan Konsol Kasir dari Konsol Owner) ──
 
-export const STAFF_ROLES = ['owner', 'cashier', 'kitchen'] as const
+/** Peran & konsol. Lima peran mengikuti Word §4: Owner/Admin, Manager,
+ *  Kasir, Kitchen/Bar, Staff.
+ *
+ *  Pemetaan home (homeRouteForRole): owner & manager masuk konsol pemilik
+ *  (/dashboard-v2), cashier & staff masuk /kasir, kitchen masuk /dapur.
+ *  `staff` dibuat setara kasir secara default karena modul operasional
+ *  outletnya sama — batasan per-orang tetap bisa diperketat dari matriks
+ *  Roles & Permissions (override per-kafe di tabel Role_Permissions). */
+export const STAFF_ROLES = ['owner', 'manager', 'cashier', 'kitchen', 'staff'] as const
 export type StaffRole = (typeof STAFF_ROLES)[number]
 
 export interface Staff {
@@ -294,8 +302,8 @@ export interface StaffContext {
  *  Pemilih peran di layar login adalah pertanyaan yang jawabannya sudah
  *  dimiliki sistem, dan setiap salah pilih jadi tiket dukungan. */
 export function homeRouteForRole(role: StaffRole | null): string | null {
-  if (role === 'owner') return '/dashboard'
-  if (role === 'cashier') return '/kasir'
+  if (role === 'owner' || role === 'manager') return '/dashboard'
+  if (role === 'cashier' || role === 'staff') return '/kasir'
   if (role === 'kitchen') return '/dapur'
   return null
 }

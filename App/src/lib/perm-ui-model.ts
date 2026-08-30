@@ -3,14 +3,15 @@ import type { StaffPermission } from "@/lib/permissions-default";
 /** Model UI matriks Roles & Permissions ala Dream POS (role-permission.html):
  *  kartu daftar peran di kiri + tabel Modul × aksi ber-checkbox di kanan.
  *
- *  Peran mengikuti Business Plan §3 (Owner/Admin, Manager, Cashier,
- *  Kitchen/Bar, Staff). Modul mengikuti modul nyata dashboard 3Diner.
+ *  Peran mengikuti Business Plan §4 (Owner/Admin, Manager, Cashier,
+ *  Kitchen/Bar, Staff) — kini LIMA peran nyata. Modul mengikuti modul
+ *  nyata dashboard 3Diner.
  *
- *  Keterkaitan backend (JANGAN mengarang): hanya sel LIHAT untuk peran
- *  owner & cashier yang tersimpan ke tabel Role_Permissions dan ditegakkan
- *  requireStaffPermission (lihat role-permission-actions.ts). Sel aksi
- *  granular (Tambah/Ubah/Hapus/Ekspor/Setujui) dan 3 peran lain adalah
- *  pratinjau UI — komponen wajib menyampaikan itu dengan jujur. */
+ *  Keterkaitan backend (JANGAN mengarang): sel LIHAT modul ber-permission
+ *  untuk KELIMA peran tersimpan 5 kolom di tabel Role_Permissions dan
+ *  ditegakkan requireStaffPermission. Sel aksi granular (Tambah/Ubah/Hapus/
+ *  Ekspor/Setujui) tetap pratinjau UI — komponen wajib menyampaikan itu
+ *  dengan jujur. Guard anti-kunci-dirinya tetap dijaga server-side. */
 
 export const PERM_ROLES = [
   {

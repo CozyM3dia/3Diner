@@ -24,7 +24,7 @@ import type { StaffPermission } from "@/lib/permissions-default";
  *  bahwa backend granularnya menyusul. Guard anti-kunci-dirinya tetap
  *  dijaga server-side (savePermission). */
 
-export type PermCellUi = { owner: boolean; cashier: boolean; override: boolean };
+export type PermCellUi = Record<UiRoleKey, boolean> & { override: boolean };
 export type MatrixUi = Record<string, PermCellUi>;
 
 const SETUP_SQL = `-- Jalankan di Supabase Dashboard → SQL Editor (sekali)
@@ -45,14 +45,23 @@ alter table public."Role_Permissions" enable row level security;`;
 
 type Msg = { kind: "ok" | "err" | "info"; text: string } | null;
 
-/** Gabungkan nilai server (owner/cashier Lihat) ke matriks pratinjau. */
+/** Sel tersambung backend: Lihat × modul ber-permission — SEMUA peran,
+ *  karena override kini disimpan 5 kolom (owner/manager/cashier/kitchen/staff)
+ *  dan ditegakkan requireStaffPermission. Aksi granular tetap pratinjau. */
+function selTersambung(modKey: string, action: UiActionKey): boolean {
+  const mod = PERM_MODULES.find((m) => m.key === modKey);
+  return Boolean(action === "lihat" && mod?.perm);
+}
+
+/** Gabungkan nilai server (Lihat, semua peran) ke matriks pratinjau. */
 function matriksAwal(server: MatrixUi): PermUiMatrix {
   const m = buildPreviewMatrix();
   for (const mod of PERM_MODULES) {
     if (!mod.perm || !(mod.perm in server)) continue;
     const cell = server[mod.perm];
-    m.owner[mod.key].lihat = cell.owner;
-    m.cashier[mod.key].lihat = cell.cashier;
+    for (const r of PERM_ROLES) {
+      m[r.key][mod.key].lihat = cell[r.key];
+    }
   }
   return m;
 }
@@ -86,16 +95,6 @@ export default function PermissionsMatrix({
 
   const roleInfo = PERM_ROLES.find((r) => r.key === role)!;
 
-  /** Sel tersambung backend = Lihat × (Owner|Kasir) × modul ber-permission. */
-  function selTersambung(modKey: string, r: UiRoleKey, action: UiActionKey) {
-    const mod = PERM_MODULES.find((m) => m.key === modKey);
-    return Boolean(
-      action === "lihat" &&
-        mod?.perm &&
-        (r === "owner" || r === "cashier"),
-    );
-  }
-
   function toggle(modKey: string, action: UiActionKey) {
     const mod = PERM_MODULES.find((m) => m.key === modKey)!;
     const next: PermUiMatrix = {
@@ -105,13 +104,15 @@ export default function PermissionsMatrix({
     setLocal(next);
     setMsg(null);
 
-    if (!selTersambung(modKey, role, action)) return; // pratinjau murni — status muncul saat Simpan
+    if (!selTersambung(modKey, action)) return; // pratinjau murni — status muncul saat Simpan
 
     const perm = mod.perm as StaffPermission;
-    const payload = {
-      owner: next.owner[modKey].lihat,
-      cashier: next.cashier[modKey].lihat,
-    };
+    // Satu klik = satu upsert 5 kolom: sel peran lain diambil dari serverMatrix
+    // (nilai efektif saat ini), supaya baris override tak pernah kehilangan
+    // nilai peran lain. UI lokal diperbarui untuk semua peran.
+    const payload = Object.fromEntries(
+      PERM_ROLES.map((r) => [r.key, next[r.key][modKey].lihat]),
+    ) as Record<UiRoleKey, boolean>;
     startTransition(async () => {
       const res = await savePermission(perm, payload);
       if (res.tableMissing) {
@@ -124,10 +125,7 @@ export default function PermissionsMatrix({
         setLocal(matriksAwal(serverMatrix));
         return;
       }
-      setServerMatrix((s) => ({
-        ...s,
-        [perm]: { owner: payload.owner, cashier: payload.cashier, override: true },
-      }));
+      setServerMatrix((s) => ({ ...s, [perm]: { ...payload, override: true } }));
       setOverrides((o) => ({ ...o, [perm]: true }));
       setMsg({ kind: "ok", text: `Wewenang Lihat ${mod.nama} untuk ${roleInfo.nama} disimpan dan langsung berlaku.` });
     });
@@ -137,7 +135,7 @@ export default function PermissionsMatrix({
     const mod = PERM_MODULES.find((m) => m.key === modKey)!;
     if (!mod.perm) return;
     const perm = mod.perm;
-    const bawaan = defaults[perm] ?? { owner: true, cashier: false };
+    const bawaan = defaults[perm] ?? { owner: true, manager: false, cashier: false, kitchen: false, staff: false, override: false };
     startTransition(async () => {
       const res = await resetPermission(perm);
       if (res.tableMissing) {
@@ -149,12 +147,11 @@ export default function PermissionsMatrix({
         return;
       }
       const next = matriksAwal(serverMatrix);
-      next.owner[modKey].lihat = bawaan.owner;
-      next.cashier[modKey].lihat = bawaan.cashier;
+      for (const r of PERM_ROLES) next[r.key][modKey].lihat = bawaan[r.key];
       setLocal(next);
       setServerMatrix((s) => ({
         ...s,
-        [perm]: { owner: bawaan.owner, cashier: bawaan.cashier, override: false },
+        [perm]: { ...bawaan, override: false },
       }));
       setOverrides((o) => ({ ...o, [perm]: false }));
       setMsg({ kind: "ok", text: `${mod.nama} kembali ke bawaan kode.` });
@@ -174,8 +171,8 @@ export default function PermissionsMatrix({
         const out: MatrixUi = {};
         for (const mod of PERM_MODULES) {
           if (!mod.perm || !(mod.perm in s)) continue;
-          const bawaan = defaults[mod.perm] ?? { owner: true, cashier: false };
-          out[mod.perm] = { owner: bawaan.owner, cashier: bawaan.cashier, override: false };
+          const bawaan = defaults[mod.perm] ?? { owner: true, manager: false, cashier: false, kitchen: false, staff: false, override: false };
+          out[mod.perm] = { ...bawaan, override: false };
         }
         return out;
       });
@@ -190,12 +187,13 @@ export default function PermissionsMatrix({
 
   function simpan() {
     const awal = matriksAwal(serverMatrix);
-    // Sel tersambung (Lihat × Owner/Kasir) sudah tersimpan saat dicentang.
-    // Pratinjau berubah = sel NON-tersambung mana pun yang berbeda dari awal.
+    // Sel tersambung (Lihat × modul ber-permission, semua peran) sudah
+    // tersimpan saat dicentang. Pratinjau berubah = sel NON-tersambung
+    // (aksi granular) mana pun yang berbeda dari awal.
     const pratinjauBerubah = PERM_ROLES.some((r) =>
       PERM_MODULES.some((m) =>
         PERM_ACTIONS.some((a) => {
-          const tersambung = selTersambung(m.key, r.key, a.key);
+          const tersambung = selTersambung(m.key, a.key);
           return !tersambung && awal[r.key][m.key][a.key] !== local[r.key][m.key][a.key];
         }),
       ),
@@ -204,7 +202,7 @@ export default function PermissionsMatrix({
       pratinjauBerubah
         ? {
             kind: "info",
-            text: "Sel Lihat Owner & Kasir tersimpan nyata. Centang pada aksi lain (Tambah/Ubah/Hapus/Ekspor/Setujui) dan peran Manager/Kitchen/Staf masih pratinjau — penegakan granularnya menyusul.",
+            text: "Sel Lihat semua peran tersimpan nyata per kafe. Centang pada aksi granular (Tambah/Ubah/Hapus/Ekspor/Setujui) masih pratinjau — penegakannya menyusul.",
           }
         : { kind: "ok", text: "Semua perubahan wewenang sudah tersimpan dan berlaku." },
     );
@@ -301,8 +299,12 @@ export default function PermissionsMatrix({
                           <span className="dp-mod-sub">{m.ket}</span>
                         </td>
                         {PERM_ACTIONS.map((a) => {
+                          // manage_settings: Kasir & Staf terkunci dari UI
+                          // (server juga menolak — jangan bohongi user).
                           const terkunci =
-                            role === "cashier" && m.perm === "manage_settings" && a.key === "lihat";
+                            m.perm === "manage_settings" &&
+                            a.key === "lihat" &&
+                            (role === "cashier" || role === "staff");
                           return (
                             <td key={a.key} className="dp-perm-cell">
                               <input
@@ -312,7 +314,7 @@ export default function PermissionsMatrix({
                                 disabled={pending || terkunci}
                                 title={
                                   terkunci
-                                    ? "Akses Pengaturan untuk Kasir tidak dapat diaktifkan"
+                                    ? "Akses Pengaturan untuk Kasir/Staf tidak dapat diaktifkan"
                                     : undefined
                                 }
                                 aria-label={`${a.nama} ${m.nama} untuk ${roleInfo.nama}`}
@@ -339,11 +341,11 @@ export default function PermissionsMatrix({
           </div>
 
           <p className="dp-hint dp-mt">
-            Centang sel <b>Lihat</b> untuk Owner &amp; Kasir tersimpan per kafe dan langsung
-            ditegakkan di server — tanpa deploy. Sel aksi lain (Tambah/Ubah/Hapus/Ekspor/Setujui)
-            dan peran Manager/Kitchen/Staf masih pratinjau UI; ikon{" "}
-            <RotateCcwIcon className="h-3 w-3 inline" /> mengembalikan sel yang diubah ke bawaan
-            kode.
+            Centang sel <b>Lihat</b> pada modul ber-permission (Pesanan, Menu, Inventaris,
+            Pengaturan) tersimpan per kafe untuk kelima peran dan langsung ditegakkan di
+            server — tanpa deploy. Aksi granular (Tambah/Ubah/Hapus/Ekspor/Setujui) masih
+            pratinjau UI; ikon <RotateCcwIcon className="h-3 w-3 inline" /> mengembalikan sel
+            yang diubah ke bawaan kode.
           </p>
         </div>
       </div>

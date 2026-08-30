@@ -13,6 +13,10 @@ const migration = readFileSync(
   new URL("../migrations/2026-07-27c_console_split_lifecycle_tax.sql", import.meta.url),
   "utf8",
 );
+const migrationFiveRoles = readFileSync(
+  new URL("../supabase/migrations/20260830020000_staff_five_roles.sql", import.meta.url),
+  "utf8",
+);
 
 /** Catatan: berkas ini membaca SQL secara statis dan TIDAK memverifikasi
  *  database hidup. Lulusnya test ini bukan bukti migrasi sudah dijalankan. */
@@ -29,7 +33,9 @@ describe("migrasi pemisahan konsol — kontrak statis", () => {
 
   it("membuat tabel Staff dengan peran terbatas dan RLS menyala", () => {
     expect(migration).toContain('create table if not exists public."Staff"');
-    expect(migration).toContain("check (role in ('owner', 'cashier'))");
+    // Migrasi awal: 3 peran konsol-split. Perluasan 5 peran ada di migrasi
+    // 20260830020000 (diuji terpisah di bawah) — keduanya harus ada.
+    expect(migration).toContain("check (role in ('owner', 'cashier', 'kitchen'))");
     expect(migration).toContain('alter table public."Staff" enable row level security');
     // Tanpa backfill, pemilik yang sudah ada tidak punya peran dan tidak
     // dibawa ke mana pun setelah login.
@@ -187,7 +193,10 @@ describe("kunci baris keranjang", () => {
 describe("peran dan siklus hidup di sisi TypeScript", () => {
   it("membawa tiap peran ke konsolnya sendiri", () => {
     expect(homeRouteForRole("owner")).toBe("/dashboard");
+    expect(homeRouteForRole("manager")).toBe("/dashboard"); // manager masuk konsol pemilik
     expect(homeRouteForRole("cashier")).toBe("/kasir");
+    expect(homeRouteForRole("staff")).toBe("/kasir"); // staff: operasional outlet
+    expect(homeRouteForRole("kitchen")).toBe("/dapur");
     // User terautentikasi tapi bukan staf: bukan kegagalan, tapi juga tidak
     // punya tujuan. Pemanggil harus bisa membedakannya.
     expect(homeRouteForRole(null)).toBeNull();
@@ -202,10 +211,13 @@ describe("peran dan siklus hidup di sisi TypeScript", () => {
     expect([...TERMINAL_ORDER_STATUSES]).toEqual(["completed", "cancelled"]);
   });
 
-  it("mengunci daftar peran ke dua nilai yang sama dengan constraint database", () => {
-    expect([...STAFF_ROLES]).toEqual(["owner", "cashier"]);
+  it("mengunci daftar peran ke lima nilai yang sama dengan constraint database", () => {
+    expect([...STAFF_ROLES]).toEqual(["owner", "manager", "cashier", "kitchen", "staff"]);
+    // Constraint DB kini didefinisikan ulang di migrasi 5 peran — semua nilai
+    // STAFF_ROLES harus ada di sana (satu sumber kebenaran yang sama).
     for (const role of STAFF_ROLES) {
-      expect(migration).toContain(`'${role}'`);
+      expect(migrationFiveRoles).toContain(`'${role}'`);
     }
+    expect(migrationFiveRoles).toContain('add constraint "Staff_role_check"');
   });
 });

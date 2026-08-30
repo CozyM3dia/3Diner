@@ -5,6 +5,7 @@ import DpShell from "@/components/dp/Shell";
 import "../dp.css";
 import "@/components/pos/pos-item.css";
 import "@/app/menu-editor.css";
+import "../role-pill.css";
 import { redirect } from "next/navigation";
 
 export const metadata = {
