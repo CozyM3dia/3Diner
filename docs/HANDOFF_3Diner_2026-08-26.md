@@ -1,9 +1,10 @@
 # HANDOFF_3Diner_2026-08-26.md
 
-## Status: Phase 0 — Foundation ✅ SELESAI & TERVERIFIKASI
+## Status: Phase 0 ✅ + Phase 1 ✅ SELESAI & TERVERIFIKASI
 
-**Verifikasi akhir (26 Aug):** 62 file / 564 test PASS · typecheck bersih · eslint semua file tersentuh nol temuan · **production build sukses**.
-**Catatan insiden:** subagent worker-2 kena 429 upstream di tengah tugas (OwnerShell); sisa kerjanya dituntaskan langsung oleh orchestrator tanpa retry subagent (prosedur skill ox-alpha-rate-limit). Worker-1 sukses normal.
+**Phase 1 (26 Aug):** Beranda (KPI strip ber-icon, Tren Pendapatan, Menu Terlaris, Antrean read-only + CTA Kasir, Perlu diurus) & Pesanan (tab counter, toolbar cari/filter/toggle List-Grid, kartu dengan pill dapur≠payment, aksi ⋮). Commit `2dd32b2`. Gate lolos: nol mutasi status dari v2 (grep), supabaseAdmin tetap server-side. 62 file/564 test, typecheck+lint+build hijau.
+**Catatan debugging:** gejala "halaman tidak hidrasi" saat verifikasi CDP ternyata artefak isolated-world (eval context tidak melihat state halaman); aplikasi terbukti hidup (login end-to-end + cards:25 pada klik fisik). Skeleton RouteSkeleton yang tampak "macet" di DOM hanyalah loading.tsx shell streaming — konten asli ada di main.dv2-main. Pelajaran: ukur scoped ke main.dv2-main, jangan document-wide.
+**Catatan insiden subagent:** kedua worker Phase 1 mati kena timeout/429 upstream sebelum menulis file; seluruh Phase 1 dikerjakan orchestrator langsung.
 
 **Rencana induk:** `docs/DASHBOARD-REBUILD-PLAN.md` · **Eksekusi:** `docs/DASHBOARD-IMPLEMENTATION-PLAN.md` (hasil audit 26 Aug; Tripo ditunda, UI 1:1 Dream POS)
 

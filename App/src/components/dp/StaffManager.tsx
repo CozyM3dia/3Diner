@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { PlusIcon, UserRoundCheckIcon, UserRoundXIcon } from "lucide-react";
 import { addStaff, deactivateStaff, reactivateStaff, type StaffMemberInput } from "@/lib/staff-actions";
+import RolePill, { ROLE_LABELS, ROLE_DESKRIPSI, STAFF_ROLES } from "@/components/dp/RolePill";
+import type { StaffRole } from "@/types";
 
 /** Manajemen staf: tambah (email+nama+peran) dan kurangi (nonaktif/aktifkan).
  *  Pengganti halaman read-only — kini semua kontrol nyata.
@@ -12,12 +14,10 @@ export type StaffRow = {
   id_staff: string;
   user_id: string;
   full_name: string;
-  role: "owner" | "cashier";
+  role: StaffRole;
   is_active: boolean;
   created_at: string;
 };
-
-const PERAN: Record<string, string> = { owner: "Owner", cashier: "Kasir" };
 
 const tanggal = (iso: string) =>
   new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
@@ -44,7 +44,7 @@ export default function StaffManager({
   const [addOpen, setAddOpen] = useState(false);
   const [fEmail, setFEmail] = useState("");
   const [fNama, setFNama] = useState("");
-  const [fPeran, setFPeran] = useState<"owner" | "cashier">("cashier");
+  const [fPeran, setFPeran] = useState<StaffRole>("cashier");
   const [created, setCreated] = useState<{ email: string; password: string; reused: boolean } | null>(null);
 
   // Konfirmasi nonaktif
@@ -177,7 +177,7 @@ export default function StaffManager({
                             )}
                           </span>
                         </td>
-                        <td>{PERAN[s.role] ?? s.role}</td>
+                        <td><RolePill role={s.role} /></td>
                         <td>{tanggal(s.created_at)}</td>
                         <td>
                           <span className="dp-badge dp-badge-success">Aktif</span>
@@ -211,7 +211,7 @@ export default function StaffManager({
                           {s.full_name}
                         </span>
                       </td>
-                      <td>{PERAN[s.role] ?? s.role}</td>
+                      <td><RolePill role={s.role} /></td>
                       <td>{tanggal(s.created_at)}</td>
                       <td>
                         <span className="dp-badge dp-badge-danger">Nonaktif</span>
@@ -279,10 +279,13 @@ export default function StaffManager({
                 id="dp-staff-peran"
                 className="dp-input"
                 value={fPeran}
-                onChange={e => setFPeran(e.target.value as "owner" | "cashier")}
+                onChange={e => setFPeran(e.target.value as StaffRole)}
               >
-                <option value="cashier">Kasir — melayani pesanan di /kasir</option>
-                <option value="owner">Owner — akses penuh konsol ini</option>
+                {STAFF_ROLES.map(r => (
+                  <option key={r} value={r}>
+                    {ROLE_LABELS[r]} — {ROLE_DESKRIPSI[r]}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="dp-form-foot">
@@ -309,7 +312,7 @@ export default function StaffManager({
             </div>
             <div className="dp-modal-body">
               <p style={{ margin: 0, fontSize: 14, color: "var(--dp-text)" }}>
-                Nonaktifkan <strong>{delRow.full_name}</strong> ({PERAN[delRow.role]})? Staf tidak
+                Nonaktifkan <strong>{delRow.full_name}</strong> ({ROLE_LABELS[delRow.role]})? Staf tidak
                 bisa masuk konsol lagi, tetapi riwayatnya tetap ada dan bisa diaktifkan kembali.
               </p>
             </div>

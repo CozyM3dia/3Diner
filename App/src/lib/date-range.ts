@@ -18,6 +18,12 @@ export function addDays(d: Date, n: number): Date {
   return x;
 }
 
+/** "YYYY-MM-DD" → Date lokal tengah hari (komplement isoDay; aman lintas zona). */
+export function parseDay(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+}
+
 export const PRESETS: Array<{ key: PresetKey; label: string }> = [
   { key: "today", label: "Hari ini" },
   { key: "yesterday", label: "Kemarin" },

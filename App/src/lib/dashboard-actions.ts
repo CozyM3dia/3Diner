@@ -7,6 +7,7 @@ import { createClient } from "./supabase/server";
 import { getOwnerCafeSlug } from "./analytics";
 import { requireOwnerCafe } from "./authorization";
 import { optionGroupsValidationError, type OptionGroupDraft } from "./menu-option-drafts";
+import { normalizeReceiptSettings } from "./receipt-settings";
 
 export interface ActionResult {
   error?: string;
@@ -566,7 +567,7 @@ export async function uploadMenuMedia(fd: FormData): Promise<{ url?: string; err
 
 export async function updateOrderStatus(
   orderId: string,
-  status: "received" | "preparing" | "ready"
+  status: "received" | "preparing" | "ready" | "completed"
 ): Promise<ActionResult> {
   const cafeId = await getAuthCafeId();
   if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
@@ -577,6 +578,7 @@ export async function updateOrderStatus(
     .eq("cafe_id", cafeId);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/orders");
+  revalidatePath("/dashboard-v2/pesanan");
   return {};
 }
 
@@ -610,5 +612,33 @@ export async function markOrderCashPaid(orderId: string): Promise<ActionResult> 
 
   revalidatePath("/dashboard/orders");
   revalidatePath("/dashboard/revenue");
+  return {};
+}
+
+/** Simpan preferensi tampilan struk termal (modul Pengaturan Struk).
+ *
+ *  FormData berisi `settings` JSON yang SUDAH dinormalisasi komponen lewat
+ *  `normalizeReceiptSettings` — di sini dinormalisasi SEKALI LAGI di server
+ *  (whitelist kunci + paksaan tipe), jadi payload yang dirusak di jalan
+ *  tidak bisa menyuntik kunci asing ke kolom jsonb. */
+ export async function updateReceiptSettings(fd: FormData): Promise<ActionResult> {
+  const cafeId = await getAuthCafeId();
+  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(String(fd.get("settings") ?? ""));
+  } catch {
+    return { error: "Data pengaturan struk tidak valid." };
+  }
+  const payload = normalizeReceiptSettings(parsed);
+
+  const { error } = await supabaseAdmin
+    .from("Cafes")
+    .update({ receipt_settings: payload })
+    .eq("id_cafe", cafeId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard-v2/pengaturan/struk");
   return {};
 }

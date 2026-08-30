@@ -112,3 +112,132 @@
   .dp-menuf-grid { grid-template-columns: 1fr; }
   .dp-menuf-foot { flex-wrap: wrap; }
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   MENUFX — editor 3 tab (Umum / 3D & AR / Digital Menu)
+   Bahasa visual menyatu dengan .dp-menuf di atas: token --dp-*, kartu,
+   radius 6-8. Warna aksen hanya untuk keadaan aktif & AI.
+   ════════════════════════════════════════════════════════════════════ */
+
+.dp-menufx-tabs {
+  display: flex; gap: 4px;
+  background: var(--dp-surface);
+  border: 1px solid var(--dp-border); border-radius: 8px; padding: 4px;
+}
+.dp-menufx-tab {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border: 0; background: none; border-radius: 6px; height: 36px;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--dp-muted);
+  cursor: pointer; transition: background .15s, color .15s;
+}
+.dp-menufx-tab:hover { color: var(--dp-heading); background: var(--dp-bg); }
+.dp-menufx-tab-on { background: var(--dp-blue); color: #fff; }
+.dp-menufx-tab-on:hover { background: var(--dp-blue); color: #fff; }
+.dp-menufx-tab:focus-visible { outline: 2px solid var(--dp-blue); outline-offset: 2px; }
+
+/* Panggung 3D */
+.dp-menufx-stage {
+  position: relative; border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--dp-border); background:
+    radial-gradient(120% 90% at 50% 0%, rgba(253, 80, 2, 0.08), transparent 55%),
+    var(--dp-bg);
+  height: 260px;
+}
+.dp-menufx-stage-empty { display: grid; place-items: center; }
+.dp-menufx-stage-empty-inner { display: grid; justify-items: center; gap: 6px; text-align: center; padding: 0 24px; }
+.dp-menufx-stage-empty-inner b { font-size: 13.5px; color: var(--dp-heading); }
+.dp-menufx-stage-empty-inner p { margin: 0; font-size: 12px; color: var(--dp-muted); max-width: 280px; }
+.dp-menufx-stage-orb {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--dp-blue-soft); color: var(--dp-accent-ink);
+  display: grid; place-items: center;
+}
+.dp-menufx-stage-fs {
+  position: fixed; inset: 0; z-index: 90; height: auto; border-radius: 0; border: 0;
+  background: var(--dp-bg);
+}
+.dp-menufx-expand {
+  position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+  border-radius: 8px; border: 1px solid var(--dp-border);
+  background: var(--dp-surface); color: var(--dp-text);
+  display: grid; place-items: center; cursor: pointer;
+}
+.dp-menufx-expand:hover:not(:disabled) { color: var(--dp-heading); border-color: var(--dp-blue); }
+.dp-menufx-expand:disabled { opacity: .45; cursor: default; }
+
+/* Kartu sumber model (unggah / AI) */
+.dp-menufx-src { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.dp-menufx-srccard {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px dashed var(--dp-border); border-radius: 8px; padding: 10px 12px;
+  background: var(--dp-bg);
+}
+.dp-menufx-srcic {
+  width: 32px; height: 32px; border-radius: 8px; flex: none;
+  background: var(--dp-blue-soft); color: var(--dp-accent-ink);
+  display: grid; place-items: center;
+}
+.dp-menufx-srcic-ai { background: rgba(139, 92, 246, .14); color: #8b5cf6; }
+.dp-menufx-srccard b { display: block; font-size: 12.5px; color: var(--dp-heading); }
+.dp-menufx-srccard p { margin: 1px 0 0; font-size: 11px; color: var(--dp-muted); }
+.dp-menufx-srcbtn {
+  margin-left: auto; flex: none;
+  border: 1px solid var(--dp-border); background: var(--dp-surface); border-radius: 6px;
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--dp-text);
+  padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+}
+.dp-menufx-srcbtn:hover:not(:disabled) { border-color: var(--dp-blue); color: var(--dp-heading); }
+.dp-menufx-srcbtn:disabled { opacity: .55; cursor: default; }
+.dp-menufx-srcbtn-ai { border-color: rgba(139, 92, 246, .5); color: #8b5cf6; }
+.dp-menufx-srcbtn-ai:hover:not(:disabled) { border-color: #8b5cf6; color: #7c3aed; }
+
+/* Progres Tripo */
+.dp-menufx-tripo {
+  margin-top: 10px; border: 1px solid var(--dp-border); border-radius: 8px;
+  background: var(--dp-bg); padding: 10px 12px;
+}
+.dp-menufx-tripo-bar {
+  height: 6px; border-radius: 999px; background: var(--dp-border); overflow: hidden; margin-bottom: 8px;
+}
+.dp-menufx-tripo-bar span {
+  display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, #8b5cf6, var(--dp-blue));
+  transition: width .6s ease;
+}
+.dp-menufx-tripo p { margin: 0; font-size: 12px; color: var(--dp-text); display: flex; align-items: center; gap: 8px; }
+.dp-menufx-tripo-thumb {
+  width: 44px; height: 44px; border-radius: 6px; object-fit: cover; margin-left: auto;
+  border: 1px solid var(--dp-border);
+}
+
+/* Skala */
+.dp-menufx-scale { margin-top: 14px; }
+.dp-menufx-scale-row { display: flex; align-items: center; gap: 12px; }
+.dp-menufx-scale-row input[type="range"] { flex: 1; accent-color: var(--dp-blue); }
+.dp-menufx-scale-row b {
+  min-width: 56px; text-align: center; font-size: 13px; color: var(--dp-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+/* URL manual */
+.dp-menufx-urlrow { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+.dp-menufx-urlrow .dp-menuf-minibtn { flex: none; }
+.dp-menufx-urlrow .dp-menuf-input { margin-top: 0; }
+
+/* Chip hari tayang */
+.dp-menufx-days { display: flex; gap: 6px; flex-wrap: wrap; }
+.dp-menufx-day {
+  border: 1px solid var(--dp-border); background: var(--dp-surface); border-radius: 999px;
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--dp-muted);
+  padding: 6px 13px; cursor: pointer; transition: all .13s;
+}
+.dp-menufx-day:hover { border-color: var(--dp-blue); color: var(--dp-heading); }
+.dp-menufx-day-on { background: var(--dp-blue); border-color: var(--dp-blue); color: #fff; }
+.dp-menufx-day:focus-visible { outline: 2px solid var(--dp-blue); outline-offset: 2px; }
+
+/* Drawer diperlebar: form 3 tab butuh ruang untuk panggung 3D */
+.dp-mdrawer { width: min(600px, 94vw); }
+@media (max-width: 640px) {
+  .dp-mdrawer { width: 100vw; }
+  .dp-menufx-src { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,42 @@
+/* ════════════════════════════════════════════════════════════════════
+   ROLE PILL — 5 peran staf (Word §4)
+   Warna: owner navy solid, manager teal, kasir abu netral, dapur amber,
+   staff outline. Semua token --dp-* → ikut dark mode otomatis.
+   ════════════════════════════════════════════════════════════════════ */
+
+.dp-role-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.dp-role-pill-owner {
+  background: var(--dp-heading);
+  color: var(--dp-surface);
+}
+.dp-role-pill-manager {
+  background: rgba(13, 148, 136, 0.14);
+  color: #0f766e;
+}
+.dp-role-pill-cashier {
+  background: var(--dp-bg);
+  color: var(--dp-text);
+  border: 1px solid var(--dp-border);
+}
+.dp-role-pill-kitchen {
+  background: rgba(224, 177, 0, 0.14);
+  color: #a16207;
+}
+.dp-role-pill-staff {
+  background: var(--dp-blue-soft);
+  color: var(--dp-accent-ink);
+}
+
+html[data-theme="dark"] .dp-role-pill-manager { background: rgba(45, 212, 191, 0.16); color: #5eead4; }
+html[data-theme="dark"] .dp-role-pill-kitchen { background: rgba(251, 191, 36, 0.14); color: #fbbf24; }

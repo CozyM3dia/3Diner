@@ -33,7 +33,7 @@ export default async function KasirPage() {
     supabaseAdmin.rpc("today_orders_summary", { p_cafe_id: cafeId, p_today_start: since }),
     supabaseAdmin
       .from("Cafes")
-      .select("alamat_cafe,tax_configured_at")
+      .select("alamat_cafe,tax_configured_at,receipt_settings")
       .eq("id_cafe", cafeId)
       .maybeSingle(),
   ]);
@@ -65,6 +65,7 @@ export default async function KasirPage() {
       cafeName={ctx.cafe_name ?? "Kafe"}
       cafeAddress={cafeResult.data?.alamat_cafe ?? null}
       taxConfigured={Boolean(cafeResult.data?.tax_configured_at)}
+      receiptSettings={(cafeResult.data?.receipt_settings as Record<string, unknown> | null) ?? null}
       staffName={ctx.full_name ?? "Kasir"}
     />
   );

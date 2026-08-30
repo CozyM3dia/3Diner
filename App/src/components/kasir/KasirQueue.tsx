@@ -19,6 +19,7 @@ import {
   needsCash,
 } from "@/lib/kasir-queue-rules";
 import { paymentMethodLabel } from "@/lib/payment-methods";
+import ThemeToggle from "@/components/dp/ThemeToggle";
 import type { OrderItem, OrderStatus, PaymentMethod, PaymentStatus } from "@/types";
 
 export interface KasirOrder {
@@ -55,6 +56,8 @@ interface Props {
   cafeId: string;
   cafeName: string;
   cafeAddress?: string | null;
+  /** Preferensi Pengaturan Struk — diteruskan apa adanya ke builder struk. */
+  receiptSettings?: Record<string, unknown> | null;
   staffName: string;
   /** `false` = pemilik belum pernah memutuskan tarif pajak. Ditampilkan apa
    *  adanya di rincian dan struk, bukan disembunyikan. */
@@ -69,6 +72,7 @@ export default function KasirQueue({
   cafeId,
   cafeName,
   cafeAddress,
+  receiptSettings,
   staffName,
   taxConfigured,
   openingHours,
@@ -97,10 +101,17 @@ export default function KasirQueue({
 
   // Umur baris dihitung ulang tiap 30 detik. Tidak lebih sering: satu-satunya
   // yang berubah adalah menit, dan render tiap detik membakar baterai tablet.
+  // Set awal HARUS sinkron di body effect — menundanya ke rAF membuat label
+  // umur ("Terlambat") tak muncul pada tick pertama dan mengubah perilaku.
+  // Penanda di sisi server sengaja kosong (jam server ≠ jam tablet), jadi
+  // hydration aman: set pasca-mount adalah pola yang benar di sini.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- set awal pasca-mount, satu kali, alasan di atas
     setNow(Date.now());
     const t = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(t);
+    return () => {
+      clearInterval(t);
+    };
   }, []);
 
   useEffect(() => {
@@ -299,6 +310,7 @@ export default function KasirQueue({
           Check-in pesanan
         </button>
         <span className="kasir-sub">{staffName}</span>
+        <ThemeToggle />
       </div>
 
       {disconnected && (
@@ -376,6 +388,8 @@ export default function KasirQueue({
           cafeName={cafeName}
           cafeAddress={cafeAddress}
           taxConfigured={taxConfigured}
+          receiptSettings={receiptSettings}
+          staffName={staffName}
           busy={pending && busyId === openOrder.id_order}
           onClose={() => setOpenFor(null)}
           onAccept={() => run(openOrder.id_order, () => acceptOrder(openOrder.id_order), false)}

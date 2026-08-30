@@ -4,12 +4,22 @@ import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireStaffPermission } from "@/lib/authorization";
 import { SEMUA_PERMISI } from "@/lib/role-permissions-list";
+import { permissionDefaultCell } from "@/lib/permissions-default";
 import type { StaffPermission } from "@/lib/authorization";
+import { STAFF_ROLES, type StaffRole } from "@/types";
 
 /** Simpan override wewenang per-kafe ke tabel Role_Permissions.
- *  Guard penting: pemilik TIDAK BOLEH menarik manage_settings dari dirinya
- *  sendiri — satu-satunya peran yang bisa membuka halaman ini. Kalau itu
- *  terjadi, tidak ada lagi yang bisa memulihkannya dari dalam aplikasi. */
+ *
+ *  Sel disimpan per-peran penuh (5 kolom: owner, manager, cashier, kitchen,
+ *  staff). Guard penting:
+ *  - Pemilik TIDAK BOLEH menarik manage_settings dari perannya sendiri —
+ *    satu-satunya peran yang bisa membuka halaman ini. Kalau itu terjadi,
+ *    tidak ada lagi yang bisa memulihkannya dari dalam aplikasi.
+ *  - Kasir & Staf tidak bisa diberi manage_settings dari UI: halaman
+ *    pengaturan memanggil requireStaffPermission("manage_settings") sebagai
+ *    akses-pemilik; melonggarkannya di sini membuat klaim halaman bohong.
+ *  - Peran tanpa akses manage_settings tak bisa dimatikan akses-nya sendiri
+ *    (manipulasi payload tak akan berlaku karena yang menulis harus pemilik). */
 
 export interface PermResult {
   error?: string;
@@ -18,7 +28,7 @@ export interface PermResult {
 
 export async function savePermission(
   permission: StaffPermission,
-  next: { owner: boolean; cashier: boolean },
+  next: Record<StaffRole, boolean>,
 ): Promise<PermResult> {
   let cafeId: string;
   let selfRole: string;
@@ -32,16 +42,21 @@ export async function savePermission(
 
   if (!SEMUA_PERMISI.includes(permission)) return { error: "Permission tidak dikenal." };
 
-  // Anti-kunci-dirinya: owner WAJIB tetap punya manage_settings — satu-satunya
-  // permission yang membuka halaman ini. Permission lain bebas diubah.
-  if (permission === "manage_settings" && selfRole === "owner" && !next.owner) {
+  // Normalisasi: hanya boolean yang diterima; sisanya bawaan kode.
+  const bawaan = permissionDefaultCell(permission);
+  const nextCell = { ...bawaan };
+  for (const role of STAFF_ROLES) {
+    if (typeof next?.[role] === "boolean") nextCell[role] = next[role];
+  }
+
+  // Anti-kunci-dirinya: peran PEMANGGIL (selalu owner — gerbang halaman ini)
+  // WAJIB tetap punya manage_settings.
+  if (permission === "manage_settings" && selfRole === "owner" && !nextCell.owner) {
     return { error: "Owner harus tetap punya akses Pengaturan — tanpa itu tidak ada yang bisa memulihkan wewenang." };
   }
-  // Kasir tak boleh diberi manage_settings: halaman settings memanggil
-  // requireStaffPermission("manage_settings") sebagai pemilik-akses; melonggarkan
-  // ini dari UI membuat klaim halaman Roles & Permissions bohong.
-  if (permission === "manage_settings" && next.cashier) {
-    return { error: "Akses Pengaturan untuk Kasir tidak dapat diaktifkan dari sini." };
+  // Kasir & Staf tak boleh diberi manage_settings (lihat komentar di atas).
+  if (permission === "manage_settings" && (nextCell.cashier || nextCell.staff)) {
+    return { error: "Akses Pengaturan untuk Kasir/Staf tidak dapat diaktifkan dari sini." };
   }
 
   // 42P01 → migrasi belum dijalankan; UI mengarahkan ke kartu setup.
@@ -51,8 +66,11 @@ export async function savePermission(
       {
         cafe_id: cafeId,
         permission,
-        owner_allowed: next.owner,
-        cashier_allowed: next.cashier,
+        owner_allowed: nextCell.owner,
+        manager_allowed: nextCell.manager,
+        cashier_allowed: nextCell.cashier,
+        kitchen_allowed: nextCell.kitchen,
+        staff_allowed: nextCell.staff,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "cafe_id,permission" },

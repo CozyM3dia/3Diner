@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { canOpenCashierConsole, getStaffContext } from "@/lib/staff-context";
+import { homeRouteForRole } from "@/types";
 
 export const metadata = {
   title: "Kasir · 3Diner",
@@ -19,7 +20,11 @@ export default async function KasirLayout({ children }: { children: React.ReactN
     redirect("/login?alasan=bukan-staf");
   }
 
-  if (!canOpenCashierConsole(ctx.role)) redirect("/dashboard");
+  if (!canOpenCashierConsole(ctx.role)) {
+    // Kitchen ditolak di sini: bawa dia ke /dapur (home-nya), bukan ke
+    // /dashboard yang akan melempar balik — pola itulah yang memicu loop.
+    redirect(homeRouteForRole(ctx.role) ?? "/login?alasan=bukan-staf");
+  }
 
   return <div className="kasir-root">{children}</div>;
 }

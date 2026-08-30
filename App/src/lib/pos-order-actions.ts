@@ -110,7 +110,7 @@ export async function addLineToExistingOrder(
       body: `${lines.length} item ditambahkan kasir via POS (total ${result.order.total != null ? Math.round(result.order.total).toLocaleString("id-ID") : "-"})`.replace("total -", "meja " + cur.table_number),
       href: "/dashboard-v2/pesanan",
     },
-    { type: "kitchen", title: `Item baru untuk dapur · #${newId.slice(0, 5)}`, body: "Cek papan Dapur untuk item tambahan.", href: "/dashboard-v2/dapur" },
+    { type: "kitchen", title: `Item baru untuk dapur · #${newId.slice(0, 5)}`, body: "Cek papan Dapur untuk item tambahan.", href: "/dapur" },
   ]);
 
   // Order lama dibatalkan (bukan dihapus) supaya riwayat & jejak stok tetap utuh.

@@ -29,7 +29,7 @@ create table if not exists public."Staff" (
   cafe_id uuid not null references public."Cafes" (id_cafe) on delete cascade,
   user_id uuid not null references auth.users (id) on delete cascade,
   full_name text not null,
-  role text not null check (role in ('owner', 'cashier')),
+  role text not null check (role in ('owner', 'cashier', 'kitchen')),
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz,

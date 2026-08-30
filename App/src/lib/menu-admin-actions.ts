@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireStaffPermission } from "@/lib/authorization";
+import { buildScheduleFields } from "@/lib/schedule-days";
 import type { MenuFormValues } from "@/components/dp/MenuEditorForm";
 
 export interface UpsertMenuResult {
@@ -14,8 +15,9 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
 
 /** Simpan menu dari MenuEditorForm — satu action untuk create & update.
  *
- *  Kolom yang TIDAK disentuh: model_3d_url, usdz_url, model_scale,
- *  schedule_*, redirect_link. */
+ *  MenuFormValues kini mencakup tab Digital Menu (tayang/jadwal/diskon/
+ *  redirect) dan tab 3D & AR (URL model + skala). Kolom foto tetap lewat
+ *  `photo`; kolom lain tidak disentuh. */
 export async function upsertMenuFromEditor(input: {
   id_menu?: string;
   values: MenuFormValues;
@@ -50,6 +52,30 @@ export async function upsertMenuFromEditor(input: {
     }
   }
 
+  // Jadwal tayang: satu utilitas dengan sisi pelanggan — jadwal setengah
+  // terisi (hanya jam mulai, misalnya) ditolak, bukan disimpan diam-diam.
+  const schedule = buildScheduleFields(
+    input.values.schedule_days ?? null,
+    input.values.schedule_start ?? null,
+    input.values.schedule_end ?? null,
+  );
+  if (schedule.error) return { error: schedule.error };
+
+  const redirect = (input.values.redirect_link ?? "").trim();
+  if (redirect && !/^https?:\/\//i.test(redirect)) {
+    return { error: "Link redirect harus dimulai dengan http:// atau https://." };
+  }
+
+  const scale = input.values.model_scale;
+  if (scale !== undefined && scale !== null && (!Number.isFinite(scale) || scale <= 0 || scale > 10)) {
+    return { error: "Skala model harus angka antara 0,1 dan 10." };
+  }
+
+  const modelUrl = (input.values.model_3d_url ?? "").trim();
+  if (modelUrl && !/^https?:\/\//i.test(modelUrl)) {
+    return { error: "URL model 3D harus dimulai dengan http:// atau https://." };
+  }
+
   // ── Upload photo (opsional) ────────────────────────────────────────────────
   let imageUrl: string | undefined;
   if (input.photo) {
@@ -79,6 +105,15 @@ export async function upsertMenuFromEditor(input: {
     prep_time_minutes: input.values.serve_time_minutes,
     calories: input.values.calories,
     ingredients: (input.values.ingredients ?? "").trim() || null,
+    // ── Tab Digital Menu ──
+    is_active: input.values.is_active !== false,
+    schedule_days: schedule.schedule_days,
+    schedule_start: schedule.schedule_start,
+    schedule_end: schedule.schedule_end,
+    redirect_link: redirect || null,
+    // ── Tab 3D & AR ──
+    model_3d_url: modelUrl || null,
+    model_scale: scale ?? 1.0,
     ...(imageUrl !== undefined ? { image_url: imageUrl } : {}),
   };
 
@@ -137,7 +172,7 @@ export async function getMenuEditorData(id: string): Promise<{
     supabaseAdmin
       .from("Menus")
       .select(
-        "id_menu,nama_menu,harga_menu,discount_pct,description_menu,category,image_url,prep_time_minutes,calories,ingredients"
+        "id_menu,nama_menu,harga_menu,discount_pct,description_menu,category,image_url,prep_time_minutes,calories,ingredients,is_active,schedule_days,schedule_start,schedule_end,redirect_link,model_3d_url,model_scale"
       )
       .eq("id_menu", id)
       .eq("cafe_id", cafeId)
@@ -151,6 +186,9 @@ export async function getMenuEditorData(id: string): Promise<{
     nama_menu: string | null; harga_menu: number | null; discount_pct: number | null;
     description_menu: string | null; category: string | null; image_url: string | null;
     prep_time_minutes: number | null; calories: number | null; ingredients: string | null;
+    is_active: boolean | null; schedule_days: string | null; schedule_start: string | null;
+    schedule_end: string | null; redirect_link: string | null;
+    model_3d_url: string | null; model_scale: number | null;
   };
   const categories = Array.from(
     new Set((catRes.data ?? []).map(r => (r.category ?? "").trim()).filter(Boolean))
@@ -166,6 +204,15 @@ export async function getMenuEditorData(id: string): Promise<{
       serve_time_minutes: m.prep_time_minutes ?? null,
       calories: m.calories ?? null,
       ingredients: m.ingredients ?? "",
+      // ── Digital Menu ──
+      is_active: m.is_active !== false,
+      schedule_days: m.schedule_days ?? "",
+      schedule_start: m.schedule_start ?? "",
+      schedule_end: m.schedule_end ?? "",
+      redirect_link: m.redirect_link ?? "",
+      // ── 3D & AR ──
+      model_3d_url: m.model_3d_url ?? "",
+      model_scale: m.model_scale ?? 1.0,
     },
     imageUrl: m.image_url,
     categories,

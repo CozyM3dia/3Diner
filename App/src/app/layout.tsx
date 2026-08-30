@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import { DatadogAppRouter } from "@datadog/browser-rum-nextjs";
+import ThemeSync from "@/components/dp/ThemeSync";
 import "./globals.css";
-
 
 // Poppins — 3Diner consumer brand face (customer-facing menu).
 const poppins = Poppins({
@@ -34,12 +34,22 @@ export const viewport: Viewport = {
   themeColor: "#022C60",
 };
 
+// Anti-FOUC: tema harus terpasang SEBELUM paint pertama. Inline di <head>
+// (via beforeInteractive di body-start juga terlambat untuk style pertama).
+// Kontrak: localStorage "tema-3diner" = "light" | "dark" | "system";
+// default mengikuti prefers-color-scheme; hasilnya di <html data-theme>.
+const THEME_INIT = `(function(){try{var t=localStorage.getItem("tema-3diner");if(t!=="light"&&t!=="dark"&&t!=="system")t="system";var d=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=(t==="system"?(d?"dark":"light"):t);}catch(e){document.documentElement.dataset.theme="light";}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" className={poppins.variable}>
+    <html lang="id" className={poppins.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+      </head>
       <body className="min-h-dvh">
+        <ThemeSync />
         <DatadogAppRouter />
         {children}
       </body>

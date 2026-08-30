@@ -15,6 +15,7 @@ import {
   MonitorIcon,
   PackageIcon,
   PercentIcon,
+  PrinterIcon,
   PuzzleIcon,
   QrCodeIcon,
   SettingsIcon,
@@ -62,7 +63,7 @@ const NAV_GRUP: NavGroup[] = [
     items: [
       { label: "POS", href: "/dashboard-v2/pos", icon: MonitorIcon },
       { label: "Orders", href: "/dashboard-v2/pesanan", icon: ClipboardListIcon },
-      { label: "Kitchen (KDS)", href: "/dashboard-v2/dapur", icon: CookingPotIcon },
+      { label: "Kitchen (KDS)", href: "/dapur", icon: CookingPotIcon },
       { label: "Reservation", icon: CalendarDaysIcon, soon: true },
     ],
   },
@@ -83,6 +84,7 @@ const NAV_GRUP: NavGroup[] = [
     items: [
       { label: "Store Settings", href: "/dashboard-v2/pengaturan", icon: SettingsIcon },
       { label: "Tax Settings", href: "/dashboard-v2/pengaturan/pajak", icon: PercentIcon },
+      { label: "Receipt Settings", href: "/dashboard-v2/pengaturan/struk", icon: PrinterIcon },
       { label: "QR Smart Menu", href: "/dashboard-v2/pengaturan/qr", icon: QrCodeIcon },
       { label: "Roles & Permissions", href: "/dashboard-v2/pengaturan/peran", icon: ShieldCheckIcon },
       { label: "Manage Staffs", href: "/dashboard-v2/pengaturan/staf", icon: UsersIcon },

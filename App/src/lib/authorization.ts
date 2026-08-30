@@ -44,9 +44,7 @@ export async function requireStaffPermission(permission: StaffPermission): Promi
   // Wewenang EFEKTIF = bawaan kode + override runtime per-kafe
   // (tabel Role_Permissions, disunting dari halaman Roles & Permissions).
   const { matrix } = await getEffectivePermissions(staff.cafeId);
-  const cell = matrix[permission];
-  const allowed = staff.role === "owner" ? cell.owner : cell.cashier;
-  if (!allowed) throw new AuthorizationError();
+  if (!matrix[permission][staff.role]) throw new AuthorizationError();
   return staff;
 }
 

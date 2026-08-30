@@ -11,6 +11,10 @@ interface Props {
   order: KasirOrder;
   cafeName: string;
   cafeAddress?: string | null;
+  /** Preferensi Pengaturan Struk — diteruskan apa adanya ke builder. */
+  receiptSettings?: Record<string, unknown> | null;
+  /** Nama staf — baris "Kasir" di struk (bila toggle menyala). */
+  staffName?: string;
   taxConfigured?: boolean;
   onClose: () => void;
   onAccept: () => void;
@@ -29,6 +33,8 @@ export default function KasirOrderSheet({
   order,
   cafeName,
   cafeAddress,
+  receiptSettings,
+  staffName,
   taxConfigured,
   onClose,
   onAccept,
@@ -58,13 +64,20 @@ export default function KasirOrderSheet({
   // Lembar ini hanya muncul setelah diketuk, jadi ia selalu dirender di klien —
   // tidak ada jam server yang bisa berbeda satu menit dan memicu hydration
   // mismatch seperti di baris antrean.
+  // eslint-disable-next-line react-hooks/purity -- client-only (lihat atas): umur dipotret sekali saat render, bukan timer berjalan
   const waited = formatAge(minutesSince(order.created_at, Date.now()));
   const cash = needsCash(order);
   const subtotal = order.subtotal ?? order.total;
 
   function print() {
     printReceipt(
-      buildReceiptHtml(order, { name: cafeName, address: cafeAddress, taxConfigured })
+      buildReceiptHtml(order, {
+        name: cafeName,
+        address: cafeAddress,
+        taxConfigured,
+        cashierName: staffName,
+        receipt: receiptSettings ?? null,
+      })
     );
     setPrinted(true);
   }

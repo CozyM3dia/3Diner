@@ -1,4 +1,5 @@
 import { escapeHtml } from "@/lib/format";
+import { normalizeReceiptSettings, type ReceiptSettings } from "@/lib/receipt-settings";
 import { paymentMethodLabel } from "@/lib/payment-methods";
 import type { OrderItem } from "@/types";
 
@@ -24,12 +25,19 @@ export interface ReceiptOrder {
 export interface ReceiptCafe {
   name: string;
   address?: string | null;
+  /** Logo outlet — dicetak di atas nama usaha bila toggle logo menyala. */
+  logoUrl?: string | null;
+  /** Nama staf yang melayani; baris "Kasir" hanya cetak bila ada nilainya. */
+  cashierName?: string | null;
   /** Nomor pokok wajib pajak daerah. Dicetak kalau ada — pemeriksa pajak
    *  mencarinya di kepala struk. */
   taxId?: string | null;
   /** `false` = pemilik belum pernah memutuskan tarif. Struk tetap mencetak
    *  baris pajak, tapi mengatakan bahwa tarifnya belum diatur. */
   taxConfigured?: boolean;
+  /** Preferensi Pengaturan Struk. Null/parsial = sisanya default penuh
+   *  (perilaku cetak lama). */
+  receipt?: Partial<ReceiptSettings> | null;
 }
 
 const rupiah = (n: number) => n.toLocaleString("id-ID");
@@ -51,9 +59,14 @@ function row(label: string, value: string, bold = false): string {
  *  `POST /api/orders` yang publik.
  */
 export function buildReceiptHtml(order: ReceiptOrder, cafe: ReceiptCafe): string {
+  const st = normalizeReceiptSettings(cafe.receipt);
   const date = new Date(order.created_at);
   const dateStr = date.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
   const timeStr = date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  /** Saat struk INI dicetak — bukan saat pesanan dibuat. */
+  const printTimeStr = new Date().toLocaleString("id-ID", {
+    day: "2-digit", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit",
+  });
   const items = Array.isArray(order.items) ? order.items : [];
 
   const payLabel = order.payment_method ? paymentMethodLabel(order.payment_method) : "-";
@@ -70,19 +83,29 @@ export function buildReceiptHtml(order: ReceiptOrder, cafe: ReceiptCafe): string
         : "";
       // Catatan per item dicetak di struk dapur juga: ia mengubah cara memasak,
       // dan pesan yang hanya ada di layar hilang begitu layarnya berganti.
-      const note = it.notes
+      const note = it.notes && st.show_item_notes
         ? `<tr><td colspan="2" style="padding-left:12px;font-size:10px;font-weight:600;">* ${escapeHtml(
             it.notes
           )}</td></tr>`
         : "";
-      return `
+      const priceRow = st.show_unit_prices
+        ? `
       <tr><td colspan="2" style="font-weight:600;padding-top:3px;">${it.qty}x ${escapeHtml(
-        String(it.nama_menu ?? "")
-      )}</td></tr>${variants}${note}
+          String(it.nama_menu ?? "")
+        )}</td></tr>${variants}${note}
       <tr>
         <td style="padding-left:12px;font-size:10.5px;color:#333;">${it.qty} x Rp ${price}</td>
         <td style="text-align:right;font-weight:600;white-space:nowrap;">Rp ${sub}</td>
+      </tr>`
+        : `
+      <tr><td colspan="2" style="font-weight:600;padding-top:3px;">${it.qty}x ${escapeHtml(
+          String(it.nama_menu ?? "")
+        )}</td></tr>${variants}${note}
+      <tr>
+        <td style="font-weight:600;">&nbsp;</td>
+        <td style="text-align:right;font-weight:600;white-space:nowrap;">Rp ${sub}</td>
       </tr>`;
+      return priceRow;
     })
     .join("");
 
@@ -100,19 +123,21 @@ export function buildReceiptHtml(order: ReceiptOrder, cafe: ReceiptCafe): string
     cafe.taxConfigured === false ? ' <span style="font-size:9px;">(belum diatur)</span>' : "";
 
   const chargeRows = [
-    row("Subtotal", `Rp ${rupiah(subtotal)}`),
-    service > 0 || servicePct > 0
+    st.show_subtotal ? row("Subtotal", `Rp ${rupiah(subtotal)}`) : "",
+    st.show_service && (service > 0 || servicePct > 0)
       ? row(`Layanan ${servicePct}%`, `Rp ${rupiah(service)}`)
       : "",
-    row(
-      `Pajak ${taxPct}%${order.prices_include_tax ? " (termasuk)" : ""}${taxNote}`,
-      `Rp ${rupiah(tax)}`
-    ),
+    st.show_tax
+      ? row(
+          `Pajak ${taxPct}%${order.prices_include_tax ? " (termasuk)" : ""}${taxNote}`,
+          `Rp ${rupiah(tax)}`
+        )
+      : "",
   ]
     .filter(Boolean)
     .join("");
 
-  const notesBlock = order.notes
+  const notesBlock = order.notes && st.show_order_notes
     ? `<div style="border:1px dashed #000;padding:4px 5px;margin:5px 0;font-size:10.5px;word-break:break-word;"><b>** CATATAN **</b><br>${escapeHtml(
         order.notes
       )}</div>`
@@ -123,6 +148,46 @@ export function buildReceiptHtml(order: ReceiptOrder, cafe: ReceiptCafe): string
   const table = escapeHtml(String(order.table_number ?? ""));
   const address = cafe.address ? `<div class="sub">${escapeHtml(cafe.address)}</div>` : "";
   const taxId = cafe.taxId ? `<div class="sub">NPWPD ${escapeHtml(cafe.taxId)}</div>` : "";
+  const logoBlock =
+    st.show_logo && cafe.logoUrl
+      ? `<div class="c" style="margin-bottom:4px;"><img src="${escapeHtml(
+          cafe.logoUrl
+        )}" alt="" style="max-width:30mm;max-height:14mm;"></div>`
+      : "";
+  const nameBlock = st.show_business_name ? `<div class="cafe">${cafeName}</div>` : "";
+  const poweredBlock = st.show_powered_by ? `<div class="sub">Powered by 3Diner</div>` : "";
+  const mejaBlock = st.show_table_number
+    ? `<div class="sep c">${D}</div>
+  <div class="meja">MEJA ${table}</div>`
+    : "";
+  const metaLines = [
+    st.show_receipt_number
+      ? `<div class="meta"><b>No.</b> <span>#${orderId}</span></div>`
+      : "",
+    st.show_datetime
+      ? `<div class="meta"><b>Tgl</b> <span>${escapeHtml(dateStr)} ${escapeHtml(timeStr)}</span></div>`
+      : "",
+    st.show_cashier && cafe.cashierName
+      ? `<div class="meta"><b>Kasir</b> <span>${escapeHtml(cafe.cashierName)}</span></div>`
+      : "",
+    st.show_payment_method
+      ? `<div class="meta"><b>Bayar</b> <span>${escapeHtml(payLabel)}</span></div>`
+      : "",
+    st.show_payment_status
+      ? `<div class="meta"><b>Status</b> <span class="status-paid">${statusLabel}</span></div>`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n  ");
+  const metaBlock = metaLines
+    ? `<div class="sep c">${S}</div>
+  ${metaLines}
+  <div class="sep c">${D}</div>`
+    : "";
+  const itemsBlock = st.show_items ? `<table><tbody>${itemRows}</tbody></table>` : "";
+  const totalRow = st.show_total
+    ? `<tr class="total-row"><td>TOTAL</td><td style="text-align:right;">Rp ${rupiah(order.total)}</td></tr>`
+    : "";
 
   return `<!DOCTYPE html>
 <html>
@@ -161,27 +226,24 @@ export function buildReceiptHtml(order: ReceiptOrder, cafe: ReceiptCafe): string
 </style>
 </head>
 <body>
-  <div class="cafe">${cafeName}</div>
-  ${address}
+  ${logoBlock}
+  ${nameBlock}
+  ${st.show_address ? address : ""}
   ${taxId}
-  <div class="sub">Powered by 3Diner</div>
-  <div class="sep c">${D}</div>
-  <div class="meja">MEJA ${table}</div>
-  <div class="sep c">${S}</div>
-  <div class="meta"><b>No.</b> <span>#${orderId}</span></div>
-  <div class="meta"><b>Tgl</b> <span>${escapeHtml(dateStr)} ${escapeHtml(timeStr)}</span></div>
-  <div class="meta"><b>Bayar</b> <span>${escapeHtml(payLabel)}</span></div>
-  <div class="meta"><b>Status</b> <span class="status-paid">${statusLabel}</span></div>
-  <div class="sep c">${D}</div>
-  <table><tbody>${itemRows}</tbody></table>
+  ${poweredBlock}
+  ${mejaBlock}
+  ${metaBlock}
+  ${itemsBlock}
   <div class="sep c">${S}</div>
   <table><tbody>
     ${chargeRows}
-    <tr class="total-row"><td>TOTAL</td><td style="text-align:right;">Rp ${rupiah(order.total)}</td></tr>
+    ${totalRow}
   </tbody></table>
   ${notesBlock}
   <div class="sep c">${D}</div>
-  <div class="footer">Terima kasih sudah mampir!</div>
+  ${st.footer_note ? `<div class="footer">${escapeHtml(st.footer_note)}</div>` : ""}
+  ${st.show_thankyou ? `<div class="footer">Terima kasih sudah mampir!</div>` : ""}
+  ${st.show_print_datetime ? `<div class="footer" style="font-size:9px;color:#555;">dicetak ${escapeHtml(printTimeStr)}</div>` : ""}
   <div style="height:10mm;"></div>
 </body>
 </html>`;

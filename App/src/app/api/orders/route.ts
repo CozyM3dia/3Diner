@@ -201,7 +201,7 @@ export async function POST(req: Request) {
         type: "kitchen",
         title: `Masuk dapur · #${newOrderId.slice(0, 5)}`,
         body: `${itemCount} item siap dimasak.`,
-        href: "/dashboard-v2/dapur",
+        href: "/dapur",
       },
     ]);
   }

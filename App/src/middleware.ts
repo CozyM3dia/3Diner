@@ -28,10 +28,10 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Dua konsol, satu gerbang. Perannya diperiksa di layout masing-masing:
+  // Tiga konsol, satu gerbang. Perannya diperiksa di layout masing-masing:
   // middleware sengaja tidak memanggil database, karena ia berjalan di tiap
   // permintaan dan satu lookup di sini akan membayangi semuanya.
-  if (!user && (pathname.startsWith("/dashboard") || pathname.startsWith("/kasir"))) {
+  if (!user && (pathname.startsWith("/dashboard") || pathname.startsWith("/kasir") || pathname.startsWith("/dapur"))) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/login";
     return NextResponse.redirect(redirect);
@@ -55,5 +55,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/kasir/:path*", "/login"],
+  matcher: ["/dashboard/:path*", "/kasir/:path*", "/dapur/:path*", "/login"],
 };
