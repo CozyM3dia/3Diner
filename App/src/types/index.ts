@@ -260,7 +260,7 @@ export interface Order {
 
 // ── Staf & peran (memisahkan Konsol Kasir dari Konsol Owner) ──
 
-export const STAFF_ROLES = ['owner', 'cashier'] as const
+export const STAFF_ROLES = ['owner', 'cashier', 'kitchen'] as const
 export type StaffRole = (typeof STAFF_ROLES)[number]
 
 export interface Staff {
@@ -296,6 +296,7 @@ export interface StaffContext {
 export function homeRouteForRole(role: StaffRole | null): string | null {
   if (role === 'owner') return '/dashboard'
   if (role === 'cashier') return '/kasir'
+  if (role === 'kitchen') return '/dapur'
   return null
 }
 

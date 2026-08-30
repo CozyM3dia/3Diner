@@ -88,6 +88,13 @@
 /* ── Konten ── */
 .dp-content { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
 
+/* ── Papan Dapur (/dapur): permukaan KDS standalone sejajar /kasir ── */
+.dp-dapur-root {
+  min-height: 100vh; background: var(--dp-bg);
+  font-family: var(--font-poppins), "Poppins", system-ui, sans-serif;
+}
+.dp-dapur-page { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+
 /* Kartu dasar template: putih, border #e2e8f0, radius 6 */
 .dp-card { background: var(--dp-surface); border: 1px solid var(--dp-border); border-radius: 6px; }
 .dp-card-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 0; }
@@ -734,22 +741,20 @@
 }
 .dp-profile-logout:hover { background: var(--dp-border); }
 
-/* ── Date range picker dashboard ── */
+/* ── Date range picker dashboard (Popover + Calendar shadcn / RDP v10) ──
+   Trigger, preset, dan footer dipertahankan dari desain lama; grid kalender
+   kini dari react-day-picker — ditimpa ke token brand di bawah. */
 .dp-rangebar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .dp-range-note { font-size: 12px; color: var(--dp-muted); }
-.dp-dt { position: relative; }
 .dp-dt-btn {
   display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px;
   border: 1px solid var(--dp-border); border-radius: 6px; background: var(--dp-surface);
   font: inherit; font-size: 13px; font-weight: 600; color: var(--dp-heading); cursor: pointer;
 }
 .dp-dt-btn:hover { background: var(--dp-bg); }
-.dp-dt-panel {
-  position: absolute; left: 0; top: calc(100% + 10px); width: 620px; max-width: calc(100vw - 40px);
-  background: var(--dp-surface); border: 1px solid var(--dp-border); border-radius: 12px;
-  box-shadow: 0 18px 48px rgba(2, 44, 96, .16); z-index: 70; padding: 14px;
-}
-.dp-dt-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.dp-dt-btn:focus-visible { outline: 2px solid var(--dp-blue); outline-offset: 2px; }
+
+.dp-dt-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .dp-dt-preset {
   border: 1px solid var(--dp-border); background: var(--dp-surface); border-radius: 999px;
   font: inherit; font-size: 12px; font-weight: 600; color: var(--dp-text);
@@ -757,37 +762,42 @@
 }
 .dp-dt-preset:hover { background: var(--dp-bg); }
 .dp-dt-preset-on { background: var(--dp-heading); border-color: var(--dp-heading); color: #fff; }
-.dp-dt-calwrap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.dp-dt-mhead {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+
+/* Panel popover: ukuran & bayangan mengikuti panel lama.
+   dp.css tidak ber-layer → menang atas utilitas Tailwind milik Calendar. */
+.dp-cal-pop {
+  width: 640px; max-width: calc(100vw - 32px); border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(2, 44, 96, .16);
 }
-.dp-dt-mhead b { font-size: 13px; font-weight: 700; color: var(--dp-heading); }
-.dp-dt-nav {
-  width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--dp-border);
-  background: var(--dp-surface); display: grid; place-items: center; cursor: pointer;
-  color: var(--dp-text);
+.dp-cal-pop .rdp-root, .dp-cal-pop [data-slot="calendar"] { width: 100%; }
+.dp-cal-pop .rdp-month_caption { font-size: 13px; font-weight: 700; color: var(--dp-heading); }
+.dp-cal-pop .rdp-chevron { color: var(--dp-muted); }
+/* Dropdown bulan/tahun: select transparan RDP (overlay di atas caption) —
+   pastikan tetap menerima klik. */
+.dp-cal-pop .rdp-month_caption select { pointer-events: auto; cursor: pointer; }
+.dp-cal-pop .rdp-weekday {
+  font-size: 10px; font-weight: 700; color: var(--dp-muted);
+  text-transform: uppercase; letter-spacing: .04em;
 }
-.dp-dt-nav:hover { background: var(--dp-bg); }
-span.dp-dt-nav { border: 0; background: none; cursor: default; }
-.dp-dt-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-.dp-dt-dow {
-  text-align: center; font-size: 10px; font-weight: 700; color: var(--dp-muted);
-  padding: 4px 0; text-transform: uppercase;
+.dp-cal-pop .rdp-day_button {
+  border-radius: 6px; font-size: 12px; font-weight: 600; color: var(--dp-text);
+  transition: background .12s, color .12s;
 }
-.dp-dt-day {
-  position: relative; aspect-ratio: 1 / 1; border: 0; border-radius: 6px; background: none;
-  font: inherit; font-size: 12px; color: var(--dp-text); cursor: pointer;
+.dp-cal-pop .rdp-day_button:hover { background: var(--dp-blue-soft); color: var(--dp-accent-ink); }
+.dp-cal-pop .rdp-outside .rdp-day_button { color: var(--dp-muted); opacity: .45; }
+.dp-cal-pop .rdp-today .rdp-day_button { box-shadow: inset 0 0 0 1px var(--dp-border); }
+.dp-cal-pop [data-selected-single="true"],
+.dp-cal-pop [data-range-start="true"],
+.dp-cal-pop [data-range-end="true"] {
+  background: var(--dp-blue); color: #fff; font-weight: 700;
 }
-.dp-dt-day:hover { background: var(--dp-bg); }
-.dp-dt-out { color: var(--dp-muted); opacity: .45; }
-.dp-dt-in { background: var(--dp-blue-soft); color: var(--dp-heading); border-radius: 0; }
-.dp-dt-in:hover { background: var(--dp-blue-soft); }
-.dp-dt-edge { background: var(--dp-blue); color: #fff; font-weight: 700; border-radius: 6px; }
-.dp-dt-edge:hover { background: var(--dp-blue); }
-.dp-dt-today::after {
-  content: ""; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
-  width: 4px; height: 4px; border-radius: 50%; background: currentColor;
+.dp-cal-pop [data-selected-single="true"]:hover,
+.dp-cal-pop [data-range-start="true"]:hover,
+.dp-cal-pop [data-range-end="true"]:hover { background: var(--dp-blue); }
+.dp-cal-pop [data-range-middle="true"] {
+  background: var(--dp-blue-soft); color: var(--dp-accent-ink); border-radius: 0;
 }
+
 .dp-dt-foot {
   display: flex; align-items: center; justify-content: space-between;
   border-top: 1px solid var(--dp-border); margin-top: 12px; padding-top: 10px;
@@ -808,8 +818,7 @@ span.dp-dt-nav { border: 0; background: none; cursor: default; }
 .dp-dt-apply:disabled { opacity: .6; cursor: default; }
 
 @media (max-width: 760px) {
-  .dp-dt-panel { width: calc(100vw - 32px); }
-  .dp-dt-calwrap { grid-template-columns: 1fr; }
+  .dp-cal-pop { width: calc(100vw - 32px); max-height: 82vh; overflow-y: auto; }
 }
 
 /* ── Drawer editor menu (floating, pola modal Edit Item Dream POS) ── */

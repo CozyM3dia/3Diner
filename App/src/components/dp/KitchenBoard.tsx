@@ -63,10 +63,10 @@ function durasi(ms: number) {
 }
 
 const TAHAP = {
-  baru: { label: "Pesanan Baru", warna: "#022c60", icon: NewspaperIcon },
-  dapur: { label: "Di Dapur", warna: "#fd5002", icon: Package2Icon },
-  telat: { label: `Lewat ${LATE_MINUTES} Menit`, warna: "#ff3636", icon: ClockAlertIcon },
-  siap: { label: "Siap", warna: "#14b51d", icon: CheckCheckIcon },
+  baru: { label: "Pesanan Baru", warna: "var(--dp-heading, #022c60)", icon: NewspaperIcon },
+  dapur: { label: "Di Dapur", warna: "var(--dp-blue, #fd5002)", icon: Package2Icon },
+  telat: { label: `Lewat ${LATE_MINUTES} Menit`, warna: "var(--dp-red, #ff3636)", icon: ClockAlertIcon },
+  siap: { label: "Siap", warna: "var(--dp-green, #14b51d)", icon: CheckCheckIcon },
 } as const;
 
 type Tahap = keyof typeof TAHAP;

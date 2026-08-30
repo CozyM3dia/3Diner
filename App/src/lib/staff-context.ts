@@ -52,6 +52,12 @@ export function canOpenCashierConsole(role: StaffRole | null): boolean {
   return role === "cashier" || role === "owner";
 }
 
+/** Boleh membuka papan dapur (KDS). Pemilik ikut boleh — sama seperti kasir,
+ *  di outlet kecil pemilik kadang sekalian mengawasi antrean dapur. */
+export function canOpenKitchenConsole(role: StaffRole | null): boolean {
+  return role === "kitchen" || role === "owner";
+}
+
 /** Boleh membuka konsol pemilik. */
 export function canOpenOwnerConsole(role: StaffRole | null): boolean {
   return role === "owner";

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { PlusIcon, UserRoundCheckIcon, UserRoundXIcon } from "lucide-react";
 import { addStaff, deactivateStaff, reactivateStaff, type StaffMemberInput } from "@/lib/staff-actions";
+import type { StaffRole } from "@/types";
 
 /** Manajemen staf: tambah (email+nama+peran) dan kurangi (nonaktif/aktifkan).
  *  Pengganti halaman read-only — kini semua kontrol nyata.
@@ -12,12 +13,12 @@ export type StaffRow = {
   id_staff: string;
   user_id: string;
   full_name: string;
-  role: "owner" | "cashier";
+  role: StaffRole;
   is_active: boolean;
   created_at: string;
 };
 
-const PERAN: Record<string, string> = { owner: "Owner", cashier: "Kasir" };
+const PERAN: Record<string, string> = { owner: "Owner", cashier: "Kasir", kitchen: "Dapur" };
 
 const tanggal = (iso: string) =>
   new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
@@ -44,7 +45,7 @@ export default function StaffManager({
   const [addOpen, setAddOpen] = useState(false);
   const [fEmail, setFEmail] = useState("");
   const [fNama, setFNama] = useState("");
-  const [fPeran, setFPeran] = useState<"owner" | "cashier">("cashier");
+  const [fPeran, setFPeran] = useState<StaffRole>("cashier");
   const [created, setCreated] = useState<{ email: string; password: string; reused: boolean } | null>(null);
 
   // Konfirmasi nonaktif
@@ -279,9 +280,10 @@ export default function StaffManager({
                 id="dp-staff-peran"
                 className="dp-input"
                 value={fPeran}
-                onChange={e => setFPeran(e.target.value as "owner" | "cashier")}
+                onChange={e => setFPeran(e.target.value as StaffRole)}
               >
                 <option value="cashier">Kasir — melayani pesanan di /kasir</option>
+                <option value="kitchen">Dapur — antrean pesanan di /dapur (KDS)</option>
                 <option value="owner">Owner — akses penuh konsol ini</option>
               </select>
             </div>

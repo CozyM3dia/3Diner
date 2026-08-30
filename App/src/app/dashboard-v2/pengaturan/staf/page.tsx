@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getStaffContext, canOpenOwnerConsole } from "@/lib/staff-context";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import StaffManager from "@/components/dp/StaffManager";
+import type { StaffRole } from "@/types";
 
 export const metadata = { title: "Manage Staffs · 3Diner" };
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export default async function Page() {
     id_staff: s.id_staff,
     user_id: s.user_id,
     full_name: s.full_name,
-    role: s.role as "owner" | "cashier",
+    role: s.role as StaffRole,
     is_active: s.is_active,
     created_at: s.created_at,
   }));

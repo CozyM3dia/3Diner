@@ -1,0 +1,40 @@
+/* Toggle tema — namespace .dp-theme-* saja, tidak menyentuh dp.css.
+ *
+ * .dp-theme-toggle sengaja self-sufficient (bukan hanya override dp-iconbtn):
+ * dp-iconbtn didefinisikan di dp.css yang hanya diimpor layout dashboard-v2,
+ * sedangkan toggle ini juga dipakai di bar konsol Kasir (/kasir) yang tidak
+ * memuat dp.css. Warna tetap dari token --dp-* supaya mengikuti tema Agent A;
+ * fallback = nilai light dari dp.css untuk kasus token belum terpasang. */
+.dp-theme-toggle {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--dp-muted, #51698f);
+  cursor: pointer;
+  position: relative;
+}
+
+.dp-theme-toggle:hover {
+  background: var(--dp-bg, #f3f6fa);
+  color: var(--dp-heading, #022c60);
+}
+
+.dp-theme-toggle:focus-visible {
+  outline: 2px solid var(--dp-blue, #fd5002);
+  outline-offset: 2px;
+}
+
+.dp-theme-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.15s ease;
+}
+
+.dp-theme-toggle:active .dp-theme-icon {
+  transform: scale(0.9);
+}

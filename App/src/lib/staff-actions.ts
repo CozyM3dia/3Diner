@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireStaffPermission } from "@/lib/authorization";
 import type { StaffRole } from "@/types";
+import { STAFF_ROLES } from "@/types";
 
 /** Write-path Manage Staffs: tambah & kurangi staf kafe.
  *  Gate `manage_settings` (owner saja — sesuai PERMISSIONS yang ditegakkan).
@@ -60,8 +61,8 @@ export async function addStaff(input: StaffMemberInput): Promise<StaffResult> {
   if (!EMAIL_RE.test(email)) return { error: "Format email tidak valid." };
   if (!fullName) return { error: "Nama staf wajib diisi." };
   if (fullName.length > 80) return { error: "Nama terlalu panjang." };
-  if (input.role !== "owner" && input.role !== "cashier") {
-    return { error: "Peran harus owner atau cashier." };
+  if (!STAFF_ROLES.includes(input.role)) {
+    return { error: `Peran harus salah satu dari: ${STAFF_ROLES.join(", ")}.` };
   }
 
   // 1) Cari akun auth by email lewat tabel Staff/audit? auth.users tak bisa
