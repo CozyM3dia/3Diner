@@ -8,6 +8,7 @@ import PosBoard, {
   type PosCategoryChip,
   type PosRecent,
 } from "@/components/pos/PosBoard";
+import "../../pos-item-details.css";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "POS · 3Diner" };
@@ -29,7 +30,7 @@ export default async function PosPage() {
   const [menusRes, groupsRes, cafeRes, recentRes] = await Promise.all([
     supabaseAdmin
       .from("Menus")
-      .select("id_menu,nama_menu,harga_menu,discount_pct,image_url,category,is_active")
+      .select("id_menu,nama_menu,harga_menu,discount_pct,image_url,category,is_active,description_menu")
       .eq("cafe_id", cafeId)
       .order("nama_menu", { ascending: true })
       .limit(200),
@@ -71,6 +72,7 @@ export default async function PosPage() {
   const menus: PosMenu[] = ((menusRes.data ?? []) as unknown as Array<{
     id_menu: string; nama_menu: string; harga_menu: number | null; discount_pct: number | null;
     image_url: string | null; category: string | null; is_active: boolean;
+    description_menu: string | null;
   }>).map(m => ({
     id: m.id_menu,
     name: m.nama_menu,
@@ -79,6 +81,7 @@ export default async function PosPage() {
     imageUrl: m.image_url,
     category: m.category,
     isActive: m.is_active,
+    description: m.description_menu,
   }));
 
   const optionGroups: PosMenuOption[] = ((groupsRes.data ?? []) as unknown as RawGroup[]).map(g => ({

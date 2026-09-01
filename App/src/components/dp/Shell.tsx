@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BellIcon,
+  BellRingIcon,
   CalendarDaysIcon,
   ChevronDownIcon,
   ClipboardListIcon,
@@ -18,6 +18,7 @@ import {
   PrinterIcon,
   PuzzleIcon,
   QrCodeIcon,
+  SearchIcon,
   SettingsIcon,
   ShieldCheckIcon,
   TagsIcon,
@@ -25,6 +26,7 @@ import {
 } from "lucide-react";
 import ThemeToggle from "@/components/dp/ThemeToggle";
 import NotificationBell from "@/components/dp/NotificationBell";
+import SearchModal from "@/components/dp/SearchModal";
 import ProfileMenu from "@/components/dp/ProfileMenu";
 import type { NotifRow } from "@/lib/notifications";
 import type { Route } from "next";
@@ -63,7 +65,7 @@ const NAV_GRUP: NavGroup[] = [
     items: [
       { label: "POS", href: "/dashboard-v2/pos", icon: MonitorIcon },
       { label: "Orders", href: "/dashboard-v2/pesanan", icon: ClipboardListIcon },
-      { label: "Kitchen (KDS)", href: "/dapur", icon: CookingPotIcon },
+      { label: "Kitchen (KDS)", href: "/dashboard-v2/dapur", icon: CookingPotIcon },
       { label: "Reservation", icon: CalendarDaysIcon, soon: true },
     ],
   },
@@ -85,6 +87,7 @@ const NAV_GRUP: NavGroup[] = [
       { label: "Store Settings", href: "/dashboard-v2/pengaturan", icon: SettingsIcon },
       { label: "Tax Settings", href: "/dashboard-v2/pengaturan/pajak", icon: PercentIcon },
       { label: "Receipt Settings", href: "/dashboard-v2/pengaturan/struk", icon: PrinterIcon },
+      { label: "Notifications", href: "/dashboard-v2/pengaturan/notifikasi", icon: BellRingIcon },
       { label: "QR Smart Menu", href: "/dashboard-v2/pengaturan/qr", icon: QrCodeIcon },
       { label: "Roles & Permissions", href: "/dashboard-v2/pengaturan/peran", icon: ShieldCheckIcon },
       { label: "Manage Staffs", href: "/dashboard-v2/pengaturan/staf", icon: UsersIcon },
@@ -110,6 +113,7 @@ export default function DpShell({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [tabManual, setTabManual] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const sideRef = useRef<HTMLElement>(null);
 
   // Tutup drawer & kembalikan tab ke grup halaman saat pindah rute
@@ -191,10 +195,6 @@ export default function DpShell({
               <g.icon className="h-[17px] w-[17px]" />
             </button>
           ))}
-          <span className="dp-rail-btn" aria-hidden>
-            <BellIcon className="h-[17px] w-[17px]" />
-            <span className="dp-rail-dot" />
-          </span>
         </div>
 
         <nav className="dp-menu" aria-label="Navigasi utama">
@@ -233,10 +233,14 @@ export default function DpShell({
           </button>
 
           <div className="dp-top-right">
-            <span className="dp-top-date">
-              <CalendarDaysIcon className="h-4 w-4" />
-              {new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(new Date())}
-            </span>
+            <button
+              type="button"
+              className="dp-iconbtn"
+              aria-label="Cari pesanan atau menu"
+              onClick={() => setSearchOpen(true)}
+            >
+              <SearchIcon className="h-[17px] w-[17px]" />
+            </button>
             <NotificationBell rows={notifRows} />
             <ThemeToggle />
             <ProfileMenu userName={userName} role={userRole} initial={userInitial} planLabel="Owner" />
@@ -245,6 +249,8 @@ export default function DpShell({
 
         <main className="dp-content">{children}</main>
       </div>
+
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

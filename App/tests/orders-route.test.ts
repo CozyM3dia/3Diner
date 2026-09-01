@@ -11,7 +11,15 @@ const successfulOrder = {
 };
 
 vi.mock("@/lib/supabase-admin", () => ({
-  supabaseAdmin: { rpc, from: () => ({ insert: async () => ({ error: null }) }) },
+  // from("Cafes") = pembacaan preferensi notifikasi (createNotifications);
+  // data:null = kafe tanpa preferensi -> default dipakai.
+  supabaseAdmin: {
+    rpc,
+    from: (table: string) =>
+      table === "Cafes"
+        ? { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }) }
+        : { insert: async () => ({ error: null }) },
+  },
 }));
 
 describe("POST /api/orders", () => {

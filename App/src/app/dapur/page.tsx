@@ -4,6 +4,7 @@ import { startOfTodayWIB } from "@/lib/dashboard-today";
 import { redirect } from "next/navigation";
 import { homeRouteForRole } from "@/types";
 import KitchenBoard, { type KitchenOrder } from "@/components/dp/KitchenBoard";
+import KitchenExitBar from "@/components/dp/KitchenExitBar";
 
 export const metadata = { title: "Dapur · 3Diner" };
 export const dynamic = "force-dynamic";
@@ -52,6 +53,9 @@ export default async function Page() {
 
   return (
     <div className="dp-dapur-page">
+      {/* KDS tanpa nav adalah pilihan desain, tapi tanpa ini perangkat dapur
+          tidak punya jalan keluar — back dimakan redirect peran. */}
+      <KitchenExitBar cafeName={ctx.cafe_name} />
       <KitchenBoard orders={orders} />
     </div>
   );

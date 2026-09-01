@@ -52,6 +52,18 @@ async function move(orderId: string, next: "preparing" | "ready" | "completed"):
   });
 
   if (error) return { error: readError(error.message) };
+  if (next === "ready") {
+    // Event "Pesanan Siap" — hormati preferensi notifikasi kafe.
+    const { createNotifications } = await import("@/lib/notifications");
+    await createNotifications(cafeId, "kitchen_ready", [
+      {
+        type: "order",
+        title: `Pesanan siap · #${orderId.slice(0, 5)}`,
+        body: "Dapur/kasir menandai pesanan siap diantar.",
+        href: "/dashboard-v2/pesanan",
+      },
+    ]);
+  }
   revalidateSurfaces();
   return {};
 }
@@ -95,6 +107,18 @@ export async function cancelOrder(orderId: string, reason: string): Promise<Kasi
   });
 
   if (error) return { error: readError(error.message) };
+
+  // Event "Pesanan Dibatalkan" — hormati preferensi notifikasi kafe.
+  const { createNotifications } = await import("@/lib/notifications");
+  await createNotifications(cafeId, "order_cancelled", [
+    {
+      type: "order",
+      title: `Pesanan dibatalkan · #${orderId.slice(0, 5)}`,
+      body: `Alasan: ${trimmed}`,
+      href: "/dashboard-v2/pesanan",
+    },
+  ]);
+
   revalidateSurfaces();
   return {};
 }
@@ -119,7 +143,7 @@ export async function markCashPaid(orderId: string): Promise<KasirResult> {
   if (!result?.ok) return { error: "Gagal menandai lunas." };
 
   const { createNotifications } = await import("@/lib/notifications");
-  await createNotifications(cafeId, [
+  await createNotifications(cafeId, "payment_paid", [
     {
       type: "inbox",
       title: `Pembayaran tunai diterima · #${orderId.slice(0, 5)}`,

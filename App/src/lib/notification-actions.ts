@@ -3,9 +3,40 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getStaffCafeId } from "@/lib/staff-context";
+import { normalizeNotifSettings } from "@/lib/notification-settings";
 
 export interface NotifAction {
   error?: string;
+}
+
+/** Simpan preferensi notifikasi kafe (modul Pengaturan → Notifications).
+ *
+ *  FormData berisi `settings` JSON yang SUDAH dinormalisasi komponen lewat
+ *  `normalizeNotifSettings` — di sini dinormalisasi SEKALI LAGI di server
+ *  (whitelist kunci + paksaan tipe), jadi payload yang dirusak di jalan
+ *  tidak bisa menyuntik kunci asing ke kolom jsonb. Pola sama dengan
+ *  `updateReceiptSettings`. */
+export async function saveNotificationSettings(fd: FormData): Promise<NotifAction> {
+  const cafeId = await getStaffCafeId();
+  if (!cafeId) return { error: "Sesi tidak berlaku." };
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(String(fd.get("settings") ?? ""));
+  } catch {
+    return { error: "Data pengaturan notifikasi tidak valid." };
+  }
+  const payload = normalizeNotifSettings(parsed);
+
+  const { error } = await supabaseAdmin
+    .from("Cafes")
+    .update({ notification_settings: payload })
+    .eq("id_cafe", cafeId);
+  if (error) return { error: "Gagal menyimpan pengaturan notifikasi." };
+
+  revalidatePath("/dashboard-v2/pengaturan/notifikasi");
+  revalidatePath("/dashboard-v2", "layout");
+  return {};
 }
 
 /** Tandai satu notifikasi dibaca. */

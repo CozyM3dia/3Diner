@@ -190,7 +190,7 @@ export async function POST(req: Request) {
   const notifCafeId = typeof cafeId === "string" ? cafeId : "";
   if (notifCafeId) {
     const { createNotifications } = await import("@/lib/notifications");
-    await createNotifications(notifCafeId, [
+    await createNotifications(notifCafeId, "order_new", [
       {
         type: "order",
         title: `Pesanan baru · #${newOrderId.slice(0, 5)}`,

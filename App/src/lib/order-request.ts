@@ -16,6 +16,9 @@ export interface RequestedOrderItem {
   id_menu: string;
   qty: number;
   options: string[];
+  /** Catatan kasir/pembeli untuk item ini (opsional). Diteruskan utuh ke RPC:
+   *  quote_order & create_order menyimpannya di Orders.items (kunci `notes`). */
+  note?: string;
 }
 
 /** `null` berarti tolak permintaan; array kosong berarti item tanpa varian. */
@@ -35,14 +38,20 @@ export function parseItems(value: unknown): RequestedOrderItem[] | null {
   const items = value.map((item) => {
     if (!item || typeof item !== "object") return null;
 
-    const candidate = item as { id_menu?: unknown; qty?: unknown; options?: unknown };
+    const candidate = item as { id_menu?: unknown; qty?: unknown; options?: unknown; note?: unknown };
     const options = parseOptions(candidate.options);
     if (!options) return null;
+
+    const note =
+      typeof candidate.note === "string" && candidate.note.trim()
+        ? candidate.note.trim().slice(0, 140)
+        : undefined;
 
     return {
       id_menu: typeof candidate.id_menu === "string" ? candidate.id_menu : "",
       qty: candidate.qty,
       options,
+      note,
     };
   });
 

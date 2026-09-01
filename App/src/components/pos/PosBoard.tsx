@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { buildReceiptHtml, printReceipt } from "@/lib/receipt-html";
 import PosItemModalInline from "@/components/pos/PosItemModal";
+import PosItemDetails from "@/components/pos/PosItemDetails";
 import type { OrderItem, OrderStatus, SelectedOption } from "@/types";
 
 /** POS ala template pos.html Dream POS, dengan tulis-path nyata.
@@ -39,6 +40,8 @@ export type PosMenu = {
   imageUrl: string | null;
   category: string | null;
   isActive: boolean;
+  /** Deskripsi menu — ditampilkan di modal Item Details. */
+  description?: string | null;
 };
 
 export type PosOptionValue = { id: string; name: string; priceDelta: number };
@@ -174,19 +177,18 @@ export default function PosBoard({
   const [lines, setLines] = useState<Line[]>([]);
   const [orderType, setOrderType] = useState<OrderType>("dine");
   const [table, setTable] = useState("");
-  const [note, setNote] = useState("");
   const [msg, setMsg] = useState<{ kind: "ok" | "err" | "info"; text: string } | null>(null);
   const [busy, startTransition] = useTransition();
 
-  const [optFor, setOptFor] = useState<PosMenu | null>(null);
-  const [optPick, setOptPick] = useState<Map<string, SelectedOption>>(new Map());
-  const [optNote, setOptNote] = useState("");
-  const [optErr, setOptErr] = useState<string | null>(null);
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [noteKey, setNoteKey] = useState<string | null>(null);
 
   const [quote, setQuote] = useState<PosQuote | null>(null);
+  /** Signature keranjang yang dilayani `quote` — membedakan quote segar vs basi. */
+  const [quoteKey, setQuoteKey] = useState("");
+  /** True saat ringkasan server sedang dihitung — Amount menampilkan animasi. */
+  const [quoteBusy, setQuoteBusy] = useState(false);
   const [committed, setCommitted] = useState<PosCommitted | null>(null);
   const [payOpen, setPayOpen] = useState(false);
   const [payMode, setPayMode] = useState<"cash" | "qris">("cash");
@@ -197,12 +199,34 @@ export default function PosBoard({
   const [detailMenu, setDetailMenu] = useState<PosMenu | null>(null);
 
   const live = committed === null;
-  const activeGroups = optFor ? optionGroups.filter(g => g.menuId === optFor.id) : [];
   const lineCount = lines.reduce((s, l) => s + l.qty, 0);
 
   /** Nilai table_number yang dikirim: takeaway memakai label tetap. */
   const tableValue = orderType === "dine" ? table.trim() : "Bungkus";
   const tableLabel = orderType === "dine" ? table.trim() || "-" : "Bungkus";
+
+  // ── Auto-quote: ringkasan dihitung server SETIAP keranjang/meja berubah
+  // (debounce 600 ms) — "Amount to be Paid" terisi sendiri, bukan menunggu
+  // tombol ditekan. Quote basi (keranjang sudah beda) dinetralkan saat
+  // render lewat pencocokan signature, bukan setState di dalam effect.
+  const cartKey = useMemo(
+    () => JSON.stringify([lines.map(l => [l.key, l.qty, l.note]), tableValue]),
+    [lines, tableValue],
+  );
+  const quoted = quote && quoteKey === cartKey ? quote : null;
+  useEffect(() => {
+    if (!live || lines.length === 0) return;
+    const t = setTimeout(() => {
+      setQuoteBusy(true);
+      refreshQuote()
+        .then(q => {
+          if (q) setQuoteKey(cartKey);
+        })
+        .finally(() => setQuoteBusy(false));
+    }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartKey, lines.length, live]);
 
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -215,26 +239,27 @@ export default function PosBoard({
   }, [menus, cat, q]);
 
   function openOptions(m: PosMenu) {
-    const groups = optionGroups.filter(g => g.menuId === m.id);
-    setOptErr(null);
-    setOptNote("");
-    if (groups.length === 0) {
-      addLine(m, []);
-      return;
-    }
-    setOptFor(m);
-    setOptPick(new Map());
+    // Semua klik kartu melewati modal Item Details (ala template):
+    // satu gerbang visual, min/max divalidasi saat submit di modal itu.
+    setDetailMenu(m);
   }
 
-  function addLine(m: PosMenu, options: SelectedOption[]) {
-    const key = [m.id, options.map(o => o.id_option_value).sort().join("|")].join("#");
+  /** Terima baris lengkap dari modal Item Details → masuk keranjang. */
+  function addFromDetails(line: { menu: PosMenu; qty: number; options: SelectedOption[]; note: string }) {
+    const key = [line.menu.id, line.options.map(o => o.id_option_value).sort().join("|")].join("#");
     setLines(prev => {
       const hit = prev.find(l => l.key === key);
-      if (hit) return prev.map(l => (l.key === key ? { ...l, qty: l.qty + 1 } : l));
-      return [...prev, { key, menu: m, qty: 1, options, note: "" }];
+      if (hit) {
+        return prev.map(l =>
+          l.key === key
+            ? { ...l, qty: l.qty + line.qty, note: line.note || l.note }
+            : l,
+        );
+      }
+      return [...prev, { key, menu: line.menu, qty: line.qty, options: line.options, note: line.note }];
     });
     setSelectedKey(key);
-    setQuote(null);
+    setDetailMenu(null);
   }
 
   function changeQty(key: string, delta: number) {
@@ -243,61 +268,16 @@ export default function PosBoard({
         .map(l => (l.key === key ? { ...l, qty: l.qty + delta } : l))
         .filter(l => l.qty > 0),
     );
-    setQuote(null);
   }
 
   function removeLine(key: string) {
     setLines(prev => prev.filter(l => l.key !== key));
     if (selectedKey === key) setSelectedKey(null);
     if (noteKey === key) setNoteKey(null);
-    setQuote(null);
   }
 
   function setLineNote(key: string, value: string) {
     setLines(prev => prev.map(l => (l.key === key ? { ...l, note: value } : l)));
-  }
-
-  function confirmOptions() {
-    if (!optFor) return;
-    const picked = [...optPick.values()];
-    for (const g of activeGroups) {
-      const n = picked.filter(o => o.group_name === g.name).length;
-      if (n < g.minSelect) {
-        setOptErr(`Pilih minimal ${g.minSelect} pada “${g.name}”.`);
-        return;
-      }
-      if (n > g.maxSelect) {
-        setOptErr(`Maksimal ${g.maxSelect} pada “${g.name}”.`);
-        return;
-      }
-    }
-    addLine(optFor, picked);
-    setOptFor(null);
-  }
-
-  function toggleOption(groupId: string, groupName: string, v: PosOptionValue, maxSelect: number) {
-    setOptPick(prev => {
-      const next = new Map(prev);
-      const k = `${groupId}:${v.id}`;
-      if (next.has(k)) {
-        next.delete(k);
-      } else {
-        if (maxSelect === 1) {
-          for (const ek of [...next.keys()]) if (ek.startsWith(`${groupId}:`)) next.delete(ek);
-        }
-        if ([...next.keys()].filter(ek => ek.startsWith(`${groupId}:`)).length >= maxSelect) {
-          return prev;
-        }
-        next.set(k, {
-          id_option_value: v.id,
-          group_name: groupName,
-          name: v.name,
-          price_delta: v.priceDelta,
-        });
-      }
-      return next;
-    });
-    setOptErr(null);
   }
 
   /** Quote server: harga item, pajak, service — semuanya dari server, bukan JS klien.
@@ -310,12 +290,13 @@ export default function PosBoard({
       body: JSON.stringify({
         cafeId,
         table: tableValue || "1",
-        notes: note.trim(),
+        notes: null,
         paymentChannel: "cashier",
         items: lines.map(l => ({
           id_menu: l.menu.id,
           qty: l.qty,
           options: l.options.map(o => o.id_option_value),
+          note: l.note.trim() || undefined,
         })),
       }),
     });
@@ -348,13 +329,14 @@ export default function PosBoard({
       body: JSON.stringify({
         cafeId,
         table: tableValue || "1",
-        notes: note.trim(),
+        notes: null,
         paymentChannel: "cashier",
         quoteId: qq.quoteId,
         items: lines.map(l => ({
           id_menu: l.menu.id,
           qty: l.qty,
           options: l.options.map(o => o.id_option_value),
+          note: l.note.trim() || undefined,
         })),
       }),
     });
@@ -369,10 +351,10 @@ export default function PosBoard({
     const c: PosCommitted = { id: data.order.id_order, token: data.orderToken, table: tableValue };
     setCommitted(c);
     setLines([]);
-    setNote("");
     setSelectedKey(null);
     setNoteKey(null);
     setQuote(null);
+    setQuoteKey("");
     setMsg({
       kind: "ok",
       text: draft
@@ -393,7 +375,7 @@ export default function PosBoard({
           payment_method: "cash",
           payment_status: "unpaid",
           created_at: new Date().toISOString(),
-          notes: note.trim() || null,
+          notes: null,
         },
         {
           name: cafeName,
@@ -454,8 +436,6 @@ export default function PosBoard({
   const now = new Date();
   const tanggalCetak = now.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
   const jamCetak = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
-
-  const quoted = quote;
 
   return (
     <div className="pos-root">
@@ -750,15 +730,8 @@ export default function PosBoard({
           )}
         </div>
 
-        <label className="pos-cart-note">
-          Catatan pesanan
-          <textarea
-            value={note}
-            onChange={e => setNote(e.target.value)}
-            rows={2}
-            placeholder="mis. tanpa gula, antar jam 1"
-          />
-        </label>
+        {/* Catatan hanya per-item (Add Note / Item Details) — tidak ada lagi
+            catatan global, supaya tidak dobel dan jelas tujuannya ke dapur. */}
 
         <div className="pos-summary">
           <h3>Payment Summary</h3>
@@ -781,13 +754,15 @@ export default function PosBoard({
             </>
           ) : (
             <p className="pos-hint">
-              Ringkasan dihitung server saat menekan tombol aksi.
+              {quoteBusy
+                ? "Menghitung ringkasan…"
+                : "Ringkasan muncul otomatis saat keranjang terisi."}
               {!taxConfigured && " Tarif pajak kafe belum diatur."}
             </p>
           )}
         </div>
 
-        <div className="pos-amount">
+        <div className={`pos-amount${quoteBusy ? " pos-amount-busy" : ""}`}>
           <span>Amount to be Paid</span>
           <b>{quoted ? rupiah(quoted.total) : "—"}</b>
         </div>
@@ -917,71 +892,6 @@ export default function PosBoard({
       )}
 
       {/* ══════════ Modal: opsi menu ══════════ */}
-      {optFor && (
-        <div className="pos-modal-backdrop" onClick={() => setOptFor(null)}>
-          <div
-            className="pos-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Opsi ${optFor.name}`}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="pos-modal-head">
-              <h2>{optFor.name}</h2>
-              <button type="button" className="pos-line-x" aria-label="Tutup" onClick={() => setOptFor(null)}>
-                <XIcon className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="pos-modal-body">
-              {activeGroups.map(g => (
-                <fieldset key={g.id} className="pos-opt-group">
-                  <legend>
-                    {g.name}
-                    <small>
-                      {g.minSelect > 0 ? ` wajib ${g.minSelect}` : " opsional"}
-                      {g.maxSelect > 1 ? ` · maks ${g.maxSelect}` : ""}
-                    </small>
-                  </legend>
-                  {g.values.map(v => {
-                    const on = optPick.has(`${g.id}:${v.id}`);
-                    return (
-                      <button
-                        key={v.id}
-                        type="button"
-                        className={`pos-opt${on ? " pos-opt-on" : ""}`}
-                        aria-pressed={on}
-                        onClick={() => toggleOption(g.id, g.name, v, g.maxSelect)}
-                      >
-                        <span>{v.name}</span>
-                        <span>{v.priceDelta > 0 ? `+${rupiah(v.priceDelta)}` : "Gratis"}</span>
-                      </button>
-                    );
-                  })}
-                </fieldset>
-              ))}
-              <label className="pos-cart-note">
-                Catatan item
-                <textarea
-                  value={optNote}
-                  onChange={e => setOptNote(e.target.value)}
-                  rows={2}
-                  placeholder="mis. pedas level 2"
-                />
-              </label>
-              {optErr && <p className="pos-msg pos-msg-err">{optErr}</p>}
-            </div>
-            <div className="pos-modal-foot">
-              <button type="button" className="pos-btn" onClick={() => setOptFor(null)}>
-                Batal
-              </button>
-              <button type="button" className="pos-btn pos-btn-primary" onClick={confirmOptions}>
-                Add to Cart
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ══════════ Modal: pembayaran ══════════ */}
       {payOpen && committed && (
         <div className="pos-modal-backdrop" onClick={() => setPayOpen(false)}>
@@ -1054,6 +964,16 @@ export default function PosBoard({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ══════════ Modal: Item Details (klik kartu menu) ══════════ */}
+      {detailMenu && (
+        <PosItemDetails
+          menu={detailMenu}
+          optionGroups={optionGroups}
+          onAdd={addFromDetails}
+          onClose={() => setDetailMenu(null)}
+        />
       )}
     </div>
   );

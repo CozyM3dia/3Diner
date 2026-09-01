@@ -1,6 +1,12 @@
 import "server-only";
 import { cache } from "react";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import {
+  DEFAULT_NOTIF_SETTINGS,
+  isChannelOn,
+  normalizeNotifSettings,
+  type NotifEventType,
+} from "@/lib/notification-settings";
 
 /** Pusat notifikasi ala template (bell + panel bertab).
  *  Sumber: tabel `Notifications` per kafe. Event nyata yang menulis baris:
@@ -8,8 +14,10 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
  *    RPC ringan ini hanya mencatat; pemanggilnya: API orders (commit), payment
  *    (cash paid / qris paid), dan dapur (status siap).
  *
- *  Fungsi write: createNotifications(cafeId, entries). Dipanggil dari server
- *  actions / route handlers setelah event operasional terjadi. */
+ *  Fungsi write: createNotifications(cafeId, event, entries). Event dikunci
+ *  ke satu `NotifEventType` dan difilter preferensi kafe — kalau kafe
+ *  mematikan in_app untuk event itu di Pengaturan → Notifications, baris
+ *  tidak ditulis sama sekali (bukan sekadar disembunyikan). */
 
 export type NotifType = "order" | "kitchen" | "inbox";
 
@@ -52,11 +60,32 @@ export const getNotifications = cache(async (cafeId: string): Promise<NotifBucke
   return { rows, unread, unreadByType };
 });
 
+/** Tulis notifikasi in-app untuk satu event operasional, hormati preferensi
+ *  kafe (matriks Pengaturan → Notifications). Preferensi rusak/NULL =
+ *  normalizeNotifSettings = default (in_app menyala utk semua event) —
+ *  jadi tidak ada backfill dan tidak ada notifikasi yang hilang diam-diam. */
 export async function createNotifications(
   cafeId: string,
+  event: NotifEventType,
   entries: Array<{ type: NotifType; title: string; body?: string; href?: string }>,
 ): Promise<void> {
   if (entries.length === 0) return;
+
+  // Preferensi gagal dibaca (DB gladi, mock test, dsb.) = default — jalan
+  // notifikasi tidak boleh mati karena pembacaan preferensi bermasalah.
+  let settings = DEFAULT_NOTIF_SETTINGS;
+  try {
+    const { data } = await supabaseAdmin
+      .from("Cafes")
+      .select("notification_settings")
+      .eq("id_cafe", cafeId)
+      .maybeSingle();
+    settings = normalizeNotifSettings(data?.notification_settings);
+  } catch {
+    /* pakai default */
+  }
+  if (!isChannelOn(settings, event, "in_app")) return;
+
   await supabaseAdmin.from("Notifications").insert(
     entries.map(e => ({
       cafe_id: cafeId,

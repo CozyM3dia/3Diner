@@ -1,0 +1,63 @@
+/* ════════════════════════════════════════════════════════════════════
+   NSW — Pengaturan Notifikasi (recreation "Notifications" Dream POS)
+   Nilai token mengikuti dp.css (brand navy/orange 3Diner).
+   ════════════════════════════════════════════════════════════════════ */
+
+form > .dp-card { margin-bottom: 20px; }
+
+/* ── Baris sakelar dengan judul + keterangan (kartu Perangkat & Jam Tenang) ── */
+.nsw-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  padding: 10px 0; cursor: pointer; }
+.nsw-row + .nsw-row { border-top: 1px solid var(--dp-border); }
+.nsw-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nsw-row-title { font-size: 13.5px; font-weight: 600; color: var(--dp-text); }
+.nsw-row-sub { font-size: 12px; color: var(--dp-muted); }
+.nsw-row .dp-switch { margin-top: 2px; flex: none; }
+
+/* ── Matriks event × channel ── */
+.nsw-matrix { display: flex; flex-direction: column; overflow-x: auto; }
+.nsw-matrix-head,
+.nsw-matrix-row { display: grid; grid-template-columns: minmax(230px, 1fr) repeat(5, 58px) 122px;
+  align-items: center; gap: 8px; padding: 11px 0; min-width: 620px; }
+.nsw-matrix-head { border-bottom: 1px solid var(--dp-border); padding-bottom: 8px; }
+.nsw-matrix-row + .nsw-matrix-row { border-top: 1px solid var(--dp-border); }
+
+.nsw-matrix-event { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.nsw-ev-ic { width: 32px; height: 32px; border-radius: 8px; background: var(--dp-blue-soft);
+  color: var(--dp-accent-ink); display: grid; place-items: center; flex: none; }
+.nsw-ev-text { display: flex; flex-direction: column; min-width: 0; }
+.nsw-ev-title { font-size: 13.5px; font-weight: 600; color: var(--dp-text); }
+.nsw-ev-desc { font-size: 11.5px; color: var(--dp-muted); }
+
+.nsw-matrix-ch { display: flex; flex-direction: column; justify-content: center; align-items: center;
+  gap: 3px; font-size: 11px; font-weight: 600; color: var(--dp-muted); text-align: center; }
+.nsw-soon { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--dp-muted); background: var(--dp-bg); border: 1px solid var(--dp-border);
+  border-radius: 999px; padding: 1px 6px; white-space: nowrap; }
+.nsw-matrix-all { flex-direction: row; gap: 6px; }
+.nsw-all-btn { appearance: none; border: 1px solid var(--dp-border); background: var(--dp-surface);
+  color: var(--dp-muted); font: inherit; font-size: 11px; font-weight: 600; border-radius: 6px;
+  padding: 3px 8px; cursor: pointer; white-space: nowrap; }
+.nsw-all-btn:hover { color: var(--dp-heading); border-color: var(--dp-muted); }
+.nsw-all-btn-off:hover { color: var(--dp-red); border-color: var(--dp-red); }
+.nsw-all-btn:focus-visible { outline: 2px solid var(--dp-blue); outline-offset: 1px; }
+
+.nsw-foot-note { margin: 12px 0 0; font-size: 12px; color: var(--dp-muted); }
+.nsw-foot-note em { font-style: normal; font-weight: 600; }
+
+/* ── Jam tenang ── */
+.nsw-quiet-grid { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap;
+  border-top: 1px dashed var(--dp-border); margin-top: 6px; padding: 14px 0 4px; }
+.nsw-quiet-field { display: flex; flex-direction: column; }
+.nsw-quiet-field .dp-input { width: 128px; }
+.nsw-quiet-note { margin: 0; font-size: 11.5px; color: var(--dp-muted); max-width: 380px; }
+
+/* ── Catatan keterjangkauan ── */
+.nsw-scope-row { display: flex; align-items: center; gap: 10px; padding: 12px 18px; }
+.nsw-scope-row p { margin: 0; font-size: 12.5px; color: var(--dp-muted); }
+
+@media (max-width: 720px) {
+  .nsw-matrix-head,
+  .nsw-matrix-row { grid-template-columns: minmax(200px, 1fr) repeat(5, 50px) 112px; }
+  .nsw-ev-desc { display: none; }
+}

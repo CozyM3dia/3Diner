@@ -7,6 +7,12 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { markOrderCashPaid, updateOrderStatus } from "@/lib/dashboard-actions";
+import {
+  normalizeNotifSettings,
+  isChannelOn,
+  isQuietTime,
+  type NotifSettings,
+} from "@/lib/notification-settings";
 import { escapeHtml, formatRupiah } from "@/lib/format";
 import { paymentMethodLabel } from "@/lib/payment-methods";
 import {
@@ -30,6 +36,9 @@ export interface OrderRow {
   payment_status: string;
   created_at: string;
   notes?: string | null;
+  /** Preferensi notifikasi kafe (Pengaturan → Notifications) — opsional
+   *  untuk pemanggil lama; undefined = default (alert berperilaku lama). */
+  notifSettings?: NotifSettings;
 }
 
 /** Pesanan yang sudah terminal tidak bisa dimajukan lagi. Ini dashboard lama —
@@ -321,7 +330,7 @@ function relTime(iso: string): string {
   return `${Math.round(h / 24)} hari lalu`;
 }
 
-export default function OrdersClient({ initial, cafeId, cafeName }: { initial: OrderRow[]; cafeId: string; cafeName: string }) {
+export default function OrdersClient({ initial, cafeId, cafeName, notifSettings: notifSettingsProp }: { initial: OrderRow[]; cafeId: string; cafeName: string; notifSettings?: NotifSettings }) {
   const [orders, setOrders] = useState<OrderRow[]>(initial);
   const [filter, setFilter] = useState<Filter>("all");
   const [pending, startTransition] = useTransition();
@@ -346,6 +355,32 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
   // ── New-order alerts (sound + browser notification + Sonner toast) ──
   const [alertsOn, setAlertsOn] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  // Preferensi kafe untuk perangkat ini: prop dari server, digabung
+  // localStorage "3diner.notifSettings" (cache offline per perangkat).
+  const [notifSettings, setNotifSettings] = useState<NotifSettings>(() =>
+    normalizeNotifSettings(notifSettingsProp),
+  );
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      if (notifSettingsProp) setNotifSettings(normalizeNotifSettings(notifSettingsProp));
+      try {
+        const cached = localStorage.getItem("3diner.notifSettings");
+        if (cached) setNotifSettings(s => normalizeNotifSettings({ ...s, ...JSON.parse(cached) }));
+      } catch { /* cache rusak = abaikan */ }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [notifSettingsProp]);
+  const deviceGates = useCallback(
+    (event: "order_new" | "payment_paid" | "kitchen_ready" | "order_cancelled") => {
+      const s = notifSettings;
+      return (
+        isChannelOn(s, event, "desktop") && // sakelar per-event × channel
+        s.sound_enabled &&                  // bunyi bisa dimatikan terpisah
+        !isQuietTime(s)                     // jam tenang kafe
+      );
+    },
+    [notifSettings],
+  );
 
   // Hydrate preferensi alarm setelah mount (localStorage client-only);
   // rAF menghindari setState sinkron di body effect.
@@ -380,6 +415,9 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
   }, []);
 
   const fireAlert = useCallback((row: OrderRow) => {
+    // Gerbang perangkat: event × channel desktop + bunyi + jam tenang.
+    // Bell in-app tidak lewat sini — dievaluasi di server saat penulisan.
+    if (!deviceGates("order_new")) return;
     const itemCount = (Array.isArray(row.items) ? row.items : []).reduce((n, i) => n + i.qty, 0);
     playChime();
     if (typeof Notification !== "undefined" && Notification.permission === "granted") {
@@ -424,7 +462,7 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
       ),
       { id: row.id_order, duration: 6500 }
     );
-  }, [playChime]);
+  }, [playChime, deviceGates]);
 
   function toggleAlerts() {
     if (alertsOn) {
@@ -439,6 +477,17 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
     if (typeof Notification !== "undefined" && Notification.permission === "default") {
       Notification.requestPermission().catch(() => {});
     }
+    // Tarik preferensi TERBARU dari server — perubahan di Pengaturan →
+    // Notifications berlaku tanpa reload halaman.
+    fetch("/api/notif-settings")
+      .then(r => (r.ok ? r.json() : null))
+      .then(j => {
+        if (!j?.settings) return;
+        const fresh = normalizeNotifSettings(j.settings);
+        setNotifSettings(fresh);
+        localStorage.setItem("3diner.notifSettings", JSON.stringify(fresh));
+      })
+      .catch(() => {});
   }
 
   function handleCopy(id: string) {
@@ -580,7 +629,13 @@ export default function OrdersClient({ initial, cafeId, cafeName }: { initial: O
             color: alertsOn ? "#22D3A6" : "var(--dash-muted)",
             border: `1px solid ${alertsOn ? "rgba(34,211,166,0.3)" : "rgba(255,255,255,0.07)"}`,
           }}
-          title={alertsOn ? "Alarm pesanan aktif (suara + notifikasi)" : "Aktifkan alarm pesanan baru"}
+          title={
+            alertsOn
+              ? isQuietTime(notifSettings)
+                ? "Alarm aktif — jam tenang kafe sedang berjalan, suara & notifikasi disunyatakan"
+                : "Alarm aktif — mengikuti Pengaturan → Notifications"
+              : "Aktifkan alarm pesanan baru"
+          }
         >
           {alertsOn ? <BellRing size={15} /> : <BellOff size={15} />}
           <span className="hidden sm:inline">{alertsOn ? "Alarm Aktif" : "Alarm Mati"}</span>

@@ -577,6 +577,18 @@ export async function updateOrderStatus(
     .eq("id_order", orderId)
     .eq("cafe_id", cafeId);
   if (error) return { error: error.message };
+  if (status === "ready") {
+    // Event "Pesanan Siap" — hormati preferensi notifikasi kafe.
+    const { createNotifications } = await import("@/lib/notifications");
+    await createNotifications(cafeId, "kitchen_ready", [
+      {
+        type: "order",
+        title: `Pesanan siap · #${orderId.slice(0, 5)}`,
+        body: "Dapur menandai pesanan siap diantar.",
+        href: "/dashboard-v2/pesanan",
+      },
+    ]);
+  }
   revalidatePath("/dashboard/orders");
   revalidatePath("/dashboard-v2/pesanan");
   return {};

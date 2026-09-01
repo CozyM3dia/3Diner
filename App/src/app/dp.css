@@ -95,6 +95,12 @@
 }
 .dp-dapur-page { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
 
+/* Baris keluar KDS: nama kafe di kiri, tombol Keluar menjorok ke kanan —
+   sejajar kasir-bar yang memayungi ThemeToggle. */
+.dp-exit-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dp-exit-cafe { font-size: 12.5px; color: var(--dp-muted); }
+.dp-exit-actions { display: flex; align-items: center; gap: 8px; }
+
 /* Kartu dasar template: putih, border #e2e8f0, radius 6 */
 .dp-card { background: var(--dp-surface); border: 1px solid var(--dp-border); border-radius: 6px; }
 .dp-card-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 0; }
@@ -985,6 +991,9 @@
 }
 .pos-amount span { font-size: 14px; font-weight: 700; color: var(--dp-heading); }
 .pos-amount b { font-size: 20px; font-weight: 800; color: var(--dp-heading); }
+/* Saat ringkasan dihitung ulang (auto-quote), angka disunyatakan sesaat */
+.pos-amount-busy b { opacity: .45; transition: opacity .2s ease; }
+.pos-amount b { transition: opacity .2s ease; }
 .pos-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1093,3 +1102,58 @@ html[data-theme="dark"] .pos-qris img { background: #1a2b47; }
 /* RSP — Pengaturan Struk: permukaan mengikuti tema; kertas pratinjau tetap putih */
 html[data-theme="dark"] .rsp-paper { background: #fff; }
 html[data-theme="dark"] .rsp-preview { background: #fff; }
+
+/* ════════════════════════════════════════════════════════════════════
+   DSM — Global Search modal (recreation "Search" Dream POS)
+   ════════════════════════════════════════════════════════════════════ */
+.dp-smodal-backdrop { position: fixed; inset: 0; z-index: 90; background: rgba(13, 23, 42, .55);
+  display: flex; align-items: flex-start; justify-content: center; padding: 9vh 16px 16px; }
+.dp-smodal { width: min(520px, 100%); max-height: 80vh; overflow-y: auto; background: var(--dp-surface);
+  border: 1px solid var(--dp-border); border-radius: 14px; padding: 18px 20px 16px;
+  box-shadow: 0 24px 60px rgba(2, 12, 27, .35); }
+.dp-smodal-head { display: flex; align-items: center; justify-content: space-between; }
+.dp-smodal-head h2 { margin: 0; font-size: 17px; font-weight: 700; color: var(--dp-heading); }
+.dp-smodal-x { width: 30px; height: 30px; border-radius: 50%; border: 0; cursor: pointer;
+  background: var(--dp-bg); color: var(--dp-heading); display: grid; place-items: center; }
+.dp-smodal-x:hover { background: var(--dp-border); }
+.dp-smodal-input { position: relative; margin-top: 12px; }
+.dp-smodal-input input { width: 100%; height: 40px; border: 1px solid var(--dp-border); border-radius: 8px;
+  background: var(--dp-bg); padding: 0 40px 0 12px; font: inherit; font-size: 13.5px; color: var(--dp-heading); }
+.dp-smodal-input input::placeholder { color: var(--dp-muted); }
+.dp-smodal-input input:focus { outline: 2px solid var(--dp-blue); outline-offset: 1px; }
+.dp-smodal-sicon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  width: 16px; height: 16px; color: var(--dp-muted); pointer-events: none; }
+.dp-smodal-tabs { display: flex; gap: 22px; margin-top: 14px; border-bottom: 1px solid var(--dp-border); }
+.dp-smodal-tab { display: inline-flex; align-items: center; gap: 7px; padding: 6px 2px 10px; cursor: pointer;
+  background: none; border: 0; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--dp-text);
+  border-bottom: 2.5px solid transparent; margin-bottom: -1px; }
+.dp-smodal-tab:hover { color: var(--dp-heading); }
+.dp-smodal-tab-on { color: var(--dp-blue); border-bottom-color: var(--dp-blue); }
+.dp-smodal-tabic { width: 22px; height: 22px; border-radius: 50%; background: var(--dp-bg);
+  display: grid; place-items: center; color: var(--dp-muted); flex: none; }
+.dp-smodal-tab-on .dp-smodal-tabic { background: var(--dp-blue-soft); color: var(--dp-accent-ink); }
+.dp-smodal-list { display: flex; flex-direction: column; min-height: 120px; }
+.dp-smodal-empty { margin: auto 0; padding: 26px 4px; text-align: center; font-size: 13px; color: var(--dp-muted); }
+.dp-smodal-row { display: flex; align-items: center; gap: 11px; padding: 11px 2px;
+  border-bottom: 1px solid var(--dp-border); text-decoration: none; }
+.dp-smodal-row:hover .dp-smodal-row-main b { color: var(--dp-blue); }
+.dp-smodal-thumb { width: 36px; height: 36px; border-radius: 50%; background: var(--dp-bg);
+  display: grid; place-items: center; overflow: hidden; color: var(--dp-muted); flex: none; }
+.dp-smodal-thumb-img { width: 100%; height: 100%; object-fit: cover; }
+.dp-smodal-row-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.dp-smodal-row-main b { font-size: 13.5px; font-weight: 700; color: var(--dp-text); }
+.dp-smodal-row-main small { font-size: 11.5px; color: var(--dp-muted); }
+.dp-smodal-inactive { font-style: normal; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  color: var(--dp-accent-ink); background: var(--dp-blue-soft); border-radius: 999px; padding: 1px 6px; }
+.dp-smodal-row-side { font-size: 12px; color: var(--dp-muted); white-space: nowrap; }
+.dp-smodal-viewall { display: block; width: 100%; margin-top: 14px; height: 38px; border-radius: 8px;
+  background: var(--dp-bg); border: 0; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--dp-heading); text-align: center; text-decoration: none; line-height: 38px; }
+.dp-smodal-viewall:hover { background: var(--dp-border); }
+
+html[data-theme="dark"] .dp-smodal { background: #13233d; }
+html[data-theme="dark"] .dp-smodal-x,
+html[data-theme="dark"] .dp-smodal-input input,
+html[data-theme="dark"] .dp-smodal-tabic,
+html[data-theme="dark"] .dp-smodal-thumb,
+html[data-theme="dark"] .dp-smodal-viewall { background: #0e1a2e; }

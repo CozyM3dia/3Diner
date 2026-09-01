@@ -103,7 +103,7 @@ export async function addLineToExistingOrder(
   if (!result?.order?.id_order) return { error: "Gagal memperbarui pesanan." };
 
   const newId = result.order.id_order;
-  await createNotifications(cafeId, [
+  await createNotifications(cafeId, "order_new", [
     {
       type: "order",
       title: `Pesanan diperbarui · #${newId.slice(0, 5)}`,
