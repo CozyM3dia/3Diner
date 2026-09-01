@@ -1,0 +1,128 @@
+/* ════════════════════════════════════════════════════════════════════
+   DP-TAX — Tax Settings (recreation `tax-settings.html` Dream POS)
+   Tabel daftar pajak + modal Add/Edit Tax (Title / Rate / Type).
+   Token --dp-* → ikut dark mode otomatis.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Kolom # sempit & Actions rata kanan */
+.dp-tax-table th, .dp-tax-table td { vertical-align: middle; }
+.dp-tax-num { width: 48px; color: var(--dp-muted); }
+.dp-tax-actions-col { width: 110px; text-align: right; }
+.dp-tax-actions { display: inline-flex; gap: 8px; justify-content: flex-end; }
+.dp-tax-actions .dp-round-btn { width: 30px; height: 30px; }
+
+/* ── Modal Add/Edit Tax ── */
+.dp-tax-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 80px 16px 16px;
+  background: rgba(4, 12, 24, 0.5);
+  backdrop-filter: blur(2px);
+  animation: dp-tax-fade 0.15s ease-out;
+}
+@keyframes dp-tax-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dp-tax-pop { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .dp-tax-overlay, .dp-tax-modal { animation: none; }
+}
+
+.dp-tax-modal {
+  width: min(440px, 100%);
+  background: var(--dp-surface);
+  border: 1px solid var(--dp-border);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(4, 12, 24, 0.3);
+  padding: 20px;
+  animation: dp-tax-pop 0.16s ease-out;
+}
+.dp-tax-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.dp-tax-modal-head h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dp-heading);
+}
+.dp-tax-modal-x {
+  border: 0;
+  background: var(--dp-bg);
+  color: var(--dp-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.dp-tax-modal-x:hover { color: var(--dp-heading); }
+
+.dp-tax-field { display: grid; gap: 6px; margin-bottom: 14px; }
+.dp-tax-field > span {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dp-heading);
+}
+.dp-tax-field > span b { color: var(--dp-red); margin-left: 2px; }
+.dp-tax-field input,
+.dp-tax-field select {
+  width: 100%;
+  border: 1px solid var(--dp-border);
+  border-radius: 8px;
+  background: var(--dp-surface);
+  color: var(--dp-heading);
+  font: inherit;
+  font-size: 13.5px;
+  padding: 9px 12px;
+}
+.dp-tax-field input:focus,
+.dp-tax-field select:focus { outline: 2px solid var(--dp-blue); outline-offset: -1px; }
+.dp-tax-select-wrap { position: relative; display: block; }
+.dp-tax-select-wrap select { appearance: none; padding-right: 34px; }
+.dp-tax-select-wrap::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid var(--dp-muted);
+  border-bottom: 1.5px solid var(--dp-muted);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.dp-tax-err { margin: 0 0 12px; }
+
+.dp-tax-modal-foot { display: flex; gap: 10px; margin-top: 6px; }
+.dp-tax-btn {
+  flex: 1;
+  height: 40px;
+  border: 1px solid var(--dp-border);
+  border-radius: 8px;
+  background: var(--dp-bg);
+  color: var(--dp-text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dp-tax-btn:hover:not(:disabled) { background: var(--dp-border); }
+.dp-tax-btn:disabled { opacity: .55; cursor: default; }
+.dp-tax-btn:focus-visible { outline: 2px solid var(--dp-blue); outline-offset: 2px; }
+.dp-tax-btn-primary {
+  background: var(--dp-blue);
+  border-color: var(--dp-blue);
+  color: #fff;
+}
+.dp-tax-btn-primary:hover:not(:disabled) {
+  background: var(--dp-blue);
+  filter: brightness(1.05);
+}

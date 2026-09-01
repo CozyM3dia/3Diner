@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getStaffContext, canOpenOwnerConsole } from "@/lib/staff-context";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import TaxSettingsForm, { type TaxConfig } from "@/components/dp/TaxSettingsForm";
+import "../../../tax-settings.css";
 
 export const metadata = { title: "Tax Settings · 3Diner" };
 export const dynamic = "force-dynamic";
