@@ -192,8 +192,8 @@ describe("kunci baris keranjang", () => {
 
 describe("peran dan siklus hidup di sisi TypeScript", () => {
   it("membawa tiap peran ke konsolnya sendiri", () => {
-    expect(homeRouteForRole("owner")).toBe("/dashboard");
-    expect(homeRouteForRole("manager")).toBe("/dashboard"); // manager masuk konsol pemilik
+    expect(homeRouteForRole("owner")).toBe("/dashboard-v2");
+    expect(homeRouteForRole("manager")).toBe("/dashboard-v2"); // manager masuk konsol pemilik
     expect(homeRouteForRole("cashier")).toBe("/kasir");
     expect(homeRouteForRole("staff")).toBe("/kasir"); // staff: operasional outlet
     expect(homeRouteForRole("kitchen")).toBe("/dapur");

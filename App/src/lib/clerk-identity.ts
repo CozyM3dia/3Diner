@@ -9,6 +9,9 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 const IDENTITY_TABLE = "Clerk_Identities";
 const USERS_PER_PAGE = 200;
 const MAX_USER_PAGES = 50;
+const clerkConfigured = Boolean(
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY,
+);
 
 export interface ClerkIdentity {
   clerkUserId: string;
@@ -30,8 +33,16 @@ export function normalizeIdentityEmail(value: string | null | undefined): string
 
 async function getClerkUserId(): Promise<string | null> {
   try {
-    return (await auth()).userId ?? null;
+    // `treatPendingAsSignedOut: false` — Clerk marks a session "pending" while
+    // it carries unresolved session tasks, and an instance with Organizations
+    // enabled hands every new user a `choose-organization` task. This app has
+    // no Clerk organizations and mounts no task UI, so that task can never be
+    // satisfied here and a pending session would be locked out forever.
+    // Authorization is not weakened by accepting it: the cafe a person may
+    // touch still comes from the Supabase `Staff` row, not from Clerk.
+    return (await auth({ treatPendingAsSignedOut: false })).userId ?? null;
   } catch {
+    if (clerkConfigured) throw new ClerkIdentityError("Sesi Clerk tidak tersedia.");
     // The fallback keeps older Supabase sessions usable while Clerk is being
     // configured, and also keeps non-Clerk local environments bootable.
     return null;

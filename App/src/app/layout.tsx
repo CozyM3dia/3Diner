@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins } from "next/font/google";
+import { Poppins, Instrument_Sans } from "next/font/google";
 import { DatadogAppRouter } from "@datadog/browser-rum-nextjs";
 import { ClerkProvider } from "@clerk/nextjs";
 import ThemeSync from "@/components/dp/ThemeSync";
@@ -10,6 +10,16 @@ const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
+
+// Instrument Sans — owner console face (dashboard-v2 only). Humanist grotesk
+// with tabular figures; Poppins is geometric-wide and loses column alignment
+// on money columns. Brand continuity in the console is carried by colour and
+// navy ink, not by the typeface. Scoped via `.dv3-root` in console.css.
+const instrumentSans = Instrument_Sans({
+  variable: "--font-instrument",
+  subsets: ["latin"],
   display: "swap",
 });
 
@@ -47,13 +57,16 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" className={poppins.variable} suppressHydrationWarning>
+    <html lang="id" className={`${poppins.variable} ${instrumentSans.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
       <body className="min-h-dvh">
         {clerkConfigured ? (
-          <ClerkProvider>
+          // Telemetry posts to clerk-telemetry.com, an origin the app CSP does not
+          // allow. Disabling it keeps the console clean and keeps auth traffic on
+          // the Clerk instance domain only.
+          <ClerkProvider telemetry={{ disabled: true }}>
             <ThemeSync />
             <DatadogAppRouter />
             {children}

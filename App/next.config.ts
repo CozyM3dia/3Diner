@@ -46,7 +46,17 @@ const withPWA = withPWAInit({
   },
 });
 
+// Clerk loads its browser runtime and session APIs from the instance domain.
+// Keep the allowlist explicit so the login page can bootstrap under the app CSP.
+const clerkOrigins = "https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev";
+const clerkConnectOrigins = `${clerkOrigins} wss://*.clerk.accounts.dev wss://*.clerk.com wss://*.clerk.dev`;
+const developmentScriptSources = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
+const captchaOrigin = "https://challenges.cloudflare.com";
+
 const nextConfig: NextConfig = {
+  // The app is commonly opened through 127.0.0.1 during local testing.
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
+
   transpilePackages: ["@mkkellogg/gaussian-splats-3d", "three"],
 
   turbopack: {},
@@ -74,8 +84,8 @@ const nextConfig: NextConfig = {
   async headers() {
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://app.midtrans.com https://app.sandbox.midtrans.com",
-      "frame-src 'self' https://app.midtrans.com https://app.sandbox.midtrans.com",
+      `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${developmentScriptSources} https://app.midtrans.com https://app.sandbox.midtrans.com ${clerkOrigins} ${captchaOrigin}`,
+      `frame-src 'self' https://app.midtrans.com https://app.sandbox.midtrans.com ${clerkOrigins} ${captchaOrigin}`,
       // Datadog RUM/logs POST to the "browser-intake-*" family (e.g.
       // browser-intake-datadoghq.com), which is a distinct apex domain, NOT a
       // subdomain of datadoghq.com — CSP host wildcards only match labels
@@ -83,7 +93,7 @@ const nextConfig: NextConfig = {
       // NOT cover "browser-intake-datadoghq.com". Listed explicitly for the
       // default site (NEXT_PUBLIC_DATADOG_SITE=datadoghq.com); update this if
       // the site env var is ever changed to a different Datadog region.
-      "connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co https://*.datadoghq.com https://browser-intake-datadoghq.com https://api.midtrans.com https://api.sandbox.midtrans.com https://app.midtrans.com https://app.sandbox.midtrans.com",
+      `connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co https://*.datadoghq.com https://browser-intake-datadoghq.com https://api.midtrans.com https://api.sandbox.midtrans.com https://app.midtrans.com https://app.sandbox.midtrans.com ${clerkConnectOrigins} ${captchaOrigin}`,
       "img-src 'self' data: blob: https:",
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self' data:",

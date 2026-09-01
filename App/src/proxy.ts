@@ -15,7 +15,10 @@ const isProtectedPath = (pathname: string): boolean =>
 
 const clerkHandler = clerkConfigured
   ? clerkMiddleware(async (clerkAuth, request) => {
-      const { userId } = await clerkAuth();
+      // Pending sessions count as signed in — see lib/clerk-identity.ts. Left
+      // at the default, an unresolved Clerk task would make every protected
+      // route look anonymous and bounce a signed-in user back to /login.
+      const { userId } = await clerkAuth({ treatPendingAsSignedOut: false });
       const { pathname } = request.nextUrl;
 
       // Keep the app's role-aware bootstrap in control of the destination.
@@ -26,9 +29,14 @@ const clerkHandler = clerkConfigured
         return NextResponse.redirect(redirect);
       }
 
-      if (userId && pathname === "/login" && request.method === "GET") {
+      // `?alasan=` means a console layout just rejected this session — the
+      // account is authenticated but has no staff row, or is deactivated.
+      // Forwarding it back to the console is exactly the bounce that layout
+      // was escaping, so the login page keeps it and explains instead.
+      const rejected = request.nextUrl.searchParams.has("alasan");
+      if (userId && pathname === "/login" && request.method === "GET" && !rejected) {
         const redirect = request.nextUrl.clone();
-        redirect.pathname = "/dashboard";
+        redirect.pathname = "/dashboard-v2";
         return NextResponse.redirect(redirect);
       }
 
@@ -80,17 +88,21 @@ async function legacyMiddleware(request: NextRequest) {
   // membuat responsnya bukan lagi respons yang dikenali klien. Gejalanya:
   // "An unexpected response was received from the server" persis setelah
   // kredensial yang benar dimasukkan.
-  if (user && pathname === "/login" && request.method === "GET") {
+  // Sama seperti jalur Clerk: `?alasan=` berarti layout konsol baru saja
+  // menolak sesi ini, jadi melemparnya balik ke konsol persis memulai pantulan
+  // yang sedang dihindari.
+  const rejected = request.nextUrl.searchParams.has("alasan");
+  if (user && pathname === "/login" && request.method === "GET" && !rejected) {
     const redirect = request.nextUrl.clone();
-    redirect.pathname = "/dashboard";
+    redirect.pathname = "/dashboard-v2";
     return NextResponse.redirect(redirect);
   }
 
   return response;
 }
 
-/** Clerk middleware when configured, Supabase compatibility gate otherwise. */
-export async function middleware(request: NextRequest, event?: NextFetchEvent): Promise<NextResponse | Response> {
+/** Clerk proxy when configured, Supabase compatibility gate otherwise. */
+export async function proxy(request: NextRequest, event?: NextFetchEvent): Promise<NextResponse | Response> {
   if (clerkHandler) {
     const res = await clerkHandler(request, event as NextFetchEvent);
     return res ?? NextResponse.next();
@@ -98,7 +110,7 @@ export async function middleware(request: NextRequest, event?: NextFetchEvent): 
   return legacyMiddleware(request);
 }
 
-export default middleware;
+export default proxy;
 
 export const config = {
   matcher: [

@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
+import { createClient } from "@/lib/supabase/client";
 import {
   ClipboardListIcon,
   LogOutIcon,
@@ -20,6 +23,46 @@ const LINKS = [
   { href: "/dashboard-v2/pesanan", label: "Orders & Transaksi", icon: ClipboardListIcon },
   { href: "/dashboard-v2/pengaturan/staf", label: "Manage Staffs", icon: UsersIcon },
 ];
+
+const clerkConfigured = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+
+function ClerkProfileLogout() {
+  const router = useRouter();
+  const { signOut } = useClerk();
+
+  async function handleLogout() {
+    // Clerk's default post-sign-out redirect is "/", which this app forwards to
+    // the public menu. Naming /login keeps sign-out landing where staff expect,
+    // and keeps that navigation from racing the router call below.
+    await signOut({ redirectUrl: "/login" });
+    router.replace("/login");
+    router.refresh();
+  }
+
+  return <ProfileLogoutButton onLogout={handleLogout} />;
+}
+
+function SupabaseProfileLogout() {
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace("/login");
+    router.refresh();
+  }
+
+  return <ProfileLogoutButton onLogout={handleLogout} />;
+}
+
+function ProfileLogoutButton({ onLogout }: { onLogout: () => Promise<void> }) {
+  return (
+    <button type="button" className="dp-profile-logout" role="menuitem" onClick={onLogout}>
+      <LogOutIcon className="h-4 w-4" />
+      Logout
+    </button>
+  );
+}
 
 export default function ProfileMenu({
   userName,
@@ -85,12 +128,7 @@ export default function ProfileMenu({
           </div>
 
           <div className="dp-profile-foot">
-            <form action="/api/auth/signout" method="post" className="w-full">
-              <button type="submit" className="dp-profile-logout" role="menuitem">
-                <LogOutIcon className="h-4 w-4" />
-                Logout
-              </button>
-            </form>
+            {clerkConfigured ? <ClerkProfileLogout /> : <SupabaseProfileLogout />}
           </div>
         </div>
       )}

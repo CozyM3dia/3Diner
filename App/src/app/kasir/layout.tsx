@@ -6,6 +6,8 @@ export const metadata = {
   title: "Kasir · 3Diner",
 };
 
+export const dynamic = "force-dynamic";
+
 /** Konsol Kasir adalah permukaan tersendiri, bukan rute di dalam dashboard.
  *
  *  Pemisahannya fisik: tidak ada nav pemilik di sini, jadi tidak perlu ada

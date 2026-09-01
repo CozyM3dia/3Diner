@@ -15,7 +15,7 @@ describe("resolveHomeRoute: tiga alasan penolakan terpisah", () => {
 
   it("owner aktif pulang ke konsolnya", async () => {
     getStaffContext.mockResolvedValue({ role: "owner", is_active: true });
-    expect(await resolveHomeRoute()).toEqual({ home: "/dashboard", reason: null });
+    expect(await resolveHomeRoute()).toEqual({ home: "/dashboard-v2", reason: null });
   });
 
   it("kasir aktif pulang ke /kasir", async () => {

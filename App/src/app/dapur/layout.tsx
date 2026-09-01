@@ -7,6 +7,8 @@ export const metadata = {
   title: "Dapur · 3Diner",
 };
 
+export const dynamic = "force-dynamic";
+
 /** Papan Dapur (KDS) adalah permukaan tersendiri, sejajar Konsol Kasir:
  *  tanpa nav pemilik, tanpa gembok yang menyembunyikan menu. Staf berperan
  *  kitchen dibawa ke sini langsung setelah login (homeRouteForRole).

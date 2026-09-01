@@ -11,7 +11,7 @@ vi.mock("@supabase/ssr", () => ({
 }));
 
 import { NextRequest } from "next/server";
-import { config, middleware } from "@/middleware";
+import { config, proxy } from "@/proxy";
 
 function request(path: string, method = "GET") {
   return new NextRequest(new URL(`http://localhost:3000${path}`), { method });
@@ -26,25 +26,37 @@ beforeEach(() => {
 describe("gerbang autentikasi", () => {
   it("menjaga kedua konsol", () => {
     expect(config.matcher).toContain("/dashboard/:path*");
+    expect(config.matcher).toContain("/dashboard-v2/:path*");
     expect(config.matcher).toContain("/kasir/:path*");
   });
 
   it("melempar pengunjung anonim ke layar masuk", async () => {
-    for (const path of ["/dashboard", "/dashboard/menu", "/kasir"]) {
-      const res = await middleware(request(path));
+    for (const path of ["/dashboard", "/dashboard/menu", "/dashboard-v2", "/kasir"]) {
+      const res = await proxy(request(path));
       expect(redirectTarget(res), path).toContain("/login");
     }
   });
 
   it("membiarkan pengunjung anonim membuka layar masuk", async () => {
-    const res = await middleware(request("/login"));
+    const res = await proxy(request("/login"));
     expect(redirectTarget(res)).toBeNull();
   });
 
   it("mengalihkan navigasi ke /login saat sesi sudah ada", async () => {
     currentUser = { id: "u1" };
-    const res = await middleware(request("/login"));
-    expect(redirectTarget(res)).toContain("/dashboard");
+    const res = await proxy(request("/login"));
+    expect(redirectTarget(res)).toContain("/dashboard-v2");
+  });
+
+  it("membiarkan /login?alasan= apa adanya meski sesi sudah ada", async () => {
+    // Layout konsol mengembalikan akun tanpa baris Staff ke sini dengan alasan.
+    // Kalau proxy tetap melemparnya ke konsol, layout akan menolaknya lagi dan
+    // keduanya saling mengoper orang yang sama tanpa henti.
+    currentUser = { id: "u1" };
+    for (const alasan of ["bukan-staf", "nonaktif"]) {
+      const res = await proxy(request(`/login?alasan=${alasan}`));
+      expect(redirectTarget(res), alasan).toBeNull();
+    }
   });
 
   it("TIDAK mengalihkan server action yang dikirim ke /login", async () => {
@@ -54,14 +66,14 @@ describe("gerbang autentikasi", () => {
     // responsnya tidak dikenali klien. Gejalanya "An unexpected response was
     // received from the server" persis setelah kredensial yang benar diisi.
     currentUser = { id: "u1" };
-    const res = await middleware(request("/login", "POST"));
+    const res = await proxy(request("/login", "POST"));
     expect(redirectTarget(res)).toBeNull();
   });
 
   it("tidak menghalangi permintaan bersesi ke kedua konsol", async () => {
     currentUser = { id: "u1" };
-    for (const path of ["/dashboard", "/kasir"]) {
-      const res = await middleware(request(path));
+    for (const path of ["/dashboard", "/dashboard-v2", "/kasir"]) {
+      const res = await proxy(request(path));
       expect(redirectTarget(res), path).toBeNull();
     }
   });

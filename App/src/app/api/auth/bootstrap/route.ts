@@ -7,7 +7,10 @@ export const dynamic = "force-dynamic";
 /** Finish a Clerk sign-in by resolving the existing cafe/staff role. */
 export async function POST() {
   try {
-    const { isAuthenticated } = await auth();
+    // Pending sessions count as signed in here — see the note in
+    // lib/clerk-identity.ts for why an unresolved Clerk task must not lock
+    // this app out.
+    const { isAuthenticated } = await auth({ treatPendingAsSignedOut: false });
     if (!isAuthenticated) {
       return NextResponse.json({ error: "Sesi Clerk tidak valid." }, { status: 401 });
     }

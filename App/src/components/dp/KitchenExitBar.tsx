@@ -1,8 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
 import { ArrowLeftIcon, LogOutIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+
+const clerkConfigured = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
 /** Bar navigasi papan Dapur standalone (/dapur).
  *
@@ -14,12 +17,10 @@ import { createClient } from "@/lib/supabase/client";
 export default function KitchenExitBar({ cafeName }: { cafeName?: string }) {
   const router = useRouter();
 
-  async function keluar() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
+  const keluar = () => {
+    if (clerkConfigured) return <ClerkExitAction />;
+    return <SupabaseExitAction />;
+  };
 
   return (
     <div className="dp-exit-bar">
@@ -36,11 +37,47 @@ export default function KitchenExitBar({ cafeName }: { cafeName?: string }) {
           <ArrowLeftIcon className="h-4 w-4" />
           Kembali
         </button>
-        <button type="button" className="dp-btn-white" onClick={keluar}>
-          <LogOutIcon className="h-4 w-4" />
-          Keluar
-        </button>
+        {keluar()}
       </div>
     </div>
+  );
+}
+
+function ClerkExitAction() {
+  const router = useRouter();
+  const { signOut } = useClerk();
+
+  async function handleLogout() {
+    // Clerk's default post-sign-out redirect is "/", which this app forwards to
+    // the public menu. Naming /login keeps sign-out landing where staff expect,
+    // and keeps that navigation from racing the router call below.
+    await signOut({ redirectUrl: "/login" });
+    router.replace("/login");
+    router.refresh();
+  }
+
+  return (
+    <button type="button" className="dp-btn-white" onClick={handleLogout}>
+      <LogOutIcon className="h-4 w-4" />
+      Keluar
+    </button>
+  );
+}
+
+function SupabaseExitAction() {
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace("/login");
+    router.refresh();
+  }
+
+  return (
+    <button type="button" className="dp-btn-white" onClick={handleLogout}>
+      <LogOutIcon className="h-4 w-4" />
+      Keluar
+    </button>
   );
 }

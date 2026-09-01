@@ -302,7 +302,7 @@ export interface StaffContext {
  *  Pemilih peran di layar login adalah pertanyaan yang jawabannya sudah
  *  dimiliki sistem, dan setiap salah pilih jadi tiket dukungan. */
 export function homeRouteForRole(role: StaffRole | null): string | null {
-  if (role === 'owner' || role === 'manager') return '/dashboard'
+  if (role === 'owner' || role === 'manager') return '/dashboard-v2'
   if (role === 'cashier' || role === 'staff') return '/kasir'
   if (role === 'kitchen') return '/dapur'
   return null

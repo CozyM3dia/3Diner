@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
+import { createClient } from "@/lib/supabase/client";
 import {
   BellRingIcon,
   CalendarDaysIcon,
-  ChevronDownIcon,
   ClipboardListIcon,
   CookingPotIcon,
   LayoutGridIcon,
@@ -14,6 +15,8 @@ import {
   MenuIcon,
   MonitorIcon,
   PackageIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
   PercentIcon,
   PrinterIcon,
   PuzzleIcon,
@@ -31,69 +34,134 @@ import ProfileMenu from "@/components/dp/ProfileMenu";
 import type { NotifRow } from "@/lib/notifications";
 import type { Route } from "next";
 
-/** Item navigasi meniru sidebar Dream POS (restaurant-pos).
- *  `soon` = modul template yang belum punya halaman nyata di app ini —
- *  ditampilkan agar setia pada template, tapi nonaktif (bukan link mati). */
+/** `soon` = modul yang belum punya sumber data. Ditampilkan nonaktif dengan
+ *  alasan, bukan disembunyikan dan bukan link mati (§4.4 anti kontrol palsu). */
 type NavItem = {
   label: string;
   href?: Route;
   icon: React.ComponentType<{ className?: string }>;
-  count?: number;
   soon?: boolean;
 };
 
-/** Rail ikon = TAB pengelompokan menu (pola two-col sidebar template Dream POS):
- *  klik ikon di rail mengganti isi panel label. */
-type NavGroup = {
-  key: string;
-  title: string;
-  icon: React.ComponentType<{ className?: string }>;
-  items: NavItem[];
-};
+type NavSection = { title: string; items: NavItem[] };
 
-const NAV_GRUP: NavGroup[] = [
+/** Semua bagian tampil sekaligus. Rail-ikon-plus-panel milik template lama
+ *  menyembunyikan tiga dari empat grup di balik klik, menghabiskan 276px
+ *  tetap, dan grup teratasnya hanya berisi satu item. */
+const NAV: NavSection[] = [
   {
-    key: "utama",
-    title: "Menu Utama",
-    icon: LayoutGridIcon,
+    title: "Ringkasan",
     items: [{ label: "Dashboard", href: "/dashboard-v2", icon: LayoutGridIcon }],
   },
   {
-    key: "operasional",
     title: "Operasional",
-    icon: ClipboardListIcon,
     items: [
       { label: "POS", href: "/dashboard-v2/pos", icon: MonitorIcon },
-      { label: "Orders", href: "/dashboard-v2/pesanan", icon: ClipboardListIcon },
-      { label: "Kitchen (KDS)", href: "/dashboard-v2/dapur", icon: CookingPotIcon },
-      { label: "Reservation", icon: CalendarDaysIcon, soon: true },
+      { label: "Pesanan", href: "/dashboard-v2/pesanan", icon: ClipboardListIcon },
+      { label: "Dapur", href: "/dashboard-v2/dapur", icon: CookingPotIcon },
+      { label: "Reservasi", icon: CalendarDaysIcon, soon: true },
     ],
   },
   {
-    key: "katalog",
-    title: "Menu Management",
-    icon: PackageIcon,
+    title: "Menu",
     items: [
-      { label: "Categories", href: "/dashboard-v2/kategori", icon: TagsIcon },
-      { label: "Items", href: "/dashboard-v2/items", icon: PackageIcon },
-      { label: "Addons", href: "/dashboard-v2/addons", icon: PuzzleIcon },
+      { label: "Kategori", href: "/dashboard-v2/kategori", icon: TagsIcon },
+      { label: "Item", href: "/dashboard-v2/items", icon: PackageIcon },
+      { label: "Tambahan", href: "/dashboard-v2/addons", icon: PuzzleIcon },
     ],
   },
   {
-    key: "pengaturan",
     title: "Pengaturan",
-    icon: SettingsIcon,
     items: [
-      { label: "Store Settings", href: "/dashboard-v2/pengaturan", icon: SettingsIcon },
-      { label: "Tax Settings", href: "/dashboard-v2/pengaturan/pajak", icon: PercentIcon },
-      { label: "Receipt Settings", href: "/dashboard-v2/pengaturan/struk", icon: PrinterIcon },
-      { label: "Notifications", href: "/dashboard-v2/pengaturan/notifikasi", icon: BellRingIcon },
+      { label: "Toko", href: "/dashboard-v2/pengaturan", icon: SettingsIcon },
+      { label: "Pajak", href: "/dashboard-v2/pengaturan/pajak", icon: PercentIcon },
+      { label: "Struk", href: "/dashboard-v2/pengaturan/struk", icon: PrinterIcon },
+      { label: "Notifikasi", href: "/dashboard-v2/pengaturan/notifikasi", icon: BellRingIcon },
       { label: "QR Smart Menu", href: "/dashboard-v2/pengaturan/qr", icon: QrCodeIcon },
-      { label: "Roles & Permissions", href: "/dashboard-v2/pengaturan/peran", icon: ShieldCheckIcon },
-      { label: "Manage Staffs", href: "/dashboard-v2/pengaturan/staf", icon: UsersIcon },
+      { label: "Peran & Izin", href: "/dashboard-v2/pengaturan/peran", icon: ShieldCheckIcon },
+      { label: "Staf", href: "/dashboard-v2/pengaturan/staf", icon: UsersIcon },
     ],
   },
 ];
+
+const clerkConfigured = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+
+/* ── Pilihan kuncup sidebar sebagai store eksternal kecil.
+   useSyncExternalStore, bukan useState+useEffect: snapshot server selalu
+   `false` sehingga markup server dan klien cocok, tak ada setState di dalam
+   effect (yang memicu render beruntun), dan perubahan ikut tersiar ke tab
+   lain lewat event `storage` secara cuma-cuma. `memo` menjaga toggle tetap
+   berfungsi ketika penyimpanan diblokir — berlaku untuk sesi ini saja. */
+const KUNCI_KUNCUP = "konsol-3diner-sidebar";
+const pendengarKuncup = new Set<() => void>();
+let memoKuncup: boolean | null = null;
+
+function langgananKuncup(cb: () => void) {
+  pendengarKuncup.add(cb);
+  window.addEventListener("storage", cb);
+  return () => {
+    pendengarKuncup.delete(cb);
+    window.removeEventListener("storage", cb);
+  };
+}
+
+function bacaKuncup(): boolean {
+  try {
+    const v = localStorage.getItem(KUNCI_KUNCUP);
+    if (v !== null) return v === "1";
+  } catch {
+    /* penyimpanan diblokir — jatuh ke memo */
+  }
+  return memoKuncup ?? false;
+}
+
+function tulisKuncup(v: boolean) {
+  memoKuncup = v;
+  try {
+    localStorage.setItem(KUNCI_KUNCUP, v ? "1" : "0");
+  } catch {
+    /* penyimpanan diblokir — pilihan hanya bertahan di sesi ini */
+  }
+  for (const cb of pendengarKuncup) cb();
+}
+
+function ClerkShellLogoutButton() {
+  const router = useRouter();
+  const { signOut } = useClerk();
+
+  async function handleLogout() {
+    // Clerk's default post-sign-out redirect is "/", which this app forwards to
+    // the public menu. Naming /login keeps sign-out landing where staff expect,
+    // and keeps that navigation from racing the router call below.
+    await signOut({ redirectUrl: "/login" });
+    router.replace("/login");
+    router.refresh();
+  }
+
+  return <ShellLogoutButton onLogout={handleLogout} />;
+}
+
+function SupabaseShellLogoutButton() {
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace("/login");
+    router.refresh();
+  }
+
+  return <ShellLogoutButton onLogout={handleLogout} />;
+}
+
+function ShellLogoutButton({ onLogout }: { onLogout: () => Promise<void> }) {
+  return (
+    <button type="button" className="dv3-item mt-auto w-full border-0 bg-transparent text-left" onClick={onLogout}>
+      <LogOutIcon />
+      <span>Keluar</span>
+    </button>
+  );
+}
 
 export default function DpShell({
   cafeName,
@@ -112,17 +180,16 @@ export default function DpShell({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [tabManual, setTabManual] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const sideRef = useRef<HTMLElement>(null);
 
-  // Tutup drawer & kembalikan tab ke grup halaman saat pindah rute
-  // — pola adjust-during-render (bukan effect).
+  const kuncup = useSyncExternalStore(langgananKuncup, bacaKuncup, () => false);
+
+  // Tutup drawer saat pindah rute — pola adjust-during-render, bukan effect.
   const [lastPath, setLastPath] = useState(pathname);
   if (pathname !== lastPath) {
     setLastPath(pathname);
     setOpen(false);
-    setTabManual(null);
   }
 
   useEffect(() => {
@@ -139,104 +206,139 @@ export default function DpShell({
     };
   }, [open]);
 
+  // Ctrl/⌘+K membuka pencarian — jalur papan tik untuk aksi yang paling sering.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   // Rute bersarang (`/pengaturan` vs `/pengaturan/pajak`) membuat startsWith
   // menyalakan dua item sekaligus. Yang menyala adalah pencocokan TERPANJANG.
-  const semuaItem = NAV_GRUP.flatMap(g => g.items);
+  const semuaItem = NAV.flatMap((s) => s.items);
   const cocok = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const hrefTerpanjang = semuaItem
-    .map(i => i.href)
+    .map((i) => i.href)
     .filter((h): h is Route => !!h && cocok(h))
     .sort((a, b) => b.length - a.length)[0];
 
   const isActive = (item: NavItem) => !!item.href && item.href === hrefTerpanjang;
-
-  // Tab rail aktif = grup yang memuat halaman sekarang, kecuali pengguna
-  // sedang menjelajahi grup lain lewat klik ikon tab di rail.
-  const grupDariPath = NAV_GRUP.find(g => g.items.some(isActive))?.key ?? "utama";
-  const tabAktif = tabManual ?? grupDariPath;
-  const grupTampil = NAV_GRUP.find(g => g.key === tabAktif) ?? NAV_GRUP[0];
+  const itemAktif = semuaItem.find(isActive);
+  const seksiAktif = NAV.find((s) => s.items.some(isActive));
 
   const renderItem = (item: NavItem) => {
-    const cls = `dp-item${isActive(item) ? " dp-item-on" : ""}${item.soon ? " dp-item-soon" : ""}`;
+    const aktif = isActive(item);
+    const cls = `dv3-item${aktif ? " dv3-item-on" : ""}${item.soon ? " dv3-item-soon" : ""}`;
     const inner = (
       <>
-        <item.icon className="dp-item-icon" />
+        <item.icon />
         <span>{item.label}</span>
-        {typeof item.count === "number" && <span className="dp-count">{item.count}</span>}
       </>
     );
     return item.href && !item.soon ? (
-      <Link key={item.label} href={item.href} className={cls}>
+      <Link
+        key={item.label}
+        href={item.href}
+        className={cls}
+        aria-current={aktif ? "page" : undefined}
+        title={kuncup ? item.label : undefined}
+      >
         {inner}
       </Link>
     ) : (
-      <span key={item.label} className={cls} title={item.soon ? "Modul menyusul" : undefined} aria-disabled={item.soon}>
+      <span
+        key={item.label}
+        className={cls}
+        title="Belum ada sumber datanya"
+        aria-disabled="true"
+      >
         {inner}
       </span>
     );
   };
 
   return (
-    <div className="dp-root">
-      {/* ── Sidebar dua kolom ala template ── */}
-      <aside className={`dp-side${open ? " dp-side-open" : ""}`} ref={sideRef}>
-        <div className="dp-rail">
-          <div className="dp-logo" aria-hidden />
-          {NAV_GRUP.map(g => (
-            <button
-              key={g.key}
-              type="button"
-              className={`dp-rail-btn${g.key === tabAktif ? " dp-rail-on" : ""}`}
-              title={g.title}
-              aria-pressed={g.key === tabAktif}
-              aria-label={g.title}
-              onClick={() => setTabManual(g.key)}
-            >
-              <g.icon className="h-[17px] w-[17px]" />
-            </button>
-          ))}
+    <div className="dv3-root">
+      <aside
+        className={`dv3-side${open ? " dv3-side-open" : ""}`}
+        data-collapsed={kuncup}
+        ref={sideRef}
+      >
+        <div className="dv3-brand">
+          <span className="dv3-mark" aria-hidden />
+          <span className="dv3-wordmark">3Diner</span>
+          <button
+            type="button"
+            className="dv3-collapse"
+            onClick={() => tulisKuncup(!kuncup)}
+            aria-label={kuncup ? "Lebarkan navigasi" : "Kuncupkan navigasi"}
+            aria-pressed={kuncup}
+          >
+            {kuncup ? <PanelLeftOpenIcon className="h-4 w-4" /> : <PanelLeftCloseIcon className="h-4 w-4" />}
+          </button>
         </div>
 
-        <nav className="dp-menu" aria-label="Navigasi utama">
-          <div className="dp-store">
-            <span className="dp-store-badge">{cafeName.slice(0, 2).toUpperCase()}</span>
-            <span className="min-w-0 flex-1">
-              <span className="dp-store-name block truncate">{cafeName}</span>
-              <span className="dp-store-sub">Cabang utama</span>
-            </span>
-            <ChevronDownIcon className="h-4 w-4 text-[var(--dp-muted)]" />
-          </div>
+        <div className="dv3-store">
+          <span className="dv3-store-badge" aria-hidden>
+            {cafeName.slice(0, 2).toUpperCase()}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="dv3-store-name block truncate">{cafeName}</span>
+            <span className="dv3-store-sub">Cabang utama</span>
+          </span>
+        </div>
 
-          <div className="dp-nav-label">{grupTampil.title}</div>
-          {grupTampil.items.map(renderItem)}
+        <nav className="dv3-nav" aria-label="Navigasi konsol">
+          {NAV.map((s) => (
+            <div key={s.title} className="contents">
+              <div className="dv3-navlabel">
+                <span>{s.title}</span>
+              </div>
+              {s.items.map(renderItem)}
+            </div>
+          ))}
 
-          <form action="/api/auth/signout" method="post" className="mt-3">
-            <button type="submit" className="dp-item w-full border-0 bg-transparent text-left">
-              <LogOutIcon className="dp-item-icon" />
-              <span>Logout</span>
-            </button>
-          </form>
+          {clerkConfigured ? <ClerkShellLogoutButton /> : <SupabaseShellLogoutButton />}
         </nav>
       </aside>
 
-      {/* ── Area konten + topbar ── */}
-      <div className="dp-main">
-        <header className="dp-top">
+      <div className="dv3-main">
+        <header className="dv3-top">
           <button
             type="button"
-            className="dp-iconbtn dp-burger"
-            aria-label="Buka menu navigasi"
+            className="dv3-iconbtn dv3-burger"
+            aria-label="Buka navigasi"
             aria-expanded={open}
             onClick={() => setOpen(true)}
           >
             <MenuIcon className="h-[18px] w-[18px]" />
           </button>
 
-          <div className="dp-top-right">
+          {/* Remah roti menggantikan search bar dekoratif yang dulu duduk di
+              sini: memberi tahu posisi, bukan berpura-pura punya fungsi. */}
+          <div className="dv3-crumb">
+            {seksiAktif && itemAktif ? (
+              <>
+                <span>{seksiAktif.title}</span>
+                <span aria-hidden>/</span>
+                <b>{itemAktif.label}</b>
+              </>
+            ) : (
+              <b>Konsol</b>
+            )}
+          </div>
+
+          <div className="dv3-top-right">
             <button
               type="button"
-              className="dp-iconbtn"
+              className="dv3-iconbtn"
               aria-label="Cari pesanan atau menu"
+              title="Cari (Ctrl+K)"
               onClick={() => setSearchOpen(true)}
             >
               <SearchIcon className="h-[17px] w-[17px]" />
@@ -247,7 +349,7 @@ export default function DpShell({
           </div>
         </header>
 
-        <main className="dp-content">{children}</main>
+        <main className="dv3-content">{children}</main>
       </div>
 
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
