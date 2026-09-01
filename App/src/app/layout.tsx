@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import { DatadogAppRouter } from "@datadog/browser-rum-nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
 import ThemeSync from "@/components/dp/ThemeSync";
 import "./globals.css";
 
@@ -40,6 +41,8 @@ export const viewport: Viewport = {
 // default mengikuti prefers-color-scheme; hasilnya di <html data-theme>.
 const THEME_INIT = `(function(){try{var t=localStorage.getItem("tema-3diner");if(t!=="light"&&t!=="dark"&&t!=="system")t="system";var d=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=(t==="system"?(d?"dark":"light"):t);}catch(e){document.documentElement.dataset.theme="light";}})();`;
 
+const clerkConfigured = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -49,9 +52,19 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
       <body className="min-h-dvh">
-        <ThemeSync />
-        <DatadogAppRouter />
-        {children}
+        {clerkConfigured ? (
+          <ClerkProvider>
+            <ThemeSync />
+            <DatadogAppRouter />
+            {children}
+          </ClerkProvider>
+        ) : (
+          <>
+            <ThemeSync />
+            <DatadogAppRouter />
+            {children}
+          </>
+        )}
       </body>
     </html>
   );
