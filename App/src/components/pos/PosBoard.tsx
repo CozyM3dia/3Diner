@@ -245,15 +245,11 @@ export default function PosBoard({
   }
 
   /** Tambah item langsung ke keranjang saat menekan ikon plus (+) di kartu menu.
-   *  Bila menu memiliki opsi wajib (minSelect >= 1), buka modal Item Details agar opsi dipilih. */
+   *  Langsung masuk keranjang tanpa membuka modal Item Details. */
   function quickAdd(m: PosMenu, e?: React.MouseEvent) {
-    e?.stopPropagation();
-    const hasRequiredOptions = optionGroups.some(
-      g => g.menuId === m.id && g.minSelect >= 1,
-    );
-    if (hasRequiredOptions) {
-      openOptions(m);
-      return;
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
 
     const key = `${m.id}#`;
@@ -326,16 +322,39 @@ export default function PosBoard({
       }),
     });
     const data = (await res.json().catch(() => null)) as
-      | (PosQuote & { quote_id?: string })
+      | ({ quote?: Partial<PosQuote>; quote_id?: string } & Record<string, unknown>)
       | { error?: string }
       | null;
-    if (!res.ok || !data || "error" in data || !("quote_id" in data) || !data.quote_id) {
+    // Envelope RPC: { quote: {...angka...}, quote_id, expires_at, request_hash }.
+    // Tanpa membuka wrapper ini, subtotal/total terbaca undefined -> "Rp NaN".
+    const inner = data && typeof data === "object" && "quote" in data && data.quote
+      ? (data as { quote: Partial<PosQuote>; quote_id?: string })
+      : data && typeof data === "object" && "subtotal" in data
+        ? (data as { quote?: undefined; quote_id?: string } & Partial<PosQuote>)
+        : null;
+    if (
+      !res.ok || !inner?.quote ||
+      !("quote_id" in (data as object)) || typeof (data as { quote_id?: unknown }).quote_id !== "string"
+    ) {
       setMsg({ kind: "err", text: "Gagal menghitung ringkasan. Coba lagi." });
       return null;
     }
-    const q = data as PosQuote & { quote_id: string };
+    const q: PosQuote = {
+      items: inner.quote.items ?? [],
+      subtotal: Number(inner.quote.subtotal ?? 0),
+      tax_pct: Number(inner.quote.tax_pct ?? 0),
+      tax_amount: Number(inner.quote.tax_amount ?? 0),
+      service_pct: Number(inner.quote.service_pct ?? 0),
+      service_amount: Number(inner.quote.service_amount ?? 0),
+      prices_include_tax: Boolean(inner.quote.prices_include_tax),
+      total: Number(inner.quote.total ?? 0),
+    };
+    if (![q.subtotal, q.total, q.tax_amount, q.service_amount].every(Number.isFinite)) {
+      setMsg({ kind: "err", text: "Ringkasan tidak valid. Coba lagi." });
+      return null;
+    }
     setQuote(q);
-    return { ...q, quoteId: q.quote_id };
+    return { ...q, quoteId: String((data as { quote_id: string }).quote_id) };
   }
 
   async function commit(draft: boolean): Promise<PosCommitted | null> {
@@ -559,9 +578,13 @@ export default function PosBoard({
                     role="button"
                     tabIndex={0}
                     className="pos-card"
-                    onClick={() => openOptions(m)}
+                    onClick={e => {
+                      if ((e.target as HTMLElement).closest(".pos-card-add")) return;
+                      openOptions(m);
+                    }}
                     onKeyDown={e => {
                       if (e.key === "Enter" || e.key === " ") {
+                        if ((e.target as HTMLElement).closest(".pos-card-add")) return;
                         e.preventDefault();
                         openOptions(m);
                       }
