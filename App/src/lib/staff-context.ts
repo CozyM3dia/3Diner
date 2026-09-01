@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedSupabaseUserId } from "@/lib/clerk-identity";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { StaffContext, StaffRole } from "@/types";
 
@@ -16,17 +16,19 @@ import type { StaffContext, StaffRole } from "@/types";
  *  menawarkan "coba lagi" alih-alih mengusir orang dengan pesan salah.
  */
 export const getStaffContext = cache(async (): Promise<StaffContext> => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let userId: string | null;
+  try {
+    userId = await getAuthenticatedSupabaseUserId();
+  } catch {
+    return { role: null, error: true };
+  }
 
-  if (!user) return { role: null };
+  if (!userId) return { role: null };
 
   // Fungsi RPC ditutup dari anon/authenticated; hanya service role yang boleh
   // memanggilnya, setelah sesi diverifikasi di atas.
   const { data, error } = await supabaseAdmin.rpc("get_staff_context", {
-    p_user_id: user.id,
+    p_user_id: userId,
   });
 
   if (error || !data) return { role: null, error: true };

@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { supabaseAdmin } from "./supabase-admin";
-import { createClient } from "./supabase/server";
+import { getAuthenticatedSupabaseUserId } from "./clerk-identity";
 
 export type EventType = "click_menu" | "view_3d" | "click_order";
 
@@ -36,11 +36,7 @@ const DAYS = 14;
 
 /** Authenticated user id for this request (cached: dedupes layout + page). */
 export const getSessionUserId = cache(async (): Promise<string | null> => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user?.id ?? null;
+  return getAuthenticatedSupabaseUserId();
 });
 
 export interface CafeRow {

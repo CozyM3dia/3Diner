@@ -244,6 +244,31 @@ export default function PosBoard({
     setDetailMenu(m);
   }
 
+  /** Tambah item langsung ke keranjang saat menekan ikon plus (+) di kartu menu.
+   *  Bila menu memiliki opsi wajib (minSelect >= 1), buka modal Item Details agar opsi dipilih. */
+  function quickAdd(m: PosMenu, e?: React.MouseEvent) {
+    e?.stopPropagation();
+    const hasRequiredOptions = optionGroups.some(
+      g => g.menuId === m.id && g.minSelect >= 1,
+    );
+    if (hasRequiredOptions) {
+      openOptions(m);
+      return;
+    }
+
+    const key = `${m.id}#`;
+    setLines(prev => {
+      const hit = prev.find(l => l.key === key);
+      if (hit) {
+        return prev.map(l =>
+          l.key === key ? { ...l, qty: l.qty + 1 } : l,
+        );
+      }
+      return [...prev, { key, menu: m, qty: 1, options: [], note: "" }];
+    });
+    setSelectedKey(key);
+  }
+
   /** Terima baris lengkap dari modal Item Details → masuk keranjang. */
   function addFromDetails(line: { menu: PosMenu; qty: number; options: SelectedOption[]; note: string }) {
     const key = [line.menu.id, line.options.map(o => o.id_option_value).sort().join("|")].join("#");
@@ -529,7 +554,19 @@ export default function PosBoard({
                 const sale = hargaJual(m);
                 const hasDisc = sale !== m.price;
                 return (
-                  <button key={m.id} type="button" className="pos-card" onClick={() => openOptions(m)}>
+                  <div
+                    key={m.id}
+                    role="button"
+                    tabIndex={0}
+                    className="pos-card"
+                    onClick={() => openOptions(m)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openOptions(m);
+                      }
+                    }}
+                  >
                     <span className="pos-card-img">
                       {m.imageUrl ? (
                         <Image
@@ -551,11 +588,17 @@ export default function PosBoard({
                       <span className="pos-card-price">
                         {hasDisc && <s>{rupiah(m.price)}</s>} {rupiah(sale)}
                       </span>
-                      <span className="pos-card-add" aria-hidden>
+                      <button
+                        type="button"
+                        className="pos-card-add"
+                        onClick={e => quickAdd(m, e)}
+                        aria-label={`Tambah ${m.name} ke keranjang`}
+                        title={`Tambah ${m.name} ke keranjang`}
+                      >
                         <PlusIcon className="h-4 w-4" />
-                      </span>
+                      </button>
                     </span>
-                  </button>
+                  </div>
                 );
               })}
             </div>

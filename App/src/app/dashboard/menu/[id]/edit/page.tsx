@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ChevronLeft, CircleAlert } from "lucide-react";
 import MenuForm from "@/components/dashboard/MenuForm";
 import { updateMenu, deleteMenu } from "@/lib/dashboard-actions";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedSupabaseUserId } from "@/lib/clerk-identity";
 import { getOwnerCafeSlug } from "@/lib/analytics";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getMenuOptionsForOwner } from "@/lib/menu-options";
@@ -11,13 +11,10 @@ import type { InventoryItem, Menu, MenuRecipe } from "@/types";
 
 export default async function EditMenuPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const userId = await getAuthenticatedSupabaseUserId();
+  if (!userId) redirect("/login");
 
-  const slug = await getOwnerCafeSlug(user.id);
+  const slug = await getOwnerCafeSlug(userId);
   const { data: cafe } = slug
     ? await supabaseAdmin.from("Cafes").select("id_cafe").eq("slug_url", slug).single()
     : { data: null };

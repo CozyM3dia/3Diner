@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedSupabaseUserId } from "@/lib/clerk-identity";
 import { getOwnerCafeSlug, getCafeBySlug } from "@/lib/analytics";
 
 export type { CafeRow } from "@/lib/analytics";
@@ -26,19 +26,16 @@ const EMPTY: DashboardCafeContext = {
  * satu render tree (layout + page + nested component).
  */
 export const getDashboardCafeContext = cache(async (): Promise<DashboardCafeContext> => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return EMPTY;
+  const userId = await getAuthenticatedSupabaseUserId();
+  if (!userId) return EMPTY;
 
-  const slug = await getOwnerCafeSlug(user.id);
-  if (!slug) return { ...EMPTY, userId: user.id };
+  const slug = await getOwnerCafeSlug(userId);
+  if (!slug) return { ...EMPTY, userId };
 
   const cafe = await getCafeBySlug(slug);
 
   return {
-    userId: user.id,
+    userId,
     slug,
     cafeId: cafe?.id_cafe ?? null,
     cafeName: cafe?.nama_cafe ?? null,

@@ -3,7 +3,7 @@
 import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "./supabase-admin";
-import { createClient } from "./supabase/server";
+import { getAuthenticatedSupabaseUserId } from "./clerk-identity";
 import { getOwnerCafeSlug } from "./analytics";
 import { requireOwnerCafe } from "./authorization";
 import { optionGroupsValidationError, type OptionGroupDraft } from "./menu-option-drafts";
@@ -219,10 +219,9 @@ export async function getSalesExport(
   start?: string,
   end?: string
 ): Promise<{ rows?: SalesExportRow[]; cafeName?: string; error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Sesi tidak valid. Masuk ulang." };
-  const slug = await getOwnerCafeSlug(user.id);
+  const userId = await getAuthenticatedSupabaseUserId();
+  if (!userId) return { error: "Sesi tidak valid. Masuk ulang." };
+  const slug = await getOwnerCafeSlug(userId);
   if (!slug) return { error: "Kafe tidak ditemukan." };
 
   const { data: cafe } = await supabaseAdmin

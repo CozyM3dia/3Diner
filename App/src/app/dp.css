@@ -564,6 +564,16 @@
 .pos-card-add {
   width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
   background: var(--dp-blue-soft); color: var(--dp-accent-ink);
+  border: none; padding: 0; cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+.pos-card-add:hover {
+  background: var(--dp-blue);
+  color: #ffffff;
+  transform: scale(1.08);
+}
+.pos-card-add:active {
+  transform: scale(0.92);
 }
 
 .pos-empty { padding: 24px; text-align: center; color: var(--dp-muted); font-size: 13px;
