@@ -167,6 +167,7 @@ describe("CartView checkout recovery", () => {
     render(<CartView cafe={cafe} slug="demo" />);
 
     expect(screen.getByRole("img", { name: "Nama lokal palsu" }).getAttribute("src")).toBe(cartImageUrl);
+    expect(screen.getByRole("img", { name: "Nama lokal palsu" }).getAttribute("loading")).toBe("eager");
 
     await enterConfirmation(user);
 

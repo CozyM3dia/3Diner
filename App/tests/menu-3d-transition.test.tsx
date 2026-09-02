@@ -6,6 +6,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Menu3DTransitionLink from "../src/components/Menu3DTransitionLink";
+import { menuOrderBarScrollMargin } from "../src/lib/menu-order-bar";
 
 const { routerPush, timeline, timelineCall, timelineFromTo, timelineSet, timelineTo } = vi.hoisted(() => {
   const call = vi.fn(
@@ -38,8 +39,9 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/link", () => ({
   default: React.forwardRef<
     HTMLAnchorElement,
-    React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }
-  >(function TestLink({ href, onClick, ...props }, ref) {
+    React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; scroll?: boolean }
+  >(function TestLink({ href, onClick, scroll, ...props }, ref) {
+    void scroll;
     return (
       <a
         ref={ref}
@@ -67,7 +69,11 @@ vi.mock("@gsap/react", () => ({
   },
 }));
 
-function renderLink(reducedMotion = false, imageUrl: string | null = "/pasta.jpg") {
+function renderLink(
+  reducedMotion = false,
+  imageUrl: string | null = "/pasta.jpg",
+  heroBounds?: Partial<DOMRect>,
+) {
   vi.stubGlobal(
     "matchMedia",
     vi.fn().mockReturnValue({ matches: reducedMotion }),
@@ -84,6 +90,7 @@ function renderLink(reducedMotion = false, imageUrl: string | null = "/pasta.jpg
     width: 320,
     x: 16,
     y: 40,
+    ...heroBounds,
   });
   document.body.appendChild(hero);
 
@@ -242,17 +249,37 @@ describe("Menu3DTransitionLink", () => {
     expect(routerPush).not.toHaveBeenCalled();
   });
 
-  it("kills the timeline and removes the portal when unmounted", async () => {
+  it("routes immediately when the hero is below the fold / off-screen", async () => {
+    renderLink(false, "/pasta.jpg", { top: -320, bottom: -20, height: 300, y: -320 });
+
+    await userEvent.click(screen.getByRole("link", { name: "Lihat Model 3D" }));
+
+    expect(document.querySelector('[data-menu-3d-portal="true"]')).toBeNull();
+    expect(timelineFromTo).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("3diner:viewer-transition")).toBe("true");
+    expect(routerPush).toHaveBeenCalledWith("/kopi/pasta/3d");
+  });
+
+  it("still opens the viewer if the link unmounts after the first tap", async () => {
     const view = renderLink();
     await userEvent.click(screen.getByRole("link", { name: "Lihat Model 3D" }));
     const portal = document.querySelector('[data-menu-3d-portal="true"]');
 
     expect(portal).not.toBeNull();
+    expect(routerPush).not.toHaveBeenCalled();
 
     view.unmount();
 
     expect(timeline.kill).toHaveBeenCalledTimes(1);
     expect(portal?.isConnected).toBe(false);
     expect(document.querySelector('[data-menu-3d-portal="true"]')).toBeNull();
+    expect(routerPush).toHaveBeenCalledWith("/kopi/pasta/3d");
+  });
+
+  it("uses a pixel calc for scroll-margin so the order-bar token cannot collapse", () => {
+    renderLink();
+    const link = screen.getByRole("link", { name: "Lihat Model 3D" });
+    expect(link.style.scrollMarginBottom).toBe(menuOrderBarScrollMargin(12));
+    expect(link.style.scrollMarginBottom).not.toContain("--menu-order-bar-space");
   });
 });

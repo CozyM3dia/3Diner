@@ -46,9 +46,17 @@ export function QuotedOrderLine({ item, imageUrl }: { item: OrderItem; imageUrl?
 
 function MenuThumbnail({ className, imageUrl, menuName }: { className: string; imageUrl?: string | null; menuName: string }) {
   return (
-    <div className={className}>
+    <div className={imageUrl ? `${className} checkout-thumb-pending` : className}>
       {imageUrl ? (
-        <Image src={imageUrl} alt={menuName} fill sizes="64px" className="checkout-menu-image" />
+        <Image
+          src={imageUrl}
+          alt={menuName}
+          fill
+          sizes="64px"
+          loading="eager"
+          decoding="async"
+          className="checkout-menu-image"
+        />
       ) : (
         <span aria-hidden="true">{menuName.slice(0, 1)}</span>
       )}
