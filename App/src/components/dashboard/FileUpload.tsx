@@ -85,7 +85,6 @@ export default function FileUpload({
   if (injectedUrl !== lastInjected) {
     setLastInjected(injectedUrl);
     if (injectedUrl) {
-      uploadSeq.current += 1;
       setUrl(injectedUrl);
       setBusy(false);
       setError("");
@@ -104,9 +103,12 @@ export default function FileUpload({
   }, []);
 
   useEffect(() => {
-    if (!injectedUrl || !objectUrlRef.current) return;
-    URL.revokeObjectURL(objectUrlRef.current);
-    objectUrlRef.current = null;
+    if (!injectedUrl) return;
+    uploadSeq.current += 1;
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
   }, [injectedUrl]);
 
   function revokePreview() {
