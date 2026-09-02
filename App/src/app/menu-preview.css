@@ -1,0 +1,342 @@
+/* ════════════════════════════════════════════════════════════════════
+   LIVE PREVIEW — telepon mock di samping tab "3D & AR" / "Digital Menu"
+
+   Dua bahasa visual bertemu di sini dan sengaja TIDAK dicampur: panel
+   (bingkai, tab, status) memakai token --dp-* konsol, sedangkan isi
+   layar memakai token tamu (--paper/--navy/--orange-ink) persis seperti
+   halaman /[slug]. Pratinjau yang memakai warna konsol akan berbohong
+   tentang hasil akhirnya.
+
+   Dimuat SETELAH menu-editor.css supaya pelebaran .dp-mdrawer menang.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Tata letak dua kolom: form kiri, telepon kanan yang menempel ── */
+.dp-menufx-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 316px;
+  gap: 18px;
+  align-items: start;
+}
+.dp-menufx-pane { display: grid; gap: 14px; min-width: 0; }
+
+/* Drawer melebar HANYA saat panel pratinjau terpasang. `:has()` dipakai
+   supaya lebar ditentukan oleh isi, tanpa mengangkat state tab ke drawer. */
+.dp-mdrawer { transition: width .22s ease-out; }
+.dp-mdrawer:has(.dp-menufx-split) { width: min(1020px, 96vw); }
+
+/* Tombol kecil untuk memunculkan kembali panel yang disembunyikan. */
+.dp-lp-show {
+  justify-self: start;
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--dp-border); background: var(--dp-surface); border-radius: 6px;
+  font: inherit; font-size: 11.5px; font-weight: 600; color: var(--dp-text);
+  padding: 6px 12px; cursor: pointer;
+}
+.dp-lp-show:hover { border-color: var(--dp-blue); color: var(--dp-heading); }
+
+/* ── Panel ── */
+.dp-lp { position: sticky; top: 0; display: grid; gap: 10px; }
+.dp-lp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dp-lp-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--dp-muted);
+}
+.dp-lp-hide {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 0; background: none; font: inherit; font-size: 11px; font-weight: 600;
+  color: var(--dp-muted); cursor: pointer; padding: 2px 4px; border-radius: 4px;
+}
+.dp-lp-hide:hover { color: var(--dp-heading); background: var(--dp-bg); }
+
+.dp-lp-modes {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px;
+  background: var(--dp-surface); border: 1px solid var(--dp-border);
+  border-radius: 8px; padding: 3px;
+}
+.dp-lp-mode {
+  border: 0; background: none; border-radius: 6px; cursor: pointer;
+  font: inherit; font-size: 11.5px; font-weight: 600; color: var(--dp-muted);
+  padding: 6px 4px; transition: background .13s, color .13s;
+}
+.dp-lp-mode:hover { color: var(--dp-heading); background: var(--dp-bg); }
+.dp-lp-mode-on, .dp-lp-mode-on:hover { background: var(--dp-blue); color: #fff; }
+.dp-lp-mode:focus-visible { outline: 2px solid var(--dp-blue); outline-offset: 1px; }
+
+/* ── Bingkai telepon ── */
+.dp-lp-frame {
+  justify-self: center;
+  padding: 8px;
+  border-radius: 34px;
+  background: linear-gradient(160deg, #14213a, #05101f);
+  box-shadow: 0 18px 44px -18px rgba(2, 20, 50, .55), inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+.dp-lp-viewport {
+  position: relative; overflow: hidden; border-radius: 27px;
+  background: var(--paper);
+}
+/* Jaminan keterbacaan chrome putih: hero bisa berupa foto terang atau
+   placeholder abu, jadi selalu ada scrim tipis di bawah status bar. */
+.dp-lp-viewport::before {
+  content: ""; position: absolute; top: 0; inset-inline: 0; height: 62px; z-index: 5;
+  background: linear-gradient(180deg, rgba(1, 18, 44, .42), rgba(1, 18, 44, 0));
+  pointer-events: none;
+}
+/* Isi ditulis pada lebar tamu 375px lalu diperkecil — proporsi asli, bukan
+   tata letak kedua yang harus dijaga tetap sinkron dengan halaman tamu. */
+/* Ketiga layar tamu memulai dengan gambar/gradien gelap di bawah status bar
+   (hero kafe, foto hidangan, panggung 3D), jadi chrome telepon selalu putih —
+   sama seperti perangkat sungguhan di halaman itu. */
+.dp-lp-screen { position: relative; transform-origin: top left; background: var(--paper); }
+
+.dp-lp-statusbar {
+  position: absolute; top: 0; inset-inline: 0; height: 44px; z-index: 6;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 22px; color: #fff; pointer-events: none;
+  font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 4px rgba(0, 20, 50, .45);
+}
+.dp-lp-island {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  width: 92px; height: 26px; border-radius: 999px; background: #05080f;
+}
+.dp-lp-signals { display: inline-flex; align-items: center; gap: 5px; }
+
+.dp-lp-canvas { position: absolute; inset: 0; overflow: hidden; }
+.dp-lp-home {
+  position: absolute; inset-inline: 0; bottom: 0; height: 26px; z-index: 6;
+  display: grid; place-items: center; pointer-events: none;
+}
+.dp-lp-home i { width: 134px; height: 5px; border-radius: 999px; background: rgba(2, 44, 96, .28); }
+.dp-lp-home-light i { background: rgba(255, 255, 255, .34); }
+
+/* ── Layar 1: kartu katalog ── */
+.dp-lp-katalog { height: 100%; overflow-y: auto; scrollbar-width: none; }
+.dp-lp-katalog::-webkit-scrollbar { width: 0; }
+.dp-lp-kat-hero {
+  position: relative; height: 132px; padding: 56px 18px 14px;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;
+  border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;
+}
+.dp-lp-kat-nama {
+  margin: 0; color: #fff; font-size: 21px; font-weight: 800; line-height: 1.05;
+  text-shadow: 0 1px 14px rgba(0, 20, 50, .4);
+}
+.dp-lp-kat-pill {
+  order: 2; flex: none; align-self: flex-end;
+  padding: 5px 10px; border-radius: 999px; font-size: 9px; font-weight: 700; color: #fff;
+  background: rgba(2, 44, 96, .55); border: 1px solid rgba(255, 255, 255, .18);
+  backdrop-filter: blur(8px);
+}
+.dp-lp-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  padding: 16px 16px 28px;
+}
+.dp-lp-card {
+  background: var(--white); border: 1px solid var(--border); border-radius: 14px;
+  overflow: hidden; box-shadow: 0 1px 3px rgba(2, 44, 96, .06);
+}
+.dp-lp-card-off { opacity: .65; filter: grayscale(.3); }
+.dp-lp-card-foto {
+  position: relative; width: 100%; aspect-ratio: 5 / 4; overflow: hidden;
+  background: var(--surface);
+}
+.dp-lp-card-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dp-lp-nofoto {
+  display: grid; place-items: center; color: rgba(2, 44, 96, .28); background: var(--surface);
+}
+.dp-lp-nofoto svg { width: 26px; height: 26px; }
+.dp-lp-card-veil {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  background: rgba(2, 44, 96, .52);
+}
+.dp-lp-card-veil span {
+  padding: 5px 11px; border-radius: 8px; color: #fff;
+  background: rgba(255, 255, 255, .11); border: 1px solid rgba(255, 255, 255, .22);
+  backdrop-filter: blur(8px);
+  font-size: 10px; font-weight: 700; letter-spacing: .07em;
+}
+.dp-lp-card-3d {
+  position: absolute; top: 8px; right: 8px;
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 4px 8px; border-radius: 999px; color: #fff;
+  font-size: 10px; font-weight: 700; letter-spacing: .03em;
+  background: rgba(2, 44, 96, .55); border: 1px solid rgba(255, 255, 255, .22);
+  backdrop-filter: blur(8px);
+}
+.dp-lp-card-offstrip {
+  position: absolute; inset-inline: 0; bottom: 0; padding: 28px 12px 6px;
+  background: linear-gradient(to top, rgba(2, 20, 50, .85), transparent);
+}
+.dp-lp-card-offstrip p {
+  margin: 0; color: #fff; font-size: 16px; font-weight: 800; line-height: 1; letter-spacing: -.01em;
+}
+.dp-lp-card-body { padding: 12px; }
+.dp-lp-card-body h3 {
+  margin: 0; font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--navy);
+  min-height: 2.5em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.dp-lp-card-desc {
+  margin: 2px 0 0; font-size: 12px; color: var(--navy-muted); min-height: 1em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dp-lp-card-harga { display: flex; align-items: baseline; gap: 6px; margin-top: 6px; }
+.dp-lp-card-harga b { font-size: 14px; font-weight: 700; }
+.dp-lp-card-harga s { font-size: 11px; color: var(--navy-muted); }
+.dp-lp-card-meta { display: flex; align-items: center; gap: 10px; margin-top: 6px; min-height: 1em; }
+.dp-lp-card-meta span {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 500; color: var(--navy-muted);
+}
+.dp-lp-card-ghost { opacity: .45; }
+.dp-lp-ghost-line {
+  display: block; height: 9px; border-radius: 999px; background: var(--surface); margin-bottom: 6px;
+}
+
+/* ── Layar 2: halaman detail ── */
+/* Bilah tombol dan bilah pesan menempel pada LAYAR, bukan pada isi yang
+   digulir — sama seperti `position: fixed` di halaman tamu. Karena itu
+   gulirannya berada di lapisan sendiri. */
+.dp-lp-detail { position: relative; height: 100%; background: var(--paper); }
+.dp-lp-detail-scroll { height: 100%; overflow-y: auto; scrollbar-width: none; }
+.dp-lp-detail-scroll::-webkit-scrollbar { width: 0; }
+/* DetailHeader tamu: dua tombol bundar mengambang di atas hero, bukan bilah. */
+.dp-lp-detail-bar {
+  position: absolute; top: 52px; inset-inline: 0; z-index: 4; padding: 0 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.dp-lp-back {
+  flex: none; width: 44px; height: 44px; border-radius: 999px;
+  display: grid; place-items: center; color: #fff;
+  background: rgba(0, 35, 85, .5); backdrop-filter: blur(6px);
+}
+.dp-lp-detail-hero { position: relative; height: 300px; overflow: hidden; }
+.dp-lp-detail-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dp-lp-detail-hero .dp-lp-nofoto { width: 100%; height: 100%; }
+.dp-lp-detail-hero .dp-lp-nofoto svg { width: 44px; height: 44px; }
+.dp-lp-detail-fade {
+  position: absolute; inset-inline: 0; bottom: 0; height: 72px;
+  background: linear-gradient(to top, var(--white), transparent);
+}
+.dp-lp-detail-card {
+  position: relative; margin-top: -30px; border-radius: 22px 22px 0 0;
+  /* Bantalan bawah = tinggi bilah pesan + jarak, meniru spacer halaman tamu
+     supaya tombol 3D tidak pernah tertutup bilah. */
+  background: var(--white); padding: 18px 16px 124px;
+}
+.dp-lp-kat-chip {
+  display: inline-block; padding: 4px 10px; border-radius: 999px;
+  background: var(--surface); color: var(--navy-muted);
+  font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+}
+.dp-lp-detail-card h1 {
+  margin: 8px 0 0; font-size: 26px; font-weight: 800; line-height: 1.15; color: var(--navy);
+}
+.dp-lp-detail-harga { display: flex; align-items: baseline; gap: 9px; margin-top: 5px; flex-wrap: wrap; }
+.dp-lp-detail-harga b { font-size: 22px; font-weight: 700; color: var(--orange-ink); }
+.dp-lp-detail-harga s { font-size: 15px; color: var(--navy-muted); }
+.dp-lp-detail-harga em {
+  font-style: normal; font-size: 12px; font-weight: 700; color: #fff;
+  background: var(--orange-ink); border-radius: 6px; padding: 2px 6px;
+}
+.dp-lp-detail-stats { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+.dp-lp-detail-stats span {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 500; color: var(--navy-muted);
+}
+.dp-lp-detail-stats i { display: block; width: 1px; height: 15px; background: var(--border); }
+.dp-lp-rule { height: 1px; background: var(--border); margin: 16px 0; }
+.dp-lp-detail-card h2 { margin: 0 0 5px; font-size: 14px; font-weight: 600; color: var(--navy); }
+.dp-lp-detail-desc { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--navy-muted); }
+.dp-lp-bahan { margin-top: 16px; }
+.dp-lp-bahan-label {
+  margin: 0 0 9px; font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--navy-muted);
+}
+.dp-lp-bahan-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.dp-lp-bahan-list span {
+  font-size: 12px; padding: 4px 10px; border-radius: 999px;
+  border: 1.5px solid var(--border); color: var(--navy-soft); background: var(--paper);
+}
+.dp-lp-cta3d {
+  margin-top: 20px; height: 52px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: linear-gradient(135deg, var(--navy-bright), var(--navy));
+  color: #fff; font-size: 15px; font-weight: 600;
+}
+.dp-lp-orderbar {
+  position: absolute; inset-inline: 0; bottom: 0; z-index: 5; padding: 12px 16px 22px;
+  background: linear-gradient(180deg, rgba(246, 248, 251, 0), var(--paper) 42%);
+}
+.dp-lp-orderbtn {
+  height: 52px; border-radius: 16px; padding: 0 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: linear-gradient(135deg, var(--orange), var(--orange-deep));
+  color: #fff; font-size: 14px; font-weight: 600;
+  box-shadow: 0 8px 22px -8px rgba(253, 80, 2, .6);
+}
+.dp-lp-orderbtn b { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dp-lp-orderbtn-off {
+  justify-content: center; background: var(--surface); color: var(--navy-muted);
+  border: 1.5px dashed var(--border); box-shadow: none;
+}
+
+/* ── Layar 3: panggung 3D & AR ── */
+.dp-lp-ar {
+  height: 100%; padding-top: 44px;
+  display: flex; flex-direction: column;
+  background: radial-gradient(120% 90% at 50% 35%, var(--navy-bright) 0%, var(--navy) 45%, var(--navy-dark) 100%);
+}
+.dp-lp-ar-bar { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 16px; }
+.dp-lp-ar-back {
+  flex: none; width: 40px; height: 40px; border-radius: 999px;
+  display: grid; place-items: center; color: #fff; background: rgba(255, 255, 255, .14);
+}
+.dp-lp-ar-bar p {
+  margin: 0; flex: 1; text-align: center; padding-right: 34px;
+  font-size: 15px; font-weight: 600; color: #fdfdfd;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dp-lp-ar-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.dp-lp-ar-empty {
+  height: 100%; display: grid; place-content: center; justify-items: center; gap: 8px;
+  padding: 0 34px; text-align: center; color: rgba(255, 255, 255, .72);
+}
+.dp-lp-ar-empty b { font-size: 15px; color: #fff; }
+.dp-lp-ar-empty p { margin: 0; font-size: 12.5px; line-height: 1.5; }
+.dp-lp-ar-foot { flex: none; padding: 14px 16px 22px; }
+.dp-lp-ar-hint {
+  margin: 0 0 12px; display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 12px; color: rgba(255, 255, 255, .7);
+}
+.dp-lp-ar-cta {
+  height: 54px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: linear-gradient(135deg, var(--orange), var(--orange-deep));
+  color: #fff; font-size: 15px; font-weight: 600;
+}
+.dp-lp-ar-cta-off { opacity: .5; }
+.dp-lp-ar-sub { margin: 10px 0 0; text-align: center; font-size: 11px; color: rgba(255, 255, 255, .5); }
+
+/* ── Status tayang: akibat setelan Digital Menu, dalam satu kalimat ── */
+.dp-lp-status {
+  display: flex; align-items: flex-start; gap: 8px; margin: 0;
+  border-radius: 8px; padding: 9px 11px; font-size: 11.5px; line-height: 1.45;
+}
+.dp-lp-status i { flex: none; width: 7px; height: 7px; border-radius: 50%; margin-top: 5px; }
+.dp-lp-status b { display: block; font-size: 12px; }
+.dp-lp-status-on { background: rgba(34, 197, 94, .1); color: #15803d; }
+.dp-lp-status-on i { background: var(--dp-green); box-shadow: 0 0 0 3px rgba(34, 197, 94, .18); }
+.dp-lp-status-off { background: var(--dp-bg); color: var(--dp-muted); }
+.dp-lp-status-off i { background: var(--dp-muted); }
+.dp-lp-note { margin: 0; font-size: 11px; color: var(--dp-muted); text-align: center; }
+
+/* ── Sempit: telepon turun ke bawah form, berhenti menempel ── */
+@media (max-width: 1024px) {
+  .dp-menufx-split { grid-template-columns: minmax(0, 1fr); }
+  .dp-lp { position: static; }
+  .dp-mdrawer:has(.dp-menufx-split) { width: min(640px, 96vw); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dp-mdrawer { transition: none; }
+}

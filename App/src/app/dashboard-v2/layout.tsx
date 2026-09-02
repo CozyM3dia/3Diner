@@ -5,6 +5,7 @@ import DpShell from "@/components/dp/Shell";
 import "../dp.css";
 import "@/components/pos/pos-item.css";
 import "@/app/menu-editor.css";
+import "@/app/menu-preview.css";
 import "../role-pill.css";
 // Terakhir: lapisan konsol menuntun token --dp-* warisan ke palet baru,
 // jadi ia harus menang atas dp.css dalam urutan kaskade.

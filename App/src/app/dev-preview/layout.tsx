@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import "../dp.css";
 import "@/components/pos/pos-item.css";
 import "@/app/menu-editor.css";
+import "@/app/menu-preview.css";
 import "../role-pill.css";
 import "../console.css";
 import "../panduan.css";
