@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createMediaUploadUrl, updateCafeSettings } from "@/lib/dashboard-actions";
 import { createClient } from "@/lib/supabase/client";
 import DpFileDropzone from "./DpFileDropzone";
+import { validateMenuPhoto } from "./menu-editor-upload";
 
 /** Store Settings ala Dream POS `store-settings.html`: satu kartu berisi
  *  pengunggah gambar toko lalu deretan field, ditutup Cancel / Save Changes.
@@ -14,7 +15,6 @@ import DpFileDropzone from "./DpFileDropzone";
  *  disimpan adalah kontrol palsu — jadi hanya kolom nyata yang ditampilkan. */
 
 const BUCKET = "menu-media";
-const MAX_IMAGE = 5 * 1024 * 1024;
 
 type Cafe = {
   nama_cafe: string;
@@ -52,12 +52,9 @@ function ImageField({
 
   async function handleFile(file: File) {
     setError("");
-    if (!file.type.startsWith("image/")) {
-      setError("File harus berupa gambar (JPG/PNG/WebP).");
-      return;
-    }
-    if (file.size > MAX_IMAGE) {
-      setError("Ukuran gambar maksimal 5MB.");
+    const invalid = validateMenuPhoto(file);
+    if (invalid) {
+      setError(invalid);
       return;
     }
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
@@ -79,7 +76,13 @@ function ImageField({
       });
     setBusy(false);
     if (upErr) {
-      setError(upErr.message || "Gagal mengunggah.");
+      // Jangan tampilkan pesan storage mentah (mis. "mime type text/plain is not supported").
+      const raw = upErr.message || "";
+      setError(
+        /mime type/i.test(raw)
+          ? "File harus berupa gambar (JPG/PNG/WebP)."
+          : raw || "Gagal mengunggah.",
+      );
       return;
     }
     if (objectUrl.current) {
