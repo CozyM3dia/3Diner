@@ -12,6 +12,7 @@ import {
   masihDiPapan,
   tahapDari,
   urutkanPapan,
+  tiketDariPayloadRealtime,
   type Tahap,
   type TiketDapur,
 } from "@/lib/kitchen-model";
@@ -59,20 +60,6 @@ const berlanggananDetik = (ubah: () => void) => {
 };
 const petikKlien = () => Math.floor(Date.now() / 1000) * 1000;
 const petikServer = () => 0;
-
-/** Baris mentah dari Realtime dibentuk ulang ke bentuk yang dipakai papan.
- *  Payload membawa seluruh kolom tabel; hanya yang ini yang berarti di dapur. */
-function dariBaris(baris: Record<string, unknown>): TiketDapur {
-  return {
-    id_order: String(baris.id_order),
-    created_at: String(baris.created_at),
-    status: (baris.status as OrderStatus) ?? "awaiting",
-    payment_status: String(baris.payment_status ?? "unpaid"),
-    table_number: (baris.table_number as string | null) ?? null,
-    notes: (baris.notes as string | null) ?? null,
-    items: Array.isArray(baris.items) ? (baris.items as TiketDapur["items"]) : [],
-  };
-}
 
 interface Props {
   awal: TiketDapur[];
@@ -217,22 +204,23 @@ export default function PapanDapur({ awal, cafeId, namaKafe, bingkai }: Props) {
 
           const baris = payload.new as Record<string, unknown>;
           if (!baris?.id_order) return;
-          const masuk = dariBaris(baris);
-
-          // Selesai atau dibatalkan berarti lepas dari dapur. Itu satu-satunya
-          // jalan papan ini bisa benar-benar kosong.
-          if (!masihDiPapan(masuk.status)) {
-            dikenal.current.delete(masuk.id_order);
-            setTiket(prev => prev.filter(t => t.id_order !== masuk.id_order));
-            return;
-          }
-
-          if (!dikenal.current.has(masuk.id_order)) {
-            dikenal.current.add(masuk.id_order);
-            if (loncengRef.current) bunyikanLonceng();
-          }
 
           setTiket(prev => {
+            const lama = prev.find(t => t.id_order === String(baris.id_order));
+            const masuk = tiketDariPayloadRealtime(lama, baris);
+
+            // Selesai atau dibatalkan berarti lepas dari dapur. Itu satu-satunya
+            // jalan papan ini bisa benar-benar kosong.
+            if (!masihDiPapan(masuk.status)) {
+              dikenal.current.delete(masuk.id_order);
+              return prev.filter(t => t.id_order !== masuk.id_order);
+            }
+
+            if (!dikenal.current.has(masuk.id_order)) {
+              dikenal.current.add(masuk.id_order);
+              if (loncengRef.current) bunyikanLonceng();
+            }
+
             const ada = prev.some(t => t.id_order === masuk.id_order);
             if (ada) return prev.map(t => (t.id_order === masuk.id_order ? masuk : t));
             return [...prev, masuk];

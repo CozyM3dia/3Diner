@@ -2,10 +2,10 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Box, Clock, Flame, Star } from "lucide-react";
-import { getCafeBySlug, getMenuById } from "@/lib/data";
+import { getCafeAndMenuBySlug } from "@/lib/data";
 import { formatRupiah } from "@/lib/format";
 import { effectivePrice, hasDiscount } from "@/lib/menu-availability";
-import { getMenuOptionsForCustomer } from "@/lib/menu-options";
+import { getMenuOptionsForPublicMenu } from "@/lib/menu-options";
 import DetailHeader from "@/components/DetailHeader";
 import MenuOrderPanel from "@/components/MenuOrderPanel";
 import Menu3DTransitionLink from "@/components/Menu3DTransitionLink";
@@ -21,29 +21,24 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug, menu_id } = await params;
-  const cafe = await getCafeBySlug(slug);
-  if (!cafe) return { title: "Menu Tidak Ditemukan | 3Diner" };
-  const menu = await getMenuById(cafe.id_cafe, menu_id);
-  if (!menu) return { title: "Menu Tidak Ditemukan | 3Diner" };
+  const page = await getCafeAndMenuBySlug(slug, menu_id);
+  if (!page) return { title: "Menu Tidak Ditemukan | 3Diner" };
   return {
-    title: `${menu.nama_menu} · ${cafe.nama_cafe} | 3Diner`,
-    description: menu.description_menu ?? undefined,
+    title: `${page.menu.nama_menu} · ${page.cafe.nama_cafe} | 3Diner`,
+    description: page.menu.description_menu ?? undefined,
   };
 }
 
 export default async function MenuDetailPage({ params }: PageProps) {
   const { slug, menu_id } = await params;
 
-  const cafe = await getCafeBySlug(slug);
-  if (!cafe) notFound();
-
-  // Keduanya hanya bergantung pada id kafe, jadi menunggunya berurutan menambah
-  // satu perjalanan bolak-balik ke Supabase Singapura di tiap tampilan menu.
-  const [menu, optionGroups] = await Promise.all([
-    getMenuById(cafe.id_cafe, menu_id),
-    getMenuOptionsForCustomer(cafe.id_cafe, menu_id),
+  const [page, optionGroupsRaw] = await Promise.all([
+    getCafeAndMenuBySlug(slug, menu_id),
+    getMenuOptionsForPublicMenu(menu_id),
   ]);
-  if (!menu) notFound();
+  if (!page) notFound();
+  const { cafe, menu } = page;
+  const optionGroups = optionGroupsRaw.filter((group) => group.cafe_id === cafe.id_cafe);
 
   const has3d = Boolean(menu.model_3d_url);
   const ingredientList = menu.ingredients
@@ -51,7 +46,7 @@ export default async function MenuDetailPage({ params }: PageProps) {
     : [];
 
   return (
-    <main className="min-h-dvh" style={{ background: "var(--paper)" }}>
+    <main className="min-h-dvh" style={{ background: "var(--paper)", paddingBottom: "96px" }}>
       <DetailHeader cafeName={cafe.nama_cafe} slug={slug} />
 
       {/* Hero image */}

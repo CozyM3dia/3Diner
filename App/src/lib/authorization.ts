@@ -19,6 +19,7 @@ export interface AuthorizedStaff {
   cafeId: string;
   userId: string;
   role: StaffRole;
+  cafeSlug: string | null;
 }
 
 async function requireActiveStaff(): Promise<AuthorizedStaff> {
@@ -30,6 +31,7 @@ async function requireActiveStaff(): Promise<AuthorizedStaff> {
     cafeId: context.cafe_id,
     userId: context.user_id,
     role: context.role,
+    cafeSlug: context.cafe_slug ?? null,
   };
 }
 

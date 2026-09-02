@@ -1,6 +1,7 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
+import { dashboardV2Path } from "@/lib/dashboard-v1-redirect";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -12,6 +13,15 @@ const isProtectedPath = (pathname: string): boolean =>
   ["/dashboard", "/dashboard-v2", "/kasir", "/dapur"].some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
+
+function maybeRedirectLegacyDashboard(request: NextRequest): NextResponse | null {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const next = dashboardV2Path(request.nextUrl.pathname);
+  if (!next) return null;
+  const url = request.nextUrl.clone();
+  url.pathname = next;
+  return NextResponse.redirect(url);
+}
 
 const clerkHandler = clerkConfigured
   ? clerkMiddleware(async (clerkAuth, request) => {
@@ -28,6 +38,9 @@ const clerkHandler = clerkConfigured
         redirect.pathname = "/login";
         return NextResponse.redirect(redirect);
       }
+
+      const legacyDash = maybeRedirectLegacyDashboard(request);
+      if (legacyDash) return legacyDash;
 
       // `?alasan=` means a console layout just rejected this session — the
       // account is authenticated but has no staff row, or is deactivated.
@@ -79,6 +92,9 @@ async function legacyMiddleware(request: NextRequest) {
     redirect.pathname = "/login";
     return NextResponse.redirect(redirect);
   }
+
+  const legacyDash = maybeRedirectLegacyDashboard(request);
+  if (legacyDash) return legacyDash;
 
   // Hanya navigasi yang dialihkan, bukan setiap permintaan.
   //

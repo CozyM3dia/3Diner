@@ -57,7 +57,7 @@ export default async function Page() {
           <h1>Pesanan</h1>
         </div>
       </div>
-      <OrdersBoard orders={orders} cafe={cafe} />
+      <OrdersBoard orders={orders} cafe={cafe} cafeId={cafeId} />
     </>
   );
 }

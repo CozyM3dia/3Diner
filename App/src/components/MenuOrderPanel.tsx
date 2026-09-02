@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCart } from "@/lib/cart";
-import { logEvent } from "@/lib/data";
+import { logEvent } from "@/lib/log-event";
 import { formatRupiah } from "@/lib/format";
 import { effectivePrice } from "@/lib/menu-availability";
 import { menuOrderBarSpacerStyle } from "@/lib/menu-order-bar";

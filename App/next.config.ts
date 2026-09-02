@@ -24,13 +24,22 @@ const withPWA = withPWAInit({
           expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 },
         },
       },
-      // Cache-first for Supabase storage (menu images)
+      // Cache-first for Supabase storage (menu images + 3D models)
       {
         urlPattern: /^https:\/\/zvkmcbvckuupjsdftsyz\.supabase\.co\/storage\/.*/,
         handler: "CacheFirst",
         options: {
           cacheName: "media-cache",
           expiration: { maxEntries: 100, maxAgeSeconds: 7 * 24 * 60 * 60 },
+        },
+      },
+      // Cache-first for R2-hosted 3D assets (not covered by the Supabase rule)
+      {
+        urlPattern: /^https:\/\/.*\.r2\.dev\/.*\.(glb|gltf|usdz|splat|ply)(\?.*)?$/i,
+        handler: "CacheFirst",
+        options: {
+          cacheName: "model-cache",
+          expiration: { maxEntries: 40, maxAgeSeconds: 30 * 24 * 60 * 60 },
         },
       },
       // Stale-while-revalidate for Next.js static assets

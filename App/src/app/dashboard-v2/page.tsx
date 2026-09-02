@@ -21,15 +21,16 @@ export default async function DashboardPage({
   const r = resolveRentang(params);
 
   let data;
+  let tamu;
   try {
-    data = await muatPesanan(cafeId, r);
+    const pesanan = muatPesanan(cafeId, r);
+    [data, tamu] = await Promise.all([
+      pesanan,
+      muatPeristiwa(cafeId, r, pesanan.then((d) => d.menus)),
+    ]);
   } catch {
     return <GagalMuat />;
   }
-  // Peristiwa tamu dimuat SETELAH menu tersedia (namanya butuh peta menu),
-  // dan kegagalannya tidak menjatuhkan halaman — angka uang tetap tampil,
-  // corong menjelaskan bahwa jejak klik gagal dibaca.
-  const tamu = await muatPeristiwa(cafeId, r, data.menus);
 
   return (
     <DashboardView

@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { getCafeBySlug } from "@/lib/data";
 import CartView from "@/components/CartView";
 
+export const revalidate = 60;
+
 interface PageProps {
   params: Promise<{ slug: string }>;
 }

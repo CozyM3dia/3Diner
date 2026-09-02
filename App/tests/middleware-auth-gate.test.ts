@@ -70,11 +70,19 @@ describe("gerbang autentikasi", () => {
     expect(redirectTarget(res)).toBeNull();
   });
 
-  it("tidak menghalangi permintaan bersesi ke kedua konsol", async () => {
+  it("tidak menghalangi permintaan bersesi ke konsol v2 dan kasir", async () => {
     currentUser = { id: "u1" };
-    for (const path of ["/dashboard", "/dashboard-v2", "/kasir"]) {
+    for (const path of ["/dashboard-v2", "/kasir"]) {
       const res = await proxy(request(path));
       expect(redirectTarget(res), path).toBeNull();
     }
+  });
+
+  it("mengalihkan konsol v1 ke v2 saat sesi sudah ada", async () => {
+    currentUser = { id: "u1" };
+    const res = await proxy(request("/dashboard"));
+    expect(redirectTarget(res)).toContain("/dashboard-v2");
+    const orders = await proxy(request("/dashboard/orders"));
+    expect(redirectTarget(orders)).toContain("/dashboard-v2/pesanan");
   });
 });

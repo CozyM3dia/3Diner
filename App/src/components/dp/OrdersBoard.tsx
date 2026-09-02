@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BadgeCheckIcon,
   BanIcon,
@@ -24,6 +24,7 @@ import Petunjuk from "@/components/dp/Petunjuk";
 import { updateOrderStatus } from "@/lib/dashboard-actions";
 import { cancelOrder } from "@/lib/kasir-actions";
 import { buildReceiptHtml, printReceipt } from "@/lib/receipt-html";
+import { createClient } from "@/lib/supabase/client";
 
 /** Papan Pesanan ala Dream POS: 6 kartu status, tab ber-counter, pencarian,
  *  kartu order 3 kolom, pager — semua interaksi NYATA.
@@ -97,13 +98,49 @@ const PRESET_BATAL = ["Tamu batal memesan", "Stok bahan habis", "Salah input mej
 
 const PAGE_SIZE = 9;
 
-export default function OrdersBoard({ orders, cafe }: { orders: BoardOrder[]; cafe: BoardCafe }) {
+function gabungPesanan(lama: BoardOrder | undefined, baris: Record<string, unknown>): BoardOrder | null {
+  const id = typeof baris.id_order === "string" ? baris.id_order : lama?.id_order;
+  if (!id) return lama ?? null;
+  return {
+    id_order: id,
+    created_at:
+      typeof baris.created_at === "string" && baris.created_at
+        ? baris.created_at
+        : lama?.created_at ?? "",
+    status: typeof baris.status === "string" ? baris.status : lama?.status ?? "awaiting",
+    payment_status:
+      typeof baris.payment_status === "string" ? baris.payment_status : lama?.payment_status ?? "unpaid",
+    table_number:
+      "table_number" in baris ? (baris.table_number as string | null) : lama?.table_number ?? null,
+    total: typeof baris.total === "number" ? baris.total : lama?.total ?? null,
+    items: Array.isArray(baris.items) ? (baris.items as BoardOrder["items"]) : lama?.items ?? [],
+    notes: "notes" in baris ? (baris.notes as string | null) : lama?.notes ?? null,
+  };
+}
+
+export default function OrdersBoard({
+  orders,
+  cafe,
+  cafeId,
+}: {
+  orders: BoardOrder[];
+  cafe: BoardCafe;
+  cafeId: string;
+}) {
   // Salinan lokal untuk mutasi optimis — prop baru (revalidasi) selalu menang.
   const [rows, setRows] = useState<BoardOrder[]>(orders);
   const [lastProp, setLastProp] = useState<BoardOrder[]>(orders);
   if (orders !== lastProp) {
     setLastProp(orders);
-    setRows(orders);
+    setRows(prev => {
+      const byId = new Map(orders.map(o => [o.id_order, o]));
+      for (const o of prev) {
+        if (!byId.has(o.id_order)) byId.set(o.id_order, o);
+      }
+      return [...byId.values()].sort(
+        (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
+      );
+    });
   }
 
   const [tab, setTab] = useState<string>("semua");
@@ -114,6 +151,42 @@ export default function OrdersBoard({ orders, cafe }: { orders: BoardOrder[]; ca
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pesan, setPesan] = useState<{ ok: boolean; text: string } | null>(null);
   const [batalFor, setBatalFor] = useState<BoardOrder | null>(null);
+
+  useEffect(() => {
+    if (!cafeId) return;
+    const supabase = createClient();
+    let disposed = false;
+    const channel = supabase
+      .channel(`pesanan-${cafeId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "Orders", filter: `cafe_id=eq.${cafeId}` },
+        payload => {
+          if (disposed) return;
+          setRows(prev => {
+            if (payload.eventType === "DELETE") {
+              const gone = payload.old as { id_order?: string };
+              return prev.filter(o => o.id_order !== gone.id_order);
+            }
+            const baris = payload.new as Record<string, unknown>;
+            const next = gabungPesanan(
+              prev.find(o => o.id_order === baris.id_order),
+              baris,
+            );
+            if (!next) return prev;
+            if (prev.some(o => o.id_order === next.id_order)) {
+              return prev.map(o => (o.id_order === next.id_order ? next : o));
+            }
+            return [next, ...prev];
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      disposed = true;
+      supabase.removeChannel(channel);
+    };
+  }, [cafeId]);
 
   const count = (key: string) =>
     key === "semua" ? rows.length : rows.filter(o => o.status === key).length;

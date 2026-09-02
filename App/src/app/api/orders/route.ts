@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { clientIp, consumeRateLimits, tooManyRequests } from "@/lib/rate-limit";
 import { parseItems } from "@/lib/order-request";
+import { afterResponse } from "@/lib/after-response";
 
 /** Rute publik tanpa autentikasi: siapa pun yang tahu cafeId bisa membuat
  *  baris pesanan. Batas per-IP menahan banjir, batas per-kafe menjaga satu
@@ -189,21 +190,23 @@ export async function POST(req: Request) {
   const itemCount = Array.isArray(result.order.items) ? result.order.items.reduce((s, l) => s + (l.qty ?? 1), 0) : 0;
   const notifCafeId = typeof cafeId === "string" ? cafeId : "";
   if (notifCafeId) {
-    const { createNotifications } = await import("@/lib/notifications");
-    await createNotifications(notifCafeId, "order_new", [
-      {
-        type: "order",
-        title: `Pesanan baru · #${newOrderId.slice(0, 5)}`,
-        body: `Meja ${tableLabel} · ${itemCount} item menunggu konfirmasi.`,
-        href: "/dashboard-v2/pesanan",
-      },
-      {
-        type: "kitchen",
-        title: `Masuk dapur · #${newOrderId.slice(0, 5)}`,
-        body: `${itemCount} item siap dimasak.`,
-        href: "/dapur",
-      },
-    ]);
+    afterResponse(async () => {
+      const { createNotifications } = await import("@/lib/notifications");
+      await createNotifications(notifCafeId, "order_new", [
+        {
+          type: "order",
+          title: `Pesanan baru · #${newOrderId.slice(0, 5)}`,
+          body: `Meja ${tableLabel} · ${itemCount} item menunggu konfirmasi.`,
+          href: "/dashboard-v2/pesanan",
+        },
+        {
+          type: "kitchen",
+          title: `Masuk dapur · #${newOrderId.slice(0, 5)}`,
+          body: `${itemCount} item siap dimasak.`,
+          href: "/dapur",
+        },
+      ]);
+    });
   }
 
   return NextResponse.json(

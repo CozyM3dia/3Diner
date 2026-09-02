@@ -21,8 +21,9 @@ const HARI = 30;
 /** Muatan awal papan dapur.
  *
  *  Dipakai kedua rute — /dapur di perangkat dapur dan /dashboard-v2/dapur di
- *  konsol. Sebelumnya kueri yang sama disalin di dua berkas, dan dua salinan
- *  kueri adalah dua tempat yang harus diingat saat ambang harinya berubah. */
+ *  konsol. Indeks parsial `Orders_cafe_open_idx` (cafe_id, created_at) WHERE
+ *  status IN (awaiting, received, preparing, ready) harus mencakup awaiting:
+ *  tiket macet di kasir tetap tampil. Satu SELECT, tanpa N+1. */
 export async function ambilTiketDapur(cafeId: string): Promise<TiketDapur[]> {
   if (!cafeId) return [];
 

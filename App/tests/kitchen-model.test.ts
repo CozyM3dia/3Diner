@@ -9,6 +9,7 @@ import {
   labelMeja,
   lajuPanas,
   masihDiPapan,
+  tiketDariPayloadRealtime,
   panasDari,
   ringkasVarian,
   tahapDari,
@@ -265,6 +266,38 @@ describe("masihDiPapan", () => {
     terbuka.forEach(s => expect(masihDiPapan(s)).toBe(true));
     expect(masihDiPapan("completed")).toBe(false);
     expect(masihDiPapan("cancelled")).toBe(false);
+  });
+});
+
+describe("tiketDariPayloadRealtime", () => {
+  it("tidak menghapus item saat payload UPDATE hanya membawa status", () => {
+    const lama = tiket({ items: [item("Es Kopi Susu", 2)], payment_status: "unpaid" });
+    const next = tiketDariPayloadRealtime(lama, {
+      id_order: lama.id_order,
+      status: "preparing",
+      payment_status: "paid",
+    });
+    expect(next.items).toEqual(lama.items);
+    expect(next.created_at).toBe(lama.created_at);
+    expect(next.table_number).toBe("7");
+    expect(next.status).toBe("preparing");
+    expect(next.payment_status).toBe("paid");
+  });
+
+  it("membentuk tiket baru dari INSERT lengkap", () => {
+    const next = tiketDariPayloadRealtime(undefined, {
+      id_order: "baru",
+      created_at: "2026-09-02T12:00:00.000Z",
+      status: "awaiting",
+      payment_status: "unpaid",
+      table_number: "E2E",
+      notes: "tanpa gula",
+      items: [item("Pasta")],
+    });
+    expect(next.id_order).toBe("baru");
+    expect(next.items).toHaveLength(1);
+    expect(next.table_number).toBe("E2E");
+    expect(next.notes).toBe("tanpa gula");
   });
 });
 

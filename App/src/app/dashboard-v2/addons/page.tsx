@@ -16,15 +16,18 @@ export default async function Page() {
   if (!canOpenOwnerConsole(ctx.role)) redirect("/login");
 
   const cafeId = ctx.cafe_id ?? "";
-  const { data } = await supabaseAdmin
-    .from("Menu_Option_Values")
-    .select(
-      "id_option_value, name, price_delta, is_active, option_group_id," +
-      "group:Menu_Option_Groups(id_option_group, name, menu_id, menu:Menus(id_menu, nama_menu, category))",
-    )
-    .eq("cafe_id", cafeId)
-    .order("sort_order", { ascending: true })
-    .limit(300);
+  const [{ data }, menus] = await Promise.all([
+    supabaseAdmin
+      .from("Menu_Option_Values")
+      .select(
+        "id_option_value, name, price_delta, is_active, option_group_id," +
+        "group:Menu_Option_Groups(id_option_group, name, menu_id, menu:Menus(id_menu, nama_menu, category))",
+      )
+      .eq("cafe_id", cafeId)
+      .order("sort_order", { ascending: true })
+      .limit(300),
+    fetchMenus(cafeId),
+  ]);
 
   type RawValue = {
     id_option_value: string;
@@ -52,7 +55,7 @@ export default async function Page() {
     menuCategory: v.group?.menu?.category ?? null,
   }));
 
-  return <AddonsTable rows={rows} menus={await fetchMenus(cafeId)} />;
+  return <AddonsTable rows={rows} menus={menus} />;
 }
 
 /** Daftar menu untuk dropdown modal Add — diambil terpisah dari addon rows,

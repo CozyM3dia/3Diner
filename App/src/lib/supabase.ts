@@ -18,7 +18,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export async function getCafeBySlug(slug: string): Promise<Cafe | null> {
   const { data, error } = await supabase
     .from("Cafes")
-    .select("id_cafe, slug_url, nama_cafe, cover_url, logo_url, greeting, alamat_cafe, google_maps_review_url")
+    .select(CAFE_PUBLIC_COLUMNS)
     .eq("slug_url", slug)
     .eq("status_lunas", true)
     .single();
@@ -27,8 +27,15 @@ export async function getCafeBySlug(slug: string): Promise<Cafe | null> {
   return data as Cafe;
 }
 
+const CAFE_PUBLIC_COLUMNS =
+  "id_cafe, slug_url, nama_cafe, cover_url, logo_url, greeting, alamat_cafe, google_maps_review_url";
+
 const MENU_COLUMNS =
   "id_menu, cafe_id, nama_menu, harga_menu, description_menu, category, image_url, model_3d_url, is_active, discount_pct, prep_time_minutes, calories, schedule_days, schedule_start, schedule_end";
+
+/** Kolom halaman detail + viewer 3D. Ditambah ingredients/usdz/scale —
+ *  tidak ikut daftar menu supaya kartu katalog tetap ringan. */
+const MENU_DETAIL_COLUMNS = `${MENU_COLUMNS}, ingredients, usdz_url, model_scale`;
 
 /** Fetch cafe + menus + active announcement in ONE roundtrip.
  *
@@ -41,7 +48,7 @@ export async function getMenuPageBySlug(
   const { data, error } = await supabase
     .from("Cafes")
     .select(
-      `id_cafe, slug_url, nama_cafe, cover_url, logo_url, greeting, alamat_cafe, google_maps_review_url,
+      `${CAFE_PUBLIC_COLUMNS},
        Menus!cafe_id(${MENU_COLUMNS}),
        Announcements!cafe_id(id, cafe_id, message, bg_color, type, is_active)`
     )
@@ -85,15 +92,48 @@ export async function getMenuPageBySlug(
 export async function getMenusByCafeId(cafeId: string): Promise<Menu[]> {
   const { data, error } = await supabase
     .from("Menus")
-    .select(
-      "id_menu, cafe_id, nama_menu, harga_menu, description_menu, category, image_url, model_3d_url, is_active, discount_pct, prep_time_minutes, calories, schedule_days, schedule_start, schedule_end"
-    )
+    .select(MENU_COLUMNS)
     .eq("cafe_id", cafeId)
     .order("sort_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
 
   if (error) return [];
   return (data as Menu[]).filter((m) => isMenuAvailableNow(m));
+}
+
+/** Satu roundtrip: kafe (slug lunas) + satu menu. Mengganti waterfall
+ *  getCafeBySlug lalu getMenuById pada halaman detail dan viewer 3D. */
+export async function getCafeAndMenuBySlug(
+  slug: string,
+  menuId: string
+): Promise<{ cafe: Cafe; menu: Menu } | null> {
+  const { data, error } = await supabase
+    .from("Cafes")
+    .select(`${CAFE_PUBLIC_COLUMNS}, Menus!inner(${MENU_DETAIL_COLUMNS})`)
+    .eq("slug_url", slug)
+    .eq("status_lunas", true)
+    .eq("Menus.id_menu", menuId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const row = data as unknown as Cafe & { Menus?: Menu[] };
+  const menu = row.Menus?.[0];
+  if (!menu) return null;
+  const { Menus: _, ...cafe } = row;
+  void _;
+  return { cafe: cafe as Cafe, menu };
+}
+
+export async function getMenuById(cafeId: string, menuId: string): Promise<Menu | null> {
+  const { data, error } = await supabase
+    .from("Menus")
+    .select(MENU_DETAIL_COLUMNS)
+    .eq("id_menu", menuId)
+    .eq("cafe_id", cafeId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as Menu;
 }
 
 // ─────────────────────────────────────────────

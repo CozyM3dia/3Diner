@@ -33,7 +33,9 @@ function readError(message: string | undefined): string {
 
 function revalidateSurfaces() {
   revalidatePath("/kasir");
-  revalidatePath("/dashboard/orders");
+  revalidatePath("/dashboard-v2/pesanan");
+  revalidatePath("/dapur");
+  revalidatePath("/dashboard-v2/dapur");
 }
 
 /** Memajukan pesanan satu tahap.

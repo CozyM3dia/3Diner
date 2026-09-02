@@ -296,3 +296,33 @@ export function urutkanPapan(tiket: TiketDapur[]): TiketDapur[] {
 export function masihDiPapan(status: OrderStatus | string): boolean {
   return status === "awaiting" || status === "received" || status === "preparing" || status === "ready";
 }
+
+/** Gabungkan payload Realtime ke tiket yang sudah di papan.
+ *
+ *  UPDATE Postgres sering hanya mengirim kolom yang berubah plus kunci.
+ *  Kalau payload itu dipakai menimpa tiket utuh, `items` hilang dan kartu
+ *  dapur jadi kosong tepat saat pembayaran atau status berganti — persis
+ *  saat juru masak paling membutuhkannya. Kolom yang tidak ada di payload
+ *  tetap memakai nilai lama. */
+export function tiketDariPayloadRealtime(
+  lama: TiketDapur | undefined,
+  baris: Record<string, unknown>,
+): TiketDapur {
+  const items = Array.isArray(baris.items)
+    ? (baris.items as TiketDapur["items"])
+    : lama?.items ?? [];
+  return {
+    id_order: String(baris.id_order ?? lama?.id_order ?? ""),
+    created_at:
+      typeof baris.created_at === "string" && baris.created_at.length > 0
+        ? baris.created_at
+        : lama?.created_at ?? "",
+    status: (typeof baris.status === "string" ? baris.status : lama?.status ?? "awaiting") as OrderStatus,
+    payment_status:
+      typeof baris.payment_status === "string" ? baris.payment_status : lama?.payment_status ?? "unpaid",
+    table_number:
+      "table_number" in baris ? (baris.table_number as string | null) : lama?.table_number ?? null,
+    notes: "notes" in baris ? (baris.notes as string | null) : lama?.notes ?? null,
+    items,
+  };
+}

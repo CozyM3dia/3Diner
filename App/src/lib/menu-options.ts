@@ -1,4 +1,5 @@
-﻿import { supabaseAdmin } from "./supabase-admin";
+﻿import { cache } from "react";
+import { supabaseAdmin } from "./supabase-admin";
 import type { MenuOptionGroup, MenuOptionValue } from "@/types";
 
 interface RawValue {
@@ -102,10 +103,10 @@ export async function getMenuOptionsForOwner(
 
 /** Varian untuk halaman menu pelanggan: hanya yang aktif, dan tanpa resep —
  *  komposisi bahan bukan urusan tamu. Subquery resep tidak pernah ditarik. */
-export async function getMenuOptionsForCustomer(
+export const getMenuOptionsForCustomer = cache(async (
   cafeId: string,
   menuId: string
-): Promise<MenuOptionGroup[]> {
+): Promise<MenuOptionGroup[]> => {
   const { data, error } = await supabaseAdmin
     .from("Menu_Option_Groups")
     .select(CUSTOMER_GROUP_SELECT)
@@ -116,4 +117,21 @@ export async function getMenuOptionsForCustomer(
   if (error) return [];
 
   return shapeOptionGroups((data ?? []) as unknown as RawGroup[], true);
-}
+});
+
+/** Opsi per menu_id tanpa menunggu cafe_id — dijalankan paralel dengan
+ *  join kafe+menu. Pemanggil wajib membuang grup yang cafe_id-nya tidak
+ *  cocok setelah kafe diketahui. */
+export const getMenuOptionsForPublicMenu = cache(async (
+  menuId: string
+): Promise<MenuOptionGroup[]> => {
+  const { data, error } = await supabaseAdmin
+    .from("Menu_Option_Groups")
+    .select(CUSTOMER_GROUP_SELECT)
+    .eq("menu_id", menuId)
+    .order("sort_order", { ascending: true });
+
+  if (error) return [];
+
+  return shapeOptionGroups((data ?? []) as unknown as RawGroup[], true);
+});

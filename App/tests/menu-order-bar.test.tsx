@@ -39,7 +39,7 @@ vi.mock("@/lib/cart", () => ({
   }),
 }));
 
-vi.mock("@/lib/data", () => ({
+vi.mock("@/lib/log-event", () => ({
   logEvent: vi.fn(),
 }));
 

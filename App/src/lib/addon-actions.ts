@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireStaffPermission } from "@/lib/authorization";
+import { revalidateGuestCafe } from "@/lib/guest-revalidate";
 
 /** Write-action Addons (Menu_Option_Groups + Menu_Option_Values).
  *  Addon adalah konfigurasi menu — bukan status order — jadi tulis-nya sah
@@ -22,9 +23,10 @@ export interface NewAddonInput {
   priceDelta: number;
 }
 
-function revalidateAddons() {
+function revalidateAddons(slug: string | null, cafeId: string) {
   revalidatePath("/dashboard-v2/addons");
   revalidatePath("/dashboard-v2");
+  revalidateGuestCafe(slug, cafeId);
 }
 
 /** Buat nilai addon baru. Bila grup belum ada (menu pertama kali diberi addon),
@@ -32,8 +34,11 @@ function revalidateAddons() {
  *  tetap bisa disunting lewat editor menu. */
 export async function createAddon(input: NewAddonInput): Promise<AddonResult> {
   let cafeId: string;
+  let cafeSlug: string | null;
   try {
-    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+    const auth = await requireStaffPermission("manage_menu");
+    cafeId = auth.cafeId;
+    cafeSlug = auth.cafeSlug;
   } catch {
     return { error: "Sesi tidak berlaku. Masuk ulang." };
   }
@@ -98,7 +103,7 @@ export async function createAddon(input: NewAddonInput): Promise<AddonResult> {
   });
   if (error) return { error: error.message };
 
-  revalidateAddons();
+  revalidateAddons(cafeSlug, cafeId);
   return {};
 }
 
@@ -108,8 +113,11 @@ export async function updateAddon(
   patch: { name: string; priceDelta: number },
 ): Promise<AddonResult> {
   let cafeId: string;
+  let cafeSlug: string | null;
   try {
-    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+    const auth = await requireStaffPermission("manage_menu");
+    cafeId = auth.cafeId;
+    cafeSlug = auth.cafeSlug;
   } catch {
     return { error: "Sesi tidak berlaku. Masuk ulang." };
   }
@@ -128,15 +136,18 @@ export async function updateAddon(
     .eq("cafe_id", cafeId);
   if (error) return { error: error.message };
 
-  revalidateAddons();
+  revalidateAddons(cafeSlug, cafeId);
   return {};
 }
 
 /** Aktif/nonaktifkan addon — nilai nonaktif tak muncul di menu tamu. */
 export async function toggleAddon(valueId: string, isActive: boolean): Promise<AddonResult> {
   let cafeId: string;
+  let cafeSlug: string | null;
   try {
-    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+    const auth = await requireStaffPermission("manage_menu");
+    cafeId = auth.cafeId;
+    cafeSlug = auth.cafeSlug;
   } catch {
     return { error: "Sesi tidak berlaku. Masuk ulang." };
   }
@@ -148,15 +159,18 @@ export async function toggleAddon(valueId: string, isActive: boolean): Promise<A
     .eq("cafe_id", cafeId);
   if (error) return { error: error.message };
 
-  revalidateAddons();
+  revalidateAddons(cafeSlug, cafeId);
   return {};
 }
 
 /** Hapus addon. Grup dibiarkan (bisa jadi akan diisi lagi oleh pemilik). */
 export async function deleteAddon(valueId: string): Promise<AddonResult> {
   let cafeId: string;
+  let cafeSlug: string | null;
   try {
-    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+    const auth = await requireStaffPermission("manage_menu");
+    cafeId = auth.cafeId;
+    cafeSlug = auth.cafeSlug;
   } catch {
     return { error: "Sesi tidak berlaku. Masuk ulang." };
   }
@@ -168,6 +182,6 @@ export async function deleteAddon(valueId: string): Promise<AddonResult> {
     .eq("cafe_id", cafeId);
   if (error) return { error: error.message };
 
-  revalidateAddons();
+  revalidateAddons(cafeSlug, cafeId);
   return {};
 }

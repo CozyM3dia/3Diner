@@ -65,11 +65,12 @@ export function resolveRentang(params: { from?: string; to?: string }): Rentang 
 
 export type PesananDuaPeriode = { kini: OrderRow[]; lalu: OrderRow[]; menus: MenuRow[] };
 
-/** Orders dua periode + Menus dalam satu perjalanan paralel ke database.
- *  Melempar bila salah satu gagal — halaman memilih menampilkan layar gagal,
- *  bukan angka yang setengah benar. */
+/** Orders dua periode + Menus paralel. Baris pesanan diambil lewat
+ *  `dashboard_order_rows` yang memangkas JSONB items ke id/nama/harga/qty
+ *  (opsi varian tidak dipakai metrik). Fallback SELECT penuh bila RPC belum
+ *  terpasang. Melempar bila keduanya gagal. */
 export async function muatPesanan(cafeId: string, r: Rentang): Promise<PesananDuaPeriode> {
-  const [ordersRes, menusRes] = await Promise.all([
+  const ordersSelect = () =>
     supabaseAdmin
       .from("Orders")
       .select("id_order,total,status,payment_status,payment_method,table_number,items,created_at")
@@ -77,7 +78,17 @@ export async function muatPesanan(cafeId: string, r: Rentang): Promise<PesananDu
       .gte("created_at", r.sincePrev)
       .lte("created_at", r.until)
       .order("created_at", { ascending: false })
-      .limit(4000),
+      .limit(4000);
+
+  const [ordersRes, menusRes] = await Promise.all([
+    supabaseAdmin
+      .rpc("dashboard_order_rows", {
+        p_cafe_id: cafeId,
+        p_start: r.sincePrev,
+        p_end: r.until,
+        p_limit: 4000,
+      })
+      .then((rpcRes) => (rpcRes.error ? ordersSelect() : rpcRes)),
     supabaseAdmin
       .from("Menus")
       .select("id_menu,nama_menu,harga_menu,image_url,category,is_active")
@@ -113,10 +124,15 @@ const NOL: TotalPeristiwa = { click_menu: 0, view_3d: 0, click_order: 0 };
 /** Peristiwa tamu (buka menu, lihat 3D, mulai pesan) untuk rentang terpilih
  *  dan pembandingnya. Dua panggilan RPC — `this_week/last_week` bawaan RPC
  *  terpaku pada 7 hari terakhir dan tidak mengikuti rentang yang dipilih. */
-export async function muatPeristiwa(cafeId: string, r: Rentang, menus: MenuRow[]): Promise<PeristiwaTamu> {
-  const [kiniRes, laluRes] = await Promise.all([
+export async function muatPeristiwa(
+  cafeId: string,
+  r: Rentang,
+  menus: MenuRow[] | Promise<MenuRow[]>,
+): Promise<PeristiwaTamu> {
+  const [kiniRes, laluRes, menuList] = await Promise.all([
     supabaseAdmin.rpc("dashboard_analytics", { p_cafe_id: cafeId, p_start: r.since, p_end: r.until }),
     supabaseAdmin.rpc("dashboard_analytics", { p_cafe_id: cafeId, p_start: r.sincePrev, p_end: r.since }),
+    Promise.resolve(menus),
   ]);
   if (kiniRes.error || laluRes.error) {
     return { kini: NOL, lalu: NOL, perMenu: [], perJam: Array(24).fill(0), gagal: true };
@@ -133,7 +149,7 @@ export async function muatPeristiwa(cafeId: string, r: Rentang, menus: MenuRow[]
 
   const aggKini = obj(kiniRes.data);
   const aggLalu = obj(laluRes.data);
-  const byId = new Map(menus.map((m) => [m.id_menu, m]));
+  const byId = new Map(menuList.map((m) => [m.id_menu, m]));
 
   const perMenu = arr(aggKini.per_dish)
     .map((row) => {

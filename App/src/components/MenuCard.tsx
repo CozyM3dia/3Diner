@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Box, Clock, Flame } from "lucide-react";
-import { logEvent } from "@/lib/data";
+import { logEvent } from "@/lib/log-event";
 import { formatRupiah } from "@/lib/format";
 import { effectivePrice, hasDiscount } from "@/lib/menu-availability";
 import type { Menu } from "@/types";

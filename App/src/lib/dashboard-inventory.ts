@@ -58,19 +58,19 @@ async function getDashboardInventoryDataForSlug(slug: string | null): Promise<Da
   const [itemsResult, movementsResult] = await Promise.all([
     supabaseAdmin
       .from("Inventory_Items")
-      .select("*")
+      .select("id_inventory_item,cafe_id,name,unit,current_qty,minimum_qty,estimated_unit_cost,notes,created_at,updated_at")
       .eq("cafe_id", cafeId)
       .order("name", { ascending: true }),
     supabaseAdmin
       .from("Inventory_Movements")
-      .select("*, inventory_item:Inventory_Items(name, unit)")
+      .select("id_inventory_movement,cafe_id,inventory_item_id,movement_type,delta_qty,qty_before,qty_after,unit,unit_cost,reference_type,reference_id,note,created_at,inventory_item:Inventory_Items(name, unit)")
       .eq("cafe_id", cafeId)
       .order("created_at", { ascending: false })
       .limit(12),
   ]);
 
   const items = (itemsResult.data ?? []) as InventoryItem[];
-  const movements = (movementsResult.data ?? []) as InventoryMovement[];
+  const movements = (movementsResult.data ?? []) as unknown as InventoryMovement[];
   const failedLoads = [
     itemsResult.error ? "data bahan" : null,
     movementsResult.error ? "riwayat mutasi" : null,

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { AuthorizationError, requireStaffPermission } from "@/lib/authorization";
 import { buildScheduleFields } from "@/lib/schedule-days";
+import { revalidateGuestCafe } from "@/lib/guest-revalidate";
 import type { MenuFormValues } from "@/components/dp/MenuEditorForm";
 
 export interface UpsertMenuResult {
@@ -31,8 +32,11 @@ export async function upsertMenuFromEditor(input: {
   photo: File | null;
 }): Promise<UpsertMenuResult> {
   let cafeId: string;
+  let cafeSlug: string | null;
   try {
-    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+    const auth = await requireStaffPermission("manage_menu");
+    cafeId = auth.cafeId;
+    cafeSlug = auth.cafeSlug;
   } catch (e) {
     return { error: pesanOtorisasi(e) };
   }
@@ -132,7 +136,7 @@ export async function upsertMenuFromEditor(input: {
       .select("id_menu")
       .single();
     if (error) return { error: error.message };
-    revalidateAll();
+    revalidateAll(cafeSlug, cafeId);
     return { id_menu: data.id_menu as string };
   }
 
@@ -146,17 +150,17 @@ export async function upsertMenuFromEditor(input: {
     .eq("cafe_id", cafeId);
   if (error) return { error: error.message };
 
-  revalidateAll();
+  revalidateAll(cafeSlug, cafeId);
   return { id_menu: input.id_menu };
 }
 
-/** Revalidate konsol dashboard dan sisi pelanggan. */
-function revalidateAll() {
+/** Revalidate konsol dashboard dan sisi pelanggan satu kafe (bukan seluruh `/`). */
+function revalidateAll(slug: string | null, cafeId: string) {
   revalidatePath("/dashboard-v2/menu");
   revalidatePath("/dashboard-v2/items");
   revalidatePath("/dashboard-v2/pos");
   revalidatePath("/dashboard-v2", "layout");
-  revalidatePath("/", "layout");
+  revalidateGuestCafe(slug, cafeId);
 }
 
 /** Data awal untuk editor floating (dipanggil Items saat membuka panel edit):

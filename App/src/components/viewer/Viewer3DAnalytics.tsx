@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { logEvent } from "@/lib/data";
+import { logEvent } from "@/lib/log-event";
 
 /** Mencatat "view_3d" tepat sekali dari sisi klien, setelah model 3D dibuka.
  *

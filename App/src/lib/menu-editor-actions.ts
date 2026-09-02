@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireStaffPermission } from "@/lib/authorization";
+import { revalidateGuestCafe } from "@/lib/guest-revalidate";
 
 export interface EditorResult {
   error?: string;
@@ -26,10 +27,11 @@ export interface MenuSchedule {
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-function revalidate(menuId: string) {
+function revalidate(menuId: string, slug: string | null, cafeId: string) {
   revalidatePath("/dashboard-v2/menu");
   revalidatePath(`/dashboard-v2/menu/${menuId}`);
   revalidatePath("/dashboard-v2");
+  revalidateGuestCafe(slug, cafeId);
 }
 
 /** Menyimpan bidang dasar satu menu.
@@ -39,8 +41,11 @@ function revalidate(menuId: string) {
  *  melainkan kebocoran. */
 export async function saveMenuBasics(menuId: string, basics: MenuBasics): Promise<EditorResult> {
   let cafeId: string;
+  let cafeSlug: string | null;
   try {
-    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+    const auth = await requireStaffPermission("manage_menu");
+    cafeId = auth.cafeId;
+    cafeSlug = auth.cafeSlug;
   } catch {
     return { error: "Sesi tidak berlaku. Masuk ulang." };
   }
@@ -65,7 +70,7 @@ export async function saveMenuBasics(menuId: string, basics: MenuBasics): Promis
     .eq("cafe_id", cafeId);
 
   if (error) return { error: error.message };
-  revalidate(menuId);
+  revalidate(menuId, cafeSlug, cafeId);
   return {};
 }
 
@@ -79,8 +84,11 @@ export async function saveMenuSchedule(
   schedule: MenuSchedule
 ): Promise<EditorResult> {
   let cafeId: string;
+  let cafeSlug: string | null;
   try {
-    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+    const auth = await requireStaffPermission("manage_menu");
+    cafeId = auth.cafeId;
+    cafeSlug = auth.cafeSlug;
   } catch {
     return { error: "Sesi tidak berlaku. Masuk ulang." };
   }
@@ -118,6 +126,6 @@ export async function saveMenuSchedule(
     .eq("cafe_id", cafeId);
 
   if (error) return { error: error.message };
-  revalidate(menuId);
+  revalidate(menuId, cafeSlug, cafeId);
   return {};
 }

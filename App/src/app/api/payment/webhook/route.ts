@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyMidtransSignature } from "@/lib/order-validation";
 
@@ -109,6 +110,10 @@ export async function POST(req: Request) {
       if (settlementError && settlementError !== "insufficient_inventory") {
         return NextResponse.json({ error: "Gagal konfirmasi pesanan" }, { status: 502 });
       }
+      revalidatePath("/dapur");
+      revalidatePath("/dashboard-v2/dapur");
+      revalidatePath("/dashboard-v2/pesanan");
+      revalidatePath("/kasir");
       // A stale callback after an expired/reset attempt is acknowledged by
       // the RPC without changing the currently active order state.
     } else if (["expire", "cancel", "deny", "failure"].includes(transaction_status)) {

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireStaffPermission } from "@/lib/authorization";
+import { revalidateGuestCafe } from "@/lib/guest-revalidate";
 
 export interface MenuResult {
   error?: string;
@@ -11,9 +12,10 @@ export interface MenuResult {
   changed?: number;
 }
 
-function revalidate() {
+function revalidate(slug: string | null, cafeId: string) {
   revalidatePath("/dashboard-v2/menu");
   revalidatePath("/dashboard-v2");
+  revalidateGuestCafe(slug, cafeId);
 }
 
 /** Menyalakan atau mematikan tayangnya satu menu.
@@ -22,8 +24,11 @@ function revalidate() {
  *  harus turun sekarang, tanpa membuka formulir apa pun. */
 export async function setMenuLive(menuId: string, live: boolean): Promise<MenuResult> {
   let cafeId: string;
+  let cafeSlug: string | null;
   try {
-    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+    const auth = await requireStaffPermission("manage_menu");
+    cafeId = auth.cafeId;
+    cafeSlug = auth.cafeSlug;
   } catch {
     return { error: "Sesi tidak berlaku. Masuk ulang." };
   }
@@ -35,7 +40,7 @@ export async function setMenuLive(menuId: string, live: boolean): Promise<MenuRe
     .eq("cafe_id", cafeId);
 
   if (error) return { error: error.message };
-  revalidate();
+  revalidate(cafeSlug, cafeId);
   return { changed: 1 };
 }
 
@@ -46,8 +51,11 @@ export async function setMenuLive(menuId: string, live: boolean): Promise<MenuRe
  *  pekerjaan nyata yang berulang. Sisanya tidak. */
 export async function setManyMenusLive(menuIds: string[], live: boolean): Promise<MenuResult> {
   let cafeId: string;
+  let cafeSlug: string | null;
   try {
-    cafeId = (await requireStaffPermission("manage_menu")).cafeId;
+    const auth = await requireStaffPermission("manage_menu");
+    cafeId = auth.cafeId;
+    cafeSlug = auth.cafeSlug;
   } catch {
     return { error: "Sesi tidak berlaku. Masuk ulang." };
   }
@@ -64,6 +72,6 @@ export async function setManyMenusLive(menuIds: string[], live: boolean): Promis
     .select("id_menu");
 
   if (error) return { error: error.message };
-  revalidate();
+  revalidate(cafeSlug, cafeId);
   return { changed: (data ?? []).length };
 }

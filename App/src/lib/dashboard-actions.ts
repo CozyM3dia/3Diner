@@ -8,6 +8,7 @@ import { getOwnerCafeSlug } from "./analytics";
 import { requireOwnerCafe } from "./authorization";
 import { optionGroupsValidationError, type OptionGroupDraft } from "./menu-option-drafts";
 import { normalizeReceiptSettings } from "./receipt-settings";
+import { revalidateGuestCafe } from "./guest-revalidate";
 
 export interface ActionResult {
   error?: string;
@@ -41,6 +42,16 @@ export const getAuthCafeId = cache(async (): Promise<string | null> => {
     return null;
   }
 });
+
+async function revalidateGuestCatalog() {
+  try {
+    const userId = await getAuthenticatedSupabaseUserId();
+    const slug = userId ? await getOwnerCafeSlug(userId) : null;
+    revalidateGuestCafe(slug);
+  } catch {
+    revalidatePath("/[slug]", "page");
+  }
+}
 
 function str(fd: FormData, k: string): string | null {
   const v = fd.get(k);
@@ -91,7 +102,7 @@ export async function createMenu(fd: FormData): Promise<ActionResult> {
     .single();
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
-  revalidatePath("/[slug]", "page");
+  await revalidateGuestCatalog();
   return { id_menu: (data?.id_menu as string | undefined) };
 }
 
@@ -130,7 +141,7 @@ export async function bulkCreateMenus(
   const { error } = await supabaseAdmin.from("Menus").insert(rows);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
-  revalidatePath("/[slug]", "page");
+  await revalidateGuestCatalog();
   return { inserted: rows.length };
 }
 
@@ -147,7 +158,7 @@ export async function updateMenu(menuId: string, fd: FormData): Promise<ActionRe
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
   revalidatePath("/dashboard/scheduler");
-  revalidatePath("/[slug]", "page");
+  await revalidateGuestCatalog();
   return {};
 }
 
@@ -161,7 +172,7 @@ export async function deleteMenu(menuId: string): Promise<ActionResult> {
     .eq("cafe_id", cafeId);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
-  revalidatePath("/[slug]", "page");
+  await revalidateGuestCatalog();
   return {};
 }
 
@@ -179,7 +190,7 @@ export async function setMenuAvailability(
   if (error) return { error: error.message };
   revalidatePath("/dashboard/scheduler");
   revalidatePath("/dashboard/menu");
-  revalidatePath("/[slug]", "page");
+  await revalidateGuestCatalog();
   return {};
 }
 
@@ -196,7 +207,7 @@ export async function reorderMenus(orderedIds: string[]): Promise<ActionResult> 
   });
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
-  revalidatePath("/[slug]", "page");
+  await revalidateGuestCatalog();
   return {};
 }
 
@@ -438,7 +449,7 @@ export async function saveMenuRecipes(menuId: string, rows: RecipeDraftInput[]):
 
   revalidatePath("/dashboard/menu");
   revalidatePath("/dashboard/menu/" + menuId + "/edit");
-  revalidatePath("/[slug]", "page");
+  await revalidateGuestCatalog();
   return {};
 }
 
@@ -487,7 +498,7 @@ export async function saveMenuOptions(
 
   revalidatePath("/dashboard/menu");
   revalidatePath("/dashboard/menu/" + menuId + "/edit");
-  revalidatePath("/[slug]", "page");
+  await revalidateGuestCatalog();
   return {};
 }
 
@@ -514,7 +525,7 @@ export async function saveAnnouncement(fd: FormData): Promise<ActionResult> {
     : await supabaseAdmin.from("Announcements").insert([payload]);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/announcements");
-  revalidatePath("/[slug]", "page");
+  await revalidateGuestCatalog();
   return {};
 }
 

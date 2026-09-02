@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { canOpenKitchenConsole, canOpenOwnerConsole, getStaffContext } from "@/lib/staff-context";
+import { afterResponse } from "@/lib/after-response";
 
 export interface HasilDapur {
   error?: string;
@@ -72,15 +73,17 @@ async function majukan(
   if (error) return { error: bacaError(error.message) };
 
   if (berikutnya === "ready") {
-    const { createNotifications } = await import("@/lib/notifications");
-    await createNotifications(cafeId, "kitchen_ready", [
-      {
-        type: "order",
-        title: `Pesanan siap · #${orderId.slice(0, 5)}`,
-        body: "Dapur menandai pesanan siap diantar.",
-        href: "/dashboard-v2/pesanan",
-      },
-    ]);
+    afterResponse(async () => {
+      const { createNotifications } = await import("@/lib/notifications");
+      await createNotifications(cafeId, "kitchen_ready", [
+        {
+          type: "order",
+          title: `Pesanan siap · #${orderId.slice(0, 5)}`,
+          body: "Dapur menandai pesanan siap diantar.",
+          href: "/dashboard-v2/pesanan",
+        },
+      ]);
+    });
   }
 
   // Kasir melihat antrean yang sama. Tanpa baris ini, tiket yang sudah
