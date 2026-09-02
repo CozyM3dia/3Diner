@@ -38,29 +38,65 @@
 }
 .dp-menuf-chip button:hover { color: #dc2626; }
 
-/* Dropzone foto */
+/* Dropzone foto / model — 21st ReUI card upload, token --dp-* */
+.dp-menuf-dropwrap { position: relative; }
 .dp-menuf-dropzone {
-  border: 1.5px dashed var(--dp-border); border-radius: 8px; background: var(--dp-bg);
-  min-height: 168px; display: grid; place-items: center; cursor: pointer;
-  transition: border-color .15s, background .15s; overflow: hidden; padding: 12px;
+  border: 1.5px dashed var(--dp-border); border-radius: 12px; background: var(--dp-bg);
+  min-height: 208px; display: grid; place-items: center; cursor: pointer;
+  transition: border-color .15s, background .15s; overflow: hidden; padding: 16px;
+  position: relative;
 }
 .dp-menuf-dropzone:hover { border-color: var(--dp-blue); }
+.dp-menuf-dropzone:focus-visible { outline: 2px solid var(--dp-blue); outline-offset: 2px; }
 .dp-menuf-drag { border-color: var(--dp-blue); background: var(--dp-blue-soft); }
-.dp-menuf-drop-inner { display: grid; justify-items: center; gap: 5px; text-align: center; }
+.dp-menuf-drop-inner { display: grid; justify-items: center; gap: 6px; text-align: center; }
 .dp-menuf-drop-ic {
-  width: 40px; height: 40px; border-radius: 8px; background: var(--dp-blue-soft);
-  color: var(--dp-accent-ink); display: grid; place-items: center;
+  width: 44px; height: 44px; border-radius: 999px; background: var(--dp-surface);
+  border: 1px solid var(--dp-border); color: var(--dp-muted);
+  display: grid; place-items: center;
 }
 .dp-menuf-drop-t { font-size: 13px; font-weight: 600; color: var(--dp-heading); }
 .dp-menuf-drop-s { font-size: 11px; color: var(--dp-muted); }
-.dp-menuf-preview { position: relative; display: block; width: 100%; }
+.dp-menuf-drop-browse {
+  margin-top: 6px; display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--dp-border); background: var(--dp-surface); border-radius: 8px;
+  padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--dp-heading);
+}
+.dp-menuf-drop-overlay {
+  position: absolute; top: 12px; right: 12px; z-index: 2;
+  display: flex; align-items: center; gap: 6px;
+}
+.dp-menuf-drop-x {
+  width: 32px; height: 32px; border-radius: 999px; border: 0; cursor: pointer;
+  background: rgba(2, 44, 96, .72); color: #fff; display: grid; place-items: center;
+}
+.dp-menuf-drop-x:hover { background: rgba(2, 44, 96, .88); }
+.dp-menuf-preview {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px;
+}
 .dp-menuf-preview img {
-  width: 100%; max-height: 240px; object-fit: cover; border-radius: 6px; display: block;
+  max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; display: block;
 }
 .dp-menuf-preview-badge {
   position: absolute; top: 8px; left: 8px; background: var(--dp-surface); color: var(--dp-accent-ink);
   font-size: 10px; font-weight: 700; border-radius: 999px; padding: 3px 9px;
   box-shadow: 0 1px 4px rgba(2,44,96,.14);
+}
+.dp-menuf-filechip { display: grid; justify-items: center; gap: 6px; text-align: center; padding: 8px; }
+.dp-menuf-filechip-ic {
+  width: 64px; height: 64px; border-radius: 999px; border: 1px solid var(--dp-border);
+  background: var(--dp-surface); color: var(--dp-accent-ink); display: grid; place-items: center;
+}
+.dp-menuf-filechip-name {
+  font-size: 13px; font-weight: 600; color: var(--dp-heading);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dp-menuf-filechip-meta { font-size: 11px; color: var(--dp-muted); }
+.dp-menuf-busybar {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 8px 12px; background: color-mix(in srgb, var(--dp-surface) 88%, transparent);
+  font-size: 13px; font-weight: 600; color: var(--dp-heading);
 }
 .dp-menuf-file { display: none; }
 .dp-menuf-minirow { display: inline-flex; gap: 6px; }
@@ -166,7 +202,8 @@
 .dp-menufx-expand:disabled { opacity: .45; cursor: default; }
 
 /* Kartu sumber model (unggah / AI) */
-.dp-menufx-src { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.dp-menufx-src { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; align-items: start; }
+.dp-menufx-src .dp-menuf-dropzone { min-height: 188px; }
 .dp-menufx-srccard {
   display: flex; align-items: center; gap: 10px;
   border: 1px dashed var(--dp-border); border-radius: 8px; padding: 10px 12px;

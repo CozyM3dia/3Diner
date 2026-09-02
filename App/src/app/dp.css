@@ -283,7 +283,8 @@
   border-radius: 6px; padding: 8px 12px; font-size: 13px; }
 
 /* Pengunggah gambar: pratinjau 7.5rem + dua tombol bulat (bentuk template) */
-.dp-imgfield { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.dp-imgfield { display: grid; gap: 6px; margin-bottom: 20px; }
+.dp-imgfield-drop { align-items: stretch; }
 .dp-imgfield-preview { width: 7.5rem; height: 7.5rem; border-radius: 6px; border: 1px solid var(--dp-border);
   background: var(--dp-bg); color: var(--dp-muted); display: grid; place-items: center; overflow: hidden; flex: none; }
 .dp-imgfield-preview img { width: 100%; height: 100%; object-fit: cover; }
