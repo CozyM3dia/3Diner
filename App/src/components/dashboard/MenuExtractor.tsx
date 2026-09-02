@@ -211,28 +211,50 @@ export default function MenuExtractor() {
                 </div>
               )}
 
-              {/* IDLE — dropzone */}
+              {/* IDLE — dropzone (21st File Dropzone language, same extract pipeline) */}
               {stage === "idle" && (
-                <div
-                  onClick={() => inputRef.current?.click()}
+                <label
+                  htmlFor="menu-extract-file"
+                  data-dragging={dragOver || undefined}
+                  onDragEnter={(e) => { e.preventDefault(); setDragOver(true); }}
                   onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                   onDragLeave={() => setDragOver(false)}
                   onDrop={onDrop}
-                  className="cursor-pointer rounded-2xl flex flex-col items-center justify-center text-center px-6 py-14 transition-colors"
+                  className="relative flex min-h-52 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl p-4 text-center"
                   style={{
-                    border: `2px dashed ${dragOver ? C.orange : "rgba(255,255,255,0.15)"}`,
+                    border: `1.5px dashed ${dragOver ? C.orange : "rgba(255,255,255,0.14)"}`,
                     background: dragOver ? "rgba(253,80,2,0.06)" : C.card,
+                    transition: "background 0.15s, border-color 0.15s",
                   }}
                 >
-                  <span className="w-14 h-14 rounded-2xl inline-flex items-center justify-center mb-4" style={{ background: "rgba(253,80,2,0.12)" }}>
-                    <UploadCloud size={26} style={{ color: C.orange }} />
+                  <input
+                    id="menu-extract-file"
+                    ref={inputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf"
+                    className="sr-only"
+                    aria-label="Unggah foto atau PDF menu"
+                    onChange={onPick}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="mb-2 flex size-11 shrink-0 items-center justify-center rounded-full border"
+                    style={{ background: "#0D1829", borderColor: "rgba(255,255,255,0.14)", color: C.orange }}
+                  >
+                    <UploadCloud size={20} />
                   </span>
-                  <p className="font-semibold text-sm" style={{ color: C.text }}>
-                    Tarik file ke sini, atau klik untuk pilih
+                  <p className="text-sm font-medium" style={{ color: C.text }}>
+                    Tarik file ke sini
                   </p>
-                  <p className="text-xs mt-1.5" style={{ color: C.muted }}>JPG · PNG · WEBP · PDF — maks 15MB</p>
-                  <input ref={inputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf" className="hidden" onChange={onPick} />
-                </div>
+                  <p className="mt-1 text-[11px]" style={{ color: C.muted }}>JPG · PNG · WEBP · PDF (maks. 15MB)</p>
+                  <span
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium"
+                    style={{ background: "#0D1829", borderColor: "rgba(255,255,255,0.14)", color: C.text }}
+                  >
+                    <UploadCloud aria-hidden="true" size={16} className="opacity-60" />
+                    Pilih file
+                  </span>
+                </label>
               )}
 
               {/* PROCESSING — scan animation */}
