@@ -129,7 +129,10 @@ export default function MenuDrawer({ open, editId, categories = [], onClose, onS
           {loaded.state === "ready" && (
             <MenuEditorForm
               mode={editId ? "edit" : "create"}
-              initial={loaded.values}
+              initial={{
+                ...loaded.values,
+                image_url: loaded.imageUrl,
+              } as Partial<MenuFormValues> & { image_url?: string | null }}
               categories={loaded.categories}
               busy={busy}
               lastSavedAt={savedAt}

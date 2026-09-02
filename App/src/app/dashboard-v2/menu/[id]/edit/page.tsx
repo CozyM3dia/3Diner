@@ -34,7 +34,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     new Set((catRows ?? []).map((r) => (r.category ?? "").trim()).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b, "id"));
 
-  const initial: Partial<MenuFormValues> = {
+  const initial: Partial<MenuFormValues> & { image_url?: string | null } = {
     nama_menu: menu.nama_menu ?? "",
     deskripsi: menu.description_menu ?? "",
     category: menu.category ?? "",
@@ -43,6 +43,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     serve_time_minutes: menu.prep_time_minutes ?? null,
     calories: menu.calories ?? null,
     ingredients: menu.ingredients ?? "",
+    image_url: menu.image_url,
   };
 
   return (

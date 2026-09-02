@@ -5,7 +5,6 @@ import Image from "next/image";
 import {
   BoxIcon,
   CalendarClockIcon,
-  ImagePlusIcon,
   Loader2Icon,
   Maximize2Icon,
   Minimize2Icon,
@@ -18,7 +17,10 @@ import {
 import GlbViewer from "@/components/viewer/GlbViewer";
 import { createMediaUploadUrl } from "@/lib/dashboard-actions";
 import { createClient } from "@/lib/supabase/client";
+import { fileNameFromUrl } from "@/components/dashboard/file-upload-validation";
 import { validateSchedulePair, WEEKDAY_LABELS } from "@/lib/schedule-days";
+import DpFileDropzone from "./DpFileDropzone";
+import { validateMenuModel, validateMenuPhoto } from "./menu-editor-upload";
 
 /** Form Tambah/Edit Menu dashboard-v2 — TIGA TAB di dalam drawer floating:
  *  Umum (identitas + foto), 3D & AR (model GLB: unggah manual atau generate
@@ -60,8 +62,6 @@ export type MenuEditorFormProps = {
 
 const MAX_NAMA = 80;
 const MAX_DESK = 280;
-const MAX_FOTO = 5 * 1024 * 1024;
-const MAX_MODEL = 60 * 1024 * 1024;
 
 const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 
@@ -108,12 +108,11 @@ export default function MenuEditorForm({
   const [errors, setErrors] = useState<Errors>({});
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoErr, setPhotoErr] = useState<string | null>(null);
-  const [dragging, setDragging] = useState(false);
   const [existingUrl, setExistingUrl] = useState<string | null>(
     (initial as (Partial<MenuFormValues> & { image_url?: string | null }) | undefined)?.image_url ?? null,
   );
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const photoObjectUrl = useRef<string | null>(null);
   const [, startTransition] = useTransition();
 
   /* ── 3D & AR ── */
@@ -121,13 +120,16 @@ export default function MenuEditorForm({
   const [modelBusy, setModelBusy] = useState(false);
   const [modelErr, setModelErr] = useState<string | null>(null);
   const [modelInput, setModelInput] = useState(false); // mode tempel URL manual
+  const [modelFile, setModelFile] = useState<{ name: string; size: number } | null>(null);
   const [tripo, setTripo] = useState<Tripo>({ state: "idle", progress: 0, preview: null, error: null });
   const [fullscreen, setFullscreen] = useState(false);
-  const modelFileRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Hentikan polling bila form dibongkar.
-  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+  // Hentikan polling / cabut object URL bila form dibongkar.
+  useEffect(() => () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (photoObjectUrl.current) URL.revokeObjectURL(photoObjectUrl.current);
+  }, []);
 
   const previewSrc = previewUrl ?? existingUrl;
 
@@ -195,29 +197,27 @@ export default function MenuEditorForm({
   function chooseFile(f: File | null) {
     setPhotoErr(null);
     if (!f) return;
-    if (!f.type.startsWith("image/")) {
-      setPhotoErr("File harus berupa gambar (JPG/PNG/WebP).");
+    const err = validateMenuPhoto(f);
+    if (err) {
+      setPhotoErr(err);
       return;
     }
-    if (f.size > MAX_FOTO) {
-      setPhotoErr("Ukuran foto maksimal 5MB.");
-      return;
-    }
+    if (photoObjectUrl.current) URL.revokeObjectURL(photoObjectUrl.current);
+    const next = URL.createObjectURL(f);
+    photoObjectUrl.current = next;
     setPhoto(f);
-    setPreviewUrl(URL.createObjectURL(f));
+    setPreviewUrl(next);
   }
 
   /* ── 3D: unggah manual (signed upload langsung ke Storage) ── */
   async function uploadModel(file: File) {
     setModelErr(null);
-    if (!/\.(glb|gltf)$/i.test(file.name)) {
-      setModelErr("Format model harus .glb atau .gltf.");
+    const err = validateMenuModel(file);
+    if (err) {
+      setModelErr(err);
       return;
     }
-    if (file.size > MAX_MODEL) {
-      setModelErr("Ukuran model maksimal 60MB.");
-      return;
-    }
+    setModelFile({ name: file.name, size: file.size });
     setModelBusy(true);
     const sig = await createMediaUploadUrl("model", file.name);
     if (sig.error || !sig.path || !sig.token || !sig.publicUrl) {
@@ -483,74 +483,38 @@ export default function MenuEditorForm({
           {/* ── Foto Menu ── */}
           <section className="dp-menuf-card" aria-label="Foto Menu">
             <h2 className="dp-menuf-title">Foto Menu</h2>
-            <div
-              className={`dp-menuf-dropzone${dragging ? " dp-menuf-drag" : ""}`}
-              role="button"
-              tabIndex={0}
-              aria-label="Unggah foto menu"
-              onClick={() => fileRef.current?.click()}
-              onKeyDown={e => (e.key === "Enter" || e.key === " ") && fileRef.current?.click()}
-              onDragOver={e => { e.preventDefault(); setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={e => {
-                e.preventDefault();
-                setDragging(false);
-                chooseFile(e.dataTransfer.files?.[0] ?? null);
-              }}
-            >
-              {previewSrc ? (
-                <span className="dp-menuf-preview">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- preview blob URL lokal dari File user */}
-                  <img src={previewSrc} alt="Pratinjau foto menu" />
-                  <span className="dp-menuf-preview-badge">{photo ? "Foto baru" : "Tersimpan"}</span>
-                </span>
-              ) : (
-                <span className="dp-menuf-drop-inner">
-                  <span className="dp-menuf-drop-ic"><ImagePlusIcon className="h-5 w-5" /></span>
-                  <span className="dp-menuf-drop-t">Tarik foto ke sini atau klik untuk memilih</span>
-                  <span className="dp-menuf-drop-s">JPG/PNG/WebP · maks 5MB · disarankan 1200×800</span>
-                </span>
-              )}
-            </div>
-            <input
-              ref={fileRef}
-              type="file"
+            <DpFileDropzone
+              ariaLabel="Unggah foto menu"
               accept="image/*"
-              className="dp-menuf-file"
-              onChange={e => chooseFile(e.target.files?.[0] ?? null)}
+              variant="image"
+              emptyTitle="Tarik foto ke sini atau klik untuk memilih"
+              hint="JPG/PNG/WebP · maks 5MB · disarankan 1200×800"
+              imageSrc={previewSrc}
+              fileName={photo?.name ?? null}
+              statusLabel={photo ? "Foto baru" : existingUrl ? "Tersimpan" : null}
+              onFile={chooseFile}
+              onRemove={() => {
+                if (photoObjectUrl.current) {
+                  URL.revokeObjectURL(photoObjectUrl.current);
+                  photoObjectUrl.current = null;
+                }
+                setPhoto(null);
+                setPreviewUrl(null);
+                setExistingUrl(null);
+                setPhotoErr(null);
+              }}
             />
-            <div className="dp-menuf-metarow">
-              {photoErr ? (
-                <p className="dp-menuf-err">{photoErr}</p>
-              ) : (
-                <span className="dp-menuf-hint">
-                  {photo ? photo.name : existingUrl ? "Foto tersimpan — unggah baru untuk mengganti." : "Belum ada foto."}
-                </span>
-              )}
-              {(photo || existingUrl) && (
-                <span className="dp-menuf-minirow">
-                  <button type="button" className="dp-menuf-minibtn" onClick={() => fileRef.current?.click()}>
-                    Ganti
-                  </button>
-                  <button
-                    type="button"
-                    className="dp-menuf-minibtn"
-                    aria-label="Hapus foto"
-                    onClick={() => {
-                      setPhoto(null);
-                      setPreviewUrl(null);
-                      setExistingUrl(null);
-                    }}
-                  >
-                    <XIcon className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              )}
-            </div>
+            {photoErr ? (
+              <p className="dp-menuf-err" role="alert">{photoErr}</p>
+            ) : (
+              <p className="dp-menuf-hint" style={{ marginTop: 8 }}>
+                {photo ? photo.name : existingUrl ? "Foto tersimpan — unggah baru untuk mengganti." : "Belum ada foto."}
+              </p>
+            )}
             <p className="dp-menuf-hint">
               Foto ini juga dipakai sebagai sumber generate model 3D di tab <b>3D &amp; AR</b>.
             </p>
-            {/* next/image dipakai hanya bila ada URL server; preview blob memakai img di atas. */}
+            {/* next/image dipakai hanya bila ada URL server; preview blob memakai img di dropzone. */}
             {previewSrc && !previewUrl && existingUrl && (
               <Image src={existingUrl} alt="" width={0} height={0} sizes="220px" className="dp-menuf-hidden" aria-hidden />
             )}
@@ -569,26 +533,26 @@ export default function MenuEditorForm({
 
           {/* Sumber model: unggah / generate */}
           <div className="dp-menufx-src">
-            <div className="dp-menufx-srccard">
-              <span className="dp-menufx-srcic"><ImagePlusIcon className="h-4 w-4" aria-hidden /></span>
-              <div>
-                <b>Unggah model</b>
-                <p>GLB/GLTF · maks 60MB</p>
-              </div>
-              <button
-                type="button"
-                className="dp-menufx-srcbtn"
-                disabled={modelBusy || tripo.state === "jalan"}
-                onClick={() => modelFileRef.current?.click()}
-              >
-                {modelBusy ? <Loader2Icon className="h-4 w-4 animate-spin" /> : "Pilih File"}
-              </button>
-              <input
-                ref={modelFileRef}
-                type="file"
+            <div>
+              <p className="dp-menuf-label" style={{ marginTop: 0 }}>Unggah model</p>
+              <DpFileDropzone
+                ariaLabel="Unggah model 3D"
                 accept=".glb,.gltf,model/gltf-binary"
-                className="dp-menuf-file"
-                onChange={e => { const f = e.target.files?.[0] ?? null; if (f) void uploadModel(f); e.target.value = ""; }}
+                variant="file"
+                emptyTitle="Tarik file .glb ke sini"
+                hint="GLB/GLTF · maks 60MB"
+                disabled={tripo.state === "jalan"}
+                busy={modelBusy}
+                busyLabel="Mengunggah…"
+                fileName={modelFile?.name ?? (modelUrl ? fileNameFromUrl(modelUrl) : null)}
+                fileSize={modelFile?.size ?? null}
+                statusLabel={modelUrl && !modelFile ? "Tersimpan" : null}
+                onFile={(f) => void uploadModel(f)}
+                onRemove={() => {
+                  setModelUrl("");
+                  setModelFile(null);
+                  setModelErr(null);
+                }}
               />
             </div>
             <div className="dp-menufx-srccard">
@@ -669,7 +633,7 @@ export default function MenuEditorForm({
                   type="button"
                   className="dp-menuf-minibtn"
                   aria-label="Hapus model"
-                  onClick={() => { setModelUrl(""); setModelInput(true); }}
+                  onClick={() => { setModelUrl(""); setModelFile(null); setModelInput(true); }}
                 >
                   <XIcon className="h-3.5 w-3.5" />
                 </button>

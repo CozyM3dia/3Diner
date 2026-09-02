@@ -1,10 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
-import Image from "next/image";
-import { ImagesIcon, Loader2Icon, Trash2Icon, UploadIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { createMediaUploadUrl, updateCafeSettings } from "@/lib/dashboard-actions";
 import { createClient } from "@/lib/supabase/client";
+import DpFileDropzone from "./DpFileDropzone";
 
 /** Store Settings ala Dream POS `store-settings.html`: satu kartu berisi
  *  pengunggah gambar toko lalu deretan field, ditutup Cancel / Save Changes.
@@ -15,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
  *  disimpan adalah kontrol palsu — jadi hanya kolom nyata yang ditampilkan. */
 
 const BUCKET = "menu-media";
+const MAX_IMAGE = 5 * 1024 * 1024;
 
 type Cafe = {
   nama_cafe: string;
@@ -25,8 +25,7 @@ type Cafe = {
   cover_url: string | null;
 };
 
-/** Kontrol gambar berbentuk template: pratinjau besar + dua tombol bulat.
- *  Unggahan memakai jalur yang sama dengan editor menu — minta signed URL ke
+/** Unggahan memakai jalur yang sama dengan editor menu — minta signed URL ke
  *  server, lalu kirim berkas langsung dari browser ke Supabase Storage. */
 function ImageField({
   name,
@@ -41,13 +40,30 @@ function ImageField({
   hint: string;
   defaultUrl: string | null;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const objectUrl = useRef<string | null>(null);
   const [url, setUrl] = useState(defaultUrl ?? "");
+  const [preview, setPreview] = useState(defaultUrl ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => () => {
+    if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+  }, []);
+
   async function handleFile(file: File) {
     setError("");
+    if (!file.type.startsWith("image/")) {
+      setError("File harus berupa gambar (JPG/PNG/WebP).");
+      return;
+    }
+    if (file.size > MAX_IMAGE) {
+      setError("Ukuran gambar maksimal 5MB.");
+      return;
+    }
+    if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+    const local = URL.createObjectURL(file);
+    objectUrl.current = local;
+    setPreview(local);
     setBusy(true);
     const sig = await createMediaUploadUrl(kind, file.name);
     if (sig.error || !sig.path || !sig.token || !sig.publicUrl) {
@@ -66,59 +82,40 @@ function ImageField({
       setError(upErr.message || "Gagal mengunggah.");
       return;
     }
+    if (objectUrl.current) {
+      URL.revokeObjectURL(objectUrl.current);
+      objectUrl.current = null;
+    }
     setUrl(sig.publicUrl);
+    setPreview(sig.publicUrl);
   }
 
   return (
-    <div className="dp-imgfield">
+    <div className="dp-imgfield dp-imgfield-drop">
       <input type="hidden" name={name} value={url} />
-      <span className="dp-imgfield-preview">
-        {url ? (
-          <Image src={url} alt="" width={120} height={120} />
-        ) : (
-          <ImagesIcon className="h-7 w-7" />
-        )}
-      </span>
-      <div>
-        <span className="dp-label">{label}</span>
-        <p className="dp-hint">{hint}</p>
-        <div className="dp-imgfield-btns">
-          <button
-            type="button"
-            className="dp-round-btn"
-            aria-label={`Unggah ${label}`}
-            disabled={busy}
-            onClick={() => inputRef.current?.click()}
-          >
-            {busy ? (
-              <Loader2Icon className="h-4 w-4 animate-spin" />
-            ) : (
-              <UploadIcon className="h-4 w-4" />
-            )}
-          </button>
-          <button
-            type="button"
-            className="dp-round-btn dp-round-btn-danger"
-            aria-label={`Hapus ${label}`}
-            disabled={!url || busy}
-            onClick={() => setUrl("")}
-          >
-            <Trash2Icon className="h-4 w-4" />
-          </button>
-        </div>
-        {error && <p className="dp-form-error">{error}</p>}
-      </div>
-      <input
-        ref={inputRef}
-        type="file"
+      <span className="dp-label">{label}</span>
+      <p className="dp-hint">{hint}</p>
+      <DpFileDropzone
+        ariaLabel={`Unggah ${label}`}
         accept="image/*"
-        className="hidden"
-        onChange={e => {
-          const f = e.target.files?.[0];
-          if (f) handleFile(f);
-          e.target.value = "";
+        variant="image"
+        emptyTitle="Tarik gambar ke sini"
+        hint={hint}
+        imageSrc={preview || null}
+        statusLabel={busy ? "Mengunggah…" : url ? "Tersimpan" : null}
+        busy={busy}
+        onFile={(f) => void handleFile(f)}
+        onRemove={() => {
+          if (objectUrl.current) {
+            URL.revokeObjectURL(objectUrl.current);
+            objectUrl.current = null;
+          }
+          setUrl("");
+          setPreview("");
+          setError("");
         }}
       />
+      {error && <p className="dp-form-error">{error}</p>}
     </div>
   );
 }
