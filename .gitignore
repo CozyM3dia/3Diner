@@ -33,3 +33,11 @@ Thumbs.db
 .commandcode/
 .superpowers/
 App/tmp/
+# App/Temp menyimpan probe SQL, skrip ekstraksi, dan catatan terhadap database
+# hidup. Repo ini publik: isinya tidak pernah boleh ikut `git add -A`.
+App/Temp/
+
+# ── Dokumen produk (repo publik) ────────────────────────
+# Panduan produk berisi harga, roadmap, dan keputusan bisnis. Simpan di disk,
+# jangan dipublikasikan lewat repo. Hanya root — docs/ tetap bisa di-commit.
+/*.docx
