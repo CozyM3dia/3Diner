@@ -1,0 +1,476 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   PANDUAN — lembar manual konsol owner (/dashboard-v2/panduan)
+
+   Bahasanya melanjutkan "editorial ledger" console.css: tak ada kartu,
+   hierarki dari skala tipe + garis rambut + angka tabular, aksen oranye
+   di bawah 10% permukaan. Yang khas manual (dan tidak ada di lembar
+   analitik) hanya tiga: nomor bab besar di talang kiri, indeks lengket
+   di sisi, dan gaya cetak — panduan adalah satu-satunya layar konsol
+   yang masuk akal dicetak lalu ditempel di dekat kasir.
+
+   Semua warna memakai token --dv3-* milik .dv3-root; file ini tidak
+   mendefinisikan satu pun warna baru supaya mode gelap ikut sendiri.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.pd {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  gap: var(--dv3-s7);
+  align-items: start;
+}
+
+/* ── Indeks lengket ──────────────────────────────────────────────────── */
+
+.pd-index {
+  position: sticky;
+  top: calc(var(--dv3-top-h) + var(--dv3-s4));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: calc(100vh - var(--dv3-top-h) - var(--dv3-s6));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: var(--dv3-s2);
+}
+.pd-index-label {
+  font-size: var(--dv3-t-micro);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--dv3-ink-3);
+  padding: var(--dv3-s4) 0 var(--dv3-s2);
+}
+.pd-index-label:first-child { padding-top: 0; }
+.pd-index-item {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--dv3-s2);
+  padding: 5px var(--dv3-s2) 5px 0;
+  border-radius: var(--dv3-radius-sm);
+  font-size: var(--dv3-t-sm);
+  line-height: 1.25;
+  color: var(--dv3-ink-2);
+  text-align: left;
+  border-left: 2px solid transparent;
+  padding-left: var(--dv3-s2);
+  transition: color 0.12s var(--dv3-ease), border-color 0.12s var(--dv3-ease);
+}
+.pd-index-item:hover { color: var(--dv3-ink); }
+.pd-index-no {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--dv3-t-xs);
+  color: var(--dv3-ink-4);
+}
+.pd-index-on {
+  color: var(--dv3-ink);
+  font-weight: 600;
+  border-left-color: var(--dv3-accent);
+}
+.pd-index-on .pd-index-no { color: var(--dv3-accent-ink); }
+
+/* ── Kepala lembar ───────────────────────────────────────────────────── */
+
+.pd-main { display: flex; flex-direction: column; gap: var(--dv3-s8); min-width: 0; }
+
+.pd-head { display: flex; flex-direction: column; gap: var(--dv3-s3); max-width: 62ch; }
+.pd-title {
+  margin: 0;
+  font-size: clamp(2rem, 1.4rem + 2vw, 2.75rem);
+  line-height: 1.04;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--dv3-ink);
+  text-wrap: balance;
+}
+.pd-lede {
+  margin: 0;
+  font-size: var(--dv3-t-prose);
+  line-height: 1.6;
+  color: var(--dv3-ink-2);
+  text-wrap: pretty;
+}
+
+/* Strip meta: cacah bab, rute tercakup, tanggal tinjauan. Angka tabular
+   supaya tiga kolomnya sejajar seperti kaki laporan. */
+.pd-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dv3-s5);
+  padding-top: var(--dv3-s4);
+  border-top: 1px solid var(--dv3-line-strong);
+  margin-top: var(--dv3-s2);
+}
+.pd-meta-item { display: flex; flex-direction: column; gap: 2px; }
+.pd-meta-val {
+  font-size: var(--dv3-t-lg);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--dv3-ink);
+  font-variant-numeric: tabular-nums;
+}
+.pd-meta-key {
+  font-size: var(--dv3-t-micro);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--dv3-ink-3);
+}
+.pd-head-act { display: flex; flex-wrap: wrap; gap: var(--dv3-s3); padding-top: var(--dv3-s4); }
+
+/* ── Bab ─────────────────────────────────────────────────────────────── */
+
+.pd-grup {
+  display: flex;
+  align-items: baseline;
+  gap: var(--dv3-s3);
+  padding-bottom: var(--dv3-s2);
+  border-bottom: 2px solid var(--dv3-ink);
+  margin-bottom: calc(var(--dv3-s6) * -1 + var(--dv3-s2));
+}
+.pd-grup h2 {
+  margin: 0;
+  font-size: var(--dv3-t-micro);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dv3-ink);
+}
+.pd-grup span { font-size: var(--dv3-t-xs); color: var(--dv3-ink-3); margin-left: auto; }
+
+.pd-bab {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 0 var(--dv3-s5);
+  scroll-margin-top: calc(var(--dv3-top-h) + var(--dv3-s5));
+}
+/* Nomor bab: satu-satunya tipe berukuran angka otoritatif di lembar ini.
+   Ia menandai tempat, bukan besaran, jadi warnanya ink-4 — hadir saat
+   dicari, diam saat teksnya dibaca. */
+.pd-bab-no {
+  grid-row: 1 / span 2;
+  font-size: var(--dv3-t-xl);
+  line-height: 0.9;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  color: var(--dv3-ink-4);
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+}
+.pd-bab-head { display: flex; flex-direction: column; gap: var(--dv3-s2); padding-bottom: var(--dv3-s4); }
+.pd-bab-title {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.14;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  color: var(--dv3-ink);
+}
+.pd-bab-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--dv3-s2); }
+
+.pd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--dv3-radius-sm);
+  border: 1px solid var(--dv3-line);
+  background: var(--dv3-sunken);
+  font-size: var(--dv3-t-xs);
+  color: var(--dv3-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.pd-chip svg { width: 12px; height: 12px; color: var(--dv3-ink-4); }
+a.pd-chip:hover { border-color: var(--dv3-accent-line); color: var(--dv3-accent-ink); }
+a.pd-chip:hover svg { color: var(--dv3-accent-ink); }
+
+.pd-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: var(--dv3-t-xs);
+  font-weight: 600;
+}
+.pd-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pd-status-siap { background: var(--dv3-ok-wash); color: var(--dv3-ok); }
+.pd-status-sebagian { background: var(--dv3-warn-wash); color: var(--dv3-warn); }
+.pd-status-segera { background: var(--dv3-sunken); color: var(--dv3-ink-3); }
+
+/* Pertanyaan yang dijawab layar — kicker konsol, bukan display. */
+.pd-q {
+  margin: 0;
+  font-size: var(--dv3-t-sm);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--dv3-accent-ink);
+  text-wrap: pretty;
+}
+
+.pd-body {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: var(--dv3-s6);
+  padding-top: var(--dv3-s4);
+  border-top: 1px solid var(--dv3-line);
+}
+.pd-col { display: flex; flex-direction: column; gap: var(--dv3-s4); min-width: 0; }
+
+.pd-sub {
+  font-size: var(--dv3-t-micro);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--dv3-ink-3);
+}
+
+/* ── Langkah: kolom nomor + garis penghubung. Garisnya berhenti di
+   langkah terakhir supaya urutan terbaca punya ujung. ── */
+.pd-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.pd-step {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: var(--dv3-s3);
+  padding-bottom: var(--dv3-s4);
+  position: relative;
+}
+.pd-step:last-child { padding-bottom: 0; }
+.pd-step::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 22px;
+  bottom: 4px;
+  width: 1px;
+  background: var(--dv3-line);
+}
+.pd-step:last-child::before { display: none; }
+.pd-step-no {
+  position: relative;
+  z-index: 1;
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--dv3-surface);
+  border: 1px solid var(--dv3-line-strong);
+  font-size: var(--dv3-t-xs);
+  font-weight: 600;
+  color: var(--dv3-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.pd-step-t { font-size: var(--dv3-t-base); font-weight: 600; color: var(--dv3-ink); line-height: 1.35; }
+.pd-step-d {
+  margin: 3px 0 0;
+  font-size: var(--dv3-t-sm);
+  line-height: 1.55;
+  color: var(--dv3-ink-2);
+  text-wrap: pretty;
+}
+.pd-step-d code, .pd-note code, .pd-lede code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 0.9em;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--dv3-sunken);
+  color: var(--dv3-ink);
+}
+
+/* ── Catatan baca: daftar bergaris rambut, marka oranye kecil. ── */
+.pd-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.pd-note {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: var(--dv3-s2);
+  padding: var(--dv3-s3) 0;
+  border-top: 1px solid var(--dv3-line);
+  font-size: var(--dv3-t-sm);
+  line-height: 1.55;
+  color: var(--dv3-ink-2);
+  text-wrap: pretty;
+}
+.pd-note:first-child { border-top: 0; padding-top: 0; }
+.pd-note::before {
+  content: "";
+  width: 8px;
+  height: 1px;
+  background: var(--dv3-accent);
+  margin-top: 0.62em;
+}
+.pd-note b { color: var(--dv3-ink); font-weight: 600; }
+
+/* ── Batas: apa yang layar ini TIDAK lakukan. Blok bernada warn, karena
+   janji palsu adalah cacat produk yang paling mahal di konsol uang. ── */
+.pd-batas {
+  border-left: 2px solid var(--dv3-warn);
+  background: var(--dv3-warn-wash);
+  border-radius: 0 var(--dv3-radius-sm) var(--dv3-radius-sm) 0;
+  padding: var(--dv3-s3) var(--dv3-s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--dv3-s2);
+}
+.pd-batas .pd-sub { color: var(--dv3-warn); }
+.pd-batas ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pd-batas li {
+  font-size: var(--dv3-t-sm);
+  line-height: 1.5;
+  color: var(--dv3-ink-2);
+  text-wrap: pretty;
+  padding-left: 14px;
+  position: relative;
+}
+.pd-batas li::before { content: "—"; position: absolute; left: 0; color: var(--dv3-warn); }
+
+/* ── Penutup lembar ──────────────────────────────────────────────────── */
+.pd-foot {
+  border-top: 2px solid var(--dv3-ink);
+  padding-top: var(--dv3-s4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--dv3-s3);
+}
+.pd-foot p { margin: 0; max-width: 58ch; font-size: var(--dv3-t-sm); line-height: 1.6; color: var(--dv3-ink-2); }
+
+/* ── Tur pemandu (dialog) ────────────────────────────────────────────── */
+
+.pd-tour { display: flex; flex-direction: column; gap: var(--dv3-s4); }
+.pd-tour-art {
+  border: 1px solid var(--dv3-line);
+  border-radius: var(--dv3-radius);
+  background: var(--dv3-sunken);
+  padding: var(--dv3-s4);
+  display: grid;
+  place-items: center;
+  min-height: 132px;
+}
+.pd-tour-art svg { width: 100%; height: auto; max-width: 320px; display: block; }
+.pd-tour-kicker {
+  font-size: var(--dv3-t-xs);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--dv3-accent-ink);
+}
+.pd-tour-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--dv3-ink);
+  line-height: 1.2;
+}
+.pd-tour-desc { font-size: var(--dv3-t-sm); line-height: 1.6; color: var(--dv3-ink-2); text-wrap: pretty; }
+.pd-tour-dots { display: flex; gap: 6px; align-items: center; }
+.pd-tour-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dv3-ink-4); opacity: 0.35; }
+.pd-tour-dot-on { background: var(--dv3-accent); opacity: 1; width: 16px; border-radius: 3px; }
+.pd-tour-foot { display: flex; align-items: center; gap: var(--dv3-s3); }
+.pd-tour-foot .pd-tour-act { margin-left: auto; display: flex; gap: var(--dv3-s2); }
+
+/* Tombol lembar panduan — meminjam bentuk .dv3-btn agar konsisten, tapi
+   didefinisikan lokal supaya lembar ini tidak bergantung pada urutan impor. */
+.pd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--dv3-radius-sm);
+  font-size: var(--dv3-t-base);
+  font-weight: 600;
+  background: var(--dv3-accent-ink);
+  color: oklch(0.999 0.001 258);
+  border: 1px solid transparent;
+}
+.pd-btn:hover { filter: brightness(1.06); }
+.pd-btn svg { width: 15px; height: 15px; }
+.pd-btn-quiet {
+  background: transparent;
+  color: var(--dv3-ink-2);
+  border-color: var(--dv3-line-strong);
+}
+.pd-btn-quiet:hover { background: var(--dv3-sunken); color: var(--dv3-ink); filter: none; }
+html[data-theme="dark"] .pd-btn { color: oklch(0.185 0.018 258); background: var(--dv3-accent); }
+html[data-theme="dark"] .pd-btn-quiet { background: transparent; color: var(--dv3-ink-2); }
+
+
+/* Panel dialog tur. Dialog shadcn diwarnai token Tailwind (--popover,
+   --muted) yang tidak mengikuti html[data-theme="dark"] milik konsol, jadi
+   permukaannya dituntun ke token --dv3-* di sini — kalau tidak, tur muncul
+   putih di kanvas gelap. */
+.pd-tour-panel {
+  background: var(--dv3-surface);
+  color: var(--dv3-ink);
+  box-shadow: var(--dv3-shadow-pop);
+}
+.pd-tour-panel [data-slot="dialog-footer"] {
+  background: var(--dv3-sunken);
+  border-top-color: var(--dv3-line);
+}
+/* Anak LANGSUNG saja: itu tombol X bawaan DialogContent. Tombol footer
+   (Lewati, Tutup, Buka panduan) juga membawa data-slot="dialog-close"
+   karena dibungkus DialogClose asChild — kalau selektornya turunan, warna
+   ink di sini menang atas .pd-btn dan teks putih CTA berubah jadi navy di
+   atas oranye. */
+.pd-tour-panel > [data-slot="dialog-close"] { color: var(--dv3-ink-2); }
+.pd-tour-panel > [data-slot="dialog-close"]:hover { background: var(--dv3-sunken); color: var(--dv3-ink); }
+
+/* ── Responsif ───────────────────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .pd { grid-template-columns: minmax(0, 1fr); gap: var(--dv3-s5); }
+  /* Indeks berubah jadi rel gulir horizontal: di layar sempit kolom kiri
+     memakan lebar yang justru dibutuhkan kalimat. */
+  .pd-index {
+    position: sticky;
+    top: var(--dv3-top-h);
+    z-index: 2;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--dv3-s2);
+    overflow-x: auto;
+    max-height: none;
+    padding: var(--dv3-s2) 0;
+    background: var(--dv3-paper);
+    border-bottom: 1px solid var(--dv3-line);
+  }
+  .pd-index-label { display: none; }
+  .pd-index-item {
+    flex: 0 0 auto;
+    border-left: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding: 4px 2px;
+    white-space: nowrap;
+  }
+  .pd-index-on { border-bottom-color: var(--dv3-accent); }
+  .pd-body { grid-template-columns: minmax(0, 1fr); gap: var(--dv3-s5); }
+}
+
+@media (max-width: 760px) {
+  .pd-bab { grid-template-columns: minmax(0, 1fr); gap: var(--dv3-s2); }
+  .pd-bab-no { grid-row: auto; font-size: var(--dv3-t-lg); }
+  .pd-body { grid-column: 1; }
+  .pd-meta { gap: var(--dv3-s4); }
+}
+
+/* ── Cetak: panduan ditempel di dekat kasir. Indeks, tombol, dan latar
+   dibuang; bab tidak boleh terpotong di tengah. ── */
+@media print {
+  .pd-index, .pd-head-act, .pd-foot .pd-btn { display: none; }
+  .pd { display: block; }
+  .pd-main { gap: 22pt; }
+  .pd-bab { break-inside: avoid; page-break-inside: avoid; margin-bottom: 18pt; }
+  .pd-body { grid-template-columns: minmax(0, 1fr); }
+  .pd-batas { background: none; }
+  .pd-q, .pd-note::before { color: #000; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pd-index-item { transition: none; }
+}

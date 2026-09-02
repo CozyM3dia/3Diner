@@ -20,6 +20,7 @@ import {
   TimerIcon,
   WalletIcon,
 } from "lucide-react";
+import Petunjuk from "@/components/dp/Petunjuk";
 import { updateOrderStatus } from "@/lib/dashboard-actions";
 import { cancelOrder } from "@/lib/kasir-actions";
 import { buildReceiptHtml, printReceipt } from "@/lib/receipt-html";
@@ -226,8 +227,17 @@ export default function OrdersBoard({ orders, cafe }: { orders: BoardOrder[]; ca
               {t.label} ({count(t.key)})
             </button>
           ))}
+          <Petunjuk judul="Saringan pesanan" bab="pesanan">
+            Papan ini membaca jendela 30 hari, bukan hari ini saja, jadi pesanan lama yang masih terbuka tetap
+            terlihat. Saringan di sini berlaku untuk kedua tampilan sekaligus.
+          </Petunjuk>
         </div>
         <div className="dp-tools">
+          <Petunjuk judul="Kartu atau kanban" bab="pesanan" align="end">
+            Ikon kiri menyusun pesanan sebagai kartu, ikon kanan sebagai papan empat kolom per status. Tombol di
+            tiap kartu memajukan tahap, dan Batalkan meminta alasan dari daftar tetap supaya angka pembatalan bisa
+            dibaca nanti.
+          </Petunjuk>
           <button
             className="dp-tool"
             aria-pressed={view === "grid"}

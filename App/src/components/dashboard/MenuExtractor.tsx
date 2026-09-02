@@ -47,11 +47,8 @@ export default function MenuExtractor() {
   const [insertedCount, setInsertedCount] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [mounted, setMounted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => setMounted(true), []);
 
   // Lock body scroll while the overlay is open.
   useEffect(() => {
@@ -173,7 +170,7 @@ export default function MenuExtractor() {
         <Sparkles size={16} style={{ color: C.orange }} /> Ekstrak Menu via AI
       </button>
 
-      {!open || !mounted ? null : createPortal(
+      {!open || typeof document === "undefined" ? null : createPortal(
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 me-overlay"
           style={{ background: "rgba(5,10,20,0.72)", backdropFilter: "blur(6px)" }}

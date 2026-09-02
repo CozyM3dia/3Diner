@@ -10,7 +10,7 @@ interface DetailHeaderProps {
   slug: string;
 }
 
-export default function DetailHeader({ cafeName, slug }: DetailHeaderProps) {
+export default function DetailHeader({ slug }: DetailHeaderProps) {
   const router = useRouter();
   const { count } = useCart();
 

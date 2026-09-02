@@ -145,12 +145,9 @@ export default function ExportReport({ start, end }: { start?: string; end?: str
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState<"csv" | "pdf" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
   const [pos, setPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
   const wrapRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => setMounted(true), []);
 
   // Anchor the portal menu just below the button, aligned to its right edge.
   const place = useCallback(() => {
@@ -206,7 +203,7 @@ export default function ExportReport({ start, end }: { start?: string; end?: str
         <ChevronDown size={14} style={{ color: "var(--dash-muted)", transform: open ? "rotate(180deg)" : "none", transition: "transform 160ms ease-out" }} />
       </button>
 
-      {open && mounted && createPortal(
+      {open && typeof document !== "undefined" && createPortal(
         <div
           ref={menuRef}
           className="fixed w-60 rounded-2xl p-1.5 z-[100]"

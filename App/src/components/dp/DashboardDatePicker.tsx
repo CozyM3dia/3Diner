@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { CalendarDaysIcon, XIcon } from "lucide-react";
 import { type DateRange } from "react-day-picker";
 import { id as localeID } from "react-day-picker/locale";
@@ -33,6 +33,10 @@ export default function DashboardDatePicker({
   activePreset: PresetKey;
 }) {
   const router = useRouter();
+  // Rentang ditulis ke rute yang SEDANG dibuka (Ringkasan, Penjualan, atau
+  // harness) — bukan ke satu rute tetap, supaya berpindah lembar tidak
+  // sekaligus melempar pengguna kembali ke Ringkasan.
+  const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const [selFrom, setSelFrom] = React.useState(from);
   const [selTo, setSelTo] = React.useState(to);
@@ -54,7 +58,7 @@ export default function DashboardDatePicker({
 
   function apply(nextFrom: string, nextTo: string, key: PresetKey) {
     startTransition(() => {
-      router.push(`/dashboard-v2?from=${nextFrom}&to=${nextTo}`, { scroll: false });
+      router.push(`${pathname}?from=${nextFrom}&to=${nextTo}` as never, { scroll: false });
     });
     setOpen(false);
     setClicking(false);

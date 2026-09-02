@@ -1,27 +1,33 @@
 import { redirect } from "next/navigation";
 import { getStaffContext, canOpenOwnerConsole } from "@/lib/staff-context";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { canonicalOrigin, menuUrlFor } from "@/lib/site-url";
 import StoreSettingsForm from "@/components/dp/StoreSettingsForm";
+import QrSmartMenuDp from "@/components/dp/QrSmartMenuDp";
 
-export const metadata = { title: "Store Settings · 3Diner" };
+export const metadata = { title: "Store Settings & QR Menu · 3Diner" };
 export const dynamic = "force-dynamic";
 
-/** Store Settings — recreation `store-settings.html` Dream POS.
- *  Menulis lewat `updateCafeSettings` yang sudah ada (HANDOFF §4.5). */
+/** Pengaturan Toko & QR Smart Menu — digabung dalam satu section konsol owner. */
 export default async function Page() {
   const ctx = await getStaffContext();
   if (!canOpenOwnerConsole(ctx.role)) redirect("/login");
 
+  const cafeId = ctx.cafe_id ?? "";
   const { data } = await supabaseAdmin
     .from("Cafes")
-    .select("nama_cafe,alamat_cafe,greeting,google_maps_review_url,logo_url,cover_url")
-    .eq("id_cafe", ctx.cafe_id ?? "")
+    .select("nama_cafe,alamat_cafe,greeting,google_maps_review_url,logo_url,cover_url,slug_url")
+    .eq("id_cafe", cafeId)
     .single();
+
+  const slug = (data?.slug_url as string | null) ?? null;
+  const cafeName = data?.nama_cafe ?? "Kafe";
+  const menuUrl = slug ? menuUrlFor(canonicalOrigin(), slug) : null;
 
   return (
     <>
       <div className="dp-page-head">
-        <h1>Store Settings</h1>
+        <h1>Pengaturan Toko &amp; QR Smart Menu</h1>
       </div>
       <StoreSettingsForm
         cafe={{
@@ -33,6 +39,7 @@ export default async function Page() {
           cover_url: data?.cover_url ?? null,
         }}
       />
+      <QrSmartMenuDp menuUrl={menuUrl} cafeName={cafeName} slug={slug} />
     </>
   );
 }

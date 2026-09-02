@@ -2,10 +2,10 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { cartLineKey, type CartItem, type Menu, type SelectedOption } from "@/types";
@@ -32,6 +32,123 @@ function storageKey(slug: string) {
   return `3diner.cart.${slug}`;
 }
 
+interface StoredCart {
+  items: CartItem[];
+  table: string;
+  notes: string;
+}
+
+interface PersistedCart {
+  items?: CartItem[];
+  table?: string;
+  notes?: string;
+}
+
+interface CartCacheEntry {
+  raw: string | null;
+  snapshot: StoredCart;
+  memoryOnly?: boolean;
+}
+
+const EMPTY_CART: StoredCart = { items: [], table: "", notes: "" };
+const cartCache = new Map<string, CartCacheEntry>();
+const cartListeners = new Map<string, Set<() => void>>();
+
+function readStorage(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function parseStoredCart(raw: string | null): StoredCart {
+  if (!raw) return EMPTY_CART;
+
+  try {
+    const parsed = JSON.parse(raw) as PersistedCart;
+    const items = Array.isArray(parsed.items)
+      ? parsed.items.map((item) => ({
+          ...item,
+          options: item.options ?? [],
+          // Keranjang yang disimpan sebelum varian ada tidak punya line_key.
+          line_key:
+            item.line_key ??
+            cartLineKey(item.id_menu, (item.options ?? []).map((o) => o.id_option_value)),
+        }))
+      : [];
+
+    return {
+      items,
+      table: parsed.table ?? "",
+      notes: parsed.notes ?? "",
+    };
+  } catch {
+    return EMPTY_CART;
+  }
+}
+
+function getCartSnapshot(slug: string): StoredCart {
+  const raw = readStorage(storageKey(slug));
+  const cached = cartCache.get(slug);
+  if (cached && (cached.memoryOnly || cached.raw === raw)) return cached.snapshot;
+
+  const snapshot = parseStoredCart(raw);
+  cartCache.set(slug, { raw, snapshot });
+  return snapshot;
+}
+
+function notifyCartListeners(slug: string) {
+  const listeners = cartListeners.get(slug);
+  if (!listeners) return;
+  for (const listener of listeners) listener();
+}
+
+function subscribeToCart(slug: string, listener: () => void) {
+  let listeners = cartListeners.get(slug);
+  if (!listeners) {
+    listeners = new Set();
+    cartListeners.set(slug, listeners);
+  }
+  listeners.add(listener);
+
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key !== storageKey(slug)) return;
+    cartCache.delete(slug);
+    notifyCartListeners(slug);
+  };
+  window.addEventListener("storage", handleStorage);
+
+  return () => {
+    window.removeEventListener("storage", handleStorage);
+    listeners?.delete(listener);
+    if (listeners?.size === 0) cartListeners.delete(slug);
+  };
+}
+
+function updateCart(slug: string, update: (current: StoredCart) => StoredCart) {
+  const current = getCartSnapshot(slug);
+  const next = update(current);
+  const raw = JSON.stringify(next);
+  let memoryOnly = false;
+
+  try {
+    window.localStorage.setItem(storageKey(slug), raw);
+  } catch {
+    // Keep the current tab responsive even when storage is unavailable/full.
+    memoryOnly = true;
+  }
+
+  cartCache.set(slug, {
+    raw: memoryOnly ? readStorage(storageKey(slug)) : raw,
+    snapshot: next,
+    memoryOnly,
+  });
+  notifyCartListeners(slug);
+}
+
+const getServerCartSnapshot = () => EMPTY_CART;
+
 export function CartProvider({
   slug,
   children,
@@ -39,45 +156,13 @@ export function CartProvider({
   slug: string;
   children: ReactNode;
 }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [table, setTableState] = useState("");
-  const [notes, setNotesState] = useState("");
-  const [hydrated, setHydrated] = useState(false);
-
-  // Load persisted cart on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey(slug));
-      if (raw) {
-        const parsed = JSON.parse(raw) as { items?: CartItem[]; table?: string; notes?: string };
-        // Keranjang yang disimpan sebelum varian ada tidak punya line_key.
-        setItems(
-          (parsed.items ?? []).map((item) => ({
-            ...item,
-            options: item.options ?? [],
-            line_key:
-              item.line_key ??
-              cartLineKey(item.id_menu, (item.options ?? []).map((o) => o.id_option_value)),
-          }))
-        );
-        setTableState(parsed.table ?? "");
-        setNotesState(parsed.notes ?? "");
-      }
-    } catch {
-      /* ignore corrupt storage */
-    }
-    setHydrated(true);
-  }, [slug]);
-
-  // Persist on change (after hydration to avoid clobbering)
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      localStorage.setItem(storageKey(slug), JSON.stringify({ items, table, notes }));
-    } catch {
-      /* storage full / unavailable */
-    }
-  }, [items, table, notes, slug, hydrated]);
+  const subscribe = useCallback(
+    (listener: () => void) => subscribeToCart(slug, listener),
+    [slug]
+  );
+  const getSnapshot = useCallback(() => getCartSnapshot(slug), [slug]);
+  const cart = useSyncExternalStore(subscribe, getSnapshot, getServerCartSnapshot);
+  const { items, table, notes } = cart;
 
   function add(menu: Menu, qty = 1, options: SelectedOption[] = []) {
     if (qty <= 0) return;
@@ -90,50 +175,59 @@ export function CartProvider({
     const unitPrice =
       menu.harga_menu + options.reduce((sum, o) => sum + o.price_delta, 0);
 
-    setItems((prev) => {
-      const existing = prev.find((i) => i.line_key === lineKey);
+    updateCart(slug, (current) => {
+      const existing = current.items.find((i) => i.line_key === lineKey);
       if (existing) {
-        return prev.map((i) => (i.line_key === lineKey ? { ...i, qty: i.qty + qty } : i));
+        return {
+          ...current,
+          items: current.items.map((i) => (i.line_key === lineKey ? { ...i, qty: i.qty + qty } : i)),
+        };
       }
-      return [
-        ...prev,
-        {
-          line_key: lineKey,
-          id_menu: menu.id_menu,
-          nama_menu: menu.nama_menu,
-          harga_menu: unitPrice,
-          image_url: menu.image_url ?? null,
-          qty,
-          options,
-        },
-      ];
+      return {
+        ...current,
+        items: [
+          ...current.items,
+          {
+            line_key: lineKey,
+            id_menu: menu.id_menu,
+            nama_menu: menu.nama_menu,
+            harga_menu: unitPrice,
+            image_url: menu.image_url ?? null,
+            qty,
+            options,
+          },
+        ],
+      };
     });
   }
 
   function setQty(lineKey: string, qty: number) {
-    setItems((prev) =>
-      qty <= 0
-        ? prev.filter((i) => i.line_key !== lineKey)
-        : prev.map((i) => (i.line_key === lineKey ? { ...i, qty } : i))
-    );
+    updateCart(slug, (current) => ({
+      ...current,
+      items:
+        qty <= 0
+          ? current.items.filter((i) => i.line_key !== lineKey)
+          : current.items.map((i) => (i.line_key === lineKey ? { ...i, qty } : i)),
+    }));
   }
 
   function remove(lineKey: string) {
-    setItems((prev) => prev.filter((i) => i.line_key !== lineKey));
+    updateCart(slug, (current) => ({
+      ...current,
+      items: current.items.filter((i) => i.line_key !== lineKey),
+    }));
   }
 
   function setTable(t: string) {
-    setTableState(t);
+    updateCart(slug, (current) => ({ ...current, table: t }));
   }
 
   function setNotes(n: string) {
-    setNotesState(n);
+    updateCart(slug, (current) => ({ ...current, notes: n }));
   }
 
   function clear() {
-    setItems([]);
-    setTableState("");
-    setNotesState("");
+    updateCart(slug, () => ({ ...EMPTY_CART, items: [] }));
   }
 
   const { count, total } = useMemo(() => {

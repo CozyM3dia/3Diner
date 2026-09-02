@@ -1,29 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
+
+const subscribe = (onStoreChange: () => void) => {
+  window.addEventListener("online", onStoreChange);
+  window.addEventListener("offline", onStoreChange);
+
+  return () => {
+    window.removeEventListener("online", onStoreChange);
+    window.removeEventListener("offline", onStoreChange);
+  };
+};
+
+const getSnapshot = () => navigator.onLine;
+const getServerSnapshot = () => true;
 
 export function useOnlineStatus(): boolean {
-  // Default true: SSR-safe, avoids hydration flash
-  const [isOnline, setIsOnline] = useState(true);
-
-  useEffect(() => {
-    setIsOnline(navigator.onLine);
-
-    function handleOnline() {
-      setIsOnline(true);
-    }
-    function handleOffline() {
-      setIsOnline(false);
-    }
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  return isOnline;
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

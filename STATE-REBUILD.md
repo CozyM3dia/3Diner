@@ -2,7 +2,7 @@
 
 > **Apa ini:** catatan keadaan yang hidup, bukan surat serah-terima sekali pakai.
 > Siapa pun (Claude, Cursor, kamu sendiri bulan depan) membaca ini dulu sebelum menulis kode.
-> **Terakhir diperbarui:** 29 Agustus 2026 · **Baca penuh. Jangan revert keputusan di §4.**
+> **Terakhir diperbarui:** 2 September 2026 · **Baca penuh. Jangan revert keputusan di §4.**
 
 **Ringkas:** kerangka + 9 halaman + **lapisan DNA 3Diner (§6.7)** selesai dan terverifikasi di browser.
 Yang tersisa hanya dua modul tanpa sumber data (Reservation, Addons — ⏸ sengaja, bukan utang).
@@ -40,16 +40,19 @@ ecf45b9 fix(dp): skema Orders sesungguhnya (tanpa customer_name) + rentang 30 ha
 
 Baseline kualitas yang HARUS tetap hijau tiap commit:
 `npx tsc --noEmit` · `npx eslint src/app/dashboard-v2 src/components/dp --max-warnings 0` ·
-`npm run build` · `npm run test:ci` = **53 file / 461 test pass**.
+`npm run build` · `npm run test:ci` = **61 file / 566 test pass** (2 Sep 2026).
 
 ## 4. Keputusan yang DIKUNCI (jangan dibatalkan tanpa alasan tertulis)
 
-1. **UI 1:1 Dream POS dulu, DNA 3Diner kemudian.** Jangan menambah oranye/navy/Poppins ke halaman baru.
+1. ~~**UI 1:1 Dream POS dulu, DNA 3Diner kemudian.**~~ **DICABUT 2 Sep 2026** atas permintaan pemilik produk. Shell + halaman Dashboard dibangun ulang dengan arah **"editorial ledger"** (kontrak lengkap di `DESIGN.md`), memakai lapisan token `--dv3-*` di `src/app/console.css`. Kesetiaan pada template bukan lagi tujuan; template tetap dirujuk untuk kepadatan modul dan kehadiran foto hidangan, tapi **donat, gauge, dan delta hardcoded-nya sengaja tidak ditiru** — alasannya tercatat di `DESIGN.md §Aturan penyajian data`. 11 halaman lain belum diredesain isinya, namun ikut berganti palet lewat blok alias `--dp-*` → `--dv3-*`.
 2. **Konsol owner = RIWAYAT (read-only).** Antrean kerja & mutasi status hanya di `/kasir`. Dashboard-v2 tidak punya tombol ubah status (gate: grep `ubah|konfirm|batalkan|proses` di komponen v2 harus nihil).
 3. **Server components + `supabaseAdmin` untuk semua query read.** `src/lib/supabase-admin.ts` hanya boleh diimpor dari server component / server action. Interaktivitas klien via komponen `"use client"` kecil yang menerima data sebagai props (contoh: `OrdersBoard.tsx`).
 4. **Anti kontrol palsu:** setiap tombol/input yang tampil HARUS berfungsi. Kalau modulnya belum ada → item nav diberi `soon: true` (disabled beralasan), bukan link mati, dan BUKAN search bar dekoratif. (Search topbar dekoratif sudah dihapus — jangan dihidupkan kembali.)
 5. **Lib write-action lama DIPERTAHANKAN** untuk dipakai ulang: `src/lib/menu-actions-v2.ts` (`setMenuLive`, `setManyMenusLive`), `src/lib/stok-actions.ts` (`adjustStock`, `markPurchased`), `src/lib/tax-actions.ts` (`saveTax`), `src/lib/menu-editor-actions.ts`. Mereka memakai `revalidatePath("/dashboard-v2/...")` — masih valid.
 6. Route tetap `/dashboard-v2` (bukan rename). Legacy `/dashboard` dan `/kasir` TIDAK disentuh.
+7. **Angka di layar wajib punya asal-usul.** Tidak ada persentase, delta, atau tren yang ditulis tangan di komponen. Delta lahir dari periode pembanding sungguhan di `src/lib/dashboard-metrics.ts`; kalau pembandingnya nol, tulis "Tanpa pembanding" — jangan mengarang "+100%". Rasio tanpa penyebut ditulis em dash, bukan "0%". Dikunci oleh `tests/dashboard-metrics.test.ts`.
+8. **Tampilan dipisah dari pengambilan data.** `DashboardView` (Ringkasan) dan `PenjualanView` murni presentasional; `page.tsx` hanya mengambil data lewat `src/lib/dashboard-query.ts` (`resolveRentang`, `muatPesanan`, `muatPeristiwa`) yang dipakai kedua halaman — jadi rentang dan pembanding tak bisa diam-diam berbeda. Pemisahan ini yang membuat `/dev-preview` bisa memainkan keadaan langka (kafe baru, rentang tanpa penjualan lunas, tumpukan tagihan menua) tanpa menyentuh database. Rute itu **dev-only** — `notFound()` di luar `NODE_ENV=development`, diverifikasi 404 pada `next start`.
+9. **Analitik = dua lembar, satu rentang** (2 Sep 2026). `/dashboard-v2` (Ringkasan: operasional + tamu) dan `/dashboard-v2/penjualan` (uang). Kontrak visual dan empat bentuk grafik yang diizinkan tercatat di `DESIGN.md §Dua lembar analitik`. `DashboardDatePicker` menulis `?from&to` ke `usePathname()` — bukan rute tetap — supaya berpindah lembar tidak melempar balik ke Ringkasan. Semua kontrol berfungsi: tombol **Unduh CSV** di Penjualan merakit berkas sungguhan di klien (`buatCsv`, dikunci test).
 
 ## 5. Kontrak data — SKEMA NYATA (bukan tebakan!)
 
@@ -89,7 +92,8 @@ bisa diambil dengan `re.findall(r'href="([a-z0-9-]+\.html)"', html)` dari halama
 
 | § | Halaman | Route | Status |
 |---|---|---|---|
-| — | Shell + Dashboard | `/dashboard-v2` | ✅ |
+| — | Shell + Ringkasan (analitik operasional) | `/dashboard-v2` | ✅ rebuild 2 Sep 2026 — hero + sparkline kumulatif, matriks Jam ramai, Corong tamu, Paling dilirik |
+| — | Penjualan (analitik uang) | `/dashboard-v2/penjualan` | ✅ baru 2 Sep 2026 — sub-ledger, batang harian, Laju periode, metode bayar, status, transaksi + Unduh CSV |
 | — | POS (full) | `/dashboard-v2/pos` | ✅ katalog+keranjang+varian+commit+tunai/QRIS+struk; modal Item Details (tambah item ke order aktif); panel bawah CTA+6 tombol |
 | — | Orders | `/dashboard-v2/pesanan` | ✅ |
 | 6.1 | Items | `/dashboard-v2/items` | ✅ |
@@ -168,7 +172,8 @@ App/src/
 │  ├─ dp.css                        ← SEMUA style dp (token §8). Halaman baru menambah .dp-* DI SINI.
 │  └─ dashboard-v2/
 │     ├─ layout.tsx                 ← auth gate (canOpenOwnerConsole) + <DpShell>
-│     ├─ page.tsx                   ← Dashboard: 4 KPI, line chart SVG, Top Selling, donut, Active Orders
+│     ├─ page.tsx                   ← Ringkasan → <DashboardView> (data: lib/dashboard-query.ts + lib/dashboard-metrics.ts)
+│     ├─ penjualan/page.tsx         ← Penjualan → <PenjualanView>
 │     ├─ pesanan/page.tsx           → <OrdersBoard>
 │     ├─ items/page.tsx             → <ItemsGrid>          (menerima ?q= dari Categories)
 │     ├─ kategori/page.tsx          → <CategoriesTable>
@@ -184,6 +189,9 @@ App/src/
 │  ├─ dp/ (Shell, OrdersBoard, ItemsGrid, CategoriesTable, KitchenBoard,
 │  │        StoreSettingsForm, TaxSettingsForm, QrSmartMenuDp, AddonsTable,
 │  │        StaffManager, PermissionsMatrix)
+│  │   analitik: AnalyticsHeader, DashboardView, PenjualanView, ledger.tsx (DeltaTag/Kosong/Angka),
+│  │             RevenueChart, CumulativeChart, Sparkline, HeatmapJam, MixBar, Funnel,
+│  │             RankPanel, TransaksiTable (+buatCsv), GagalMuat, DashboardDatePicker
 │  └─ pos/PosBoard.tsx              ← POS lengkap (katalog, keranjang, opsi, bayar)
 ```
 

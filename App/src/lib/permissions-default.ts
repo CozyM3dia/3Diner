@@ -1,4 +1,4 @@
-import type { StaffRole } from "@/types";
+import { STAFF_ROLES, type StaffRole } from "@/types";
 
 /** Peta wewenang BAWAAN KODE per peran. Modul netral tanpa dependensi
  *  runtime (hanya tipe) supaya bisa diimpor authorization.ts maupun
@@ -28,7 +28,11 @@ export const PERMISSIONS: Record<StaffPermission, StaffRole[]> = {
  *  dipakai role-permissions.ts untuk menyusun matriks efektif. */
 export function permissionDefaultCell(permission: StaffPermission): Record<StaffRole, boolean> {
   const out = {} as Record<StaffRole, boolean>;
-  for (const role of Object.keys(PERMISSIONS[permission]) as StaffRole[]) {
+  // STAFF_ROLES, bukan Object.keys(PERMISSIONS[p]): PERMISSIONS[p] adalah
+  // array peran yang diizinkan, jadi keys-nya "0" dan "1". Sel owner/manager
+  // jadi undefined, requireStaffPermission("manage_menu") menolak owner, dan
+  // drawer Edit Menu menampilkan "Sesi tidak berlaku" padahal sesinya hidup.
+  for (const role of STAFF_ROLES) {
     out[role] = PERMISSIONS[permission].includes(role);
   }
   return out;

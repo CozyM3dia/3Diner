@@ -1,30 +1,18 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { X, Loader2, Scan, AlertTriangle, RotateCcw } from "lucide-react";
 import { fitCameraToModel } from "@/lib/fit-camera";
-import GlbViewer from "./GlbViewer";
-// model-viewer v3.4.0 — same version as tgo.4d-menu.com
-const MV_CDN = "https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js";
-const ModelViewerEl = "model-viewer" as any;
-
-async function loadModelViewerCDN(): Promise<void> {
-  if (typeof customElements === "undefined") return;
-  if (customElements.get("model-viewer")) return;
-  const s = document.createElement("script");
-  s.type = "module";
-  s.src = MV_CDN;
-  document.head.appendChild(s);
-  await customElements.whenDefined("model-viewer");
-}
+import type { Group, Material } from "three";
+import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
+import type { Viewer } from "@mkkellogg/gaussian-splats-3d";
 
 interface ARSessionProps {
   url: string;
   usdzUrl?: string;
   menuName: string;
   onClose: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  preloadedGltf?: any;
+  preloadedGltf?: GLTF;
   /** Admin-set default scale; pinch/slider multiplies on top of this base. */
   modelScale?: number;
 }
@@ -38,45 +26,25 @@ export default function ARSession({ url, usdzUrl, menuName, onClose, preloadedGl
   return isGlb ? (
     <GlbAR url={url} usdzUrl={usdzUrl} menuName={menuName} onClose={onClose} preloadedGltf={preloadedGltf} modelScale={modelScale} />
   ) : (
-    <PlyAR url={url} menuName={menuName} onClose={onClose} />
+    <PlyAR url={url} onClose={onClose} />
   );
 }
 
-function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, modelScale = 1.0 }: ARSessionProps) {
+function GlbAR({ url, usdzUrl, onClose, preloadedGltf, modelScale = 1.0 }: ARSessionProps) {
   const [state, setState] = useState<GlbState>("loading");
-  const [arStarted, setArStarted] = useState(false);
   const [modelPlaced, setModelPlaced] = useState(false);     // provisional model is visible
   const [modelAnchored, setModelAnchored] = useState(false); // settled onto a real surface
   const [searchingSurface, setSearchingSurface] = useState(false); // show "move phone" hint
-  const [showRotateHint, setShowRotateHint] = useState(false);
+  const [rotateHintDismissed, setRotateHintDismissed] = useState(false);
   const sessionEndRef = useRef<(() => void) | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const canvasSlotRef = useRef<HTMLDivElement>(null);
-  const groupRef = useRef<any>(null);
+  const groupRef = useRef<Group | null>(null);
   const userScaleRef = useRef(1);
   const rotateHintElRef = useRef<HTMLDivElement>(null);
-  const hideRotateHintRef = useRef<() => void>(() => {});
+  const showRotateHint = modelAnchored && !rotateHintDismissed;
 
-  // Rotation hint — show under the ring once the model settles on a surface, auto-dismiss after 5s
-  useEffect(() => {
-    hideRotateHintRef.current = () => setShowRotateHint(false);
-  }, []);
-  useEffect(() => {
-    if (modelAnchored) {
-      setShowRotateHint(true);
-      const t = setTimeout(() => setShowRotateHint(false), 5000);
-      return () => clearTimeout(t);
-    }
-    setShowRotateHint(false);
-  }, [modelAnchored]);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    startAR();
-    return () => { sessionEndRef.current?.(); };
-  }, []);
-
-  async function startAR() {
+  const startAR = useCallback(async () => {
     // iOS: USDZ QuickLook — trigger and return immediately
     if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
       if (usdzUrl) {
@@ -101,8 +69,10 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
     try {
       const THREE = await import("three");
 
-      let gltf: any = preloadedGltf;
-      if (!gltf) {
+      let gltf: GLTF;
+      if (preloadedGltf) {
+        gltf = preloadedGltf;
+      } else {
         const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
         const { DRACOLoader } = await import("three/examples/jsm/loaders/DRACOLoader.js");
         const { MeshoptDecoder } = await import("three/examples/jsm/libs/meshopt_decoder.module.js");
@@ -111,12 +81,12 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
         draco.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
         loader.setDRACOLoader(draco);
         loader.setMeshoptDecoder(MeshoptDecoder); // Tripo compress:"geometry" emits EXT_meshopt_compression
-        gltf = await new Promise<any>((res, rej) =>
+        gltf = await new Promise<GLTF>((res, rej) =>
           loader.load(url, res, undefined, rej)
         );
       }
 
-      const model = (gltf.scene as any).clone(true);
+      const model = gltf.scene.clone(true);
       model.updateMatrixWorld(true);
 
       // Normalize: scale to ~0.35m, base at y=0
@@ -137,28 +107,28 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
 
       // Collect the model's materials so we can fade it while it's still floating
       // (provisional ~50%) and pop to full opacity once it settles on the surface.
-      const modelMats: any[] = [];
-      model.traverse((o: any) => {
-        if (!o.isMesh) return;
+      const modelMats: Material[] = [];
+      model.traverse((o) => {
+        if (!(o instanceof THREE.Mesh)) return;
         const mats = Array.isArray(o.material) ? o.material : [o.material];
-        mats.forEach((m: any) => {
-          if (m && !modelMats.includes(m)) {
-            m.userData._origTransparent = m.transparent;
-            m.userData._origOpacity = m.opacity ?? 1;
-            modelMats.push(m);
+        mats.forEach((material) => {
+          if (!modelMats.includes(material)) {
+            material.userData._origTransparent = material.transparent;
+            material.userData._origOpacity = material.opacity;
+            modelMats.push(material);
           }
         });
       });
       const setModelOpacity = (factor: number) => {
-        modelMats.forEach((m) => {
+        modelMats.forEach((material) => {
           if (factor < 1) {
-            m.transparent = true;
-            m.opacity = (m.userData._origOpacity ?? 1) * factor;
+            material.transparent = true;
+            material.opacity = (material.userData._origOpacity as number | undefined ?? 1) * factor;
           } else {
-            m.transparent = m.userData._origTransparent ?? false;
-            m.opacity = m.userData._origOpacity ?? 1;
+            material.transparent = material.userData._origTransparent as boolean | undefined ?? false;
+            material.opacity = material.userData._origOpacity as number | undefined ?? 1;
           }
-          m.needsUpdate = true;
+          material.needsUpdate = true;
         });
       };
 
@@ -203,49 +173,53 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       // Pre-warm shaders + textures before XR session opens
       group.visible = true;
       renderer.compile(scene, camera);
-      scene.traverse((obj: any) => {
-        if (!obj.isMesh) return;
-        const mats: any[] = Array.isArray(obj.material) ? obj.material : [obj.material];
+      scene.traverse((obj) => {
+        if (!(obj instanceof THREE.Mesh)) return;
+        const mats: Material[] = Array.isArray(obj.material) ? obj.material : [obj.material];
         mats.forEach((mat) => {
-          Object.values(mat).forEach((val: any) => {
-            if (val?.isTexture) renderer.initTexture(val);
+          Object.values(mat).forEach((value) => {
+            if (value instanceof THREE.Texture) renderer.initTexture(value);
           });
         });
       });
       group.visible = false;
 
-      const session = await (navigator.xr as any).requestSession("immersive-ar", {
+      const xr = navigator.xr;
+      if (!xr) {
+        setState("unsupported");
+        return;
+      }
+      const session = await xr.requestSession("immersive-ar", {
         optionalFeatures: ["hit-test", "dom-overlay"],
-        domOverlay: { root: overlayRef.current },
+        domOverlay: { root: overlayRef.current! },
       });
       await renderer.xr.setSession(session);
 
       // Cap XR frame rate at 30fps — halves GPU work and prevents thermal throttle.
       // This is how model-viewer avoids lag; our raw Three.js loop runs at 60fps by default.
       try {
-        if (typeof (session as any).updateTargetFrameRate === "function") {
-          await (session as any).updateTargetFrameRate(30);
-        }
+        await session.updateTargetFrameRate?.(30);
       } catch { /* Chrome <120 or device doesn't support rate control — stays at 60fps */ }
 
       setState("ar");
-      setArStarted(true);
 
       // Hit-test source from viewer (camera forward ray)
-      let hitTestSource: any = null;
+      let hitTestSource: XRHitTestSource | null = null;
       try {
-        const viewerSpace = await (session as any).requestReferenceSpace("viewer");
-        hitTestSource = await (session as any).requestHitTestSource({ space: viewerSpace });
+        const viewerSpace = await session.requestReferenceSpace("viewer");
+        const requestedHitTestSource = session.requestHitTestSource?.({ space: viewerSpace });
+        if (requestedHitTestSource) hitTestSource = await requestedHitTestSource;
       } catch { /* fallback: fixed placement */ }
 
       // Transient-input hit test — casts a ray from the FINGER touch point each frame. Lets a
       // dragged model fall onto whatever real surface is under the finger (table edge → floor).
-      let transientHitSource: any = null;
+      let transientHitSource: XRTransientInputHitTestSource | null = null;
       try {
-        transientHitSource = await (session as any).requestHitTestSourceForTransientInput({
+        const requestedTransientHitSource = session.requestHitTestSourceForTransientInput?.({
           profile: "generic-touchscreen",
-          offsetRay: new (window as any).XRRay(),
+          offsetRay: new XRRay(),
         });
+        if (requestedTransientHitSource) transientHitSource = await requestedTransientHitSource;
       } catch { /* not supported — drag falls back to fixed-height plane */ }
 
       const hitPos = new THREE.Vector3();
@@ -289,7 +263,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       // Project the current finger screen pos onto the drag plane → world point. Returns true on hit.
       const fingerToPlane = () => {
         const xrCam = renderer.xr.getCamera();
-        const cam = (xrCam as any).cameras?.length ? (xrCam as any).cameras[0] : xrCam;
+        const cam = xrCam.cameras.length > 0 ? xrCam.cameras[0] : xrCam;
         // Keep the inverse projection in sync — WebXR sub-cameras don't always update it.
         cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert();
         ndc.x = (dragTouchX / window.innerWidth) * 2 - 1;
@@ -378,7 +352,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
           if (isRotatingRing && group.visible) {
             group.rotation.y += (t.clientX - rotateRingStartX) * 0.015;
             rotateRingStartX = t.clientX;
-            hideRotateHintRef.current(); // dismiss hint the moment user rotates
+            setRotateHintDismissed(true); // dismiss hint the moment user rotates
           }
           // Activate drag only after real finger movement (>12px threshold)
           if (isDraggingPending) {
@@ -416,22 +390,24 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
       overlay?.addEventListener("touchmove", onTouchMove, { passive: true });
       overlay?.addEventListener("touchend", onTouchEnd);
 
-      renderer.setAnimationLoop((_: number, frame: any) => {
+      renderer.setAnimationLoop((_time: number, frame?: XRFrame) => {
         // Finger-drag: move the model under the finger. Camera stays put.
         if (placed && isDragging && group.visible) {
           let droppedOnSurface = false;
           // Prefer the real surface under the finger so the model falls table → floor.
           if (frame && transientHitSource) {
             const refSpace = renderer.xr.getReferenceSpace();
-            const tResults = frame.getHitTestResultsForTransientInput(transientHitSource);
-            if (tResults.length > 0 && tResults[0].results.length > 0) {
-              const pose = tResults[0].results[0].getPose(refSpace);
-              if (pose) {
-                const p = pose.transform.position;
-                group.position.x = p.x + dragGrabOffsetX;
-                group.position.z = p.z + dragGrabOffsetZ;
-                group.position.y = p.y; // sit on whatever surface is under the finger
-                droppedOnSurface = true;
+            if (refSpace) {
+              const tResults = frame.getHitTestResultsForTransientInput(transientHitSource);
+              if (tResults.length > 0 && tResults[0].results.length > 0) {
+                const pose = tResults[0].results[0].getPose(refSpace);
+                if (pose) {
+                  const p = pose.transform.position;
+                  group.position.x = p.x + dragGrabOffsetX;
+                  group.position.z = p.z + dragGrabOffsetZ;
+                  group.position.y = p.y; // sit on whatever surface is under the finger
+                  droppedOnSurface = true;
+                }
               }
             }
           }
@@ -459,6 +435,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
             setModelOpacity(1);
             rotationRing.visible = true;
             setModelPlaced(true);
+            setRotateHintDismissed(false);
             setModelAnchored(true);
             setSearchingSurface(false);
           } else {
@@ -466,11 +443,13 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
             const hits = frame.getHitTestResults(hitTestSource);
             if (hits.length > 0) {
               const refSpace = renderer.xr.getReferenceSpace();
-              const pose = hits[0].getPose(refSpace);
-              if (pose) {
-                hitMatrix.fromArray(pose.transform.matrix);
-                hitMatrix.decompose(hitPos, hitQuat, hitScale);
-                if (hitPos.y > -1.2) { snapTarget.copy(hitPos); hasSnapTarget = true; }
+              if (refSpace) {
+                const pose = hits[0].getPose(refSpace);
+                if (pose) {
+                  hitMatrix.fromArray(pose.transform.matrix);
+                  hitMatrix.decompose(hitPos, hitQuat, hitScale);
+                  if (hitPos.y > -1.2) { snapTarget.copy(hitPos); hasSnapTarget = true; }
+                }
               }
             }
 
@@ -492,6 +471,7 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
                 placed = true;
                 setModelOpacity(1);
                 rotationRing.visible = true;
+                setRotateHintDismissed(false);
                 setModelAnchored(true);
                 setSearchingSurface(false);
               }
@@ -550,21 +530,41 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
         ringGeo.dispose();
         ringMat.dispose();
         sessionEndRef.current = null;
-        setArStarted(false);
         onClose();
       };
 
       session.addEventListener("end", cleanup);
-      sessionEndRef.current = () => { (session as any).end().catch(() => {}); };
+      sessionEndRef.current = () => { session.end().catch(() => {}); };
 
     } catch (err) {
       console.error("[GlbAR]", err);
       canvasSlotRef.current?.querySelectorAll("canvas").forEach(c => c.remove());
       sessionEndRef.current = null;
-      setArStarted(false);
       setState("unsupported");
     }
-  }
+  }, [url, usdzUrl, onClose, preloadedGltf, modelScale]);
+
+  // The hint is derived from the anchor state. Its timeout only records the
+  // user-visible dismissal asynchronously, so anchoring itself does not cause
+  // a synchronous state update from an effect.
+  useEffect(() => {
+    if (!modelAnchored) return;
+    const timeout = window.setTimeout(() => setRotateHintDismissed(true), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [modelAnchored]);
+
+  useEffect(() => {
+    let disposed = false;
+    const kickoff = window.setTimeout(() => {
+      if (!disposed) void startAR();
+    }, 0);
+
+    return () => {
+      disposed = true;
+      window.clearTimeout(kickoff);
+      sessionEndRef.current?.();
+    };
+  }, [startAR]);
 
   const exitAR = () => sessionEndRef.current?.();
 
@@ -665,10 +665,10 @@ function GlbAR({ url, usdzUrl, menuName: _menuName, onClose, preloadedGltf, mode
 
 // ─── PLY AR via Gaussian Splatting + WebXR ────────────────────────────────────
 
-function PlyAR({ url, menuName, onClose }: { url: string; menuName: string; onClose: () => void }) {
+function PlyAR({ url, onClose }: { url: string; onClose: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const uiOverlayRef = useRef<HTMLDivElement>(null);
-  const viewerRef = useRef<any>(null);
+  const viewerRef = useRef<Viewer | null>(null);
   const [state, setState] = useState<PlyState>("loading");
   const [progress, setProgress] = useState(0);
   const [arStarting, setArStarting] = useState(false);

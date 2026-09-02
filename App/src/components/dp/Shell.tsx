@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
@@ -20,7 +20,6 @@ import {
   PercentIcon,
   PrinterIcon,
   PuzzleIcon,
-  QrCodeIcon,
   SearchIcon,
   SettingsIcon,
   ShieldCheckIcon,
@@ -30,7 +29,14 @@ import {
 import ThemeToggle from "@/components/dp/ThemeToggle";
 import NotificationBell from "@/components/dp/NotificationBell";
 import SearchModal from "@/components/dp/SearchModal";
+import TourDialog from "@/components/dp/TourDialog";
 import ProfileMenu from "@/components/dp/ProfileMenu";
+import {
+  Dock,
+  DockIcon,
+  DockLabel,
+  DockTooltipProvider,
+} from "@/components/ui/dock";
 import type { NotifRow } from "@/lib/notifications";
 import type { Route } from "next";
 
@@ -73,11 +79,10 @@ const NAV: NavSection[] = [
   {
     title: "Pengaturan",
     items: [
-      { label: "Toko", href: "/dashboard-v2/pengaturan", icon: SettingsIcon },
+      { label: "Toko & QR Menu", href: "/dashboard-v2/pengaturan", icon: SettingsIcon },
       { label: "Pajak", href: "/dashboard-v2/pengaturan/pajak", icon: PercentIcon },
       { label: "Struk", href: "/dashboard-v2/pengaturan/struk", icon: PrinterIcon },
       { label: "Notifikasi", href: "/dashboard-v2/pengaturan/notifikasi", icon: BellRingIcon },
-      { label: "QR Smart Menu", href: "/dashboard-v2/pengaturan/qr", icon: QrCodeIcon },
       { label: "Peran & Izin", href: "/dashboard-v2/pengaturan/peran", icon: ShieldCheckIcon },
       { label: "Staf", href: "/dashboard-v2/pengaturan/staf", icon: UsersIcon },
     ],
@@ -125,7 +130,7 @@ function tulisKuncup(v: boolean) {
   for (const cb of pendengarKuncup) cb();
 }
 
-function ClerkShellLogoutButton() {
+function ClerkShellLogoutButton({ collapsed }: { collapsed: boolean }) {
   const router = useRouter();
   const { signOut } = useClerk();
 
@@ -138,10 +143,10 @@ function ClerkShellLogoutButton() {
     router.refresh();
   }
 
-  return <ShellLogoutButton onLogout={handleLogout} />;
+  return <ShellLogoutButton onLogout={handleLogout} collapsed={collapsed} />;
 }
 
-function SupabaseShellLogoutButton() {
+function SupabaseShellLogoutButton({ collapsed }: { collapsed: boolean }) {
   const router = useRouter();
 
   async function handleLogout() {
@@ -151,16 +156,30 @@ function SupabaseShellLogoutButton() {
     router.refresh();
   }
 
-  return <ShellLogoutButton onLogout={handleLogout} />;
+  return <ShellLogoutButton onLogout={handleLogout} collapsed={collapsed} />;
 }
 
-function ShellLogoutButton({ onLogout }: { onLogout: () => Promise<void> }) {
-  return (
-    <button type="button" className="dv3-item mt-auto w-full border-0 bg-transparent text-left" onClick={onLogout}>
-      <LogOutIcon />
+function ShellLogoutButton({
+  onLogout,
+  collapsed,
+}: {
+  onLogout: () => Promise<void>;
+  collapsed: boolean;
+}) {
+  const btn = (
+    <button
+      type="button"
+      className="dv3-item mt-auto w-full border-0 bg-transparent text-left"
+      onClick={onLogout}
+    >
+      <DockIcon>
+        <LogOutIcon />
+      </DockIcon>
       <span>Keluar</span>
     </button>
   );
+
+  return collapsed ? <DockLabel trigger={btn}>Keluar</DockLabel> : btn;
 }
 
 export default function DpShell({
@@ -184,6 +203,19 @@ export default function DpShell({
   const sideRef = useRef<HTMLElement>(null);
 
   const kuncup = useSyncExternalStore(langgananKuncup, bacaKuncup, () => false);
+
+  // Di ≤900px sidebar selalu menampilkan label (drawer), jadi tooltip rail
+  // dan magnifikasi kuat hanya relevan di desktop terkuncup.
+  const [desktop, setDesktop] = useState(true);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia("(min-width: 901px)");
+    const sync = () => setDesktop(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  const rail = kuncup && desktop;
 
   // Tutup drawer saat pindah rute — pola adjust-during-render, bukan effect.
   const [lastPath, setLastPath] = useState(pathname);
@@ -234,36 +266,49 @@ export default function DpShell({
   const renderItem = (item: NavItem) => {
     const aktif = isActive(item);
     const cls = `dv3-item${aktif ? " dv3-item-on" : ""}${item.soon ? " dv3-item-soon" : ""}`;
+    const Icon = item.icon;
     const inner = (
       <>
-        <item.icon />
+        <DockIcon>
+          <Icon />
+        </DockIcon>
         <span>{item.label}</span>
       </>
     );
-    return item.href && !item.soon ? (
-      <Link
-        key={item.label}
-        href={item.href}
-        className={cls}
-        aria-current={aktif ? "page" : undefined}
-        title={kuncup ? item.label : undefined}
-      >
-        {inner}
-      </Link>
-    ) : (
-      <span
-        key={item.label}
-        className={cls}
-        title="Belum ada sumber datanya"
-        aria-disabled="true"
-      >
-        {inner}
-      </span>
+
+    const control =
+      item.href && !item.soon ? (
+        <Link
+          href={item.href}
+          className={cls}
+          aria-current={aktif ? "page" : undefined}
+        >
+          {inner}
+        </Link>
+      ) : (
+        <span
+          className={cls}
+          title={rail ? undefined : "Belum ada sumber datanya"}
+          aria-disabled="true"
+        >
+          {inner}
+        </span>
+      );
+
+    if (!rail) return <Fragment key={item.label}>{control}</Fragment>;
+
+    return (
+      <DockLabel key={item.label} trigger={control}>
+        {item.soon ? `${item.label} · menyusul` : item.label}
+      </DockLabel>
     );
   };
 
   return (
     <div className="dv3-root">
+      {/* Host portal: position:fixed, bukan flex item. Tooltip yang diportal
+          ke .dv3-root ikut baris flex dan terpotong tepi rel. */}
+      <div id="dv3-portal" className="dv3-portal" />
       <aside
         className={`dv3-side${open ? " dv3-side-open" : ""}`}
         data-collapsed={kuncup}
@@ -279,11 +324,15 @@ export default function DpShell({
             aria-label={kuncup ? "Lebarkan navigasi" : "Kuncupkan navigasi"}
             aria-pressed={kuncup}
           >
-            {kuncup ? <PanelLeftOpenIcon className="h-4 w-4" /> : <PanelLeftCloseIcon className="h-4 w-4" />}
+            {kuncup ? (
+              <PanelLeftOpenIcon className="h-4 w-4" />
+            ) : (
+              <PanelLeftCloseIcon className="h-4 w-4" />
+            )}
           </button>
         </div>
 
-        <div className="dv3-store">
+        <div className="dv3-store" title={cafeName}>
           <span className="dv3-store-badge" aria-hidden>
             {cafeName.slice(0, 2).toUpperCase()}
           </span>
@@ -293,18 +342,32 @@ export default function DpShell({
           </span>
         </div>
 
-        <nav className="dv3-nav" aria-label="Navigasi konsol">
-          {NAV.map((s) => (
-            <div key={s.title} className="contents">
-              <div className="dv3-navlabel">
-                <span>{s.title}</span>
+        <DockTooltipProvider delayDuration={200}>
+          <Dock
+            axis="y"
+            className="dv3-nav"
+            role="navigation"
+            aria-label="Navigasi konsol"
+            iconSize={16}
+            magnification={rail ? 28 : 22}
+            distance={rail ? 72 : 96}
+          >
+            {NAV.map((s) => (
+              <div key={s.title} className="contents">
+                <div className="dv3-navlabel">
+                  <span>{s.title}</span>
+                </div>
+                {s.items.map(renderItem)}
               </div>
-              {s.items.map(renderItem)}
-            </div>
-          ))}
+            ))}
 
-          {clerkConfigured ? <ClerkShellLogoutButton /> : <SupabaseShellLogoutButton />}
-        </nav>
+            {clerkConfigured ? (
+              <ClerkShellLogoutButton collapsed={rail} />
+            ) : (
+              <SupabaseShellLogoutButton collapsed={rail} />
+            )}
+          </Dock>
+        </DockTooltipProvider>
       </aside>
 
       <div className="dv3-main">
@@ -343,9 +406,15 @@ export default function DpShell({
             >
               <SearchIcon className="h-[17px] w-[17px]" />
             </button>
+            <TourDialog />
             <NotificationBell rows={notifRows} />
             <ThemeToggle />
-            <ProfileMenu userName={userName} role={userRole} initial={userInitial} planLabel="Owner" />
+            <ProfileMenu
+              userName={userName}
+              role={userRole}
+              initial={userInitial}
+              planLabel="Owner"
+            />
           </div>
         </header>
 

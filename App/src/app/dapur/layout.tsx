@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { canOpenKitchenConsole, getStaffContext } from "@/lib/staff-context";
 import { homeRouteForRole } from "@/types";
-import "../dp.css";
+import { SKRIP_TEMA_DAPUR } from "@/lib/kitchen-theme";
+import "../kitchen.css";
 
 export const metadata = {
   title: "Dapur · 3Diner",
@@ -28,5 +29,14 @@ export default async function DapurLayout({ children }: { children: React.ReactN
     redirect(homeRouteForRole(ctx.role) ?? "/login?alasan=bukan-staf");
   }
 
-  return <div className="dp-dapur-root">{children}</div>;
+  return (
+    <>
+      {/* Tema papan harus terpasang sebelum paint pertama. Layar dapur menyala
+          gelap secara bawaan; kilatan putih setengah detik di ruangan yang
+          remang bukan cuma jelek, ia menyilaukan orang yang sedang memegang
+          wajan panas. */}
+      <script dangerouslySetInnerHTML={{ __html: SKRIP_TEMA_DAPUR }} />
+      {children}
+    </>
+  );
 }

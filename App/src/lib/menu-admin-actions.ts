@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { requireStaffPermission } from "@/lib/authorization";
+import { AuthorizationError, requireStaffPermission } from "@/lib/authorization";
 import { buildScheduleFields } from "@/lib/schedule-days";
 import type { MenuFormValues } from "@/components/dp/MenuEditorForm";
 
@@ -12,6 +12,13 @@ export interface UpsertMenuResult {
 }
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB
+
+function pesanOtorisasi(e: unknown): string {
+  if (e instanceof AuthorizationError) {
+    return "Anda tidak punya wewenang mengubah menu.";
+  }
+  return "Sesi tidak berlaku. Masuk ulang.";
+}
 
 /** Simpan menu dari MenuEditorForm — satu action untuk create & update.
  *
@@ -26,8 +33,8 @@ export async function upsertMenuFromEditor(input: {
   let cafeId: string;
   try {
     cafeId = (await requireStaffPermission("manage_menu")).cafeId;
-  } catch {
-    return { error: "Sesi tidak berlaku. Masuk ulang." };
+  } catch (e) {
+    return { error: pesanOtorisasi(e) };
   }
 
   // ── Validasi ───────────────────────────────────────────────────────────────
@@ -164,8 +171,8 @@ export async function getMenuEditorData(id: string): Promise<{
   let cafeId: string;
   try {
     cafeId = (await requireStaffPermission("manage_menu")).cafeId;
-  } catch {
-    return { error: "Sesi tidak berlaku. Masuk ulang." };
+  } catch (e) {
+    return { error: pesanOtorisasi(e) };
   }
 
   const [menuRes, catRes] = await Promise.all([

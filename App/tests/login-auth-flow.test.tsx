@@ -111,9 +111,6 @@ describe("login authentication flow", () => {
     fireEvent.change(screen.getByLabelText("Password *"), {
       target: { value: "local-test-password" },
     });
-    fireEvent.change(screen.getByLabelText("Nomor WhatsApp *"), {
-      target: { value: "08123456789" },
-    });
     fireEvent.click(
       screen.getByRole("checkbox", {
         name: /Dengan mendaftar, saya menyatakan telah membaca/i,
@@ -148,9 +145,6 @@ describe("login authentication flow", () => {
 
     fireEvent.change(screen.getByLabelText("Password *"), {
       target: { value: "local-test-password" },
-    });
-    fireEvent.change(screen.getByLabelText("Nomor WhatsApp *"), {
-      target: { value: "08123456789" },
     });
     fireEvent.click(
       screen.getByRole("checkbox", {

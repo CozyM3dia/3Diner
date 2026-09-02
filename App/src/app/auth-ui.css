@@ -1,0 +1,506 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   AUTH UI — lapisan tampilan semua permukaan masuk 3Diner
+   (/login dan /auth/*). Prefiks .au-*.
+
+   Arah: "kartu menu malam hari". Kolom kiri kertas terang tempat mata
+   bekerja (form), kolom kanan navy dalam tempat produk bicara (render 3D
+   + kartu kaca). Gerak sekali saat masuk — blok naik berjeda, panel kanan
+   meluncur — lalu diam; semuanya mati di prefers-reduced-motion.
+
+   Aturan yang mengikat file ini:
+   · Token brand global (--navy, --orange, --paper) saja; tidak ada hex baru.
+   · Teks di atas oranye SELALU --navy-dark. Putih di #FD5002 hanya 3.34:1
+     (lihat catatan --dash-on-accent di globals.css) — jangan diubah.
+   · Kontrol yang tidak punya backend tidak digambar. Halaman /auth/* yang
+     masih pratinjau menyatakannya di layar, bukan lewat tombol mati.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.au {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100dvh;
+  background: var(--paper);
+  font-family: var(--font-poppins), system-ui, sans-serif;
+  color: var(--navy);
+}
+@media (min-width: 992px) {
+  .au { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+
+/* ── Kolom kiri: form ────────────────────────────────────────────────── */
+
+.au-pane {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px clamp(20px, 7vw, 40px);
+  background: var(--white);
+}
+@media (min-width: 992px) {
+  .au-pane { padding: 56px clamp(40px, 7vw, 104px); }
+}
+
+.au-form { width: 100%; max-width: 27rem; margin: 0 auto; }
+
+/* Blok, bukan inline-flex: sebagai inline ia berbagi baris dengan tab
+   Masuk/Daftar di bawahnya dan wordmark-nya terbaca menempel pada tab. */
+.au-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: fit-content;
+  margin: 0 0 36px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--navy);
+}
+.au-brand img { display: block; flex: 0 0 auto; }
+.au-brand span { padding-top: 1px; }
+
+.au-tabs {
+  display: grid;
+  width: fit-content;
+  grid-auto-flow: column;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 28px;
+  border-radius: 999px;
+  background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--navy) 9%, transparent);
+}
+.au-tab {
+  padding: 9px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy-muted);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+.au-tab:hover { color: var(--navy); }
+.au-tab[aria-selected="true"] { background: var(--navy); color: var(--white); }
+.au-tab:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+.au-title {
+  margin: 0;
+  font-size: clamp(1.75rem, 1.3rem + 1.6vw, 2.25rem);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--navy);
+  text-wrap: balance;
+}
+.au-lede {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--navy-muted);
+  text-wrap: pretty;
+}
+.au-lede b { color: var(--navy-soft); font-weight: 600; }
+
+.au-fields { display: flex; flex-direction: column; gap: 18px; margin-top: 28px; }
+
+.au-field { display: flex; flex-direction: column; gap: 7px; }
+.au-label { font-size: 13px; font-weight: 600; color: var(--navy-soft); }
+.au-req { color: var(--orange-ink); }
+
+/* Bungkus input berpermukaan lembut — padanan "GlassInputWrapper" template,
+   diterjemahkan ke kertas: cincin fokus oranye 2px yang sama dipakai konsol,
+   terukur lolos WCAG 1.4.11 di kanvas terang. */
+.au-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--navy) 14%, transparent);
+  background: color-mix(in srgb, var(--paper) 70%, var(--white));
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+.au-wrap:hover { border-color: color-mix(in srgb, var(--navy) 24%, transparent); }
+.au-wrap:focus-within {
+  border-color: var(--orange);
+  background: var(--white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--orange) 18%, transparent);
+}
+.au-wrap[data-invalid="true"] { border-color: var(--semantic-danger); }
+
+.au-input {
+  width: 100%;
+  height: 50px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--navy);
+}
+.au-input::placeholder { color: color-mix(in srgb, var(--navy-muted) 78%, transparent); }
+.au-input:focus { outline: none; }
+.au-wrap:has(.au-eye) .au-input { padding-right: 46px; }
+
+.au-eye {
+  position: absolute;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--navy-muted);
+  cursor: pointer;
+}
+.au-eye:hover { background: var(--paper); color: var(--navy-soft); }
+.au-eye:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+.au-hint { font-size: 12px; line-height: 1.5; color: var(--navy-muted); }
+
+.au-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.au-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--navy-soft);
+  cursor: pointer;
+}
+.au-check input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  accent-color: var(--orange);
+}
+.au-check input:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+.au-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--orange-ink);
+  cursor: pointer;
+  text-decoration: none;
+}
+.au-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.au-link:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; border-radius: 4px; }
+
+.au-alert,
+.au-note,
+.au-ok {
+  margin: 0;
+  padding: 11px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.au-alert {
+  color: var(--semantic-danger);
+  background: color-mix(in srgb, var(--semantic-danger) 9%, var(--white));
+  border: 1px solid color-mix(in srgb, var(--semantic-danger) 32%, transparent);
+}
+.au-note {
+  color: var(--navy-soft);
+  background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--navy) 10%, transparent);
+}
+.au-ok {
+  color: var(--navy);
+  background: color-mix(in srgb, var(--semantic-success) 12%, var(--white));
+  border: 1px solid color-mix(in srgb, var(--semantic-success) 38%, transparent);
+}
+.au-ok b { font-weight: 700; }
+
+.au-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 50px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--orange);
+  /* Navy, bukan putih: putih di oranye brand hanya 3.34:1 (DESIGN.md). */
+  color: var(--navy-dark);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 140ms ease, transform 140ms ease;
+}
+.au-submit:hover { filter: brightness(1.05); }
+.au-submit:active { transform: scale(0.99); }
+.au-submit:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.au-submit:disabled { opacity: 0.6; cursor: not-allowed; filter: none; transform: none; }
+
+.au-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 48px;
+  border: 1px solid color-mix(in srgb, var(--navy) 16%, transparent);
+  border-radius: 14px;
+  background: var(--white);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.au-ghost:hover { background: var(--paper); border-color: color-mix(in srgb, var(--navy) 26%, transparent); }
+.au-ghost:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+.au-foot { margin: 32px 0 0; font-size: 13px; color: var(--navy-muted); }
+
+/* ── Akses cepat demo ────────────────────────────────────────────────────
+   Dipisah dari formulir oleh garis, bukan oleh kartu bertumpuk: ini jalan
+   kedua ke tempat yang sama, bukan fitur lain. Kredensialnya ditulis dengan
+   huruf mono dan bisa diseleksi — orang yang membagikannya lewat chat perlu
+   menyalinnya, bukan mengetik ulang. */
+.au-demo {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px dashed color-mix(in srgb, var(--navy) 18%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.au-demo-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--orange-ink);
+}
+.au-demo-body { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--navy-muted); }
+.au-demo-kv {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--navy) 10%, transparent);
+}
+.au-demo-kv > div { display: flex; align-items: baseline; gap: 10px; }
+.au-demo-kv dt {
+  flex: 0 0 74px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--navy-muted);
+}
+.au-demo-kv dd {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  color: var(--navy);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* ── OTP: empat kotak digit ──────────────────────────────────────────── */
+.au-otp { display: flex; gap: 12px; }
+.au-digit {
+  width: 56px;
+  height: 60px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--navy) 14%, transparent);
+  background: color-mix(in srgb, var(--paper) 70%, var(--white));
+  font: inherit;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--navy);
+}
+.au-digit:focus {
+  outline: none;
+  border-color: var(--orange);
+  background: var(--white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--orange) 18%, transparent);
+}
+.au-otpline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.au-timer {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--semantic-danger);
+  background: color-mix(in srgb, var(--semantic-danger) 10%, var(--white));
+}
+
+/* ── Kolom kanan: panel produk ───────────────────────────────────────── */
+
+.au-hero {
+  position: relative;
+  display: none;
+  overflow: hidden;
+  padding: 56px clamp(40px, 5vw, 72px);
+  background:
+    radial-gradient(120% 90% at 85% 10%, color-mix(in srgb, var(--navy-bright) 55%, transparent) 0%, transparent 60%),
+    linear-gradient(155deg, var(--navy) 0%, var(--navy-dark) 100%);
+  color: var(--white);
+  isolation: isolate;
+}
+@media (min-width: 992px) { .au-hero { display: flex; flex-direction: column; } }
+
+/* Cincin orbit: kedalaman tanpa bayangan, sama seperti panel brand lama. */
+.au-orbit {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+}
+.au-orbit.o1 { width: 620px; height: 620px; top: -180px; right: -200px; }
+.au-orbit.o2 { width: 900px; height: 900px; bottom: -420px; left: -280px; }
+.au-glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  right: -80px;
+  top: 20%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--orange) 26%, transparent) 0%, transparent 70%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+.au-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--orange) 82%, var(--white));
+}
+.au-headline {
+  margin: 14px 0 0;
+  max-width: 15ch;
+  font-size: clamp(2rem, 1.2rem + 2.4vw, 3rem);
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.au-herosub {
+  margin: 18px 0 0;
+  max-width: 46ch;
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.74);
+  text-wrap: pretty;
+}
+
+/* Panggung render: gambar produk duduk di lapisan bawah kartu, dipotong
+   lembut di tepi bawah supaya tidak terbaca sebagai foto yang ditempel. */
+.au-stage {
+  position: relative;
+  flex: 1;
+  min-height: 300px;
+  margin-top: 24px;
+}
+.au-scene {
+  position: absolute;
+  right: -7%;
+  bottom: -6%;
+  width: min(108%, 620px);
+  height: auto;
+  z-index: 0;
+  animation: au-slide-right 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 180ms;
+}
+
+.au-cards {
+  position: absolute;
+  left: 0;
+  bottom: 6%;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(288px, 58%);
+}
+.au-card {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(2, 20, 46, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.au-card-top { display: flex; align-items: center; gap: 10px; }
+.au-card-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--orange) 22%, transparent);
+  color: color-mix(in srgb, var(--orange) 85%, var(--white));
+}
+.au-card-name { display: block; font-size: 13.5px; font-weight: 700; }
+.au-card-meta { display: block; margin-top: 1px; font-size: 11.5px; color: rgba(255, 255, 255, 0.62); }
+.au-card-body { margin: 10px 0 0; font-size: 12px; line-height: 1.55; color: rgba(255, 255, 255, 0.72); }
+.au-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.au-pill {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pill, var(--semantic-teal));
+  background: color-mix(in srgb, var(--pill, var(--semantic-teal)) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pill, var(--semantic-teal)) 34%, transparent);
+}
+
+/* ── Gerak: satu koreografi masuk, lalu diam ─────────────────────────── */
+
+@keyframes au-rise {
+  from { opacity: 0; transform: translateY(14px); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@keyframes au-slide-right {
+  from { opacity: 0; transform: translateX(28px); filter: blur(6px); }
+  to   { opacity: 1; transform: translateX(0); filter: blur(0); }
+}
+@keyframes au-card-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.au-el { animation: au-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--d, 0) * 70ms + 40ms); }
+.au-card { animation: au-card-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--d, 0) * 140ms + 420ms); }
+
+@media (prefers-reduced-motion: reduce) {
+  .au-el,
+  .au-scene,
+  .au-card { animation: none; }
+}

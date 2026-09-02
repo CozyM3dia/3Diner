@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import AuthShell from "../AuthShell";
+import { AuthFoot } from "@/components/ui/sign-in";
 
-/**
- * Halaman OTP — recreation 1:1 `otp.html` Dream POS (placeholder UI,
- * logic menyusul). Timer 02:00 berjalan murni di klien; input OTP sudah
- * auto-advance/backspace seperti otp.js template, tanpa submit logic.
- */
+/** OTP — pratinjau. Perilaku yang sudah nyata di halaman ini: hitung mundur
+ *  02:00, auto-advance antar kotak, dan backspace mundur. Verifikasi kode
+ *  yang sungguhan berjalan di `/login`. */
 export default function OtpPage() {
   const [sisa, setSisa] = useState(120);
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -32,49 +31,69 @@ export default function OtpPage() {
   }
 
   return (
-    <AuthShell>
-      <div className="ap-mb4">
-        <h3 className="ap-mb2">Masukkan OTP</h3>
-        <p className="ap-mb0 ap-head-sub">
-          Masukkan OTP yang dikirim ke email terdaftar
+    <AuthShell
+      title="Masukkan kode"
+      lede="Empat digit yang dikirim ke email terdaftar. Kode hangus setelah hitungan habis."
+      cards={[
+        {
+          name: "Kode sekali pakai",
+          meta: "Berlaku 2 menit",
+          body: "Setelah habis, minta kode baru — kode lama tidak bisa dipakai lagi.",
+          pills: [{ label: "Sekali pakai", tone: "teal" }],
+        },
+      ]}
+    >
+      <div className="au-fields">
+        <p className="au-note">
+          Pratinjau alur. Verifikasi kode yang aktif berjalan di{" "}
+          <Link href="/login" className="au-link">
+            /login
+          </Link>
+          .
         </p>
+
+        <div className="au-otp au-el" style={{ "--d": 3 } as React.CSSProperties}>
+          {[0, 1, 2, 3].map((i) => (
+            <input
+              key={i}
+              ref={(el) => {
+                inputRefs.current[i] = el;
+              }}
+              type="text"
+              inputMode="numeric"
+              maxLength={1}
+              className="au-digit"
+              aria-label={`Digit OTP ${i + 1}`}
+              onChange={(e) => handleChange(i, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(i, e)}
+            />
+          ))}
+        </div>
+
+        <div className="au-otpline au-el" style={{ "--d": 4 } as React.CSSProperties}>
+          <span className="au-timer" role="timer" aria-live="off">
+            {mm}:{ss}
+          </span>
+          <button type="button" className="au-link">
+            Kirim ulang kode
+          </button>
+        </div>
+
+        <Link
+          href="/login"
+          className="au-submit au-el"
+          style={{ "--d": 5 } as React.CSSProperties}
+        >
+          Verifikasi
+        </Link>
       </div>
 
-      <div className="ap-otp-row">
-        {[0, 1, 2, 3].map((i) => (
-          <input
-            key={i}
-            ref={(el) => {
-              inputRefs.current[i] = el;
-            }}
-            type="text"
-            inputMode="numeric"
-            maxLength={1}
-            className="ap-digit"
-            aria-label={`Digit OTP ${i + 1}`}
-            onChange={(e) => handleChange(i, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(i, e)}
-          />
-        ))}
-      </div>
-
-      <div className="ap-otpline">
-        <span className="ap-badge-danger">
-          {mm}:{ss}
-        </span>
-        <button type="button" className="ap-resend">Kirim Ulang OTP</button>
-      </div>
-
-      <div className="ap-mb4">
-        <button type="button" className="ap-btn ap-btn-primary">Verifikasi</button>
-      </div>
-
-      <div className="ap-foot">
-        <p className="ap-mb0">
-          Kembali ke
-          <Link href="/auth/masuk" className="ap-link"> Masuk</Link>
-        </p>
-      </div>
+      <AuthFoot>
+        Kode tidak masuk?{" "}
+        <Link href="/auth/lupa-password" className="au-link">
+          Kirim ulang dari awal
+        </Link>
+      </AuthFoot>
     </AuthShell>
   );
 }

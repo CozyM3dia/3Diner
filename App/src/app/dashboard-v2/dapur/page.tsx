@@ -1,54 +1,39 @@
 import { redirect } from "next/navigation";
-import { getStaffContext, canOpenOwnerConsole } from "@/lib/staff-context";
-import { supabaseAdmin } from "@/lib/supabase-admin";
-import { startOfTodayWIB } from "@/lib/dashboard-today";
-import KitchenBoard, { type KitchenOrder } from "@/components/dp/KitchenBoard";
+import { canOpenOwnerConsole, getStaffContext } from "@/lib/staff-context";
+import { ambilTiketDapur } from "@/lib/kitchen-query";
+import { SKRIP_TEMA_KONSOL } from "@/lib/kitchen-theme";
+import PapanDapur from "@/components/kitchen/PapanDapur";
+import "../../kitchen.css";
 
-export const metadata = { title: "Kitchen · 3Diner" };
+export const metadata = { title: "Dapur · 3Diner" };
 export const dynamic = "force-dynamic";
 
-/** Antrean dapur di dalam konsol — recreation `kitchen.html` Dream POS,
- *  read-only. Ini halaman yang sama dengan /dapur (permukaan standalone
- *  untuk perangkat dapur), tapi berbingkai Shell dashboard-v2 sehingga
- *  pemilik/manager bisa pindah ke modul lain lewat sidebar.
+/** Papan dapur di dalam konsol pemilik.
  *
- *  Guard: owner & manager (konsol). Staf kitchen tetap dilayani /dapur.
- *  Status yang relevan: belum disentuh (`awaiting`/`received`), sedang
- *  dimasak (`preparing`), sudah matang (`ready`). Jendela 30 hari —
- *  pesanan belum ditutup tetap terbuka walau dibuat kemarin. */
-const STATUS_DAPUR = ["awaiting", "received", "preparing", "ready"];
-
+ *  Papan yang sama persis dengan /dapur, tapi berbingkai Shell dashboard-v2
+ *  sehingga pemilik/manager bisa mengawasi antrean lalu pindah ke modul lain
+ *  lewat sidebar. Bar pass melepas tombol keluar dan toggle tema di sini —
+ *  keduanya sudah ada di Shell, dan dua pintu keluar bersebelahan hanya
+ *  membuat orang ragu mana yang benar.
+ *
+ *  Guard: owner & manager. Staf kitchen tetap dilayani /dapur. */
 export default async function Page() {
   const ctx = await getStaffContext();
   if (!canOpenOwnerConsole(ctx.role)) redirect("/login");
 
-  const since30 = new Date(new Date(startOfTodayWIB()).getTime() - 29 * 864e5).toISOString();
-
-  const { data } = await supabaseAdmin
-    .from("Orders")
-    .select("id_order,created_at,status,payment_status,table_number,notes,items")
-    .eq("cafe_id", ctx.cafe_id ?? "")
-    .in("status", STATUS_DAPUR)
-    .gte("created_at", since30)
-    .order("created_at", { ascending: true })
-    .limit(60);
-
-  const orders: KitchenOrder[] = (data ?? []).map(o => ({
-    id_order: o.id_order,
-    created_at: o.created_at,
-    status: o.status ?? "awaiting",
-    payment_status: o.payment_status ?? "unpaid",
-    table_number: o.table_number,
-    notes: o.notes,
-    items: o.items ?? [],
-  }));
+  const tiket = await ambilTiketDapur(ctx.cafe_id ?? "");
 
   return (
     <>
-      <div className="dp-page-head">
-        <h1>Kitchen</h1>
-      </div>
-      <KitchenBoard orders={orders} />
+      {/* Papan mewarisi tema konsol lewat `data-kds`, disetel sebelum paint
+          supaya panel gelap tidak berkedip di halaman yang terang. */}
+      <script dangerouslySetInnerHTML={{ __html: SKRIP_TEMA_KONSOL }} />
+      <PapanDapur
+        awal={tiket}
+        cafeId={ctx.cafe_id ?? ""}
+        namaKafe={ctx.cafe_name ?? ""}
+        bingkai="konsol"
+      />
     </>
   );
 }

@@ -10,12 +10,33 @@ interface DateRangePickerProps {
   initialEnd?: string;
 }
 
+type DatePreset = "today" | "7days" | "14days" | "30days" | "thisMonth" | "allTime";
+
+interface DateSelection {
+  key: string;
+  start: Date | null;
+  end: Date | null;
+}
+
 const MONTH_NAMES = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
   "Juli", "Agustus", "September", "Oktober", "November", "Desember"
 ];
 
 const WEEK_DAYS = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+
+const DATE_PRESETS: ReadonlyArray<{ id: DatePreset; label: string }> = [
+  { id: "today", label: "Hari Ini" },
+  { id: "7days", label: "7 Hari Terakhir" },
+  { id: "14days", label: "14 Hari Terakhir" },
+  { id: "30days", label: "30 Hari Terakhir" },
+  { id: "thisMonth", label: "Bulan Ini" },
+  { id: "allTime", label: "Semua Waktu" },
+];
+
+function parseDate(value?: string): Date | null {
+  return value ? new Date(value) : null;
+}
 
 export default function DateRangePicker({ initialStart, initialEnd }: DateRangePickerProps) {
   const router = useRouter();
@@ -38,12 +59,19 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
   }
 
   // Temporary selection state for custom calendar selection
-  const [tempStart, setTempStart] = useState<Date | null>(
-    initialStart ? new Date(initialStart) : null
-  );
-  const [tempEnd, setTempEnd] = useState<Date | null>(
-    initialEnd ? new Date(initialEnd) : null
-  );
+  const selectionKey = JSON.stringify([initialStart ?? null, initialEnd ?? null]);
+  const [draft, setDraft] = useState<DateSelection>(() => ({
+    key: selectionKey,
+    start: parseDate(initialStart),
+    end: parseDate(initialEnd),
+  }));
+  // A URL change is already the source of truth for the next render. Derive
+  // the new draft here instead of synchronizing it with a state-setting effect.
+  const selection = draft.key === selectionKey
+    ? draft
+    : { key: selectionKey, start: parseDate(initialStart), end: parseDate(initialEnd) };
+  const tempStart = selection.start;
+  const tempEnd = selection.end;
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
 
   // Active month in the calendar view
@@ -51,11 +79,9 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
     initialStart ? new Date(initialStart) : new Date()
   );
 
-  // Sync state if initial props change
-  useEffect(() => {
-    setTempStart(initialStart ? new Date(initialStart) : null);
-    setTempEnd(initialEnd ? new Date(initialEnd) : null);
-  }, [initialStart, initialEnd]);
+  function updateDraft(start: Date | null, end: Date | null) {
+    setDraft({ key: selectionKey, start, end });
+  }
 
   // Handle outside click to close dropdown
   // The dropdown is fixed-positioned (outside containerRef), so we track it separately.
@@ -131,7 +157,7 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  const applyPreset = (preset: "today" | "7days" | "14days" | "30days" | "thisMonth" | "allTime") => {
+  const applyPreset = (preset: DatePreset) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -153,8 +179,7 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
       end = undefined;
     }
 
-    setTempStart(start || null);
-    setTempEnd(end || null);
+    updateDraft(start || null, end || null);
     applyDates(start, end);
   };
 
@@ -202,13 +227,12 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
 
   const handleDayClick = (date: Date) => {
     if (!tempStart || (tempStart && tempEnd)) {
-      setTempStart(date);
-      setTempEnd(null);
+      updateDraft(date, null);
     } else if (tempStart && !tempEnd) {
       if (date < tempStart) {
-        setTempStart(date);
+        updateDraft(date, null);
       } else {
-        setTempEnd(date);
+        updateDraft(tempStart, date);
       }
     }
   };
@@ -278,17 +302,10 @@ export default function DateRangePicker({ initialStart, initialEnd }: DateRangeP
               borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
             }}
           >
-            {[
-              { id: "today", label: "Hari Ini" },
-              { id: "7days", label: "7 Hari Terakhir" },
-              { id: "14days", label: "14 Hari Terakhir" },
-              { id: "30days", label: "30 Hari Terakhir" },
-              { id: "thisMonth", label: "Bulan Ini" },
-              { id: "allTime", label: "Semua Waktu" }
-            ].map((p) => (
+            {DATE_PRESETS.map((p) => (
               <button
                 key={p.id}
-                onClick={() => applyPreset(p.id as any)}
+                onClick={() => applyPreset(p.id)}
                 className="w-max md:w-full text-left px-3 py-2 rounded-lg text-xs font-semibold hover:bg-white/5 transition-colors shrink-0 cursor-pointer"
                 style={{ color: "#9FB6D1" }}
               >

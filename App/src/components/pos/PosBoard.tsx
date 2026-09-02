@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  AlertCircleIcon,
   BikeIcon,
   CalculatorIcon,
   FileTextIcon,
@@ -177,6 +178,8 @@ export default function PosBoard({
   const [lines, setLines] = useState<Line[]>([]);
   const [orderType, setOrderType] = useState<OrderType>("dine");
   const [table, setTable] = useState("");
+  const [mejaErr, setMejaErr] = useState(false);
+  const mejaRef = useRef<HTMLInputElement>(null);
   const [msg, setMsg] = useState<{ kind: "ok" | "err" | "info"; text: string } | null>(null);
   const [busy, startTransition] = useTransition();
 
@@ -359,7 +362,11 @@ export default function PosBoard({
 
   async function commit(draft: boolean): Promise<PosCommitted | null> {
     if (orderType === "dine" && !table.trim()) {
-      setMsg({ kind: "err", text: "Isi nomor meja untuk Dine In (atau pilih Take Away)." });
+      // Galat ditandai pada medannya lalu fokus dipindahkan ke sana: kasir
+      // tidak perlu mencari kotak mana yang dimaksud, dan pembaca layar
+      // mengumumkannya lewat `role="alert"` yang bertetangga dengan input.
+      setMejaErr(true);
+      mejaRef.current?.focus();
       return null;
     }
     if (lines.length === 0) return null;
@@ -662,29 +669,50 @@ export default function PosBoard({
         </div>
 
         {orderType === "dine" ? (
-          <input
-            className="pos-meja"
-            value={table}
-            onChange={e => {
-              setTable(e.target.value);
-              setQuote(null);
-            }}
-            placeholder="Nomor meja, mis. 12"
-            aria-label="Nomor meja"
-            disabled={!live}
-          />
+          <div className="pos-field">
+            <label className="pos-field-lbl" htmlFor="pos-meja">
+              Nomor meja
+            </label>
+            <input
+              id="pos-meja"
+              ref={mejaRef}
+              className="pos-meja"
+              value={table}
+              onChange={e => {
+                setTable(e.target.value);
+                setQuote(null);
+                if (mejaErr) setMejaErr(false);
+              }}
+              placeholder="mis. 12"
+              // Kasir memakai layar sentuh: papan tik angka menghemat satu
+              // ketukan tiap pesanan. `text` (bukan `number`) dipertahankan
+              // karena nomor meja bisa berbentuk "A3" atau "12B".
+              inputMode="numeric"
+              enterKeyHint="done"
+              autoComplete="off"
+              maxLength={8}
+              aria-invalid={mejaErr || undefined}
+              aria-describedby={mejaErr ? "pos-meja-err" : undefined}
+              disabled={!live}
+            />
+            {/* Galat tinggal di sebelah medannya. Sebelumnya pesan ini muncul
+                di dasar kolom, ratusan piksel di bawah kotak yang dimaksud. */}
+            {mejaErr && (
+              <p className="pos-field-err" id="pos-meja-err" role="alert">
+                <AlertCircleIcon aria-hidden />
+                Nomor meja wajib diisi untuk Dine In — atau pilih Take Away.
+              </p>
+            )}
+          </div>
         ) : (
-          <p className="pos-otype-note">
-            {orderType === "takeaway" ? "Pesanan dibawa pulang" : "Pesanan diantar ke alamat tamu"} —
-            tercatat sebagai “{tableLabel}”.
-          </p>
+          <p className="pos-otype-note">Pesanan dibawa pulang — tercatat sebagai “{tableLabel}”.</p>
         )}
 
         <div className="pos-cart-head">
           <span className="pos-cart-title">
-            <ShoppingCartIcon className="h-4 w-4" /> Ordered Menus
+            <ShoppingCartIcon className="h-4 w-4" /> Menu Dipesan
           </span>
-          <span className="pos-cart-count">Total : {lineCount}</span>
+          <span className="pos-cart-count">{lineCount} item</span>
         </div>
 
         <div className="pos-cart-items">
@@ -748,7 +776,7 @@ export default function PosBoard({
                             className="pos-line-addnote"
                             onClick={() => setNoteKey(noteKey === l.key ? null : l.key)}
                           >
-                            Add Note
+                            Catatan
                           </button>
                         )}
                         <button
@@ -766,11 +794,11 @@ export default function PosBoard({
                   {open && (
                     <div className="pos-line-detail">
                       <div>
-                        <span>Item Rate</span>
+                        <span>Harga satuan</span>
                         <b>{rupiah(lineRate(l))}</b>
                       </div>
                       <div>
-                        <span>Amount</span>
+                        <span>Jumlah</span>
                         <b>{rupiah(lineRate(l) * l.qty)}</b>
                       </div>
                     </div>
@@ -800,11 +828,11 @@ export default function PosBoard({
             catatan global, supaya tidak dobel dan jelas tujuannya ke dapur. */}
 
         <div className="pos-summary">
-          <h3>Payment Summary</h3>
+          <h3>Ringkasan Pembayaran</h3>
           {quoted ? (
             <>
               <div>
-                <span>Sub Total</span>
+                <span>Subtotal</span>
                 <b>{rupiah(quoted.subtotal)}</b>
               </div>
               {quoted.service_amount > 0 && (
@@ -829,7 +857,7 @@ export default function PosBoard({
         </div>
 
         <div className={`pos-amount${quoteBusy ? " pos-amount-busy" : ""}`}>
-          <span>Amount to be Paid</span>
+          <span>Total bayar</span>
           <b>{quoted ? rupiah(quoted.total) : "—"}</b>
         </div>
 
@@ -842,13 +870,13 @@ export default function PosBoard({
                 disabled={busy || lines.length === 0}
                 onClick={() => startTransition(() => void commit(false))}
               >
-                Place an Order
+                Kirim Pesanan
               </button>
               <button type="button" className="pos-btn" disabled={busy || lines.length === 0} onClick={() => startTransition(() => void commit(true))}>
-                <FilesIcon className="h-4 w-4" /> Draft
+                <FilesIcon className="h-4 w-4" /> Draf
               </button>
               <button type="button" className="pos-btn" disabled={busy || lines.length === 0} onClick={() => startTransition(() => void refreshQuote())}>
-                <CalculatorIcon className="h-4 w-4" /> Ringkasan
+                <CalculatorIcon className="h-4 w-4" /> Hitung
               </button>
             </>
           ) : (

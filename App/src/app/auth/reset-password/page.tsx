@@ -1,58 +1,61 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { EyeOffIcon } from "lucide-react";
 import AuthShell from "../AuthShell";
+import { AuthField, AuthFoot, AuthPassword } from "@/components/ui/sign-in";
 
 export const metadata: Metadata = { title: "Reset Password | 3Diner" };
 
-/**
- * Halaman Reset Password — recreation 1:1 `reset-password.html` Dream POS
- * (placeholder UI, logic menyusul).
- */
+/** Reset Password — pratinjau layar terakhir alur pemulihan: pasang password
+ *  baru setelah kode diterima. */
 export default function ResetPasswordPage() {
   return (
-    <AuthShell>
-      <div className="ap-mb4">
-        <h3 className="ap-mb2">Reset Password</h3>
-        <p className="ap-mb0 ap-head-sub">
-          Password baru kamu harus berbeda dari password yang pernah dipakai.
+    <AuthShell
+      title="Pasang password baru"
+      lede="Password baru harus berbeda dari yang pernah dipakai, minimal 8 karakter."
+      cards={[
+        {
+          name: "Setelah tersimpan",
+          meta: "Semua perangkat keluar",
+          body: "Sesi lama diputus, jadi kasir yang masih login harus masuk ulang dengan password baru.",
+          pills: [{ label: "Aman", tone: "success" }],
+        },
+      ]}
+    >
+      <div className="au-fields">
+        <p className="au-note">
+          Pratinjau alur. Perubahan password yang aktif dilakukan lewat Clerk Dashboard sampai
+          email recovery tersambung.
         </p>
+
+        <AuthField label="Password baru" htmlFor="password" required delay={3}>
+          <AuthPassword id="password" autoComplete="new-password" placeholder="Minimal 8 karakter" />
+        </AuthField>
+
+        <AuthField label="Konfirmasi password" htmlFor="confirm-password" required delay={4}>
+          <AuthPassword
+            id="confirm-password"
+            autoComplete="new-password"
+            placeholder="Ulangi password baru"
+            labelShow="Tampilkan konfirmasi password"
+            labelHide="Sembunyikan konfirmasi password"
+          />
+        </AuthField>
+
+        <Link
+          href="/login"
+          className="au-submit au-el"
+          style={{ "--d": 5 } as React.CSSProperties}
+        >
+          Simpan password
+        </Link>
       </div>
 
-      <div className="ap-field">
-        <label className="ap-label" htmlFor="password">
-          Password <span className="ap-req"> *</span>
-        </label>
-        <div className="ap-pass">
-          <input id="password" type="password" className="ap-input" placeholder="••••••••" />
-          <button type="button" className="ap-pass-toggle" aria-label="Tampilkan password">
-            <EyeOffIcon size={16} />
-          </button>
-        </div>
-      </div>
-
-      <div className="ap-field ap-mb4">
-        <label className="ap-label" htmlFor="confirm-password">
-          Konfirmasi Password <span className="ap-req"> *</span>
-        </label>
-        <div className="ap-pass">
-          <input id="confirm-password" type="password" className="ap-input" placeholder="••••••••" />
-          <button type="button" className="ap-pass-toggle" aria-label="Tampilkan konfirmasi password">
-            <EyeOffIcon size={16} />
-          </button>
-        </div>
-      </div>
-
-      <div className="ap-mb4">
-        <button type="button" className="ap-btn ap-btn-primary">Kirim</button>
-      </div>
-
-      <div className="ap-foot">
-        <p className="ap-mb0">
-          Kembali ke
-          <Link href="/auth/masuk" className="ap-link"> Masuk</Link>
-        </p>
-      </div>
+      <AuthFoot>
+        Batal?{" "}
+        <Link href="/login" className="au-link">
+          Kembali ke masuk
+        </Link>
+      </AuthFoot>
     </AuthShell>
   );
 }

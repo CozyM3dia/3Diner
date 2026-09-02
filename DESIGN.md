@@ -47,17 +47,60 @@ Do not render a three-step progress rail. Completion lives on the order route, n
 
 # Owner Console Design (dashboard-v2)
 
-Ditambahkan 26 Aug 2026 (Phase 0 rebuild dashboard) supaya cakupan dokumen ini tidak berhenti di checkout. Rujukan nilai warna/typography/radius: `brand/UI_TOKENS.md`.
+Ditulis ulang **2 Sep 2026** (rebuild "editorial ledger"). Versi 26 Agu — ruang kerja gelap dengan token `--dash-*` — sudah tidak berlaku; kanvasnya terang dan tokennya `--dv3-*` di `src/app/console.css`. Rujukan brand: `brand/UI_TOKENS.md`.
 
 ## Direction
 
-Konsol owner adalah ruang kerja gelap yang operasional-first: menjawab "apa yang terjadi, apa yang butuh tindakan saya" dalam hitungan detik. Data-dense tetapi premium — hierarchy dari surface layering (`--dash-canvas → panel → raised`) dan whitespace, bukan dari border dan shadow di setiap kartu. Angka memakai tabular figures; lebar konten desktop dibatasi ±1.200–1.440px.
+Konsol owner dibaca seperti halaman data koran keuangan yang tertata. Ia menjawab dua pertanyaan dalam hitungan detik: **berapa uang masuk periode ini dibanding periode sebelumnya**, dan **apa yang butuh disentuh sekarang**. Hierarki lahir dari skala tipe, berat, angka tabular, dan garis rambut — bukan dari kotak kartu. Kartu nyaris tidak dipakai; kepadatan datang dari tipografi dan ritme spasi.
 
-## Token Contract
+Kalimat adegannya: owner membuka laptop jam 9 pagi di meja dekat jendela kafe yang terang, lalu mengecek lagi dari ponsel jam 23.30 saat tutup kasir. Karena itu **terang adalah kanvas utama** dan mode gelap dirancang tersendiri, bukan hasil membalik warna.
 
-- Satu-satunya sumber warna: 11 token `--dash-*` + `--semantic-*` + `--orange*`/`--navy*` brand di `globals.css`. **Tidak ada hex baru di file komponen** (gate Phase 0).
-- Skala bersama baru, prefiks `--dv2-*`: spacing 4–32px (`--dv2-space-1..8`), z-index lapisan (`--dv2-z-scrim/sheet`), font-size caption/body/title.
-- Penamaan meneruskan keluarga `.dv2-*` yang ada — bukan lapisan token kedua. Preseden bentrok nama `.dv2-bar` vs chart bar sudah tercatat di komentar globals.css; periksa nama baru terhadapnya.
+## Token Contract (`src/app/console.css`)
+
+- Warna ditulis **OKLCH**. Netral ditint ke hue navy merek (258) dengan chroma 0.002–0.022 — tidak ada abu mati.
+- **Dua nada oranye, bukan satu.** `--dv3-accent` (terang) hanya untuk marka data, indikator, dan cincin fokus. `--dv3-accent-ink` (dalam) untuk teks kecil dan tombol terisi, karena oranye terang gagal 4.5:1 baik melawan kertas maupun melawan putih.
+- Aksen dijaga di bawah 10% permukaan: aksi utama, seleksi aktif, satu marka data. Selebihnya netral.
+- Mode gelap mengambil kedalaman dari lightness permukaan, bukan bayangan. Teks terang dikompensasi lewat letter-spacing + line-height (Instrument Sans mulai di wght 400, jadi menurunkan berat bukan pilihan).
+- Blok alias menuntun `--dp-*` warisan ke token `--dv3-*`, sehingga 11 halaman lama ikut berganti palet tanpa disentuh satu per satu.
+- **Tipografi: Instrument Sans** untuk konsol; Poppins tetap memegang permukaan pelanggan. Alasannya terukur, bukan selera: figur tabular Instrument Sans terbukti membuat `111111` dan `000000` sama lebar (144px pada 40px), sedangkan proporsional meleset 92px vs 165px — kolom uang tak akan pernah sejajar tanpa itu. Kontinuitas merek di konsol dipikul warna dan navy, bukan huruf.
+
+## Dua lembar analitik (2 Sep 2026)
+
+Analitik dipecah menjadi dua halaman dari satu laporan, keduanya membaca rentang `?from&to` yang sama dan berbagi kepala (`AnalyticsHeader`: kicker sans kecil dengan tracking, judul berupa pertanyaan, tab garis-bawah, pemilih rentang, catatan pembanding). Menukar tab membawa rentangnya ikut — dua lembar tidak pernah membicarakan periode yang berbeda.
+
+| Lembar | Rute | Pertanyaan yang dijawab | Isi |
+|---|---|---|---|
+| **Ringkasan** | `/dashboard-v2` | Bagaimana kafe berjalan, dan apa yang perlu disentuh sekarang? | Pendapatan lunas + sparkline kumulatif · strip (pesanan, nilai rata-rata, tamu buka menu, konversi) · **Jam ramai** (matriks hari×jam) · Butuh perhatian · **Corong tamu** (QR → 3D → mulai pesan → masuk → lunas) · Paling dilirik · Pesanan berjalan |
+| **Penjualan** | `/dashboard-v2/penjualan` | Dari mana uang datang, kapan, lewat apa? | Pendapatan lunas + sub-ledger (lunas, rata-rata, item, belum lunas, batal) · **Pendapatan harian** (batang + garis pembanding) · **Laju periode** (kumulatif vs pembanding) · Metode pembayaran · Terlaris · Kategori · Status pesanan · Transaksi terbaru + **Unduh CSV** yang sungguhan |
+
+Empat bentuk grafik, masing-masing untuk satu pertanyaan — jangan tambah bentuk kelima tanpa pertanyaan baru:
+
+| Bentuk | Pertanyaan | Komponen |
+|---|---|---|
+| Batang harian dengan penanda pembanding (bullet) | Berapa per hari, dibanding hari yang sama periode lalu? | `RevenueChart` |
+| Garis kumulatif (satu-satunya garis yang sah: kumulatif memang kontinu) | Sampai hari ini, di depan atau di belakang laju periode lalu? | `CumulativeChart`, `Sparkline` |
+| Matriks hari-minggu × jam, satu hue navy, puncak beraksen | Kapan kasir dan dapur harus penuh? | `HeatmapJam` (runtuh ke profil 24 jam bila rentang < 7 hari) |
+| Batang komposisi bertumpuk + daftar berlabel langsung | Lewat apa / dalam status apa? | `MixBar`, `Funnel` |
+
+**Satu wajah di konsol: Instrument Sans.** Kicker halaman, anotasi grafik ("+Rp 120.000 di depan laju periode lalu"), rasio lanjut di corong, dan label bagian hari (Pagi/Siang/Sore/Malam) memakai sans yang sama — lebih kecil, berat medium, tracking — bukan serif miring. Serif tidak dipakai di konsol.
+
+**Gerak** satu koreografi saja: blok naik 6px + memudar masuk berjeda 55ms (`.dv3-reveal` dengan `--i`), batang tumbuh dari garis dasar, sel matriks memudar per kolom. Tidak ada gerak lain; semuanya mati di `prefers-reduced-motion`.
+
+## Aturan penyajian data
+
+- **Batang, bukan garis, untuk deret harian.** Garis menarik ruas antara dua hari yang tak pernah berhubungan, sehingga jeda kosong terbaca sebagai penurunan bertahap. Garis hanya dipakai bila rentang > 31 hari — atau untuk deret **kumulatif**, yang memang kontinu (nilai hari ke-5 memuat hari ke-4). Garis kumulatif periode ini berhenti di hari terakhir yang sudah lewat; hari yang belum tiba diarsir, bukan dikosongkan, supaya tak terbaca sebagai penjualan yang mendatar.
+- **Matriks jam × hari-minggu hanya untuk rentang ≥ 7 hari.** Satu Sabtu tidak mewakili "Sabtu"; di bawah seminggu ia runtuh menjadi profil 24 jam. Kolom jam dipangkas ke jam buka efektif (minimal 08–21) supaya matriks tidak dipenuhi kolom malam yang selalu kosong.
+- **Corong menyatukan dua sumber** (Analytics_Logs untuk buka menu / lihat 3D / mulai pesan; Orders untuk masuk / lunas) ke satu skala, dan menulis rasio lanjut antar langkah. Kolom pembanding menaruh cacah periode lalu, bukan persen: pada cacah kecil persentase lebih dramatis daripada kenyataannya. Delta `this_week/last_week` bawaan RPC tidak dipakai — ia terpaku 7 hari dan tidak mengikuti rentang; RPC dipanggil dua kali (rentang terpilih + pembanding).
+- **Tidak ada donat.** Sudut dan luas adalah atribut preattentive terlemah; panjang di atas garis dasar bersama yang terkuat (NN/g). Perbandingan bagian-terhadap-keseluruhan disajikan sebagai batang horizontal berperingkat.
+- **Peringkat memakai uang, bukan cacah.** Menu diperingkat oleh kontribusi pendapatan (sepuluh kopi murah tidak mengalahkan dua steak); kategori diukur pendapatan, bukan jumlah item di dalamnya.
+- **Delta wajib punya periode pembanding sungguhan** — rentang setara panjangnya, tepat sebelum yang dipilih. Persentase yang ditulis tangan dilarang. Bila pembandingnya nol, tulis "Tanpa pembanding"; jangan mengarang "+100%" atau "∞".
+- **Rasio tanpa penyebut ditulis em dash, bukan 0%.** "0% selesai" mengaku ada pesanan yang gagal; kenyataannya belum ada pesanan.
+- **Garis dasar grafik adalah informasi**, bukan hiasan: ia memakai `--dv3-ink-4` (≥3:1). Garis panduan di tengah boleh samar.
+- Setiap grafik menyertakan tabel `sr-only` berisi angka persisnya.
+
+## Ambang operasional
+
+Kebijakan produk, bukan detail teknis; terkumpul di `AMBANG` pada `src/lib/dashboard-metrics.ts`. Tagihan yang belum lunas lewat 45 menit dan pesanan yang masih di dapur lewat 30 menit naik ke panel **Butuh perhatian**, maksimum 6 baris, terurut paling genting dulu. Satu pesanan hanya boleh muncul sekali.
 
 ## Primitives (`src/components/dashboard-v2/primitives.tsx`)
 
@@ -73,4 +116,12 @@ Setiap kontrol wajib punya behavior nyata — anti-pola template Dream POS (link
 
 ## Auth & Error Semantics
 
-`StaffContext.error: true` membedakan *gagal memuat* dari *bukan staf*. Layar masuk menampilkan tiga pesan berbeda (salah kredensial / bukan staf / nonaktif / gagal periksa → coba lagi) dan tidak me-signOut saat pemeriksaan gagal. Fokus terlihat di kanvas gelap: outline oranye 2px offset 2px (`UI_TOKENS §Focus Ring`).
+`StaffContext.error: true` membedakan *gagal memuat* dari *bukan staf*. Layar masuk menampilkan tiga pesan berbeda (salah kredensial / bukan staf / nonaktif / gagal periksa → coba lagi) dan tidak me-signOut saat pemeriksaan gagal. Fokus: outline oranye 2px offset 2px — terukur 3,38:1 di kanvas terang dan 6,79:1 di kanvas gelap, lolos WCAG 1.4.11 di keduanya.
+
+Saat kueri Dashboard gagal, layar sengaja **tidak menampilkan angka apa pun**. Angka yang salah pada konsol uang lebih berbahaya daripada layar yang mengaku gagal.
+
+## Harness visual (`/dev-preview`)
+
+Keadaan langka — kafe yang baru dibuka, rentang tanpa satu pun pembayaran lunas, tumpukan tagihan yang menua — nyaris mustahil dipentaskan di database sungguhan tanpa mengotorinya, sehingga empty state biasanya baru terlihat ketika seorang owner menemuinya lebih dulu di produksi. `/dev-preview` menjalankan `DashboardView` (Ringkasan) dan `PenjualanView` yang sama persis dengan fixture dan pemilih skenario (`?view=penjualan&s=ramai|sepi|baru|tertinggal`). Peristiwa tamu datang dari `peristiwaFixture`, bukan RPC.
+
+Gerbangnya: `notFound()` di luar `NODE_ENV=development` (rute ini berada di luar cakupan `proxy.ts`), dan ia tidak pernah menyentuh Supabase — seluruh isinya dari `dashboard-fixtures.ts`.

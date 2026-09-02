@@ -1,0 +1,989 @@
+/* =============================================================================
+   PAPAN DAPUR — SISTEM DESAIN
+   =============================================================================
+
+   Papan ini adalah saudara kandung konsol pemilik (console.css), bukan produk
+   lain. Ia memakai bahasa yang sama — "editorial ledger": hierarki lahir dari
+   skala tipe, berat, angka tabular, dan garis rambut, bukan dari kotak kartu
+   berwarna. Yang berbeda hanya jaraknya: konsol dibaca dari 50 cm oleh orang
+   yang duduk, papan ini dari 2–3 meter oleh orang yang berdiri memegang wajan.
+   Jadi skalanya lebih besar, kontrasnya lebih tegas, dan warna dipakai untuk
+   satu hal saja: memberi tahu seberapa mendesak sebuah tiket.
+
+   Konsep: SUHU SEBAGAI URGENSI. Tiket masuk dingin, memanas saat dikerjakan,
+   menghangus kalau ditinggalkan. Satu garis tipis di tepi kiri kartu — rel
+   panas — terisi dari bawah seiring umur, dan timer-nya berubah warna. Itu
+   saja. Seorang juru masak yang mengangkat kepala dari wajan bisa menghitung
+   tiket merah dari seberang dapur tanpa membaca satu kata pun.
+
+   Tipografi: Instrument Sans, typeface konsol. Humanist grotesk dengan angka
+   tabular sungguhan, jadi dua puluh timer yang berdetak serentak tidak
+   menggeser tata letak satu piksel pun.
+
+   Gelap adalah keadaan yang dirancang lebih dulu — ia memotong silau dapur
+   dan membuat warna urgensi menyala. Terang didukung penuh.
+   ========================================================================== */
+
+/* -----------------------------------------------------------------------------
+   1. TOKEN
+   Gelap adalah dasar. Terang ditulis sebagai penimpaan di bawahnya.
+   Nilai OKLCH mengikuti console.css: netral ditint ke hue navy merek (258),
+   aksen oranye dijaga sebagai satu-satunya warna non-semantik.
+   -------------------------------------------------------------------------- */
+
+.kds {
+  --kds-paper:       oklch(0.170 0.018 258);
+  --kds-surface:     oklch(0.215 0.020 258);
+  --kds-raised:      oklch(0.255 0.021 258);
+  --kds-sunken:      oklch(0.140 0.016 258);
+  --kds-line:        oklch(0.300 0.020 258);
+  --kds-line-strong: oklch(0.375 0.022 258);
+
+  --kds-ink:   oklch(0.966 0.008 258);
+  --kds-ink-2: oklch(0.800 0.014 258);
+  --kds-ink-3: oklch(0.680 0.018 258);
+  --kds-ink-4: oklch(0.548 0.020 258); /* ikon & garis saja, tak pernah teks */
+
+  /* Tahap kerja. Empat nada, masing-masing dengan cuci (wash) untuk pil. */
+  --kds-tahan:      oklch(0.640 0.020 258);
+  --kds-tahan-wash: oklch(0.270 0.018 258);
+  --kds-antre:      oklch(0.720 0.090 258);
+  --kds-antre-wash: oklch(0.285 0.045 258);
+  --kds-masak:      oklch(0.712 0.180 42);   /* oranye merek, versi kanvas gelap */
+  --kds-masak-wash: oklch(0.300 0.070 42);
+  --kds-siap:       oklch(0.760 0.140 152);
+  --kds-siap-wash:  oklch(0.290 0.050 152);
+
+  /* Urgensi. Hanya menyentuh rel, timer, dan chip terlambat. */
+  --kds-waspada:      oklch(0.790 0.130 78);
+  --kds-waspada-wash: oklch(0.300 0.050 78);
+  --kds-telat:        oklch(0.700 0.165 25);
+  --kds-telat-wash:   oklch(0.300 0.060 25);
+
+  /* Tombol utama. Satu gaya untuk semua tahap: tinta pekat, bukan blok warna.
+     Warna tahap sudah dibawa rel dan pil; tombol berwarna-warni di setiap
+     kartu hanya menaikkan porsi warna sampai tak ada yang menonjol lagi. */
+  --kds-btn:       oklch(0.966 0.008 258);
+  --kds-btn-ink:   oklch(0.200 0.030 258);
+  --kds-btn-hover: oklch(1 0 0);
+
+  --kds-fokus: oklch(0.760 0.120 240);
+
+  --kds-r:      10px;
+  --kds-r-sm:   6px;
+  --kds-r-pill: 999px;
+
+  /* Satu pengali untuk seluruh papan. Tablet di meja pass: 1. Monitor dinding:
+     1.25. Mengubah satu angka menggeser semuanya secara proporsional. */
+  --kds-skala: 1;
+
+  --kds-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --kds-shadow: 0 1px 2px oklch(0 0 0 / 0.30), 0 10px 28px -14px oklch(0 0 0 / 0.55);
+  --kds-shadow-pop: 0 1px 2px oklch(0 0 0 / 0.4), 0 12px 32px -8px oklch(0 0 0 / 0.6);
+
+  --kds-font: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+
+  color-scheme: dark;
+  background: var(--kds-paper);
+  color: var(--kds-ink);
+  font-family: var(--kds-font);
+  font-size: calc(14px * var(--kds-skala));
+  line-height: 1.45;
+  font-feature-settings: "cv01";
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+.kds[data-rapat="besar"] {
+  --kds-skala: 1.25;
+}
+
+/* Papan dapur memakai preferensi temanya sendiri (`data-kds` di <html>), bukan
+   `data-theme` milik konsol: tablet di dinding dapur dan laptop pemilik adalah
+   dua perangkat dengan dua kebutuhan cahaya. Di dalam konsol atribut ini
+   dicerminkan dari tema konsol supaya papan sewarna dengan bingkainya. */
+html[data-kds="terang"] .kds {
+  --kds-paper:       oklch(0.988 0.0025 258);
+  --kds-surface:     oklch(0.999 0.001 258);
+  --kds-raised:      oklch(0.975 0.004 258);
+  --kds-sunken:      oklch(0.962 0.005 258);
+  --kds-line:        oklch(0.906 0.008 258);
+  --kds-line-strong: oklch(0.842 0.012 258);
+
+  --kds-ink:   oklch(0.260 0.050 258);
+  --kds-ink-2: oklch(0.440 0.032 258);
+  --kds-ink-3: oklch(0.520 0.024 258);
+  --kds-ink-4: oklch(0.640 0.020 258);
+
+  --kds-tahan:      oklch(0.560 0.024 258);
+  --kds-tahan-wash: oklch(0.950 0.006 258);
+  --kds-antre:      oklch(0.420 0.090 258);
+  --kds-antre-wash: oklch(0.945 0.020 258);
+  --kds-masak:      oklch(0.545 0.190 38);
+  --kds-masak-wash: oklch(0.963 0.030 40.5);
+  --kds-siap:       oklch(0.500 0.130 152);
+  --kds-siap-wash:  oklch(0.960 0.030 152);
+
+  --kds-waspada:      oklch(0.487 0.115 70);
+  --kds-waspada-wash: oklch(0.962 0.040 70);
+  --kds-telat:        oklch(0.520 0.185 27);
+  --kds-telat-wash:   oklch(0.961 0.028 27);
+
+  --kds-btn:       oklch(0.260 0.050 258);
+  --kds-btn-ink:   oklch(0.988 0.0025 258);
+  --kds-btn-hover: oklch(0.320 0.055 258);
+
+  --kds-fokus: oklch(0.560 0.140 240);
+
+  --kds-shadow: 0 1px 2px oklch(0.26 0.05 258 / 0.05), 0 8px 24px -12px oklch(0.26 0.05 258 / 0.12);
+  --kds-shadow-pop: 0 1px 2px oklch(0.26 0.05 258 / 0.06), 0 8px 24px -6px oklch(0.26 0.05 258 / 0.14);
+
+  color-scheme: light;
+}
+
+/* Warna tahap dipilih sekali per tiket ke --nada, lalu diwarisi. Rel, pil,
+   titik chip membaca --nada — tak ada elemen yang memilih ulang warnanya. */
+.kds [data-tahap="tahan"] { --nada: var(--kds-tahan); --nada-wash: var(--kds-tahan-wash); }
+.kds [data-tahap="antre"] { --nada: var(--kds-antre); --nada-wash: var(--kds-antre-wash); }
+.kds [data-tahap="masak"] { --nada: var(--kds-masak); --nada-wash: var(--kds-masak-wash); }
+.kds [data-tahap="siap"]  { --nada: var(--kds-siap);  --nada-wash: var(--kds-siap-wash); }
+
+/* Urgensi menimpa tahap hanya pada rel dan timer. Kalau merah menelan seluruh
+   kartu, papan kehilangan informasi yang menentukan tombol mana yang ditekan. */
+.kds [data-panas="aman"]    { --panas-nada: var(--nada); }
+.kds [data-panas="waspada"] { --panas-nada: var(--kds-waspada); }
+.kds [data-panas="telat"]   { --panas-nada: var(--kds-telat); }
+
+/* -----------------------------------------------------------------------------
+   2. KERANGKA
+   -------------------------------------------------------------------------- */
+
+.kds-papan { display: flex; flex-direction: column; min-height: 100dvh; }
+
+.kds-isi {
+  flex: 1 1 auto;
+  padding: clamp(16px, 1.8vw, 28px) clamp(16px, 2vw, 32px) clamp(32px, 4vw, 56px);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Di dalam konsol papan ini adalah satu panel di antara panel lain: ia melepas
+   tinggi layar penuh dan latar kanvasnya, karena Shell sudah menyediakannya. */
+.kds[data-bingkai="konsol"],
+.kds[data-bingkai="konsol"] .kds-papan { min-height: 0; }
+.kds[data-bingkai="konsol"] {
+  background: transparent;
+  border: 1px solid var(--kds-line);
+  border-radius: var(--kds-r);
+  overflow: hidden;
+}
+.kds[data-bingkai="konsol"] .kds-pass { position: static; }
+
+/* -----------------------------------------------------------------------------
+   3. BAR PASS
+   Dua baris. Atas: identitas dan sistem — jarang berubah. Bawah: keadaan
+   pekerjaan — berubah tiap menit. Memisahkannya berarti mata tidak memindai
+   ulang nama kafe setiap kali sebuah tiket berpindah tahap.
+   -------------------------------------------------------------------------- */
+
+.kds-pass {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in oklch, var(--kds-paper) 90%, transparent);
+  backdrop-filter: blur(16px) saturate(1.2);
+  border-bottom: 1px solid var(--kds-line);
+}
+
+.kds-pass-atas,
+.kds-pass-bawah {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 clamp(16px, 2vw, 32px);
+  flex-wrap: wrap;
+}
+
+.kds-pass-atas { min-height: 60px; padding-top: 10px; padding-bottom: 10px; }
+.kds-pass-bawah { min-height: 52px; border-top: 1px solid var(--kds-line); gap: 6px; }
+
+.kds-merek {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-right: auto;
+  min-width: 0;
+}
+
+.kds-merek-judul {
+  margin: 0;
+  font-size: calc(17px * var(--kds-skala));
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: var(--kds-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Eyebrow konsol: 11px kapital dengan tracking lebar. */
+.kds-merek-sub {
+  font-size: calc(11px * var(--kds-skala));
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--kds-ink-3);
+  white-space: nowrap;
+}
+
+.kds-jam {
+  font-size: calc(15px * var(--kds-skala));
+  font-weight: 500;
+  color: var(--kds-ink-2);
+  letter-spacing: 0.01em;
+}
+
+/* --- Denyut sambungan ---------------------------------------------------- */
+
+.kds-sambungan {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: calc(12.5px * var(--kds-skala));
+  font-weight: 500;
+  color: var(--kds-ink-3);
+  white-space: nowrap;
+}
+
+.kds-sambungan i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--kds-siap);
+  flex: none;
+}
+
+/* Titik hidup berdenyut pelan: titik hijau yang diam tak bisa dibedakan dari
+   titik hijau yang membeku bersama seluruh halaman. */
+.kds-sambungan[data-hidup="true"] i { animation: kds-denyut 2.8s ease-in-out infinite; }
+.kds-sambungan[data-hidup="false"] { color: var(--kds-telat); }
+.kds-sambungan[data-hidup="false"] i { background: var(--kds-telat); }
+
+@keyframes kds-denyut {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* --- Kontrol ------------------------------------------------------------- */
+
+.kds-alat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--kds-r-sm);
+  background: transparent;
+  color: var(--kds-ink-3);
+  font: inherit;
+  font-size: calc(12.5px * var(--kds-skala));
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 140ms var(--kds-ease), color 140ms var(--kds-ease);
+}
+
+.kds-alat:hover { background: var(--kds-raised); color: var(--kds-ink); }
+.kds-alat[aria-pressed="true"] { background: var(--kds-raised); color: var(--kds-ink); }
+.kds-alat[data-bahaya="true"]:hover { color: var(--kds-telat); background: var(--kds-telat-wash); }
+
+.kds-pemisah {
+  width: 1px;
+  height: 20px;
+  background: var(--kds-line-strong);
+  margin: 0 2px;
+}
+
+.kds :is(button, input, a):focus-visible {
+  outline: 2px solid var(--kds-fokus);
+  outline-offset: 2px;
+}
+
+/* --- Pencarian ----------------------------------------------------------- */
+
+.kds-cari {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--kds-r-sm);
+  border: 1px solid var(--kds-line);
+  background: var(--kds-surface);
+  color: var(--kds-ink-4);
+  flex: 0 1 260px;
+  min-width: 0;
+  transition: border-color 140ms var(--kds-ease);
+}
+
+.kds-cari:focus-within { border-color: var(--kds-line-strong); color: var(--kds-ink-3); }
+
+.kds-cari input {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: calc(13px * var(--kds-skala));
+  color: var(--kds-ink);
+  width: 100%;
+  min-width: 0;
+}
+.kds-cari input::placeholder { color: var(--kds-ink-3); }
+
+.kds-cari-hapus {
+  border: 0;
+  background: transparent;
+  color: var(--kds-ink-3);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border-radius: 4px;
+}
+.kds-cari-hapus:hover { color: var(--kds-ink); }
+
+/* --- Chip penyaring ------------------------------------------------------
+   Bisa ditekan. Saat pesanan menumpuk, hal pertama yang dilakukan seorang
+   chef adalah menyingkirkan segalanya kecuali yang mendesak.
+   -------------------------------------------------------------------------- */
+
+.kds-saring {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-right: auto;
+}
+
+.kds-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: calc(34px * var(--kds-skala));
+  padding: 0 12px 0 10px;
+  border: 0;
+  border-radius: var(--kds-r-sm);
+  background: transparent;
+  color: var(--kds-ink-3);
+  font: inherit;
+  font-size: calc(13px * var(--kds-skala));
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 140ms var(--kds-ease), color 140ms var(--kds-ease);
+}
+
+.kds-chip:hover { color: var(--kds-ink); background: var(--kds-raised); }
+
+/* Titik tahap berbeda bentuk, bukan cuma warna — panduan aksesibilitas proyek
+   melarang status yang hanya dibedakan warna. */
+.kds-chip-titik {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  background: var(--nada, var(--kds-ink-4));
+  border-radius: 50%;
+}
+.kds-chip[data-tahap="tahan"] .kds-chip-titik { background: transparent; box-shadow: inset 0 0 0 1.5px var(--nada); }
+.kds-chip[data-tahap="masak"] .kds-chip-titik { border-radius: 2px; }
+.kds-chip[data-tahap="siap"]  .kds-chip-titik { border-radius: 2px; transform: rotate(45deg); }
+
+.kds-chip b {
+  font-size: calc(14px * var(--kds-skala));
+  font-weight: 600;
+  color: var(--kds-ink-2);
+  min-width: 2ch;
+  text-align: right;
+}
+
+.kds-chip[aria-pressed="true"] { background: var(--kds-raised); color: var(--kds-ink); }
+.kds-chip[aria-pressed="true"] b { color: var(--kds-ink); }
+.kds-chip[data-nol="true"] { opacity: 0.5; }
+
+/* --- Sakelar tampilan ---------------------------------------------------- */
+
+.kds-sakelar {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--kds-r-sm);
+  background: var(--kds-sunken);
+}
+
+.kds-sakelar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: calc(28px * var(--kds-skala));
+  padding: 0 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--kds-ink-3);
+  font: inherit;
+  font-size: calc(12.5px * var(--kds-skala));
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 140ms var(--kds-ease), color 140ms var(--kds-ease);
+}
+.kds-sakelar button:hover { color: var(--kds-ink); }
+.kds-sakelar button[aria-pressed="true"] {
+  background: var(--kds-surface);
+  color: var(--kds-ink);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.12);
+}
+
+/* -----------------------------------------------------------------------------
+   4. GRID
+   auto-fill: tablet 10 inci dan monitor 43 inci sama-sama nyata, dan mengunci
+   tiga kolom membuat salah satunya selalu salah.
+   -------------------------------------------------------------------------- */
+
+.kds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(296px * var(--kds-skala)), 1fr));
+  gap: clamp(14px, 1.2vw, 20px);
+  align-items: start;
+}
+
+/* -----------------------------------------------------------------------------
+   5. TIKET
+   -------------------------------------------------------------------------- */
+
+.kds-tiket {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  background: var(--kds-surface);
+  border: 1px solid var(--kds-line);
+  border-radius: var(--kds-r);
+  box-shadow: var(--kds-shadow);
+  overflow: hidden;
+  transition: border-color 200ms var(--kds-ease);
+}
+
+.kds-tiket[data-panas="telat"] {
+  border-color: color-mix(in oklch, var(--kds-telat) 45%, var(--kds-line));
+}
+
+/* Tertahan bukan pekerjaan dapur. Diredupkan, bukan disembunyikan: pesanan yang
+   macet di kasir harus terlihat oleh seseorang. */
+.kds-tiket[data-tahap="tahan"] { opacity: 0.7; }
+.kds-tiket[data-tahap="tahan"]:hover { opacity: 1; }
+
+/* --- Rel panas ------------------------------------------------------------
+   Garis 3px setinggi kartu di tepi kiri, terisi dari bawah seiring umur.
+   Antrean terbaca seperti deretan tabung ukur.
+   -------------------------------------------------------------------------- */
+
+.kds-rel {
+  position: relative;
+  width: 3px;
+  background: var(--kds-sunken);
+  overflow: hidden;
+}
+
+.kds-rel i {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: calc(var(--isi, 0) * 100%);
+  background: var(--panas-nada, var(--nada));
+  transition: height 900ms linear, background 400ms var(--kds-ease);
+}
+
+.kds-tiket[data-tahap="siap"] .kds-rel i { height: 100%; }
+.kds-tiket[data-panas="telat"] .kds-rel i { animation: kds-bara 2s ease-in-out infinite; }
+
+.kds-tiket[data-tahap="tahan"] .kds-rel {
+  background: repeating-linear-gradient(180deg, var(--kds-line-strong) 0 4px, transparent 4px 9px);
+}
+.kds-tiket[data-tahap="tahan"] .kds-rel i { display: none; }
+
+@keyframes kds-bara {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.kds-tiket-isi { display: flex; flex-direction: column; min-width: 0; }
+
+/* --- Kepala -------------------------------------------------------------- */
+
+.kds-kepala {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: calc(16px * var(--kds-skala)) calc(18px * var(--kds-skala)) calc(12px * var(--kds-skala));
+}
+
+.kds-meja {
+  margin: 0;
+  font-size: calc(18px * var(--kds-skala));
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  line-height: 1.2;
+  color: var(--kds-ink);
+}
+
+/* Baris metadata: jalur · kode · jam masuk. Satu baris, ink-3, dipisah
+   titik tengah — bukan tiga pil. */
+.kds-jalur {
+  margin: 5px 0 0;
+  font-size: calc(12.5px * var(--kds-skala));
+  font-weight: 500;
+  color: var(--kds-ink-3);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.kds-jalur > span + span::before {
+  content: "·";
+  margin-right: 7px;
+  color: var(--kds-ink-4);
+}
+.kds-kode { letter-spacing: 0.04em; }
+
+/* Timer. Angka terbesar di kartu, warna mengikuti urgensi. Saat aman, ia
+   tinta biasa — kartu yang tenang harus terlihat tenang. */
+.kds-waktu { text-align: right; flex: none; }
+
+.kds-timer {
+  display: block;
+  font-size: calc(26px * var(--kds-skala));
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--panas-nada);
+}
+.kds-tiket[data-panas="aman"] .kds-timer { color: var(--kds-ink); }
+.kds-tiket[data-tahap="siap"] .kds-timer { color: var(--kds-siap); }
+
+.kds-baki {
+  display: block;
+  margin-top: 5px;
+  font-size: calc(12px * var(--kds-skala));
+  font-weight: 500;
+  color: var(--kds-ink-3);
+}
+.kds-tiket[data-panas="telat"] .kds-baki { color: var(--kds-telat); }
+.kds-tiket[data-panas="waspada"] .kds-baki { color: var(--kds-waspada); }
+
+/* --- Pil status ---------------------------------------------------------- */
+
+.kds-tag-baris {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 calc(18px * var(--kds-skala)) calc(14px * var(--kds-skala));
+}
+
+.kds-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: calc(24px * var(--kds-skala));
+  padding: 0 9px;
+  border-radius: var(--kds-r-pill);
+  font-size: calc(12px * var(--kds-skala));
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+}
+
+.kds-tag-tahap { background: var(--nada-wash); color: var(--nada); }
+.kds-tag-tahap::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.kds-tag-netral { background: var(--kds-sunken); color: var(--kds-ink-3); }
+.kds-tag-utang  { background: var(--kds-waspada-wash); color: var(--kds-waspada); }
+
+/* --- Daftar item ----------------------------------------------------------
+   Bagian yang benar-benar dibaca. Semua yang lain ada untuk mengarahkan mata
+   ke sini.
+   -------------------------------------------------------------------------- */
+
+.kds-item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--kds-line);
+}
+
+.kds-item { border-bottom: 1px solid var(--kds-line); }
+.kds-item:last-child { border-bottom: 0; }
+
+/* Seluruh baris adalah target tekan: tangan bersarung tidak bisa mengenai
+   kotak centang 20 piksel. */
+.kds-item-tekan {
+  display: grid;
+  grid-template-columns: calc(28px * var(--kds-skala)) 1fr;
+  column-gap: calc(12px * var(--kds-skala));
+  width: 100%;
+  min-height: calc(48px * var(--kds-skala));
+  padding: calc(11px * var(--kds-skala)) calc(18px * var(--kds-skala));
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  align-items: baseline;
+  transition: background 120ms var(--kds-ease);
+}
+.kds-item-tekan:hover { background: var(--kds-raised); }
+
+/* Jumlah: angka tabular tegak, tanpa kotak. Lebih dari satu diberi warna tahap
+   supaya tidak terbaca sekilas sebagai "1". */
+.kds-qty {
+  grid-row: 1 / span 3;
+  font-size: calc(16px * var(--kds-skala));
+  font-weight: 600;
+  color: var(--kds-ink-3);
+  line-height: 1.3;
+}
+.kds-qty[data-banyak="true"] { color: var(--nada); }
+.kds-qty::after { content: "×"; font-weight: 500; margin-left: 1px; color: var(--kds-ink-4); font-size: 0.85em; }
+
+.kds-nama {
+  font-size: calc(15.5px * var(--kds-skala));
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.006em;
+  color: var(--kds-ink);
+  overflow-wrap: anywhere;
+}
+
+/* Varian dan catatan per baris. Bukan hierarki terbalik yang berisik — cukup
+   berbeda warna supaya tidak pernah terlewat: nama menu bisa ditebak dari
+   konteks, "tanpa gula" tidak bisa. */
+.kds-varian,
+.kds-item-catatan {
+  grid-column: 2;
+  margin-top: 3px;
+  font-size: calc(12.5px * var(--kds-skala));
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.kds-varian { color: var(--kds-ink-3); }
+
+.kds-item-catatan {
+  display: inline-block;
+  justify-self: start;
+  margin-top: 5px;
+  padding: 2px 8px;
+  border-radius: var(--kds-r-pill);
+  background: var(--kds-waspada-wash);
+  color: var(--kds-waspada);
+  font-weight: 600;
+}
+
+/* Item yang sudah diplating dicoret. Catatan pribadi juru masak, bukan status
+   pesanan — disimpan lokal per perangkat. */
+.kds-item[data-selesai="true"] .kds-nama {
+  color: var(--kds-ink-3);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: var(--kds-siap);
+}
+.kds-item[data-selesai="true"] .kds-qty { color: var(--kds-ink-4); }
+.kds-item[data-selesai="true"] :is(.kds-varian, .kds-item-catatan) { opacity: 0.45; }
+
+/* --- Catatan pesanan ----------------------------------------------------- */
+
+.kds-catatan {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  padding: calc(12px * var(--kds-skala)) calc(18px * var(--kds-skala));
+  border-top: 1px solid var(--kds-line);
+  background: var(--kds-waspada-wash);
+  color: var(--kds-waspada);
+  font-size: calc(13px * var(--kds-skala));
+  font-weight: 500;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.kds-catatan svg { flex: none; margin-top: 2px; }
+
+/* --- Kaki: satu tombol --------------------------------------------------- */
+
+.kds-kaki {
+  margin-top: auto;
+  padding: calc(14px * var(--kds-skala)) calc(14px * var(--kds-skala)) calc(14px * var(--kds-skala));
+  border-top: 1px solid var(--kds-line);
+}
+
+.kds-bump {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: calc(46px * var(--kds-skala));
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--kds-r-sm);
+  background: var(--kds-btn);
+  color: var(--kds-btn-ink);
+  font: inherit;
+  font-size: calc(14px * var(--kds-skala));
+  font-weight: 600;
+  letter-spacing: 0.004em;
+  cursor: pointer;
+  overflow: hidden;
+  transition: background 140ms var(--kds-ease), transform 80ms var(--kds-ease);
+}
+.kds-bump:hover { background: var(--kds-btn-hover); }
+.kds-bump:active { transform: translateY(1px); }
+.kds-bump:disabled { cursor: default; opacity: 0.7; }
+
+/* Bersiap: perintah terminal ditahan beberapa detik. Database tidak punya
+   jalan pulang dari `completed`, jadi kesempatan batal harus ada SEBELUM
+   penulisan. Isian yang menyusut adalah hitungan mundurnya. */
+.kds-bump[data-bersiap="true"] {
+  background: var(--kds-telat-wash);
+  color: var(--kds-telat);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--kds-telat) 35%, transparent);
+}
+
+.kds-bump-mundur {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  background: var(--kds-telat);
+  opacity: 0.16;
+  transform-origin: left center;
+  animation: kds-mundur var(--jeda, 4s) linear forwards;
+}
+
+@keyframes kds-mundur {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+.kds-bump-label { position: relative; display: inline-flex; align-items: center; gap: 9px; }
+
+/* Tertahan: tidak ada aksi, yang ada penjelasan kenapa. */
+.kds-buntu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: calc(46px * var(--kds-skala));
+  margin: 0;
+  border-radius: var(--kds-r-sm);
+  border: 1px dashed var(--kds-line-strong);
+  color: var(--kds-ink-3);
+  font-size: calc(13px * var(--kds-skala));
+  font-weight: 500;
+  text-align: center;
+  padding: 0 12px;
+}
+
+/* -----------------------------------------------------------------------------
+   6. SEMUA ITEM — daftar produksi
+   Sembilan tiket yang masing-masing memesan satu Nasi Goreng adalah satu wajan
+   berisi sembilan. Grid tiket tidak bisa mengatakan itu.
+   -------------------------------------------------------------------------- */
+
+.kds-produksi {
+  border: 1px solid var(--kds-line);
+  border-radius: var(--kds-r);
+  background: var(--kds-surface);
+  box-shadow: var(--kds-shadow);
+  overflow: hidden;
+}
+
+.kds-produksi-baris {
+  display: grid;
+  grid-template-columns: calc(72px * var(--kds-skala)) 1fr auto;
+  align-items: center;
+  gap: calc(20px * var(--kds-skala));
+  padding: calc(14px * var(--kds-skala)) calc(20px * var(--kds-skala));
+  border-bottom: 1px solid var(--kds-line);
+}
+.kds-produksi-baris:last-child { border-bottom: 0; }
+
+.kds-produksi-total {
+  font-size: calc(30px * var(--kds-skala));
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--kds-ink);
+  text-align: right;
+}
+
+.kds-produksi-nama {
+  font-size: calc(16px * var(--kds-skala));
+  font-weight: 500;
+  letter-spacing: -0.008em;
+  color: var(--kds-ink);
+  overflow-wrap: anywhere;
+}
+.kds-produksi-varian {
+  margin-top: 3px;
+  font-size: calc(12.5px * var(--kds-skala));
+  font-weight: 500;
+  color: var(--kds-ink-3);
+}
+.kds-produksi-catatan {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: var(--kds-r-pill);
+  background: var(--kds-waspada-wash);
+  color: var(--kds-waspada);
+  font-size: calc(12px * var(--kds-skala));
+  font-weight: 600;
+}
+
+/* Pecahan per tahap sebagai teks berbaris, bukan deretan kotak. */
+.kds-pecahan {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: calc(12.5px * var(--kds-skala));
+  font-weight: 500;
+  color: var(--kds-ink-3);
+  white-space: nowrap;
+}
+.kds-pecahan span { display: inline-flex; align-items: center; gap: 7px; }
+.kds-pecahan span i { width: 7px; height: 7px; border-radius: 50%; background: var(--nada); }
+.kds-pecahan span b { font-weight: 600; color: var(--kds-ink-2); }
+
+/* -----------------------------------------------------------------------------
+   7. KOSONG & GALAT
+   -------------------------------------------------------------------------- */
+
+.kds-kosong {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: clamp(56px, 10vh, 112px) 24px;
+  border: 1px dashed var(--kds-line-strong);
+  border-radius: var(--kds-r);
+  text-align: center;
+}
+.kds-kosong-judul {
+  margin: 0;
+  font-size: calc(17px * var(--kds-skala));
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: var(--kds-ink);
+}
+.kds-kosong p {
+  margin: 0;
+  max-width: 44ch;
+  font-size: calc(13.5px * var(--kds-skala));
+  line-height: 1.55;
+  color: var(--kds-ink-3);
+}
+.kds-kosong svg { color: var(--kds-ink-4); }
+
+.kds-galat {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(92vw, 560px);
+  padding: 12px 14px;
+  border-radius: var(--kds-r-sm);
+  border: 1px solid var(--kds-line-strong);
+  background: var(--kds-surface);
+  box-shadow: var(--kds-shadow-pop);
+  color: var(--kds-ink);
+  font-size: calc(13.5px * var(--kds-skala));
+  font-weight: 500;
+  line-height: 1.4;
+}
+.kds-galat svg { color: var(--kds-telat); flex: none; }
+.kds-galat button {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--kds-ink-3);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border-radius: 4px;
+}
+.kds-galat button:hover { color: var(--kds-ink); background: var(--kds-raised); }
+
+/* -----------------------------------------------------------------------------
+   8. GERAK — tiga gerakan, masing-masing menjawab satu pertanyaan:
+   "apa yang baru", "apa yang mendesak", "apa yang barusan saya tekan".
+   -------------------------------------------------------------------------- */
+
+.kds-tiket { animation: kds-masuk 360ms var(--kds-ease) both; }
+
+.kds-tiket:nth-child(2)  { animation-delay: 24ms; }
+.kds-tiket:nth-child(3)  { animation-delay: 48ms; }
+.kds-tiket:nth-child(4)  { animation-delay: 72ms; }
+.kds-tiket:nth-child(5)  { animation-delay: 96ms; }
+.kds-tiket:nth-child(6)  { animation-delay: 116ms; }
+.kds-tiket:nth-child(7)  { animation-delay: 134ms; }
+.kds-tiket:nth-child(8)  { animation-delay: 150ms; }
+.kds-tiket:nth-child(n + 9) { animation-delay: 164ms; }
+
+@keyframes kds-masuk {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.kds-tiket[data-pergi="true"] {
+  animation: kds-pergi 200ms ease-in forwards;
+  pointer-events: none;
+}
+@keyframes kds-pergi { to { opacity: 0; transform: scale(0.98); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .kds *, .kds *::before, .kds *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+  /* Hitungan mundur batal adalah jeda amannya, bukan hiasan. */
+  .kds-bump-mundur { animation-duration: var(--jeda, 4s) !important; }
+}
+
+/* -----------------------------------------------------------------------------
+   9. LAYAR SEMPIT
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  .kds-cari { flex-basis: 100%; order: 9; }
+  .kds-merek-sub, .kds-pemisah { display: none; }
+  .kds-produksi-baris {
+    grid-template-columns: calc(56px * var(--kds-skala)) 1fr;
+    row-gap: 8px;
+  }
+  .kds-pecahan { grid-column: 2; flex-wrap: wrap; gap: 10px; }
+}

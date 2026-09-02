@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Loader2, RotateCcw } from "lucide-react";
+import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
+import type { WebGLRenderer } from "three";
 
 interface GlbViewerProps {
   url: string;
   onReady?: () => void;
   onError?: (msg: string) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onGltfLoaded?: (gltf: any) => void;
+  onGltfLoaded?: (gltf: GLTF) => void;
   /** Admin-set default scale; customer slider multiplies on top of this. */
   modelScale?: number;
   /** Menyerahkan fungsi pengambil frame ke induk setelah model siap. */
@@ -24,7 +25,7 @@ export default function GlbViewer({
   onCaptureReady,
 }: GlbViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const rendererRef = useRef<any>(null);
+  const rendererRef = useRef<WebGLRenderer | null>(null);
   const captureRef = useRef<(() => string | null) | null>(null);
   const frameRef = useRef<number>(0);
   // Listener window (mousemove/mouseup/resize) didaftarkan di dalam init().
@@ -109,7 +110,7 @@ export default function GlbViewer({
       draco.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
       loader.setDRACOLoader(draco);
       loader.setMeshoptDecoder(MeshoptDecoder); // Tripo compress:"geometry" emits EXT_meshopt_compression
-      const gltf = await new Promise<any>((resolve, reject) => {
+      const gltf = await new Promise<GLTF>((resolve, reject) => {
         loader.load(
           url,
           resolve,
@@ -354,11 +355,17 @@ export default function GlbViewer({
       setState("error");
       onError?.(msg);
     }
-  }, [url, onReady, onError, onCaptureReady]);
+  }, [url, onReady, onError, onCaptureReady, modelScale, onGltfLoaded]);
 
   useEffect(() => {
-    init();
+    let disposed = false;
+    const kickoff = window.setTimeout(() => {
+      if (!disposed) void init();
+    }, 0);
+
     return () => {
+      disposed = true;
+      window.clearTimeout(kickoff);
       cancelAnimationFrame(frameRef.current);
       listenersCleanupRef.current?.();
       listenersCleanupRef.current = null;

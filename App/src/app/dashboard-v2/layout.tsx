@@ -9,6 +9,9 @@ import "../role-pill.css";
 // Terakhir: lapisan konsol menuntun token --dp-* warisan ke palet baru,
 // jadi ia harus menang atas dp.css dalam urutan kaskade.
 import "../console.css";
+// Lembar panduan + tur pemandu. Diimpor di layout, bukan di halamannya:
+// dialog tur dipicu dari bilah atas SETIAP halaman konsol.
+import "../panduan.css";
 import { redirect } from "next/navigation";
 
 export const metadata = {
@@ -17,7 +20,7 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-/** Konsol owner (recreation Dream POS). Gate identik pola sebelumnya:
+/** Konsol owner. Gate identik pola sebelumnya:
  *  belum login → /login, bukan owner → /kasir. */
 export default async function DashboardV2Layout({ children }: { children: React.ReactNode }) {
   const ctx = await getStaffContext();

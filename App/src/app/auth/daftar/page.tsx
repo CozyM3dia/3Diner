@@ -1,88 +1,69 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { EyeOffIcon } from "lucide-react";
 import AuthShell from "../AuthShell";
+import { AuthField, AuthFoot, AuthInput, AuthPassword } from "@/components/ui/sign-in";
 
 export const metadata: Metadata = { title: "Daftar | 3Diner" };
 
-/**
- * Halaman Daftar — recreation 1:1 `register.html` Dream POS (placeholder UI,
- * logic menyusul).
- */
+/** Halaman Daftar pratinjau. Pendaftaran yang sungguhan ada di tab "Daftar"
+ *  pada `/login`. Tombol Google/Facebook milik template dibuang: tidak ada
+ *  provider sosial yang tersambung, dan tombol yang tidak melakukan apa pun
+ *  adalah kontrol palsu. */
 export default function DaftarPage() {
   return (
-    <AuthShell>
-      <div className="ap-mb4">
-        <h3 className="ap-mb2">Daftar</h3>
-        <p className="ap-mb0 ap-head-sub">
-          Dan mari mulai dengan uji coba gratis kamu
+    <AuthShell
+      title="Daftar akun"
+      lede="Buat akun untuk mulai mengelola menu, pesanan, dan stok kafe kamu."
+    >
+      <div className="au-fields">
+        <p className="au-note">
+          Pratinjau alur. Pendaftaran yang aktif ada di{" "}
+          <Link href="/login" className="au-link">
+            /login
+          </Link>
+          .
         </p>
-      </div>
 
-      <div className="ap-field">
-        <label className="ap-label" htmlFor="email">
-          Email<span className="ap-req"> *</span>
+        <AuthField label="Email" htmlFor="email" required delay={3}>
+          <AuthInput id="email" type="email" autoComplete="email" placeholder="kamu@kafe.com" />
+        </AuthField>
+
+        <AuthField label="Password" htmlFor="password" required delay={4}>
+          <AuthPassword id="password" autoComplete="new-password" placeholder="Minimal 8 karakter" />
+        </AuthField>
+
+        <AuthField label="Konfirmasi password" htmlFor="confirm-password" required delay={5}>
+          <AuthPassword
+            id="confirm-password"
+            autoComplete="new-password"
+            placeholder="Ulangi password"
+            labelShow="Tampilkan konfirmasi password"
+            labelHide="Sembunyikan konfirmasi password"
+          />
+        </AuthField>
+
+        <label className="au-check au-el" style={{ "--d": 6 } as React.CSSProperties}>
+          <input type="checkbox" />
+          <span>
+            Saya menyetujui Ketentuan Layanan &amp; Kebijakan Privasi 3Diner.
+          </span>
         </label>
-        <input id="email" type="email" className="ap-input" placeholder="kamu@kafe.com" />
+
+        <Link
+          href="/login"
+          className="au-submit au-el"
+          style={{ "--d": 7 } as React.CSSProperties}
+        >
+          Daftar
+        </Link>
       </div>
 
-      <div className="ap-field">
-        <label className="ap-label" htmlFor="password">
-          Password<span className="ap-req"> *</span>
-        </label>
-        <div className="ap-pass">
-          <input id="password" type="password" className="ap-input" placeholder="••••••••" />
-          <button type="button" className="ap-pass-toggle" aria-label="Tampilkan password">
-            <EyeOffIcon size={16} />
-          </button>
-        </div>
-      </div>
-
-      <div className="ap-field">
-        <label className="ap-label" htmlFor="confirm-password">
-          Konfirmasi Password<span className="ap-req"> *</span>
-        </label>
-        <div className="ap-pass">
-          <input id="confirm-password" type="password" className="ap-input" placeholder="••••••••" />
-          <button type="button" className="ap-pass-toggle" aria-label="Tampilkan konfirmasi password">
-            <EyeOffIcon size={16} />
-          </button>
-        </div>
-      </div>
-
-      <div className="ap-check ap-mb4">
-        <input id="agree" type="checkbox" />
-        <label htmlFor="agree" className="ap-check ap-mb0" style={{ gap: 0 }}>
-          Setuju dengan <a href="#" className="ap-plain">&nbsp;Syarat</a> &amp;
-          <a href="#" className="ap-plain">&nbsp;Kebijakan Privasi</a>
-        </label>
-      </div>
-
-      <div className="ap-mb4">
-        <button type="button" className="ap-btn ap-btn-primary">Daftar</button>
-      </div>
-
-      <div className="ap-or ap-mb4">
-        <span>atau lanjutkan dengan</span>
-      </div>
-
-      <div className="ap-social">
-        <button type="button" className="ap-btn ap-btn-white">
-          {/* eslint-disable-next-line @next/next/no-img-element -- ikon Google multicolor (SVG template) */}
-          <img src="/dp-auth/google.svg" alt="google" /> Google
-        </button>
-        <button type="button" className="ap-btn ap-btn-white">
-          {/* eslint-disable-next-line @next/next/no-img-element -- ikon Facebook (SVG template) */}
-          <img src="/dp-auth/fb.svg" alt="facebook" /> Facebook
-        </button>
-      </div>
-
-      <div className="ap-foot">
-        <p className="ap-mb0">
-          Sudah punya akun?
-          <Link href="/auth/masuk" className="ap-link"> Masuk</Link>
-        </p>
-      </div>
+      <AuthFoot>
+        Sudah punya akun?{" "}
+        <Link href="/auth/masuk" className="au-link">
+          Masuk
+        </Link>
+      </AuthFoot>
     </AuthShell>
   );
 }

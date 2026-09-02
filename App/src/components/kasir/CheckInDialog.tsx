@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { checkInOrder } from "@/lib/kasir-checkin";
@@ -18,6 +18,15 @@ interface BarcodeDetectorLike {
   detect: (source: CanvasImageSource) => Promise<DetectedBarcode[]>;
 }
 type BarcodeDetectorCtor = new (opts?: { formats?: string[] }) => BarcodeDetectorLike;
+
+const subscribeToCameraSupport = () => () => undefined;
+
+function getCameraSupportSnapshot(): boolean | null {
+  if (typeof window === "undefined") return null;
+  return "BarcodeDetector" in window && !!navigator.mediaDevices?.getUserMedia;
+}
+
+const getCameraSupportServerSnapshot = (): boolean | null => null;
 
 const CODE_RE = /^[A-Z0-9]{8}$/;
 
@@ -54,9 +63,13 @@ function parseQrPayload(raw: string): string | null {
  *  tidak ada di perangkat, opsi kamera disembunyikan dan hanya ketik manual
  *  yang tampil. Tugas tidak pernah bergantung pada dukungan kamera. */
 export default function CheckInDialog({ onClose }: Props) {
-  // null sampai fitur dicek di klien. Server tidak punya BarcodeDetector, jadi
-  // mengeceknya di render awal akan berbeda antara server dan klien.
-  const [cameraSupported, setCameraSupported] = useState<boolean | null>(null);
+  // useSyncExternalStore keeps the server snapshot null and refreshes from the
+  // browser capability after hydration without an effect-driven state update.
+  const cameraSupported = useSyncExternalStore(
+    subscribeToCameraSupport,
+    getCameraSupportSnapshot,
+    getCameraSupportServerSnapshot,
+  );
   const [mode, setMode] = useState<"scan" | "manual">("manual");
 
   const [code, setCode] = useState("");
@@ -103,13 +116,6 @@ export default function CheckInDialog({ onClose }: Props) {
   useEffect(() => {
     returnTo.current = document.activeElement;
     closeRef.current?.focus();
-    const supported =
-      typeof window !== "undefined" &&
-      "BarcodeDetector" in window &&
-      typeof navigator !== "undefined" &&
-      !!navigator.mediaDevices?.getUserMedia;
-    setCameraSupported(supported);
-
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }

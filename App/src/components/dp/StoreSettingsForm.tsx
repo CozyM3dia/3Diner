@@ -141,6 +141,9 @@ export default function StoreSettingsForm({ cafe }: { cafe: Cafe }) {
 
   return (
     <div className="dp-card">
+      <div className="dp-card-head">
+        <h2 className="dp-card-title">Informasi &amp; Profil Toko</h2>
+      </div>
       <div className="dp-card-body">
         <form ref={formRef} onSubmit={onSubmit}>
           <ImageField

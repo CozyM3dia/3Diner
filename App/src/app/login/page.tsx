@@ -1,11 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { EyeIcon, EyeOffIcon, LogInIcon } from "lucide-react";
+import { LogInIcon, SparklesIcon } from "lucide-react";
 import { useClerk, useSignIn, useSignUp } from "@clerk/nextjs";
 import { friendlyClerkError } from "@/lib/clerk-errors";
+import {
+  AuthBrand,
+  AuthField,
+  AuthFoot,
+  AuthHead,
+  AuthInput,
+  AuthPassword,
+  AuthSplit,
+} from "@/components/ui/sign-in";
 
 const ALASAN: Record<string, string> = {
   "bukan-staf": "Akun ini belum terhubung ke kafe mana pun. Hubungi pemilik kafe untuk diundang.",
@@ -17,11 +25,22 @@ const SIGNUP_FIELD_LABELS: Record<string, string> = {
   first_name: "nama depan",
   last_name: "nama belakang",
   legal_accepted: "persetujuan ketentuan",
-  phone_number: "nomor WhatsApp",
   username: "username",
 };
 
 const INGAT_KEY = "login-ingat-email";
+
+/* Akses cepat demo. Kredensialnya sengaja publik (NEXT_PUBLIC_*): gunanya
+   memang dibagikan, dan menaruhnya di server tidak menambah keamanan apa pun
+   ketika halaman ini juga menampilkannya. Panel hanya muncul bila keduanya
+   terisi — kalau kosong, tidak ada kontrol yang digambar.
+
+   Jalur masuknya SAMA dengan login biasa (Clerk password sign-in). Tidak ada
+   pintu belakang: akun demo tetap akun sungguhan dengan peran dan kafenya
+   sendiri, jadi mencabutnya cukup lewat Clerk. */
+const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL ?? "";
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD ?? "";
+const DEMO_AKTIF = Boolean(DEMO_EMAIL && DEMO_PASSWORD);
 
 type Mode = "login" | "daftar";
 type VerificationMode = "signin" | "signup";
@@ -93,73 +112,20 @@ function suggestedUsername(email: string): string {
   return normalized || "pengguna";
 }
 
-function LoginLogo() {
-  return (
-    <div className="login-logo">
-      <Image src="/brand/logo-3diner-mark.svg" alt="" width={38} height={38} priority />
-      <span>3Diner</span>
-    </div>
-  );
-}
-
-function BrandPanel() {
-  return (
-    <section className="login-right" aria-hidden="true">
-      <span className="login-orbit o1" />
-      <span className="login-orbit o2" />
-      <span className="login-glow" />
-
-      <p className="login-kicker">Smart Menu · 3D &amp; AR</p>
-      <h2 className="login-headline">
-        Kendali penuh kafe kamu, dengan menu yang bisa dilihat tamu dalam 3D.
-      </h2>
-      <p className="login-rightsub">
-        Kelola menu, varian, resep, dan stok dari satu konsol — lengkap dengan model 3D
-        dan pratinjau AR untuk setiap hidangan.
-      </p>
-
-      <div className="login-glass">
-        <div className="login-glass-row">
-          <span className="login-thumb" />
-          <div>
-            <span className="login-glass-name">Grilled Salmon Steak</span>
-            <span className="login-glass-meta">Rp 48.000 · Tayang terjadwal</span>
-          </div>
-        </div>
-        <div className="login-pills">
-          <span className="dv2-pill" style={{ "--pill": "var(--semantic-teal)" } as React.CSSProperties}>
-            3D ready
-          </span>
-          <span className="dv2-pill" style={{ "--pill": "var(--semantic-success)" } as React.CSSProperties}>
-            AR ready
-          </span>
-        </div>
-        <p className="login-glass-cap">
-          Contoh kartu menu dengan model 3D — tamu memutar hidangan sebelum memesan.
-        </p>
-      </div>
-
-      <div className="login-figure" />
-    </section>
-  );
-}
-
 function ClerkSetupPage() {
   return (
-    <main className="login-split">
-      <section className="login-left">
-        <LoginLogo />
-        <h1 className="login-hello">Clerk belum dikonfigurasi</h1>
-        <p className="login-sub">
-          Tambahkan publishable key Clerk di environment lokal untuk mengaktifkan login 3Diner.
-        </p>
-        <div className="login-note" role="status">
+    <AuthSplit>
+      <AuthBrand />
+      <AuthHead title="Clerk belum dikonfigurasi">
+        Tambahkan publishable key Clerk di environment lokal untuk mengaktifkan login 3Diner.
+      </AuthHead>
+      <div className="au-fields">
+        <p className="au-note" role="status">
           Isi <b>NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</b> dan <b>CLERK_SECRET_KEY</b> dari Clerk
           Dashboard, lalu jalankan ulang server Next.js.
-        </div>
-      </section>
-      <BrandPanel />
-    </main>
+        </p>
+      </div>
+    </AuthSplit>
   );
 }
 
@@ -174,13 +140,13 @@ function ClerkLoginForm() {
   const router = useRouter();
   const { signIn } = useSignIn();
   const { signUp } = useSignUp();
-  const { signOut } = useClerk();
+  const clerk = useClerk();
+  const { signOut } = clerk;
   const [mode, setMode] = useState<Mode>("login");
 
   // State masuk.
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
@@ -191,10 +157,6 @@ function ClerkLoginForm() {
   const [sUsername, setSUsername] = useState("");
   const [sUsernameEdited, setSUsernameEdited] = useState(false);
   const [sPassword, setSPassword] = useState("");
-  const [sShowPw, setSShowPw] = useState(false);
-  const [wa, setWa] = useState("");
-  const [refOpen, setRefOpen] = useState(false);
-  const [referral, setReferral] = useState("");
   const [setuju, setSetuju] = useState(false);
   const [sError, setSError] = useState("");
   const [ok, setOk] = useState<SignupOk | null>(null);
@@ -387,6 +349,13 @@ function ClerkLoginForm() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    await masuk(email, password);
+  }
+
+  /** Satu jalur masuk untuk formulir maupun tombol demo. Tombol demo hanya
+   *  mengisi kolom lalu memanggil fungsi yang sama, jadi tidak ada cabang
+   *  autentikasi kedua yang perlu diamankan terpisah. */
+  async function masuk(identifierMentah: string, kataSandi: string) {
     if (!signIn) {
       setError("Layanan login belum siap. Periksa koneksi lalu coba lagi.");
       return;
@@ -397,7 +366,7 @@ function ClerkLoginForm() {
     let waitingForClerk = false;
 
     try {
-      const identifier = email.trim();
+      const identifier = identifierMentah.trim();
       try {
         if (remember) window.localStorage.setItem(INGAT_KEY, identifier);
         else window.localStorage.removeItem(INGAT_KEY);
@@ -406,7 +375,7 @@ function ClerkLoginForm() {
       }
 
       const result = await withAuthTimeout(
-        signIn.password({ emailAddress: identifier, password }),
+        signIn.password({ emailAddress: identifier, password: kataSandi }),
       );
       if (result.error) {
         setError(friendlyClerkError(result.error, "signin"));
@@ -426,15 +395,54 @@ function ClerkLoginForm() {
     }
   }
 
-  function waDigits() {
-    return wa.replace(/\D/g, "");
+  /** Masuk demo tanpa langkah verifikasi.
+   *
+   *  Instance Clerk ini memverifikasi perangkat baru, dan setiap pengunjung
+   *  demo datang dari perangkat baru — jalur password akan selalu berhenti di
+   *  "masukkan kode yang dikirim ke email", padahal kotak masuk demo tidak
+   *  dipegang siapa pun. Jadi server menandatangani sign-in token untuk akun
+   *  demo saja, dan di sini ia ditukar langsung menjadi sesi.
+   *
+   *  Kalau tiketnya gagal (route mati, akun belum di-seed), jalur password
+   *  tetap dicoba: lebih baik berhenti di layar verifikasi yang jujur
+   *  daripada tombol yang diam. */
+  async function masukDemo() {
+    if (!DEMO_AKTIF) return;
+    setError("");
+    setNote("");
+    setLoading(true);
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+
+    try {
+      const res = await fetch("/api/auth/demo-ticket", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      const data = (await res.json().catch(() => ({}))) as { ticket?: string; error?: string };
+      if (!res.ok || !data.ticket) throw new Error(data.error ?? "Tiket demo tidak tersedia.");
+
+      const tiket = await clerk.client.signIn.create({ strategy: "ticket", ticket: data.ticket });
+      if (tiket.status === "complete" && tiket.createdSessionId) {
+        await clerk.setActive({ session: tiket.createdSessionId });
+        // Navigasi penuh, bukan router.replace: cookie sesi yang dibaca server
+        // dicetak oleh handshake middleware Clerk, dan hanya navigasi tingkat
+        // atas yang menjalankannya.
+        window.location.assign("/dashboard-v2");
+        return;
+      }
+      throw new Error("Sesi demo belum selesai dibuat.");
+    } catch {
+      await masuk(DEMO_EMAIL, DEMO_PASSWORD);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const signupReady =
     /^\S+@\S+\.\S+$/.test(sEmail.trim()) &&
     Boolean(sUsername.trim()) &&
     sPassword.length >= 8 &&
-    waDigits().length >= 9 &&
     setuju;
 
   async function handleSignup(e: React.FormEvent) {
@@ -453,9 +461,7 @@ function ClerkLoginForm() {
           password: sPassword,
           legalAccepted: true,
           unsafeMetadata: {
-            whatsapp: wa.trim(),
             full_name: sEmail.trim().split("@")[0],
-            referral_code: referral.trim() || null,
           },
         }),
       );
@@ -559,351 +565,304 @@ function ClerkLoginForm() {
   }
 
   return (
-    <main className="login-split">
-      <section className="login-left">
-        <LoginLogo />
+    <AuthSplit>
+      <AuthBrand />
 
-        {!verificationMode && (
-          <div className="login-tabs" role="tablist" aria-label="Masuk atau daftar">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === "login"}
-              className="login-tab"
-              onClick={() => {
-                setMode("login");
-                setError("");
-                setSError("");
-                setOk(null);
-              }}
-            >
-              Masuk
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === "daftar"}
-              className="login-tab"
-              onClick={() => {
-                setMode("daftar");
-                setError("");
-                setSError("");
-                setOk(null);
-              }}
-            >
-              Daftar
-            </button>
-          </div>
-        )}
+      {!verificationMode && (
+        <div
+          className="au-tabs au-el"
+          style={{ "--d": 1 } as React.CSSProperties}
+          role="tablist"
+          aria-label="Masuk atau daftar"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "login"}
+            className="au-tab"
+            onClick={() => {
+              setMode("login");
+              setError("");
+              setSError("");
+              setOk(null);
+            }}
+          >
+            Masuk
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "daftar"}
+            className="au-tab"
+            onClick={() => {
+              setMode("daftar");
+              setError("");
+              setSError("");
+              setOk(null);
+            }}
+          >
+            Daftar
+          </button>
+        </div>
+      )}
 
-        {verificationMode ? (
-          <>
-            <h1 className="login-hello">Verifikasi email</h1>
-            <p className="login-sub">
-              Masukkan kode yang dikirim ke {verificationMode === "signup" ? sEmail.trim() : email.trim()}.
-            </p>
+      {verificationMode ? (
+        <>
+          <AuthHead title="Verifikasi email" delay={2}>
+            Masukkan kode yang dikirim ke{" "}
+            <b>{verificationMode === "signup" ? sEmail.trim() : email.trim()}</b>.
+          </AuthHead>
 
+          <form onSubmit={handleVerification} className="au-fields" noValidate>
             {note && (
-              <p className="login-note" aria-live="polite">
+              <p className="au-note au-el" style={{ "--d": 3 } as React.CSSProperties} aria-live="polite">
                 {note}
               </p>
             )}
 
-            <form onSubmit={handleVerification} className="login-form" noValidate>
-              <div className="login-field">
-                <label className="login-label" htmlFor="verification-code">
-                  Kode verifikasi <span className="req">*</span>
-                </label>
-                <input
-                  id="verification-code"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  required
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
-                  className="login-input"
-                  placeholder="Masukkan kode"
-                />
-              </div>
+            <AuthField label="Kode verifikasi" htmlFor="verification-code" required delay={4}>
+              <AuthInput
+                id="verification-code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                required
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
+                placeholder="Masukkan kode"
+              />
+            </AuthField>
 
-              {(error || sError) && (
-                <p className="login-alert" role="alert">
-                  {error || sError}
-                </p>
-              )}
-
-              <button type="submit" disabled={!verificationCode.trim() || verifying} className="login-submit">
-                {verifying ? "Memverifikasi..." : "Verifikasi"}
-              </button>
-            </form>
-
-            <p className="login-foot">
-              Kode tidak masuk?{" "}
-              <button type="button" className="login-link" onClick={resetVerification}>
-                Kembali
-              </button>
-            </p>
-          </>
-        ) : mode === "login" ? (
-          <>
-            <h1 className="login-hello">Hai, selamat datang kembali!</h1>
-            <p className="login-sub">Masuk untuk mengelola menu, pesanan, dan stok kafe kamu.</p>
-
-            <form onSubmit={handleLogin} className="login-form" noValidate>
-              <div className="login-field">
-                <label className="login-label" htmlFor="email">
-                  Email <span className="req">*</span>
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="login-input"
-                  placeholder="kamu@kafe.com"
-                />
-              </div>
-
-              <div className="login-field">
-                <label className="login-label" htmlFor="password">
-                  Password <span className="req">*</span>
-                </label>
-                <div className="login-input-wrap">
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    required
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="login-input"
-                    placeholder="********"
-                  />
-                  <button
-                    type="button"
-                    className="login-eye"
-                    onClick={() => setShowPassword((s) => !s)}
-                    aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
-                  >
-                    {showPassword ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="login-row">
-                <label className="login-check">
-                  <input
-                    type="checkbox"
-                    checked={remember}
-                    onChange={(e) => setRemember(e.target.checked)}
-                  />
-                  Ingat email saya
-                </label>
-                <button
-                  type="button"
-                  className="login-link"
-                  onClick={() =>
-                    setNote(
-                      "Reset password tersedia setelah konfigurasi email recovery di Clerk Dashboard.",
-                    )
-                  }
-                >
-                  Lupa password?
-                </button>
-              </div>
-
-              {note && (
-                <p className="login-note" aria-live="polite">
-                  {note}
-                </p>
-              )}
-
-              {error && (
-                <p className="login-alert" role="alert">
-                  {error}
-                </p>
-              )}
-
-              <button type="submit" disabled={loading} className="login-submit">
-                {loading ? "Memproses..." : "Masuk"}
-                {!loading && <LogInIcon size={16} aria-hidden="true" />}
-              </button>
-            </form>
-
-            <p className="login-foot">
-              Belum punya akun?{" "}
-              <button type="button" className="login-link" onClick={() => setMode("daftar")}>
-                Daftar
-              </button>
-            </p>
-          </>
-        ) : (
-          <>
-            <h1 className="login-hello">Daftar Akun</h1>
-            <p className="login-sub">Buat akun untuk mulai mengelola kafe kamu.</p>
-
-            <form onSubmit={handleSignup} className="login-form" noValidate>
-              <div className="login-field">
-                <label className="login-label" htmlFor="s-email">
-                  Email <span className="req">*</span>
-                </label>
-                <input
-                  id="s-email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={sEmail}
-                  onChange={(e) => {
-                    const nextEmail = e.target.value;
-                    setSEmail(nextEmail);
-                    if (!sUsernameEdited) setSUsername(suggestedUsername(nextEmail));
-                  }}
-                  className="login-input"
-                  placeholder="Contoh: kamu@kafe.com"
-                />
-              </div>
-
-              <div className="login-field">
-                <label className="login-label" htmlFor="s-username">
-                  Username <span className="req">*</span>
-                </label>
-                <input
-                  id="s-username"
-                  type="text"
-                  required
-                  autoComplete="username"
-                  value={sUsername}
-                  onChange={(e) => {
-                    setSUsernameEdited(true);
-                    setSUsername(e.target.value);
-                  }}
-                  className="login-input"
-                  placeholder="nama_kafe"
-                />
-              </div>
-
-              <div className="login-field">
-                <label className="login-label" htmlFor="s-password">
-                  Password <span className="req">*</span>
-                </label>
-                <div className="login-input-wrap">
-                  <input
-                    id="s-password"
-                    type={sShowPw ? "text" : "password"}
-                    required
-                    minLength={8}
-                    autoComplete="new-password"
-                    value={sPassword}
-                    onChange={(e) => setSPassword(e.target.value)}
-                    className="login-input"
-                    placeholder="Minimal 8 karakter"
-                  />
-                  <button
-                    type="button"
-                    className="login-eye"
-                    onClick={() => setSShowPw((s) => !s)}
-                    aria-label={sShowPw ? "Sembunyikan password" : "Tampilkan password"}
-                  >
-                    {sShowPw ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="login-field">
-                <label className="login-label" htmlFor="s-wa">
-                  Nomor WhatsApp <span className="req">*</span>
-                </label>
-                <div className="signup-wa">
-                  <div className="login-input-wrap">
-                    <input
-                      id="s-wa"
-                      type="tel"
-                      required
-                      inputMode="tel"
-                      value={wa}
-                      onChange={(e) => setWa(e.target.value)}
-                      className="login-input"
-                      placeholder="Contoh: 0812 xxxx xxxx"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    className="signup-verif"
-                    disabled
-                    aria-label="Verifikasi nomor WhatsApp — menyusul"
-                  >
-                    Verifikasi
-                  </button>
-                </div>
-              </div>
-
-              <p className="signup-referral">
-                Punya kode referral?{" "}
-                <button
-                  type="button"
-                  className="login-link"
-                  onClick={() => setRefOpen((o) => !o)}
-                >
-                  {refOpen ? "Tutup" : "Gunakan"}
-                </button>
+            {(error || sError) && (
+              <p className="au-alert" role="alert">
+                {error || sError}
               </p>
-              {refOpen && (
-                <div className="login-field signup-refwrap show">
-                  <label className="login-label" htmlFor="s-ref">
-                    Kode referral
-                  </label>
-                  <input
-                    id="s-ref"
-                    type="text"
-                    value={referral}
-                    onChange={(e) => setReferral(e.target.value)}
-                    className="login-input"
-                    placeholder="Masukkan kode referral"
-                  />
-                </div>
-              )}
+            )}
 
-              <label className="login-check">
+            <button
+              type="submit"
+              disabled={!verificationCode.trim() || verifying}
+              className="au-submit au-el"
+              style={{ "--d": 5 } as React.CSSProperties}
+            >
+              {verifying ? "Memverifikasi..." : "Verifikasi"}
+            </button>
+          </form>
+
+          <AuthFoot>
+            Kode tidak masuk?{" "}
+            <button type="button" className="au-link" onClick={resetVerification}>
+              Kembali
+            </button>
+          </AuthFoot>
+        </>
+      ) : mode === "login" ? (
+        <>
+          <AuthHead title="Hai, selamat datang kembali!" delay={2}>
+            Masuk untuk mengelola menu, pesanan, dan stok kafe kamu.
+          </AuthHead>
+
+          <form onSubmit={handleLogin} className="au-fields" noValidate>
+            <AuthField label="Email" htmlFor="email" required delay={3}>
+              <AuthInput
+                id="email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="kamu@kafe.com"
+              />
+            </AuthField>
+
+            <AuthField label="Password" htmlFor="password" required delay={4}>
+              <AuthPassword
+                id="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Masukkan password"
+              />
+            </AuthField>
+
+            <div className="au-row au-el" style={{ "--d": 5 } as React.CSSProperties}>
+              <label className="au-check">
                 <input
                   type="checkbox"
-                  checked={setuju}
-                  onChange={(e) => setSetuju(e.target.checked)}
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
                 />
-                Dengan mendaftar, saya menyatakan telah membaca dan menyetujui Ketentuan
-                Layanan &amp; Kebijakan Privasi 3Diner.
+                Ingat email saya
               </label>
+              <button
+                type="button"
+                className="au-link"
+                onClick={() =>
+                  setNote(
+                    "Reset password tersedia setelah konfigurasi email recovery di Clerk Dashboard.",
+                  )
+                }
+              >
+                Lupa password?
+              </button>
+            </div>
 
-              {sError && (
-                <p className="login-alert" role="alert">
-                  {sError}
+            {note && (
+              <p className="au-note" aria-live="polite">
+                {note}
+              </p>
+            )}
+
+            {error && (
+              <p className="au-alert" role="alert">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="au-submit au-el"
+              style={{ "--d": 6 } as React.CSSProperties}
+            >
+              {loading ? "Memproses..." : "Masuk"}
+              {!loading && <LogInIcon size={16} aria-hidden="true" />}
+            </button>
+          </form>
+
+            {DEMO_AKTIF && (
+              <div className="au-demo au-el" style={{ "--d": 7 } as React.CSSProperties}>
+                <p className="au-demo-head">
+                  <SparklesIcon size={14} aria-hidden="true" />
+                  Coba tanpa akun
                 </p>
-              )}
+                <p className="au-demo-body">
+                  Masuk sekali klik, tanpa verifikasi email. Isinya kafe contoh — perubahan yang
+                  kamu lakukan hanya menyentuh kafe demo itu, bukan kafe sungguhan.
+                </p>
+                <dl className="au-demo-kv">
+                  <div>
+                    <dt>Email</dt>
+                    <dd>{DEMO_EMAIL}</dd>
+                  </div>
+                  <div>
+                    <dt>Password</dt>
+                    <dd>{DEMO_PASSWORD}</dd>
+                  </div>
+                </dl>
+                <button
+                  type="button"
+                  className="au-ghost"
+                  disabled={loading}
+                  onClick={() => void masukDemo()}
+                >
+                  {loading ? "Memproses..." : "Masuk sebagai demo"}
+                </button>
+              </div>
+            )}
 
-              {ok && (
-                <div className="signup-ok" role="status">
-                  Akun untuk <b>{ok.email}</b> berhasil dibuat. {ok.message}
-                </div>
-              )}
+          <AuthFoot>
+            Belum punya akun?{" "}
+            <button type="button" className="au-link" onClick={() => setMode("daftar")}>
+              Daftar
+            </button>
+          </AuthFoot>
+        </>
+      ) : (
+        <>
+          <AuthHead title="Daftar akun" delay={2}>
+            Buat akun untuk mulai mengelola kafe kamu.
+          </AuthHead>
 
-              <button type="submit" disabled={!signupReady || signingUp} className="login-submit">
-                {signingUp ? "Mendaftarkan..." : "Daftar"}
-              </button>
-            </form>
+          <form onSubmit={handleSignup} className="au-fields" noValidate>
+            <AuthField label="Email" htmlFor="s-email" required delay={3}>
+              <AuthInput
+                id="s-email"
+                type="email"
+                required
+                autoComplete="email"
+                value={sEmail}
+                onChange={(e) => {
+                  const nextEmail = e.target.value;
+                  setSEmail(nextEmail);
+                  if (!sUsernameEdited) setSUsername(suggestedUsername(nextEmail));
+                }}
+                placeholder="kamu@kafe.com"
+              />
+            </AuthField>
 
-            <p className="login-foot">
-              Sudah punya akun?{" "}
-              <button type="button" className="login-link" onClick={() => setMode("login")}>
-                Masuk
-              </button>
-            </p>
-          </>
-        )}
-      </section>
+            <AuthField
+              label="Username"
+              htmlFor="s-username"
+              required
+              delay={4}
+              hint="Terisi otomatis dari email; ubah kalau mau nama lain."
+            >
+              <AuthInput
+                id="s-username"
+                type="text"
+                required
+                autoComplete="username"
+                value={sUsername}
+                onChange={(e) => {
+                  setSUsernameEdited(true);
+                  setSUsername(e.target.value);
+                }}
+                placeholder="nama_kafe"
+              />
+            </AuthField>
 
-      <BrandPanel />
-    </main>
+            <AuthField label="Password" htmlFor="s-password" required delay={5}>
+              <AuthPassword
+                id="s-password"
+                required
+                minLength={8}
+                autoComplete="new-password"
+                value={sPassword}
+                onChange={(e) => setSPassword(e.target.value)}
+                placeholder="Minimal 8 karakter"
+              />
+            </AuthField>
+
+            <label className="au-check au-el" style={{ "--d": 6 } as React.CSSProperties}>
+              <input type="checkbox" checked={setuju} onChange={(e) => setSetuju(e.target.checked)} />
+              <span>
+                Dengan mendaftar, saya menyatakan telah membaca dan menyetujui Ketentuan Layanan
+                &amp; Kebijakan Privasi 3Diner.
+              </span>
+            </label>
+
+            {sError && (
+              <p className="au-alert" role="alert">
+                {sError}
+              </p>
+            )}
+
+            {ok && (
+              <div className="au-ok" role="status">
+                Akun untuk <b>{ok.email}</b> berhasil dibuat. {ok.message}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={!signupReady || signingUp}
+              className="au-submit au-el"
+              style={{ "--d": 7 } as React.CSSProperties}
+            >
+              {signingUp ? "Mendaftarkan..." : "Daftar"}
+            </button>
+          </form>
+
+          <AuthFoot>
+            Sudah punya akun?{" "}
+            <button type="button" className="au-link" onClick={() => setMode("login")}>
+              Masuk
+            </button>
+          </AuthFoot>
+        </>
+      )}
+    </AuthSplit>
   );
 }

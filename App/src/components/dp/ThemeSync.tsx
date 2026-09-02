@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import {
-  THEME_STORAGE_KEY,
-  getStoredTheme,
-  resolveTheme,
-} from "@/lib/theme";
+import { getStoredTheme, resolveTheme } from "@/lib/theme";
 
 /** Penegak tema pasca-hidrasi (safety net, bukan pengganti anti-FOUC):
  *  skrip inline di <head> layout root sudah men-set <html data-theme>
