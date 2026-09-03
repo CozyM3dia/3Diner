@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { canOpenKitchenConsole, getStaffContext } from "@/lib/staff-context";
 import { homeRouteForRole } from "@/types";
-import { SKRIP_TEMA_DAPUR } from "@/lib/kitchen-theme";
+import KitchenThemeSync from "@/components/kitchen/KitchenThemeSync";
 import "../kitchen.css";
 
 export const metadata = {
@@ -31,11 +31,7 @@ export default async function DapurLayout({ children }: { children: React.ReactN
 
   return (
     <>
-      {/* Tema papan harus terpasang sebelum paint pertama. Layar dapur menyala
-          gelap secara bawaan; kilatan putih setengah detik di ruangan yang
-          remang bukan cuma jelek, ia menyilaukan orang yang sedang memegang
-          wajan panas. */}
-      <script dangerouslySetInnerHTML={{ __html: SKRIP_TEMA_DAPUR }} />
+      <KitchenThemeSync mode="standalone" />
       {children}
     </>
   );

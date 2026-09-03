@@ -1,6 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { PRESETS, presetRange, isoDay, parseDay, addDays, type PresetKey } from "@/lib/date-range";
+import { PRESETS, presetRange, isoDay, parseDay, addDays, dashboardRangeTimestamps, type PresetKey } from "@/lib/date-range";
 import type { MenuRow, OrderRow } from "@/lib/dashboard-metrics";
 
 /** Pengambilan data untuk dua halaman analitik konsol (Ringkasan & Penjualan).
@@ -52,14 +52,16 @@ export function resolveRentang(params: { from?: string; to?: string }): Rentang 
 
   const spanDays = Math.round((parseDay(toIso).getTime() - parseDay(fromIso).getTime()) / 864e5) + 1;
   const prevFromIso = isoDay(addDays(parseDay(fromIso), -spanDays));
+  const currentRange = dashboardRangeTimestamps(fromIso, toIso);
+  const previousRange = dashboardRangeTimestamps(prevFromIso, fromIso);
   return {
     fromIso,
     toIso,
     preset,
     spanDays,
-    since: new Date(`${fromIso}T00:00:00`).toISOString(),
-    sincePrev: new Date(`${prevFromIso}T00:00:00`).toISOString(),
-    until: new Date(parseDay(toIso).getTime() + 864e5 - 1).toISOString(),
+    since: currentRange.since,
+    sincePrev: previousRange.since,
+    until: currentRange.until,
   };
 }
 

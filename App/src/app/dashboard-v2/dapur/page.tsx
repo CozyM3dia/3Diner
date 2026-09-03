@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { canOpenOwnerConsole, getStaffContext } from "@/lib/staff-context";
 import { ambilTiketDapur } from "@/lib/kitchen-query";
-import { SKRIP_TEMA_KONSOL } from "@/lib/kitchen-theme";
 import PapanDapur from "@/components/kitchen/PapanDapur";
+import KitchenThemeSync from "@/components/kitchen/KitchenThemeSync";
 import "../../kitchen.css";
 
 export const metadata = { title: "Dapur · 3Diner" };
@@ -25,9 +25,7 @@ export default async function Page() {
 
   return (
     <>
-      {/* Papan mewarisi tema konsol lewat `data-kds`, disetel sebelum paint
-          supaya panel gelap tidak berkedip di halaman yang terang. */}
-      <script dangerouslySetInnerHTML={{ __html: SKRIP_TEMA_KONSOL }} />
+      <KitchenThemeSync mode="console" />
       <PapanDapur
         awal={tiket}
         cafeId={ctx.cafe_id ?? ""}

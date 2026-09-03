@@ -242,15 +242,26 @@ export function hitungCorong(input: {
   };
 }
 
-const fmtHari = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short" });
-const fmtJam = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" });
+const ZONA_DASHBOARD = "Asia/Jakarta";
+const WIB_OFFSET_MS = 7 * 3600_000;
+const fmtHari = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", timeZone: ZONA_DASHBOARD });
+const fmtJam = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: ZONA_DASHBOARD });
 
-/** Kunci hari lokal (bukan UTC) supaya batas tengah malam mengikuti WIB. */
+function bagianWib(d: Date) {
+  const shifted = new Date(d.getTime() + WIB_OFFSET_MS);
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    date: shifted.getUTCDate(),
+    day: shifted.getUTCDay(),
+    hour: shifted.getUTCHours(),
+  };
+}
+
+/** Kunci hari bisnis WIB, independen dari zona waktu proses Node. */
 function kunciHari(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  const wib = bagianWib(d);
+  return `${wib.year}-${String(wib.month).padStart(2, "0")}-${String(wib.date).padStart(2, "0")}`;
 }
 
 /** "2j 15m lalu" — cukup untuk menilai urgensi tanpa membaca jam dinding. */
@@ -298,7 +309,7 @@ export function hitungMetrik(input: {
   const kiniHari = kumpul(oKini);
   const laluHari = kumpul(oLalu);
 
-  const mulai = new Date(`${fromIso}T00:00:00`);
+  const mulai = new Date(`${fromIso}T00:00:00+07:00`);
   const mulaiLalu = new Date(mulai.getTime() - spanDays * 864e5);
   const harian: TitikHari[] = [];
   for (let i = 0; i < spanDays; i++) {
@@ -340,8 +351,9 @@ export function hitungMetrik(input: {
   for (const o of oKini) {
     if (o.status === "cancelled") continue;
     const d = new Date(o.created_at);
-    const hari = (d.getDay() + 6) % 7; // Minggu(0) → 6, Senin(1) → 0
-    const jam = d.getHours();
+    const wib = bagianWib(d);
+    const hari = (wib.day + 6) % 7; // Minggu(0) → 6, Senin(1) → 0
+    const jam = wib.hour;
     const s = sel[hari * 24 + jam];
     s.pesanan += 1;
     profil[jam].pesanan += 1;

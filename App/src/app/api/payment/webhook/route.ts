@@ -3,6 +3,21 @@ import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyMidtransSignature } from "@/lib/order-validation";
 
+const PAYMENT_SURFACES = ["/dapur", "/dashboard-v2/dapur", "/dashboard-v2/pesanan", "/kasir"] as const;
+
+/** Settlement database adalah sumber kebenaran. Invalidasi UI bersifat
+ * best-effort dan tidak boleh mengubah webhook yang sudah sah menjadi 500,
+ * karena provider akan mengulang callback yang sebenarnya sudah selesai. */
+function revalidatePaymentSurfaces() {
+  for (const path of PAYMENT_SURFACES) {
+    try {
+      revalidatePath(path);
+    } catch (error) {
+      console.warn("[api/payment/webhook] cache revalidation failed", { path, error });
+    }
+  }
+}
+
 type MidtransNotification = {
   order_id?: unknown;
   status_code?: unknown;
@@ -110,10 +125,7 @@ export async function POST(req: Request) {
       if (settlementError && settlementError !== "insufficient_inventory") {
         return NextResponse.json({ error: "Gagal konfirmasi pesanan" }, { status: 502 });
       }
-      revalidatePath("/dapur");
-      revalidatePath("/dashboard-v2/dapur");
-      revalidatePath("/dashboard-v2/pesanan");
-      revalidatePath("/kasir");
+      revalidatePaymentSurfaces();
       // A stale callback after an expired/reset attempt is acknowledged by
       // the RPC without changing the currently active order state.
     } else if (["expire", "cancel", "deny", "failure"].includes(transaction_status)) {

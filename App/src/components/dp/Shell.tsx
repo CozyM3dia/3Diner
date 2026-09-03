@@ -1,7 +1,6 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
 import { createClient } from "@/lib/supabase/client";
@@ -31,6 +30,7 @@ import NotificationBell from "@/components/dp/NotificationBell";
 import SearchModal from "@/components/dp/SearchModal";
 import TourDialog from "@/components/dp/TourDialog";
 import ProfileMenu from "@/components/dp/ProfileMenu";
+import DashboardNavLink from "@/components/dp/DashboardNavLink";
 import {
   Dock,
   DockIcon,
@@ -278,13 +278,14 @@ export default function DpShell({
 
     const control =
       item.href && !item.soon ? (
-        <Link
+        <DashboardNavLink
           href={item.href}
           className={cls}
-          aria-current={aktif ? "page" : undefined}
+          current={aktif}
+          label={item.label}
         >
           {inner}
-        </Link>
+        </DashboardNavLink>
       ) : (
         <span
           className={cls}

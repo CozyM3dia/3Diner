@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, lazy, Suspense, useCallback, useContext, useState } from "react";
 import { useRouter } from "next/navigation";
-import MenuDrawer from "@/components/dp/MenuDrawer";
+
+const MenuDrawer = lazy(() => import("@/components/dp/MenuDrawer"));
 
 export type MenuEditActions = {
   openCreate: () => void;
@@ -51,13 +52,17 @@ export default function MenuEditorHost({
   return (
     <MenuEditContext.Provider value={{ openCreate, openEdit }}>
       {children}
-      <MenuDrawer
-        open={open}
-        editId={editId}
-        categories={categoriesState}
-        onClose={() => setOpen(false)}
-        onSaved={() => router.refresh()}
-      />
+      {open ? (
+        <Suspense fallback={<div className="dv3-editor-loading" role="status">Menyiapkan editor menu…</div>}>
+          <MenuDrawer
+            open
+            editId={editId}
+            categories={categoriesState}
+            onClose={() => setOpen(false)}
+            onSaved={() => router.refresh()}
+          />
+        </Suspense>
+      ) : null}
     </MenuEditContext.Provider>
   );
 }

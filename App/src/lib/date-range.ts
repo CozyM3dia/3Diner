@@ -4,6 +4,20 @@
 
 export type PresetKey = "today" | "yesterday" | "7d" | "30d" | "mtd" | "custom";
 
+/** Dashboard 3Diner memakai hari bisnis WIB. Jakarta tidak mengenal DST,
+ *  jadi offset eksplisit membuat query identik di laptop UTC+7 dan Vercel UTC. */
+export function dashboardRangeTimestamps(fromIso: string, toIso: string): { since: string; until: string } {
+  return {
+    since: new Date(`${fromIso}T00:00:00.000+07:00`).toISOString(),
+    until: new Date(`${toIso}T23:59:59.999+07:00`).toISOString(),
+  };
+}
+
+function wibDay(now: Date): string {
+  const shifted = new Date(now.getTime() + 7 * 3600_000);
+  return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, "0")}-${String(shifted.getUTCDate()).padStart(2, "0")}`;
+}
+
 export function isoDay(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -33,9 +47,11 @@ export const PRESETS: Array<{ key: PresetKey; label: string }> = [
   { key: "custom", label: "Custom" },
 ];
 
-/** Rentang [fromIso, toIso] inklusif untuk preset (zona jam lokal browser/server). */
+/** Rentang [fromIso, toIso] inklusif untuk hari bisnis WIB. */
 export function presetRange(key: PresetKey, now = new Date()): { from: string; to: string } {
-  const t = startOfDay(now);
+  // Parse kembali tanggal WIB sebagai tanggal kalender lokal. Operasi berikutnya
+  // adalah aritmetika hari, jadi hasilnya tetap sama di server UTC dan browser.
+  const t = parseDay(wibDay(now));
   switch (key) {
     case "today":
       return { from: isoDay(t), to: isoDay(t) };

@@ -60,6 +60,7 @@ export default function ItemsGrid({
         <div className="dp-page-head-tools">
           <label className="dp-field">
             <input
+              name="item-search"
               value={q}
               onChange={e => {
                 setQ(e.target.value);
@@ -93,6 +94,7 @@ export default function ItemsGrid({
                     alt={it.nama_menu}
                     width={320}
                     height={240}
+                    sizes="(max-width: 560px) calc(100vw - 72px), (max-width: 900px) calc((100vw - 112px) / 2), (max-width: 1200px) calc((100vw - 360px) / 3), 280px"
                     className="dp-food-img"
                   />
                 ) : (

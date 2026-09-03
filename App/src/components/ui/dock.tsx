@@ -209,10 +209,10 @@ function DockLabel({
   className,
   trigger,
 }: DockLabelProps) {
-  const [wadah, setWadah] = React.useState<HTMLElement>();
-  React.useLayoutEffect(() => {
-    setWadah(wadahKonsol());
-  }, []);
+  // Tooltip tertutup saat SSR/hidrasi, sementara host portal sudah berada
+  // lebih dulu di Shell. Membacanya langsung menghindari render ekstra pada
+  // setiap label sidebar (sebelumnya satu setState per item setelah mount).
+  const wadah = wadahKonsol();
 
   return (
     <Tooltip>

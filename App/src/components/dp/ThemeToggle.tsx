@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
 import { MoonIcon, SunIcon } from "lucide-react";
 import "./theme-toggle.css";
 
@@ -27,10 +27,31 @@ function actualMode(): Mode {
   return "light";
 }
 
+const listeners = new Set<() => void>();
+
+function subscribe(onChange: () => void) {
+  listeners.add(onChange);
+  const media = typeof window.matchMedia === "function"
+    ? window.matchMedia("(prefers-color-scheme: dark)")
+    : null;
+  const notify = () => onChange();
+  window.addEventListener("storage", notify);
+  media?.addEventListener("change", notify);
+  return () => {
+    listeners.delete(onChange);
+    window.removeEventListener("storage", notify);
+    media?.removeEventListener("change", notify);
+  };
+}
+
+function notifyThemeChanged() {
+  for (const listener of listeners) listener();
+}
+
 export default function ThemeToggle() {
-  // Initializer dijalankan saat render pertama; di server tetap "light",
-  // di klien dibaca dari kondisi aktual (dataset/matchMedia).
-  const [mode, setMode] = useState<Mode>(() => (typeof window === "undefined" ? "light" : actualMode()));
+  // Snapshot server sengaja stabil. Setelah hidrasi, React membaca snapshot
+  // browser dan memperbarui ikon tanpa membuang markup server.
+  const mode = useSyncExternalStore(subscribe, actualMode, () => "light");
 
   const toggle = () => {
     const next: Mode = actualMode() === "dark" ? "light" : "dark";
@@ -40,7 +61,7 @@ export default function ThemeToggle() {
     } catch {
       /* storage penuh/diblokir — tema masih berlaku untuk sesi ini */
     }
-    setMode(next);
+    notifyThemeChanged();
   };
 
   return (

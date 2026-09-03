@@ -17,7 +17,7 @@ import {
  *  uang, dan ambang "butuh perhatian" yang jelas batasnya.
  */
 
-const NOW = new Date("2026-09-02T12:00:00");
+const NOW = new Date("2026-09-02T12:00:00+07:00");
 const HARI = 864e5;
 
 const MENUS: MenuRow[] = [
@@ -283,6 +283,30 @@ describe("jam ramai", () => {
     expect(m.jam.profil[11]).toMatchObject({ nilai: 0, pesanan: 1 });
     expect(m.jam.puncak).toBeNull();
     expect(m.jam.rentangJam).toEqual([11, 11]);
+  });
+
+  it("selalu mengelompokkan stempel UTC menurut WIB, termasuk di server UTC", () => {
+    const zonaAwal = process.env.TZ;
+    process.env.TZ = "UTC";
+    try {
+      const m = hitungMetrik({
+        kini: [
+          {
+            ...order({ total: 30_000 }),
+            created_at: "2026-09-02T04:30:00.000Z", // Rabu 11.30 WIB
+          },
+        ],
+        lalu: [],
+        menus: MENUS,
+        fromIso: "2026-09-02",
+        spanDays: 1,
+        now: new Date("2026-09-02T05:00:00.000Z"),
+      });
+      expect(m.jam.puncak).toMatchObject({ hari: 2, jam: 11 });
+      expect(m.harian[0]).toMatchObject({ iso: "2026-09-02", value: 30_000 });
+    } finally {
+      process.env.TZ = zonaAwal;
+    }
   });
 });
 

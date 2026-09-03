@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
+import { hydrateRoot } from "react-dom/client";
+import { act } from "react";
 import ThemeToggle from "@/components/dp/ThemeToggle";
+
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 /** Kontrak tema: klik toggle membalik <html data-theme> dan menyimpan
  *  pilihan ke localStorage "tema-3diner". jsdom tanpa matchMedia →
@@ -59,5 +64,28 @@ describe("ThemeToggle", () => {
     expect(screen.getByRole("button", { name: /mode gelap/i })).toBeTruthy();
     fireEvent.click(screen.getByRole("button"));
     expect(document.documentElement.dataset.theme).toBe("dark");
+  });
+
+  it("menghidrasi tema gelap tanpa membuang markup server", async () => {
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(<ThemeToggle />);
+    document.body.appendChild(host);
+    document.documentElement.dataset.theme = "dark";
+    const recovered: Error[] = [];
+
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    await act(async () => {
+      root = hydrateRoot(host, <ThemeToggle />, {
+        onRecoverableError: (error) => recovered.push(error as Error),
+      });
+    });
+
+    await waitFor(() => {
+      expect(host.querySelector('button[aria-label="Ganti ke mode terang"]')).toBeTruthy();
+    });
+    expect(recovered).toEqual([]);
+
+    await act(async () => root?.unmount());
+    host.remove();
   });
 });

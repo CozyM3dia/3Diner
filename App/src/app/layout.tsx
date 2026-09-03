@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Poppins, Instrument_Sans } from "next/font/google";
 import { DatadogAppRouter } from "@datadog/browser-rum-nextjs";
 import { ClerkProvider } from "@clerk/nextjs";
+import Script from "next/script";
 import ThemeSync from "@/components/dp/ThemeSync";
 import "./globals.css";
 
@@ -41,7 +42,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   themeColor: "#022C60",
 };
 
@@ -57,11 +57,9 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" className={`${poppins.variable} ${instrumentSans.variable}`} suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
-      </head>
+    <html lang="id" className={`${poppins.variable} ${instrumentSans.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className="min-h-dvh">
+        <Script id="theme-init" strategy="beforeInteractive">{THEME_INIT}</Script>
         {clerkConfigured ? (
           // Telemetry posts to clerk-telemetry.com, an origin the app CSP does not
           // allow. Disabling it keeps the console clean and keeps auth traffic on
