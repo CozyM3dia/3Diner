@@ -27,22 +27,6 @@ import type { StaffPermission } from "@/lib/permissions-default";
 export type PermCellUi = Record<UiRoleKey, boolean> & { override: boolean };
 export type MatrixUi = Record<string, PermCellUi>;
 
-const SETUP_SQL = `-- Jalankan di Supabase Dashboard → SQL Editor (sekali)
-create table if not exists public."Role_Permissions" (
-  id_role_permission uuid primary key default gen_random_uuid(),
-  cafe_id uuid not null references public."Cafes" (id_cafe) on delete cascade,
-  permission text not null check (permission in (
-    'operate_orders', 'manage_menu', 'manage_inventory', 'manage_settings'
-  )),
-  owner_allowed boolean not null default true,
-  cashier_allowed boolean not null default false,
-  updated_at timestamptz,
-  unique (cafe_id, permission)
-);
-create index if not exists "Role_Permissions_cafe_idx"
-  on public."Role_Permissions" (cafe_id);
-alter table public."Role_Permissions" enable row level security;`;
-
 type Msg = { kind: "ok" | "err" | "info"; text: string } | null;
 
 /** Sel tersambung backend: Lihat × modul ber-permission — SEMUA peran,
@@ -77,11 +61,9 @@ function overrideAwal(server: MatrixUi): Record<string, boolean> {
 export default function PermissionsMatrix({
   matrix,
   defaults,
-  tableMissing,
 }: {
   matrix: MatrixUi;
   defaults: MatrixUi;
-  tableMissing: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<Msg>(null);
@@ -91,7 +73,6 @@ export default function PermissionsMatrix({
     overrideAwal(matrix),
   );
   const [role, setRole] = useState<UiRoleKey>("owner");
-  const [sqlCopied, setSqlCopied] = useState(false);
 
   const roleInfo = PERM_ROLES.find((r) => r.key === role)!;
 
@@ -116,7 +97,7 @@ export default function PermissionsMatrix({
     startTransition(async () => {
       const res = await savePermission(perm, payload);
       if (res.tableMissing) {
-        setMsg({ kind: "info", text: "Tabel override belum ada — jalankan SQL setup di bawah dulu." });
+        setMsg({ kind: "err", text: "Tabel wewenang tidak terbaca, jadi perubahan ini belum tersimpan. Muat ulang halaman; bila tetap muncul, laporkan ke dukungan." });
         setLocal(matriksAwal(serverMatrix));
         return;
       }
@@ -139,7 +120,7 @@ export default function PermissionsMatrix({
     startTransition(async () => {
       const res = await resetPermission(perm);
       if (res.tableMissing) {
-        setMsg({ kind: "info", text: "Tabel override belum ada — tidak ada yang perlu dikembalikan." });
+        setMsg({ kind: "info", text: "Tidak ada override tersimpan untuk dikembalikan." });
         return;
       }
       if (res.error) {
@@ -350,33 +331,6 @@ export default function PermissionsMatrix({
         </div>
       </div>
 
-      {/* Kartu setup: hanya tampil saat tabel override belum dibuat */}
-      {!Object.values(overrides).some(Boolean) && tableMissing && (
-        <div className="dp-card dp-perm-setup">
-          <p className="dp-qr-mini">Aktifkan override runtime (opsional)</p>
-          <p className="dp-hint" style={{ marginBottom: 10 }}>
-            Matriks saat ini murni bawaan kode. Untuk menyimpan perubahan permanen per kafe, buat
-            tabel <code>Role_Permissions</code> dengan SQL ini (Supabase Dashboard → SQL Editor,
-            sekali):
-          </p>
-          <pre className="dp-perm-sql">{SETUP_SQL}</pre>
-          <button
-            type="button"
-            className="dp-btn-white"
-            onClick={() =>
-              navigator.clipboard.writeText(SETUP_SQL).then(
-                () => {
-                  setSqlCopied(true);
-                  setMsg({ kind: "ok", text: "SQL disalin — tempel di SQL Editor Supabase lalu Run." });
-                },
-                () => setMsg({ kind: "err", text: "Gagal menyalin — salin manual dari kotak." }),
-              )
-            }
-          >
-            {sqlCopied ? "SQL tersalin ✓" : "Salin SQL setup"}
-          </button>
-        </div>
-      )}
     </>
   );
 }

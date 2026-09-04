@@ -432,13 +432,6 @@
 .dp-perm-on {
   background: #eef9f1; border-color: #14b51d; color: #14b51d;
 }
-.dp-perm-setup { padding: 16px 18px; }
-.dp-perm-sql {
-  margin: 0 0 12px; padding: 12px 14px; overflow-x: auto;
-  background: var(--dp-bg); border: 1px solid var(--dp-border); border-radius: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px; line-height: 1.5; color: var(--dp-text); white-space: pre;
-}
 
 /* ════════════════════════════════════════════════════════════════════
    POS — recreate pos.html Dream POS (layout 3 zona, DNA 3Diner)
