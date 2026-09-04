@@ -8,13 +8,12 @@ export const dynamic = "force-dynamic";
 
 /** Roles & Permissions — matriks wewenang EFEKTIF per kafe:
  *  bawaan kode (authorization.ts) + override runtime (Role_Permissions).
- *  Sel bisa disunting; perubahan langsung ditegakkan requireStaffPermission.
- *  Bila tabel override belum dibuat, matriks tampil bawaan + kartu setup SQL. */
+ *  Sel bisa disunting; perubahan langsung ditegakkan requireStaffPermission. */
 export default async function Page() {
   const ctx = await getStaffContext();
   if (!canOpenOwnerConsole(ctx.role)) redirect("/login");
 
-  const { matrix, tableMissing } = await getEffectivePermissions(ctx.cafe_id ?? "");
+  const { matrix } = await getEffectivePermissions(ctx.cafe_id ?? "");
   const defaults = getDefaultMatrix();
 
   return (
@@ -28,7 +27,7 @@ export default async function Page() {
           </p>
         </div>
       </div>
-      <PermissionsMatrix matrix={matrix} defaults={defaults} tableMissing={tableMissing} />
+      <PermissionsMatrix matrix={matrix} defaults={defaults} />
     </>
   );
 }
