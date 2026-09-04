@@ -3,10 +3,11 @@ import DpShell from "@/components/dp/Shell";
 import DashboardView from "@/components/dp/DashboardView";
 import PenjualanView from "@/components/dp/PenjualanView";
 import PosBoard from "@/components/pos/PosBoard";
+import OrdersBoard from "@/components/dp/OrdersBoard";
 import PanduanView from "@/components/dp/PanduanView";
 import PapanDapur from "@/components/kitchen/PapanDapur";
 import { dapurFixture } from "@/lib/kitchen-fixtures";
-import { fixture, peristiwaFixture, posFixture, SKENARIO, type Skenario } from "@/lib/dashboard-fixtures";
+import { fixture, peristiwaFixture, pesananFixture, posFixture, SKENARIO, type Skenario } from "@/lib/dashboard-fixtures";
 import { hitungMetrik } from "@/lib/dashboard-metrics";
 import { isoDay, addDays, startOfDay } from "@/lib/date-range";
 
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Harness konsol — 3Diner" };
 
-type View = "dashboard" | "penjualan" | "pos" | "panduan" | "dapur";
+type View = "dashboard" | "penjualan" | "pos" | "pesanan" | "panduan" | "dapur";
 
 /** Bilah pemilih harness: layar mana, dan untuk lembar analitik, keadaan mana. */
 function HarnessBar({ aktif, view }: { aktif: Skenario; view: View }) {
@@ -31,6 +32,9 @@ function HarnessBar({ aktif, view }: { aktif: Skenario; view: View }) {
         </Link>
         <Link href="/dev-preview?view=pos" className={`dv3-harness-btn${view === "pos" ? " is-on" : ""}`}>
           POS
+        </Link>
+        <Link href="/dev-preview?view=pesanan" className={`dv3-harness-btn${view === "pesanan" ? " is-on" : ""}`}>
+          Pesanan
         </Link>
         <Link href="/dev-preview?view=panduan" className={`dv3-harness-btn${view === "panduan" ? " is-on" : ""}`}>
           Panduan
@@ -71,13 +75,15 @@ export default async function DevPreviewPage({
   const view: View =
     v === "pos"
       ? "pos"
-      : v === "penjualan"
-        ? "penjualan"
-        : v === "panduan"
-          ? "panduan"
-          : v === "dapur"
-            ? "dapur"
-            : "dashboard";
+      : v === "pesanan"
+        ? "pesanan"
+        : v === "penjualan"
+          ? "penjualan"
+          : v === "panduan"
+            ? "panduan"
+            : v === "dapur"
+              ? "dapur"
+              : "dashboard";
 
   // Papan dapur tampil di luar DpShell, persis seperti rute /dapur sungguhan:
   // ia permukaan berdiri sendiri, dan membungkusnya dengan sidebar konsol akan
@@ -103,6 +109,28 @@ export default async function DevPreviewPage({
     );
   }
 
+  if (view === "pesanan") {
+    // `cafeId` kosong mematikan langganan Realtime — harness tidak menyentuh
+    // Supabase, jadi lencana "Langsung" memang tinggal abu di sini.
+    return (
+      <DpShell cafeName="Senja Kopi" userInitial="D" userName="Demo Owner" userRole="Owner" notifRows={[]}>
+        <HarnessBar aktif={aktif} view="pesanan" />
+        <OrdersBoard
+          orders={pesananFixture(aktif)}
+          cafeId=""
+          cafe={{
+            name: "Senja Kopi",
+            address: "Jl. Contoh No. 1",
+            logoUrl: null,
+            taxConfigured: true,
+            cashierName: "Demo Owner",
+            receipt: null,
+          }}
+        />
+      </DpShell>
+    );
+  }
+
   if (view === "pos") {
     const pos = posFixture();
     return (
@@ -116,9 +144,10 @@ export default async function DevPreviewPage({
           receiptSettings={null}
           staffName="Demo Owner"
           menus={pos.menus}
-          optionGroups={[]}
+          optionGroups={pos.optionGroups}
           categories={pos.categories}
           recent={pos.recent}
+          tables={pos.tables}
         />
       </DpShell>
     );

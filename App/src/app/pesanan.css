@@ -1,0 +1,877 @@
+/* ════════════════════════════════════════════════════════════════════
+   PSN — Papan Pesanan (rebuild 5 Sep 2026)
+
+   Menggantikan tiga sumber lama sekaligus: blok `.dp-orders/.dp-stat/
+   .dp-ocard/.dp-tab` di globals.css (warna light hardcoded, pra-dark-mode),
+   `dp-kanban.css`, dan tumpukan override `html[data-theme="dark"]` yang
+   menambalnya. Semua warna di sini lewat token, jadi mode gelap ikut tanpa
+   aturan kembar — itu sebabnya berkas lama dibuang, bukan ditumpuk lagi.
+
+   Namespace `psn-`.
+   ════════════════════════════════════════════════════════════════════ */
+
+.psn {
+  --psn-r: 14px;
+  --psn-r-md: 11px;
+  --psn-r-sm: 8px;
+
+  /* ── Nada status. Enam rona berbeda supaya kartu KPI, chip status, dan
+     kepala kolom kanban memakai bahasa warna yang sama; tanpa ini "Menunggu"
+     bisa kuning di satu tempat dan ungu di tempat lain. ── */
+  --psn-all-ink: #c2410c;   --psn-all-bg: rgba(253, 80, 2, .10);
+  --psn-wait-ink: #b45309;  --psn-wait-bg: rgba(217, 119, 6, .12);
+  --psn-ready-ink: #6d28d9; --psn-ready-bg: rgba(124, 58, 237, .12);
+  --psn-done-ink: #15803d;  --psn-done-bg: rgba(22, 163, 74, .12);
+  --psn-due-ink: #1d4ed8;   --psn-due-bg: rgba(37, 99, 235, .11);
+  --psn-void-ink: #be123c;  --psn-void-bg: rgba(225, 29, 72, .11);
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+html[data-theme="dark"] .psn {
+  --psn-all-ink: #ffa471;   --psn-all-bg: rgba(253, 106, 36, .16);
+  --psn-wait-ink: #fbbf24;  --psn-wait-bg: rgba(251, 191, 36, .14);
+  --psn-ready-ink: #c4b5fd; --psn-ready-bg: rgba(167, 139, 250, .16);
+  --psn-done-ink: #4ade80;  --psn-done-bg: rgba(74, 222, 128, .14);
+  --psn-due-ink: #93c5fd;   --psn-due-bg: rgba(96, 165, 250, .14);
+  --psn-void-ink: #fb7185;  --psn-void-bg: rgba(251, 113, 133, .14);
+}
+
+/* ══════════════════════ Kepala halaman ══════════════════════ */
+.psn-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.psn-head h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--dp-heading);
+}
+.psn-head p { margin: 3px 0 0; font-size: 12.5px; color: var(--dp-muted); }
+.psn-head-side { display: flex; align-items: center; gap: 8px; }
+
+/* Penanda Realtime: hanya menyala kalau kanal benar-benar tersambung. */
+.psn-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--dp-border);
+  background: var(--dp-surface);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--dp-muted);
+  white-space: nowrap;
+}
+.psn-live i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dp-border);
+  flex: none;
+}
+.psn-live-on { color: var(--psn-done-ink); border-color: color-mix(in srgb, var(--psn-done-ink) 34%, transparent); }
+.psn-live-on i { background: currentColor; }
+@media (prefers-reduced-motion: no-preference) {
+  .psn-live-on i { animation: psn-pulse 2s ease-in-out infinite; }
+}
+@keyframes psn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent); }
+  70% { box-shadow: 0 0 0 5px transparent; }
+}
+
+/* ══════════════════════ Kartu KPI (juga saringan) ══════════════════════ */
+.psn-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+.psn-kpi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  font: inherit;
+  padding: 13px 14px;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--psn-r-md);
+  background: var(--dp-surface);
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, transform .12s;
+}
+.psn-kpi:hover { border-color: color-mix(in srgb, var(--psn-tone-ink) 45%, var(--dp-border)); }
+.psn-kpi:active { transform: translateY(1px); }
+.psn-kpi:focus-visible { outline: 2px solid var(--dp-blue); outline-offset: 2px; }
+/* Kartu aktif = saringan yang sedang berlaku. Cincin, bukan sekadar warna:
+   pemakai yang tak membedakan rona tetap melihat mana yang menyala. */
+.psn-kpi[aria-pressed="true"] {
+  border-color: var(--psn-tone-ink);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--psn-tone-ink) 22%, transparent);
+}
+.psn-kpi-ic {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--psn-tone-bg);
+  color: var(--psn-tone-ink);
+}
+.psn-kpi-txt { min-width: 0; display: flex; flex-direction: column; }
+.psn-kpi-lbl {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--dp-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.psn-kpi-n {
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--dp-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ══════════════════════ Toolbar ══════════════════════ */
+.psn-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.psn-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--psn-r-md);
+  background: var(--dp-bg);
+}
+.psn-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--psn-r-sm);
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--dp-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color .15s, color .15s, border-color .15s;
+}
+.psn-tab:hover { color: var(--dp-heading); }
+.psn-tab-on {
+  background: var(--dp-surface);
+  border-color: var(--dp-border);
+  color: var(--dp-heading);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(2, 44, 96, .10);
+}
+.psn-tab-n {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--dp-muted);
+  background: var(--dp-border);
+  border-radius: 999px;
+  padding: 1px 6px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.psn-tab-on .psn-tab-n { background: var(--dp-blue-soft); color: var(--dp-accent-ink); }
+
+.psn-bar-right { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.psn-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  width: clamp(180px, 26vw, 300px);
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--dp-border);
+  border-radius: 999px;
+  background: var(--dp-surface);
+  color: var(--dp-muted);
+  transition: border-color .15s, box-shadow .15s;
+}
+.psn-search:focus-within { border-color: var(--dp-blue); box-shadow: 0 0 0 3px var(--dp-blue-soft); }
+.psn-search svg { flex: none; }
+.psn-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--dp-heading);
+}
+.psn-search input::placeholder { color: var(--dp-muted); }
+.psn-search-x {
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 2px;
+  border-radius: 999px;
+  color: var(--dp-muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.psn-search-x:hover { color: var(--dp-heading); background: var(--dp-border); }
+
+.psn-views {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--psn-r-md);
+  background: var(--dp-bg);
+}
+.psn-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: var(--psn-r-sm);
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--dp-muted);
+  cursor: pointer;
+}
+.psn-view:hover { color: var(--dp-heading); }
+.psn-view[aria-pressed="true"] {
+  background: var(--dp-surface);
+  border-color: var(--dp-border);
+  color: var(--dp-heading);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(2, 44, 96, .10);
+}
+.psn-view svg { width: 15px; height: 15px; }
+
+/* ══════════════════════ Chip status & pembayaran ══════════════════════ */
+.psn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+  background: var(--dp-bg);
+  color: var(--dp-muted);
+}
+.psn-chip svg { width: 11px; height: 11px; flex: none; }
+.psn-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.psn-chip-wait { background: var(--psn-wait-bg); color: var(--psn-wait-ink); }
+.psn-chip-proc { background: var(--psn-ready-bg); color: var(--psn-ready-ink); }
+.psn-chip-ready { background: var(--psn-ready-bg); color: var(--psn-ready-ink); }
+.psn-chip-done { background: var(--psn-done-bg); color: var(--psn-done-ink); }
+.psn-chip-void { background: var(--psn-void-bg); color: var(--psn-void-ink); }
+/* Chip pembayaran tidak berbintik — bedanya harus terbaca dari bentuk juga,
+   bukan hanya warna, karena ia bersebelahan dengan chip status. */
+.psn-pay { padding: 3px 9px; }
+.psn-pay::before { display: none; }
+.psn-pay-paid { background: var(--psn-done-bg); color: var(--psn-done-ink); }
+.psn-pay-due { background: var(--psn-due-bg); color: var(--psn-due-ink); }
+
+/* ══════════════════════ Tampilan daftar ══════════════════════ */
+.psn-list {
+  border: 1px solid var(--dp-border);
+  border-radius: var(--psn-r);
+  background: var(--dp-surface);
+  overflow: hidden;
+}
+.psn-scroll {
+  max-height: calc(100vh - 340px);
+  min-height: 220px;
+  overflow: auto;
+}
+.psn-row {
+  display: grid;
+  grid-template-columns:
+    minmax(150px, 1.05fr) minmax(170px, 1.9fr) 78px 116px 104px 116px 132px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  min-height: 60px;
+  border-bottom: 1px solid var(--dp-border);
+}
+.psn-row:last-child { border-bottom: 0; }
+/* Kepala melekat saat digulir: 200 pesanan tanpa kepala tetap = menebak kolom. */
+.psn-rowhead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-height: 42px;
+  background: var(--dp-bg);
+  border-bottom: 1px solid var(--dp-border);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--dp-muted);
+}
+.psn-rowbody { cursor: pointer; background: none; transition: background-color .12s; }
+.psn-rowbody:hover { background: var(--dp-bg); }
+.psn-rowbody:focus-visible { outline: 2px solid var(--dp-blue); outline-offset: -2px; }
+/* Pesanan batal diredam supaya antrean hidup yang menonjol. */
+.psn-row-void { opacity: .62; }
+
+.psn-c-order { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.psn-ic {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--psn-tone-bg);
+  color: var(--psn-tone-ink);
+}
+.psn-ic svg { width: 15px; height: 15px; }
+.psn-c-order-txt { min-width: 0; display: flex; flex-direction: column; }
+.psn-no {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dp-heading);
+  letter-spacing: .01em;
+  font-variant-numeric: tabular-nums;
+}
+.psn-meja {
+  font-size: 11.5px;
+  color: var(--dp-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.psn-c-items { min-width: 0; font-size: 12.5px; color: var(--dp-text); }
+.psn-c-items b { font-weight: 600; }
+.psn-items-line {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.psn-items-more { font-size: 11px; color: var(--dp-muted); }
+.psn-c-time { font-size: 12.5px; color: var(--dp-muted); font-variant-numeric: tabular-nums; }
+.psn-c-total {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--dp-heading);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.psn-c-act { display: flex; justify-content: flex-end; }
+
+/* Tombol langkah-berikut di baris: satu aksi utama, sisanya di panel detail. */
+.psn-next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  min-width: 108px;
+  padding: 0 12px;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--psn-r-sm);
+  background: var(--dp-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dp-heading);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color .15s, border-color .15s, color .15s;
+}
+.psn-next svg { width: 13px; height: 13px; flex: none; }
+.psn-next:hover:not(:disabled) { background: var(--dp-blue); border-color: var(--dp-blue); color: #fff; }
+.psn-next:disabled { opacity: .45; cursor: not-allowed; }
+.psn-next-ghost {
+  border-style: dashed;
+  color: var(--dp-muted);
+  font-weight: 500;
+}
+.psn-next-ghost:hover:not(:disabled) { background: var(--dp-bg); border-color: var(--dp-border); color: var(--dp-heading); }
+
+/* ══════════════════════ Kanban ══════════════════════ */
+.psn-kb {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.psn-kb-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--psn-r);
+  background: var(--dp-bg);
+  overflow: hidden;
+}
+.psn-kb-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 13px;
+  background: var(--dp-surface);
+  border-bottom: 1px solid var(--dp-border);
+  /* Pita warna tipis, bukan kepala penuh warna: empat blok pekat berjajar
+     mengalahkan kartunya sendiri dan membuat papan berteriak. */
+  box-shadow: inset 0 3px 0 0 var(--psn-tone-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--dp-heading);
+  flex: none;
+}
+.psn-kb-head svg { width: 15px; height: 15px; color: var(--psn-tone-ink); flex: none; }
+.psn-kb-n {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--psn-tone-ink);
+  background: var(--psn-tone-bg);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.psn-kb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  min-height: 120px;
+  max-height: calc(100vh - 330px);
+  overflow-y: auto;
+}
+.psn-kb-empty {
+  margin: auto;
+  padding: 18px 8px;
+  font-size: 12px;
+  color: var(--dp-muted);
+  text-align: center;
+}
+
+.psn-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  text-align: left;
+  font: inherit;
+  padding: 11px 12px;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--psn-r-md);
+  background: var(--dp-surface);
+  transition: border-color .15s, box-shadow .15s;
+}
+.psn-card:hover { border-color: color-mix(in srgb, var(--psn-tone-ink) 50%, var(--dp-border)); }
+.psn-card-head { display: flex; align-items: center; gap: 9px; }
+.psn-card-id {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+.psn-card-id:hover .psn-no { color: var(--dp-blue); }
+.psn-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--dp-border);
+  font-size: 12px;
+  color: var(--dp-muted);
+}
+.psn-card-meta span { display: inline-flex; align-items: center; gap: 5px; }
+.psn-card-meta svg { width: 12px; height: 12px; }
+.psn-card-meta b { font-size: 13px; font-weight: 700; color: var(--dp-heading); font-variant-numeric: tabular-nums; }
+
+.psn-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.psn-lines li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--dp-text);
+}
+.psn-line-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.psn-line-dots { flex: 1; min-width: 12px; border-bottom: 1px dotted var(--dp-border); }
+.psn-line-qty { color: var(--dp-muted); font-variant-numeric: tabular-nums; flex: none; }
+.psn-lines-more { font-size: 11px; color: var(--dp-muted); }
+
+.psn-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 7px 9px;
+  border-radius: var(--psn-r-sm);
+  background: var(--dp-bg);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--dp-text);
+  overflow-wrap: anywhere;
+}
+.psn-note svg { width: 12px; height: 12px; flex: none; margin-top: 2px; color: var(--dp-muted); }
+
+.psn-card-btns { display: flex; gap: 7px; }
+.psn-btn {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--psn-r-sm);
+  background: var(--dp-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dp-text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color .15s, border-color .15s, color .15s;
+}
+.psn-btn svg { width: 13px; height: 13px; flex: none; }
+.psn-btn:hover:not(:disabled) { background: var(--dp-bg); color: var(--dp-heading); }
+.psn-btn:disabled { opacity: .45; cursor: not-allowed; }
+.psn-btn-primary { background: var(--dp-blue); border-color: var(--dp-blue); color: #fff; }
+.psn-btn-primary:hover:not(:disabled) { background: var(--dp-accent-ink); border-color: var(--dp-accent-ink); color: #fff; }
+.psn-btn-danger { color: var(--psn-void-ink); border-color: color-mix(in srgb, var(--psn-void-ink) 38%, transparent); }
+.psn-btn-danger:hover:not(:disabled) {
+  background: var(--psn-void-bg);
+  color: var(--psn-void-ink);
+  border-color: var(--psn-void-ink);
+}
+
+/* ══════════════════════ Kosong ══════════════════════ */
+.psn-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 52px 20px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--dp-muted);
+}
+.psn-empty svg { width: 30px; height: 30px; color: var(--dp-border); }
+.psn-empty b { font-size: 14px; color: var(--dp-heading); }
+.psn-empty button {
+  border: 1px solid var(--dp-border);
+  border-radius: var(--psn-r-sm);
+  background: var(--dp-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dp-heading);
+  padding: 7px 14px;
+  cursor: pointer;
+}
+.psn-empty button:hover { background: var(--dp-bg); }
+
+/* ══════════════════════ Pesan aksi ══════════════════════ */
+.psn-toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: var(--psn-r-sm);
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+.psn-toast svg { width: 14px; height: 14px; flex: none; }
+.psn-toast-ok {
+  background: var(--psn-done-bg);
+  color: var(--psn-done-ink);
+  border-color: color-mix(in srgb, var(--psn-done-ink) 26%, transparent);
+}
+.psn-toast-err {
+  background: var(--psn-void-bg);
+  color: var(--psn-void-ink);
+  border-color: color-mix(in srgb, var(--psn-void-ink) 26%, transparent);
+}
+
+/* ══════════════════════ Panel detail (drawer kanan) ══════════════════════ */
+.psn-drawer-root { position: fixed; inset: 0; z-index: 70; }
+.psn-drawer-bd {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 20, 44, .42);
+  animation: psn-fade .16s ease-out;
+}
+.psn-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(440px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--dp-surface);
+  border-left: 1px solid var(--dp-border);
+  box-shadow: -22px 0 56px rgba(2, 44, 96, .18);
+  animation: psn-slide .2s cubic-bezier(.16, 1, .3, 1);
+}
+@keyframes psn-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes psn-slide { from { transform: translateX(22px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .psn-drawer-bd, .psn-drawer { animation: none; }
+}
+
+.psn-dw-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--dp-border);
+  flex: none;
+}
+.psn-dw-head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--dp-heading);
+  font-variant-numeric: tabular-nums;
+}
+.psn-dw-sub { margin: 3px 0 0; font-size: 12px; color: var(--dp-muted); }
+.psn-dw-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.psn-dw-x {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border: 1px solid var(--dp-border);
+  border-radius: 999px;
+  background: var(--dp-surface);
+  color: var(--dp-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.psn-dw-x:hover { background: var(--dp-bg); color: var(--dp-heading); }
+
+.psn-dw-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.psn-dw-sec { display: flex; flex-direction: column; gap: 8px; }
+.psn-dw-sec h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--dp-muted);
+}
+.psn-dw-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.psn-fact {
+  border: 1px solid var(--dp-border);
+  border-radius: var(--psn-r-sm);
+  padding: 8px 10px;
+  background: var(--dp-bg);
+  min-width: 0;
+}
+.psn-fact dt { font-size: 11px; color: var(--dp-muted); }
+.psn-fact dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dp-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.psn-dw-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--psn-r-md);
+  overflow: hidden;
+}
+.psn-dw-items li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--dp-border);
+  font-size: 12.5px;
+}
+.psn-dw-items li:last-child { border-bottom: 0; }
+.psn-dw-item-name { font-weight: 600; color: var(--dp-heading); overflow-wrap: anywhere; }
+.psn-dw-item-amt { font-weight: 700; color: var(--dp-heading); font-variant-numeric: tabular-nums; }
+.psn-dw-item-calc { grid-column: 1 / -1; font-size: 11px; color: var(--dp-muted); font-variant-numeric: tabular-nums; }
+
+.psn-dw-sum { display: flex; flex-direction: column; gap: 6px; }
+.psn-dw-sum-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--dp-muted);
+}
+.psn-dw-sum-row b { font-weight: 600; color: var(--dp-text); font-variant-numeric: tabular-nums; }
+.psn-dw-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--dp-border);
+  padding-top: 9px;
+}
+.psn-dw-total span { font-size: 13.5px; font-weight: 700; color: var(--dp-heading); }
+.psn-dw-total b { font-size: 19px; font-weight: 800; color: var(--dp-heading); font-variant-numeric: tabular-nums; }
+
+.psn-dw-foot {
+  flex: none;
+  border-top: 1px solid var(--dp-border);
+  padding: 12px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--dp-surface);
+}
+.psn-dw-foot .psn-card-btns { gap: 8px; }
+.psn-dw-foot .psn-btn { height: 38px; font-size: 12.5px; }
+
+/* ══════════════════════ Dialog batal ══════════════════════ */
+.psn-modal-bd {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(2, 20, 44, .5);
+}
+.psn-modal {
+  width: 100%;
+  max-width: 440px;
+  padding: 20px;
+  border-radius: var(--psn-r);
+  background: var(--dp-surface);
+  border: 1px solid var(--dp-border);
+  box-shadow: 0 24px 60px rgba(2, 20, 44, .3);
+}
+.psn-modal h3 { margin: 0; font-size: 16px; font-weight: 700; color: var(--dp-heading); }
+.psn-modal-sub { margin: 6px 0 14px; font-size: 12.5px; color: var(--dp-muted); }
+.psn-presets { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+.psn-preset {
+  border: 1px solid var(--dp-border);
+  background: var(--dp-bg);
+  color: var(--dp-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.psn-preset:hover { border-color: var(--dp-blue); color: var(--dp-heading); }
+.psn-preset-on { border-color: var(--dp-blue); background: var(--dp-blue-soft); color: var(--dp-accent-ink); font-weight: 600; }
+.psn-input {
+  width: 100%;
+  min-height: 62px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 13px;
+  border-radius: var(--psn-r-sm);
+  border: 1px solid var(--dp-border);
+  background: var(--dp-surface);
+  color: var(--dp-heading);
+  resize: vertical;
+}
+.psn-input:focus-visible { outline: 0; border-color: var(--dp-blue); box-shadow: 0 0 0 3px var(--dp-blue-soft); }
+.psn-modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.psn-modal-foot .psn-btn { flex: none; padding: 0 16px; height: 38px; }
+
+/* ══════════════════════ Responsif ══════════════════════ */
+@media (max-width: 1280px) {
+  .psn-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .psn-row { grid-template-columns: minmax(140px, 1fr) 78px 110px 104px 112px 126px; }
+  /* Kolom "Item" adalah yang paling boleh hilang duluan: isinya tetap utuh
+     satu ketukan jauhnya di panel detail. */
+  .psn-c-items { display: none; }
+}
+@media (max-width: 1100px) {
+  .psn-kb { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .psn-kb-list { max-height: none; }
+}
+@media (max-width: 900px) {
+  .psn-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .psn-row { grid-template-columns: minmax(130px, 1fr) 104px 112px 126px; }
+  .psn-c-time, .psn-c-pay { display: none; }
+  .psn-scroll { max-height: none; }
+}
+@media (max-width: 620px) {
+  .psn-kb { grid-template-columns: 1fr; }
+  .psn-bar-right { margin-left: 0; width: 100%; }
+  .psn-search { flex: 1 1 100%; width: auto; }
+  .psn-views { flex: 1 1 auto; }
+  .psn-view { flex: 1; justify-content: center; }
+  .psn-row { grid-template-columns: minmax(0, 1fr) 108px; padding: 12px 14px; gap: 8px; row-gap: 10px; align-items: start; }
+  /* Di lebar ini baris berhenti jadi tabel dan jadi kartu ringkas: nomor +
+     meja di kiri, total di kanan, chip & aksi di baris kedua. */
+  .psn-rowhead { display: none; }
+  .psn-c-total { grid-column: 2; text-align: right; }
+  .psn-c-status { grid-column: 1; }
+  .psn-c-act { grid-column: 2; }
+  .psn-next { min-width: 0; width: 100%; }
+  .psn-drawer { width: 100vw; }
+}

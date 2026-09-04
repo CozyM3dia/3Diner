@@ -45,10 +45,6 @@
 .dp-pick-name { font-size: 12px; font-weight: 600; color: var(--dp-heading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dp-pick-price { font-size: 11px; color: var(--dp-muted); }
 
-/* ── Grid aksi bawah POS (ala template: CTA full + 6 tombol) ── */
-.pos-actions-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.pos-cta { grid-column: 1 / -1; height: 44px; font-size: 14px; }
-
 @media (max-width: 768px) {
   .dp-item-modal-body { grid-template-columns: 1fr; }
   .dp-item-photo { min-height: 160px; }

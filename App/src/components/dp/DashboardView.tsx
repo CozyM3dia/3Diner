@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRightIcon, ChevronRightIcon } from "lucide-react";
 import AnalyticsHeader, { labelPembanding, type LembarAnalitik } from "@/components/dp/AnalyticsHeader";
+import AnomalyPulseStrip from "@/components/dp/AnomalyPulseStrip";
 import HeatmapJam from "@/components/dp/HeatmapJam";
 import Petunjuk from "@/components/dp/Petunjuk";
 import Funnel from "@/components/dp/Funnel";
@@ -100,6 +101,13 @@ export default function DashboardView({
         hrefBase={hrefBase}
         harian={m.harian}
         transaksi={m.transaksi}
+      />
+
+      {/* ── Deteksi Anomali Operasional Dapur & Transaksi ── */}
+      <AnomalyPulseStrip
+        m={m}
+        tamu={tamu}
+        hrefPesanan="/dashboard-v2/pesanan"
       />
 
       {/* ── Empat angka setara. Uang sengaja TIDAK ada di sini: ia punya
