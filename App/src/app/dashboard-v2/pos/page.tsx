@@ -9,6 +9,7 @@ import PosBoard, {
   type PosRecent,
 } from "@/components/pos/PosBoard";
 import "../../pos-item-details.css";
+import "../../pos.css";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "POS · 3Diner" };
@@ -27,7 +28,7 @@ export default async function PosPage() {
 
   const since = startOfTodayWIB();
 
-  const [menusRes, groupsRes, cafeRes, recentRes] = await Promise.all([
+  const [menusRes, groupsRes, cafeRes, recentRes, tablesRes] = await Promise.all([
     supabaseAdmin
       .from("Menus")
       .select("id_menu,nama_menu,harga_menu,discount_pct,image_url,category,is_active,description_menu")
@@ -56,6 +57,14 @@ export default async function PosPage() {
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(6),
+    // Daftar meja untuk combobox "Lokasi Meja". Tidak ada tabel Meja di skema,
+    // jadi sumber kebenarannya adalah meja yang benar-benar pernah dipakai.
+    supabaseAdmin
+      .from("Orders")
+      .select("table_number")
+      .eq("cafe_id", cafeId)
+      .order("created_at", { ascending: false })
+      .limit(400),
   ]);
 
   const cafe = cafeRes.data;
@@ -121,6 +130,15 @@ export default async function PosPage() {
     itemCount: (o.items ?? []).reduce((s, it) => s + (it.qty ?? 1), 0),
   }));
 
+  // Meja unik, tanpa label bawa-pulang, urut manusiawi (2 sebelum 10).
+  const tables = [
+    ...new Set(
+      ((tablesRes.data ?? []) as unknown as Array<{ table_number: string | null }>)
+        .map(r => (r.table_number ?? "").trim())
+        .filter(t => t.length > 0 && !/^(bungkus|delivery|take ?away)$/i.test(t)),
+    ),
+  ].sort((a, b) => a.localeCompare(b, "id", { numeric: true, sensitivity: "base" }));
+
   return (
     <PosBoard
       cafeId={cafeId}
@@ -133,6 +151,7 @@ export default async function PosPage() {
       optionGroups={optionGroups}
       categories={categories}
       recent={recent}
+      tables={tables}
     />
   );
 }

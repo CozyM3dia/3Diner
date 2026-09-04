@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import "../dp.css";
 import "@/components/pos/pos-item.css";
+import "../pos.css";
+import "../pesanan.css";
+import "../pos-item-details.css";
 import "@/app/menu-editor.css";
 import "@/app/menu-preview.css";
 import "../role-pill.css";

@@ -1,0 +1,926 @@
+/* ════════════════════════════════════════════════════════════════════
+   POS — papan kasir (rebuild 5 Sep 2026)
+
+   Tata letak dua kolom: katalog menu di kiri, Ringkasan Pesanan di kanan.
+   Referensi visual: "Modern POS Dashboard UI — Restaurant Food Ordering
+   System". Palet & tipografi tetap DNA 3Diner (navy #022C60 dominan,
+   orange #FD5002 aksen ~10%) lewat token --dp-* dari dp.css, sehingga mode
+   gelap ikut tanpa aturan kembar.
+
+   Namespace `pos-`. Berkas ini menggantikan seluruh blok `.pos-*` yang dulu
+   menumpang di dp.css — jangan hidupkan lagi di sana, dua sumber untuk satu
+   komponen adalah cara tercepat membuat regresi visual.
+   ════════════════════════════════════════════════════════════════════ */
+
+.pos-root {
+  --pos-r: 14px;   /* radius kartu besar (panel) */
+  --pos-r-md: 12px;
+  --pos-r-sm: 9px;
+  --pos-cta: linear-gradient(97deg, #fd5002 0%, #fc733b 100%);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 384px;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ══════════════════════ Panel (kartu putih) ══════════════════════ */
+.pos-panel {
+  min-width: 0;
+  background: var(--dp-surface);
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r);
+  display: flex;
+  flex-direction: column;
+}
+
+.pos-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px 14px;
+}
+.pos-panel-head h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--dp-heading);
+  letter-spacing: -0.01em;
+}
+.pos-panel-head-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.pos-kasir {
+  font-size: 12px;
+  color: var(--dp-muted);
+  white-space: nowrap;
+}
+
+/* ── Pencarian ── */
+.pos-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  min-width: 0;
+  width: clamp(190px, 30vw, 320px);
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--dp-border);
+  border-radius: 999px;
+  background: var(--dp-bg);
+  color: var(--dp-muted);
+  transition: border-color .15s, box-shadow .15s;
+}
+.pos-search:focus-within {
+  border-color: var(--dp-blue);
+  box-shadow: 0 0 0 3px var(--dp-blue-soft);
+}
+.pos-search svg { flex: none; }
+.pos-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--dp-heading);
+}
+.pos-search input::placeholder { color: var(--dp-muted); }
+.pos-search kbd {
+  flex: none;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--dp-muted);
+  background: var(--dp-surface);
+  border: 1px solid var(--dp-border);
+  border-radius: 5px;
+  padding: 2px 6px;
+  line-height: 1;
+}
+/* Tombol bersihkan pencarian: muncul hanya saat ada isian. */
+.pos-search-x {
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 2px;
+  border-radius: 999px;
+  color: var(--dp-muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.pos-search-x:hover { color: var(--dp-heading); background: var(--dp-border); }
+
+/* ── Kategori ── */
+/* Membungkus, bukan menggulir mendatar: penggulir tanpa batang gulir
+   menyembunyikan kategori terakhir tanpa petunjuk apa pun bahwa ia ada.
+   Kafe punya belasan kategori paling banyak — dua baris chip tidak mahal,
+   kategori yang tak terlihat mahal. */
+.pos-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 18px 16px;
+  padding: 5px;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r-md);
+  background: var(--dp-bg);
+}
+.pos-cat {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--pos-r-sm);
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dp-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color .15s, color .15s, border-color .15s;
+}
+.pos-cat:hover { color: var(--dp-heading); }
+.pos-cat-on {
+  background: var(--dp-surface);
+  border-color: var(--dp-border);
+  color: var(--dp-heading);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(2, 44, 96, .10);
+}
+.pos-cat-n {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--dp-muted);
+  background: var(--dp-border);
+  border-radius: 999px;
+  padding: 1px 6px;
+  line-height: 1.5;
+}
+.pos-cat-on .pos-cat-n { background: var(--dp-blue-soft); color: var(--dp-accent-ink); }
+
+/* ══════════════════════ Kartu menu ══════════════════════ */
+.pos-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(208px, 1fr));
+  padding: 0 18px 18px;
+}
+.pos-card {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r-md);
+  background: var(--dp-surface);
+  padding: 10px;
+  font: inherit;
+  transition: border-color .15s, box-shadow .15s, transform .12s;
+}
+.pos-card:hover {
+  border-color: var(--dp-blue);
+  box-shadow: 0 6px 18px rgba(2, 44, 96, .09);
+}
+.pos-card:focus-visible { outline: 2px solid var(--dp-blue); outline-offset: 2px; }
+
+.pos-card-shot {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--pos-r-sm);
+  overflow: hidden;
+  background: var(--dp-bg);
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.pos-card-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pos-card-shot-empty {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--dp-bg), var(--dp-border));
+}
+.pos-flag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 3px 8px;
+  background: var(--dp-blue);
+  color: #fff;
+  letter-spacing: .01em;
+}
+.pos-flag-off {
+  background: var(--dp-heading);
+}
+
+.pos-card-cat {
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--dp-muted);
+}
+.pos-card-name {
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin-top: 2px;
+  text-align: left;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--dp-heading);
+  cursor: pointer;
+  /* Dua baris tetap: kartu tidak melompat tinggi antar-nama panjang/pendek. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.7em;
+}
+.pos-card-name:hover { color: var(--dp-blue); }
+.pos-card-price {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--dp-muted);
+}
+.pos-card-price b { font-weight: 700; color: var(--dp-heading); }
+.pos-card-price s { margin-right: 5px; color: var(--dp-muted); font-weight: 400; }
+
+.pos-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--dp-border);
+}
+.pos-card-add {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r-sm);
+  background: var(--dp-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dp-heading);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color .15s, color .15s, border-color .15s;
+}
+.pos-card-add:hover { background: var(--dp-blue); border-color: var(--dp-blue); color: #fff; }
+.pos-card-add:active { transform: translateY(1px); }
+
+/* Stepper generik (kartu menu + baris keranjang + modal Item Details) */
+.pos-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r-sm);
+  background: var(--dp-surface);
+  padding: 2px;
+}
+.pos-stepper button {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 0;
+  background: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--dp-muted);
+  padding: 0;
+}
+.pos-stepper button:hover:not(:disabled) { background: var(--dp-bg); color: var(--dp-heading); }
+.pos-stepper button:disabled { opacity: .4; cursor: not-allowed; }
+.pos-stepper b {
+  min-width: 20px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dp-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+.pos-empty {
+  margin: 0 18px 18px;
+  padding: 34px 20px;
+  text-align: center;
+  color: var(--dp-muted);
+  font-size: 13px;
+  border: 1px dashed var(--dp-border);
+  border-radius: var(--pos-r-md);
+}
+.pos-empty b { display: block; color: var(--dp-heading); font-size: 14px; margin-bottom: 4px; }
+
+/* ══════════════════════ Kolom kanan: Ringkasan ══════════════════════ */
+.pos-cart {
+  /* Batang atas konsol (.dv3-top) juga sticky di top:0 setinggi --dv3-top-h.
+     Tanpa offset ini kepala "Ringkasan Pesanan" menyelinap di bawahnya saat
+     katalog panjang digulir. Fallback 56px menjaga POS tetap benar bila
+     dipakai di luar shell v3. */
+  position: sticky;
+  top: calc(var(--dv3-top-h, 56px) + 12px);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--dv3-top-h, 56px) - 24px);
+  background: var(--dp-surface);
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r);
+  overflow: hidden;
+}
+.pos-cart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--dp-border);
+  flex: none;
+}
+.pos-cart-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dp-heading);
+}
+.pos-cart-orderdate { display: block; font-size: 11px; font-weight: 400; color: var(--dp-muted); margin-top: 1px; }
+.pos-eye {
+  flex: none;
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--pos-r-sm);
+  border: 1px solid var(--dp-border);
+  background: var(--dp-surface);
+  color: var(--dp-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.pos-eye:hover { background: var(--dp-bg); color: var(--dp-heading); }
+.pos-eye-on { background: var(--dp-blue-soft); border-color: var(--dp-blue); color: var(--dp-accent-ink); }
+.pos-eye-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--dp-blue);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+/* Badan yang menggulir: medan + daftar item */
+.pos-cart-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Pesanan aktif (panel ikon mata) ── */
+.pos-live {
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r-md);
+  background: var(--dp-bg);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pos-live-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pos-live-head h3 { margin: 0; font-size: 12px; font-weight: 700; color: var(--dp-heading); }
+.pos-live-link { font-size: 11px; font-weight: 600; color: var(--dp-accent-ink); text-decoration: none; }
+.pos-live-link:hover { text-decoration: underline; }
+.pos-live-list { display: flex; flex-direction: column; gap: 6px; max-height: 232px; overflow-y: auto; }
+.pos-live-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+  font: inherit;
+  border: 1px solid var(--dp-border);
+  border-left-width: 3px;
+  border-radius: var(--pos-r-sm);
+  background: var(--dp-surface);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.pos-live-card:hover { border-color: var(--dp-blue); }
+.pos-lc-warn { border-left-color: #d97706; }
+.pos-lc-urgent { border-left-color: #dc2626; }
+.pos-lc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pos-lc-id { font-size: 12px; font-weight: 800; color: var(--dp-heading); letter-spacing: .02em; }
+.pos-lc-bot { display: flex; align-items: center; gap: 6px; color: var(--dp-muted); font-size: 11px; }
+.pos-lc-meja { font-weight: 600; color: var(--dp-text); }
+.pos-lc-total { margin-left: auto; font-size: 12px; font-weight: 800; color: var(--dp-heading); }
+.pos-lc-late { color: #b91c1c; font-weight: 700; }
+.pos-st { font-size: 10px; font-weight: 700; border-radius: 999px; padding: 2px 8px; }
+.pos-st-baru { background: var(--dp-blue-soft); color: var(--dp-accent-ink); }
+.pos-st-dapur { background: #fef3c7; color: #92400e; }
+.pos-st-siap { background: #dcfce7; color: #166534; }
+.pos-st-selesai { background: var(--dp-bg); color: var(--dp-muted); }
+
+/* ── Medan isian ── */
+.pos-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pos-field-lbl { font-size: 12px; font-weight: 600; color: var(--dp-heading); }
+.pos-input,
+.pos-select {
+  width: 100%;
+  height: 42px;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r-sm);
+  background: var(--dp-surface);
+  padding: 0 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--dp-heading);
+  transition: border-color .15s, box-shadow .15s;
+}
+.pos-input::placeholder { color: var(--dp-muted); }
+.pos-input:focus-visible,
+.pos-select:focus-visible {
+  outline: 0;
+  border-color: var(--dp-blue);
+  box-shadow: 0 0 0 3px var(--dp-blue-soft);
+}
+.pos-input:disabled,
+.pos-select:disabled { opacity: .55; cursor: not-allowed; background: var(--dp-bg); }
+.pos-input[aria-invalid="true"] { border-color: var(--dp-red); box-shadow: 0 0 0 3px rgba(255, 54, 54, .12); }
+
+/* Select: chevron sendiri, panah bawaan dimatikan agar seragam lintas OS. */
+.pos-selwrap { position: relative; }
+.pos-select { appearance: none; padding-right: 36px; cursor: pointer; }
+.pos-selwrap svg {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  color: var(--dp-muted);
+  pointer-events: none;
+}
+
+/* Combobox meja: input bebas + daftar meja yang pernah dipakai. */
+.pos-combo { position: relative; }
+.pos-combo-pop {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 208px;
+  overflow-y: auto;
+  background: var(--dp-surface);
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r-sm);
+  box-shadow: 0 14px 34px rgba(2, 44, 96, .16);
+  padding: 4px;
+}
+.pos-combo-opt {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: none;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--dp-text);
+  cursor: pointer;
+  text-align: left;
+}
+.pos-combo-opt:hover,
+.pos-combo-opt[data-active="true"] { background: var(--dp-blue-soft); color: var(--dp-accent-ink); }
+.pos-combo-empty { padding: 10px; font-size: 12px; color: var(--dp-muted); }
+
+.pos-field-err {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dp-red);
+}
+.pos-field-err svg { width: 13px; height: 13px; flex: none; margin-top: 1px; }
+.pos-field-hint { margin: 0; font-size: 11px; color: var(--dp-muted); }
+
+/* ── Kartu daftar item ── */
+.pos-items {
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r-md);
+  overflow: hidden;
+}
+.pos-items-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--dp-border);
+  background: var(--dp-surface);
+}
+.pos-items-head h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dp-heading);
+}
+.pos-items-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dp-muted);
+  background: var(--dp-bg);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.pos-clear {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 54, 54, .35);
+  border-radius: 999px;
+  background: rgba(255, 54, 54, .08);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dp-red);
+  cursor: pointer;
+}
+.pos-clear:hover { background: rgba(255, 54, 54, .16); }
+.pos-clear svg { width: 12px; height: 12px; }
+
+.pos-line { padding: 10px 12px; border-bottom: 1px solid var(--dp-border); }
+.pos-line:last-child { border-bottom: 0; }
+.pos-line-main { display: flex; gap: 10px; }
+.pos-line-thumb {
+  width: 54px;
+  height: 54px;
+  border-radius: var(--pos-r-sm);
+  overflow: hidden;
+  flex: none;
+  background: var(--dp-bg);
+}
+.pos-line-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pos-line-thumb-empty {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--dp-bg), var(--dp-border));
+}
+.pos-line-body { flex: 1; min-width: 0; }
+.pos-line-top { display: flex; align-items: flex-start; gap: 8px; }
+.pos-line-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dp-heading);
+  line-height: 1.35;
+}
+.pos-line-mult {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dp-muted);
+  font-variant-numeric: tabular-nums;
+}
+.pos-line-addons { margin: 4px 0 0; font-size: 11px; color: var(--dp-muted); }
+.pos-line-addons > span { font-weight: 600; }
+.pos-line-addons ul { margin: 2px 0 0; padding-left: 15px; list-style: disc; }
+.pos-line-addons li { line-height: 1.6; }
+.pos-line-note-txt {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--dp-accent-ink);
+  overflow-wrap: anywhere;
+}
+.pos-line-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  background: var(--dp-bg);
+  font-size: 11.5px;
+  color: var(--dp-muted);
+}
+.pos-line-sub b { font-size: 12.5px; font-weight: 700; color: var(--dp-heading); }
+.pos-line-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.pos-line-addnote {
+  border: 1px dashed var(--dp-border);
+  background: none;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--dp-muted);
+  padding: 4px 9px;
+  cursor: pointer;
+}
+.pos-line-addnote:hover { color: var(--dp-accent-ink); border-color: var(--dp-accent-ink); }
+.pos-line-x {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--dp-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+.pos-line-x:hover { color: var(--dp-red); background: rgba(255, 54, 54, .1); }
+.pos-line-note {
+  margin-top: 8px;
+  width: 100%;
+  border: 1px solid var(--dp-border);
+  border-radius: 6px;
+  background: var(--dp-surface);
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--dp-text);
+}
+.pos-line-note:focus-visible { outline: 0; border-color: var(--dp-blue); box-shadow: 0 0 0 3px var(--dp-blue-soft); }
+
+/* Kolom terpusat, bukan `text-align` + <br>: preflight Tailwind memberi
+   `display:block` pada setiap <svg>, sehingga ikon mengabaikan perataan teks
+   dan menempel di tepi kiri. */
+.pos-cart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 30px 18px;
+  margin: 0;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--dp-muted);
+}
+.pos-cart-empty svg { width: 26px; height: 26px; color: var(--dp-border); }
+
+/* ── Kaki: total + aksi ── */
+.pos-foot {
+  flex: none;
+  border-top: 1px solid var(--dp-border);
+  padding: 14px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--dp-surface);
+}
+.pos-foot h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--dp-heading); }
+.pos-sum { display: flex; flex-direction: column; gap: 6px; }
+.pos-sum-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--dp-muted); }
+.pos-sum-row b { font-weight: 600; color: var(--dp-text); font-variant-numeric: tabular-nums; }
+.pos-sum-disc b { color: var(--dp-accent-ink); }
+.pos-grand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--dp-border);
+  padding-top: 10px;
+}
+.pos-grand span { font-size: 14.5px; font-weight: 700; color: var(--dp-heading); }
+.pos-grand b {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--dp-heading);
+  font-variant-numeric: tabular-nums;
+  transition: opacity .2s ease;
+}
+.pos-grand-busy b { opacity: .4; }
+.pos-hint { margin: 0; font-size: 11.5px; color: var(--dp-muted); }
+
+.pos-cta {
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: var(--pos-r-md);
+  background: var(--pos-cta);
+  color: #fff;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 8px 20px rgba(253, 80, 2, .26);
+  transition: filter .15s, box-shadow .15s, transform .1s;
+}
+.pos-cta:hover:not(:disabled) { filter: brightness(1.06); box-shadow: 0 10px 26px rgba(253, 80, 2, .34); }
+.pos-cta:active:not(:disabled) { transform: translateY(1px); }
+.pos-cta:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+
+.pos-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.pos-actions-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pos-btn {
+  height: 38px;
+  border-radius: var(--pos-r-sm);
+  border: 1px solid var(--dp-border);
+  background: var(--dp-surface);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dp-text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.pos-btn svg { width: 14px; height: 14px; flex: none; }
+.pos-btn:hover:not(:disabled) { background: var(--dp-bg); color: var(--dp-heading); }
+.pos-btn:disabled { opacity: .5; cursor: not-allowed; }
+.pos-btn-primary { background: var(--dp-blue); border-color: var(--dp-blue); color: #fff; }
+.pos-btn-primary:hover:not(:disabled) { background: var(--dp-accent-ink); border-color: var(--dp-accent-ink); color: #fff; }
+.pos-btn-danger { color: var(--dp-red); border-color: rgba(255, 54, 54, .4); }
+.pos-btn-danger:hover:not(:disabled) { background: rgba(255, 54, 54, .1); color: var(--dp-red); }
+
+.pos-msg { margin: 0; font-size: 12px; }
+.pos-msg-ok { color: #15803d; }
+.pos-msg-err { color: var(--dp-red); }
+
+/* Dipakai PosItemModal (tambah item ke pesanan berjalan) */
+.pos-cart-note { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--dp-muted); }
+.pos-cart-note textarea,
+.pos-cart-note input {
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r-sm);
+  background: var(--dp-surface);
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--dp-text);
+  resize: vertical;
+}
+.pos-actions-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+
+/* ══════════════════════ Modal pembayaran ══════════════════════ */
+.pos-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(2, 20, 44, .5);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.pos-modal {
+  width: 100%;
+  max-width: 440px;
+  background: var(--dp-surface);
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r);
+  box-shadow: 0 24px 60px rgba(2, 20, 44, .28);
+  max-height: min(86vh, 720px);
+  overflow-y: auto;
+}
+.pos-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--dp-border);
+}
+.pos-modal-head h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--dp-heading); }
+.pos-modal-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+.pos-modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--dp-border); }
+.pos-pay-total { margin: 0; font-size: 24px; font-weight: 800; color: var(--dp-heading); }
+.pos-pay-total span { font-size: 13px; font-weight: 400; color: var(--dp-muted); }
+.pos-pay-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r-md);
+  background: var(--dp-bg);
+}
+.pos-pay-tab {
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: var(--pos-r-sm);
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dp-muted);
+  cursor: pointer;
+}
+.pos-pay-tab-on {
+  background: var(--dp-surface);
+  border-color: var(--dp-border);
+  color: var(--dp-heading);
+  box-shadow: 0 1px 3px rgba(2, 44, 96, .1);
+}
+.pos-qris { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.pos-qris img {
+  width: 210px;
+  height: 210px;
+  object-fit: contain;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--pos-r-sm);
+  background: #fff;
+  padding: 8px;
+}
+
+/* ══════════════════════ Responsif ══════════════════════ */
+@media (max-width: 1180px) {
+  .pos-root { grid-template-columns: minmax(0, 1fr) 340px; }
+}
+@media (max-width: 1024px) {
+  .pos-root { grid-template-columns: 1fr; }
+  .pos-cart { position: static; max-height: none; }
+  .pos-cart-body { overflow: visible; }
+}
+@media (max-width: 560px) {
+  .pos-panel-head { flex-wrap: wrap; padding: 14px 12px 12px; }
+  .pos-search { width: 100%; }
+  .pos-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 0 12px 12px; }
+  .pos-cats { margin: 0 12px 12px; }
+  .pos-cart-body, .pos-foot { padding-left: 12px; padding-right: 12px; }
+  .pos-actions-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Dua kartu berdampingan di 375px hanya menyisakan ~64px untuk tombolnya,
+     dan "Tambah" terpotong jadi "Tamb…". Kaki kartu ditumpuk: stepper satu
+     baris penuh, tombol satu baris penuh. */
+  .pos-card-foot { flex-direction: column; align-items: stretch; gap: 6px; }
+  .pos-card-foot .pos-stepper { justify-content: space-between; }
+  .pos-card-add { height: 34px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pos-card, .pos-cta, .pos-grand b { transition: none; }
+}
+
+/* ══════════════════════ Mode gelap ══════════════════════
+   Token --dp-* sudah bertukar di dp.css; hanya nilai keras yang perlu
+   pasangan gelapnya. */
+html[data-theme="dark"] .pos-card:hover { box-shadow: 0 6px 18px rgba(0, 0, 0, .4); }
+html[data-theme="dark"] .pos-cat-on { box-shadow: 0 1px 3px rgba(0, 0, 0, .4); }
+html[data-theme="dark"] .pos-pay-tab-on { box-shadow: 0 1px 3px rgba(0, 0, 0, .4); }
+html[data-theme="dark"] .pos-combo-pop { box-shadow: 0 14px 34px rgba(0, 0, 0, .5); }
+html[data-theme="dark"] .pos-modal { box-shadow: 0 24px 60px rgba(0, 0, 0, .55); }
+html[data-theme="dark"] .pos-qris img { background: #1a2b47; }
+html[data-theme="dark"] .pos-st-dapur { background: rgba(251, 191, 36, .16); color: #fbbf24; }
+html[data-theme="dark"] .pos-st-siap { background: rgba(74, 222, 128, .16); color: #4ade80; }
+html[data-theme="dark"] .pos-msg-ok { color: #4ade80; }
+html[data-theme="dark"] .pos-lc-late { color: #ff8f8f; }
+/* CTA oranye tetap oranye di gelap — aksen brand tidak ikut bertukar. */
+html[data-theme="dark"] .pos-cta { box-shadow: 0 8px 20px rgba(253, 80, 2, .22); }

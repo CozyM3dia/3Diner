@@ -11,7 +11,8 @@
 
 import type { MenuRow, OrderRow } from "@/lib/dashboard-metrics";
 import type { PeristiwaTamu } from "@/lib/dashboard-query";
-import type { PosCategoryChip, PosMenu, PosRecent } from "@/components/pos/PosBoard";
+import type { PosCategoryChip, PosMenu, PosMenuOption, PosRecent } from "@/components/pos/PosBoard";
+import type { BoardOrder } from "@/components/dp/OrdersBoard";
 
 export type Skenario = "ramai" | "sepi" | "baru" | "tertinggal";
 
@@ -154,6 +155,50 @@ export function fixture(skenario: Skenario, now = new Date()): { orders: OrderRo
 
 /** Peristiwa tamu (Analytics_Logs) untuk harness — bentuknya sama dengan
  *  hasil `muatPeristiwa`, tanpa menyentuh RPC. */
+/** Pesanan untuk harness papan Pesanan. Diturunkan dari fixture yang sama
+ *  dengan lembar analitik, lalu dilengkapi rincian harga & catatan supaya
+ *  panel detail, chip pembayaran, dan kolom "Dibatalkan" semuanya terisi —
+ *  keadaan yang tidak bisa diperiksa kalau fixture hanya berisi total. */
+export function pesananFixture(skenario: Skenario = "ramai", now = new Date()): BoardOrder[] {
+  const { orders } = fixture(skenario, now);
+  const CATATAN: Record<number, string> = {
+    1: "Tanpa bawang, saus dipisah.",
+    4: "Pelanggan: Budi — tolong antar cepat, ada rapat.",
+    9: "Pedas level 3.",
+  };
+  // Fixture analitik hampir seluruhnya "completed" — berguna untuk grafik
+  // pendapatan, tak berguna untuk papan pipeline. Status di-siklus di sini
+  // supaya keempat kolom kanban, keenam chip, dan keadaan belum-bayar semuanya
+  // punya isi yang bisa diperiksa.
+  const SIKLUS = ["awaiting", "awaiting", "preparing", "ready", "completed", "completed", "awaiting", "preparing"];
+  return orders.slice(0, 22).map((o, i) => {
+    const subtotal = o.total ?? 0;
+    const servicePct = 5;
+    const taxPct = 10;
+    const service = Math.round((subtotal * servicePct) / 100);
+    const tax = Math.round(((subtotal + service) * taxPct) / 100);
+    const batal = i === 6;
+    return {
+      id_order: `0f1e2d3c-4b5a-4c6d-8e7f-${(0xa10c0 + i * 977).toString(16).padStart(12, "0")}`,
+      created_at: o.created_at,
+      status: batal ? "cancelled" : SIKLUS[i % SIKLUS.length],
+      payment_status: i % 3 === 0 ? "paid" : "unpaid",
+      payment_method: i % 3 === 0 ? o.payment_method ?? "cash" : null,
+      table_number: i % 5 === 3 ? "Bungkus" : o.table_number,
+      total: subtotal + service + tax,
+      subtotal,
+      tax_pct: taxPct,
+      tax_amount: tax,
+      service_pct: servicePct,
+      service_amount: service,
+      prices_include_tax: false,
+      items: o.items ?? [],
+      notes: CATATAN[i] ?? null,
+      cancelled_reason: batal ? "Stok bahan habis" : null,
+    };
+  });
+}
+
 export function peristiwaFixture(skenario: Skenario): PeristiwaTamu {
   if (skenario === "baru") {
     return { kini: { click_menu: 0, view_3d: 0, click_order: 0 }, lalu: { click_menu: 0, view_3d: 0, click_order: 0 }, perMenu: [], perJam: Array(24).fill(0), gagal: false };
@@ -201,20 +246,62 @@ const POS_MENUS: PosMenu[] = MENUS.map((m, i) => ({
   description: null,
 }));
 
+/** Grup opsi untuk dua menu pertama — harness harus melewati modal Item
+ *  Details juga, bukan hanya jalur tambah-langsung. */
+const POS_OPTION_GROUPS: PosMenuOption[] = POS_MENUS.slice(0, 2).flatMap((m, i) => [
+  {
+    id: `og-size-${i}`,
+    menuId: m.id,
+    name: "Ukuran",
+    minSelect: 1,
+    maxSelect: 1,
+    values: [
+      { id: `ov-size-${i}-r`, name: "Regular", priceDelta: 0 },
+      { id: `ov-size-${i}-l`, name: "Large", priceDelta: 5000 },
+    ],
+  },
+  {
+    id: `og-add-${i}`,
+    menuId: m.id,
+    name: "Add-ons",
+    minSelect: 0,
+    maxSelect: 3,
+    values: [
+      { id: `ov-add-${i}-t`, name: "Extra Topping", priceDelta: 4000 },
+      { id: `ov-add-${i}-s`, name: "Saus Terpisah", priceDelta: 0 },
+    ],
+  },
+]);
+
 export function posFixture(): {
   menus: PosMenu[];
+  optionGroups: PosMenuOption[];
   categories: PosCategoryChip[];
   recent: PosRecent[];
+  tables: string[];
 } {
+  const aktif = POS_MENUS.filter(m => m.isActive);
   const hitung = new Map<string, number>();
-  for (const m of POS_MENUS) {
-    if (!m.isActive) continue;
+  for (const m of aktif) {
     const k = m.category ?? "Lainnya";
     hitung.set(k, (hitung.get(k) ?? 0) + 1);
   }
+  const now = Date.now();
+  const recent: PosRecent[] = [
+    { id: "1a4c07d1-1111-4a5b-8c9d-000000000001", table: "4", total: 78000, status: "received", paymentStatus: "unpaid", createdAt: new Date(now - 3 * 60_000).toISOString(), menuCount: 2, itemCount: 3 },
+    { id: "2b7e19f2-2222-4a5b-8c9d-000000000002", table: "Bungkus", total: 45000, status: "preparing", paymentStatus: "paid", createdAt: new Date(now - 34 * 60_000).toISOString(), menuCount: 1, itemCount: 1 },
+    { id: "3c9a52e3-3333-4a5b-8c9d-000000000003", table: "12", total: 132000, status: "ready", paymentStatus: "unpaid", createdAt: new Date(now - 71 * 60_000).toISOString(), menuCount: 4, itemCount: 6 },
+  ];
   return {
     menus: POS_MENUS,
-    categories: [...hitung.entries()].map(([name, count]) => ({ name, count })),
-    recent: [],
+    optionGroups: POS_OPTION_GROUPS,
+    // "Semua Menu" adalah kategori awal yang dipilih PosBoard — tanpa itu
+    // harness membuka dengan grid kosong dan tak ada chip yang menyala.
+    categories: [
+      { name: "Semua Menu", count: aktif.length },
+      ...[...hitung.entries()].map(([name, count]) => ({ name, count })),
+    ],
+    recent,
+    tables: ["1", "2", "4", "5", "10", "12", "A1", "A2"],
   };
 }

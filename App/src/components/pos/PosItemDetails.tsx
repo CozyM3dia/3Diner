@@ -13,6 +13,8 @@ type AddonPick = { id_option_value: string; group_name: string; name: string; pr
 type Props = {
   menu: PosMenu;
   optionGroups: PosMenuOption[];
+  /** Jumlah awal — diwarisi dari stepper kartu menu di papan POS. */
+  initialQty?: number;
   /** Panggilan balik: serahkan baris lengkap ke keranjang POS. */
   onAdd: (line: { menu: PosMenu; qty: number; options: SelectedOption[]; note: string }) => void;
   onClose: () => void;
@@ -24,7 +26,7 @@ type Props = {
  *  Total + qty stepper + tombol primer dengan ikon keranjang.
  *  Tanpa tombol X di header — tutup lewat overlay/Escape (sesuai referensi). */
 
-export default function PosItemDetails({ menu, optionGroups, onAdd, onClose }: Props) {
+export default function PosItemDetails({ menu, optionGroups, initialQty = 1, onAdd, onClose }: Props) {
   const groups = useMemo(() => optionGroups.filter(g => g.menuId === menu.id), [optionGroups, menu.id]);
   const sizesGroup = groups[0] ?? null;
   const addonGroups = groups.slice(1);
@@ -35,7 +37,7 @@ export default function PosItemDetails({ menu, optionGroups, onAdd, onClose }: P
     (sizesGroup?.minSelect ?? 0) >= 1 ? null : sizesGroup?.values[0]?.id ?? null,
   );
   const [addons, setAddons] = useState<Set<string>>(new Set());
-  const [qty, setQty] = useState(1);
+  const [qty, setQty] = useState(Math.min(99, Math.max(1, Math.round(initialQty))));
   const [note, setNote] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -248,7 +250,7 @@ export default function PosItemDetails({ menu, optionGroups, onAdd, onClose }: P
               </button>
             </span>
             <button type="button" className="pos-id-add" onClick={submit}>
-              <ShoppingCartIcon className="h-4 w-4" aria-hidden /> Add to Cart
+              <ShoppingCartIcon className="h-4 w-4" aria-hidden /> Tambah ke Keranjang
             </button>
           </div>
         </div>
