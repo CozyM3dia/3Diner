@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { TableIcon, BarChart3Icon } from "lucide-react";
 import type { TitikHari } from "@/lib/dashboard-metrics";
 
@@ -55,6 +55,32 @@ export default function RevenueChart({ titik, puncak, labelBanding }: Props) {
   const [aktif, setAktif] = useState<number | null>(null);
   const idTip = useId();
 
+  /** Tooltip dipusatkan pada batangnya, jadi di batang pertama dan terakhir
+   *  separuh lebarnya jatuh di luar area — terukur menyembul 2px lewat tepi
+   *  kanan kartu pada batang terakhir di 1440px, dan makin jauh kalau
+   *  angkanya panjang. Lebarnya baru diketahui setelah dirender, jadi
+   *  geserannya diukur, bukan ditaksir: nol dulu, ukur, lalu dorong kembali
+   *  ke dalam. `aktif` jadi kunci reset supaya pengukuran selalu dimulai
+   *  dari posisi tengah, bukan dari geseran batang sebelumnya. */
+  const areaRef = useRef<HTMLDivElement>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
+  const [geser, setGeser] = useState(0);
+
+  useLayoutEffect(() => {
+    const area = areaRef.current;
+    const tip = tipRef.current;
+    if (aktif === null || !area || !tip) return;
+    const a = area.getBoundingClientRect();
+    const t = tip.getBoundingClientRect();
+    // Kotak yang terukur sudah membawa geseran yang berlaku sekarang, jadi
+    // ia dikurangi dulu untuk mendapat tepi versi tengahnya. Tanpa ini,
+    // tooltip yang sudah didorong akan didorong lagi setiap render.
+    const kiri = t.left - geser;
+    const kanan = t.right - geser;
+    const perlu = kiri < a.left ? Math.round(a.left - kiri) : kanan > a.right ? -Math.round(kanan - a.right) : 0;
+    if (perlu !== geser) setGeser(perlu);
+  }, [aktif, metrik, geser]);
+
   const kini = (t: TitikHari) => (metrik === "uang" ? t.value : t.orders);
   const lalu = (t: TitikHari) => (metrik === "uang" ? t.valuePrev : t.ordersPrev);
 
@@ -71,7 +97,7 @@ export default function RevenueChart({ titik, puncak, labelBanding }: Props) {
   const t = aktif === null ? null : titik[aktif];
 
   return (
-    <div>
+    <div className="dv3-chart-root">
       <div className="dv3-chart-bar">
         <div className="dv3-seg" role="group" aria-label="Metrik grafik">
           <button
@@ -160,7 +186,7 @@ export default function RevenueChart({ titik, puncak, labelBanding }: Props) {
             <span>0</span>
           </div>
 
-          <div className="dv3-plot-area">
+          <div className="dv3-plot-area" ref={areaRef}>
             <div className="dv3-bars">
               {titik.map((d, i) => {
                 const a = kini(d);
@@ -201,9 +227,13 @@ export default function RevenueChart({ titik, puncak, labelBanding }: Props) {
             {t && (
               <div
                 id={idTip}
+                ref={tipRef}
                 role="status"
                 className="dv3-tip"
-                style={{ left: `${((aktif! + 0.5) / titik.length) * 100}%` }}
+                style={{
+                  left: `${((aktif! + 0.5) / titik.length) * 100}%`,
+                  transform: `translateX(calc(-50% + ${geser}px))`,
+                }}
               >
                 <span className="dv3-tip-day">{t.label}</span>
                 <span className="dv3-tip-row">

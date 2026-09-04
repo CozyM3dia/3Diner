@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { canonicalOrigin, menuUrlFor, normalizeOrigin, stripTrailingSlash } from "../src/lib/site-url";
 import { buildQrSvg, escapeXml, qrFileName, QUIET_ZONE, computeLayout, type QrMatrix } from "../src/lib/qr-render";
 import QrSmartMenu from "../src/components/dashboard/QrSmartMenu";
+import QrSmartMenuDp from "../src/components/dp/QrSmartMenuDp";
 
 function realMatrix(url: string): QrMatrix {
   const qr = QRCode.create(url, { errorCorrectionLevel: "M" });
@@ -188,5 +189,15 @@ describe("QrSmartMenu component", () => {
     fireEvent.click(png);
     // jsdom canvas is not implemented — export enters progress state then fails gracefully.
     expect(png.disabled || svg.disabled || (await screen.findByText("Gagal mengunduh QR. Coba lagi."))).toBeTruthy();
+  });
+});
+
+describe("QrSmartMenuDp onboarding destination", () => {
+  afterEach(cleanup);
+
+  it("exposes the QR panel as the onboarding deep-link target", () => {
+    render(React.createElement(QrSmartMenuDp, { menuUrl: null, cafeName: "Senja Kopi", slug: null }));
+
+    expect(screen.getByRole("region", { name: "QR Smart Menu" }).id).toBe("qr-smart-menu");
   });
 });

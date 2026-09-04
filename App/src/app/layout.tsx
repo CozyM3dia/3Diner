@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins, Instrument_Sans } from "next/font/google";
+import { Poppins, Instrument_Sans, Geist } from "next/font/google";
 import { DatadogAppRouter } from "@datadog/browser-rum-nextjs";
 import { ClerkProvider } from "@clerk/nextjs";
 import Script from "next/script";
@@ -20,6 +20,21 @@ const poppins = Poppins({
 // navy ink, not by the typeface. Scoped via `.dv3-root` in console.css.
 const instrumentSans = Instrument_Sans({
   variable: "--font-instrument",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+// Geist — HANYA untuk angka di konsol (figur KPI, angka otoritatif, kolom
+// tabel, sumbu grafik). Dipilih dengan mengukur, bukan selera: pada em 100px
+// tinggi angkanya 73 — sama persis dengan Instrument Sans — jadi angka dan
+// teks di sebelahnya duduk pada garis yang sama tanpa penyetelan. Titik
+// ribuannya 23.6 lawan 27.9 pada Instrument Sans dan ~31 pada kandidat lain,
+// yang penting untuk format Indonesia ("2.154.250"): separator yang gemuk
+// memotong angka jadi tiga kepingan. Digitnya 10% lebih lebar, jadi figur
+// besar berwibawa tanpa perlu berat tambahan.
+// Huruf tetap Instrument Sans; ini font kedua untuk satu peran saja.
+const geist = Geist({
+  variable: "--font-angka",
   subsets: ["latin"],
   display: "swap",
 });
@@ -57,7 +72,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" className={`${poppins.variable} ${instrumentSans.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="id" className={`${poppins.variable} ${instrumentSans.variable} ${geist.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className="min-h-dvh">
         <Script id="theme-init" strategy="beforeInteractive">{THEME_INIT}</Script>
         {clerkConfigured ? (

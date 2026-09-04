@@ -240,7 +240,7 @@ export default function QrSmartMenuDp({
 
   if (!menuUrl || !slug) {
     return (
-      <section className="dp-card" aria-label="QR Smart Menu">
+      <section id="qr-smart-menu" className="dp-card scroll-mt-24" aria-label="QR Smart Menu">
         <div className="dp-card-head">
           <h2 className="dp-card-title dp-qr-title">
             <QrCodeIcon className="dp-qr-title-ic" aria-hidden="true" />
@@ -257,7 +257,7 @@ export default function QrSmartMenuDp({
   const busy = exporting !== null;
 
   return (
-    <section className="dp-card" aria-label="QR Smart Menu">
+    <section id="qr-smart-menu" className="dp-card scroll-mt-24" aria-label="QR Smart Menu">
       <div className="dp-card-head">
         <h2 className="dp-card-title dp-qr-title">
           <QrCodeIcon className="dp-qr-title-ic" aria-hidden="true" />

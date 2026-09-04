@@ -125,8 +125,10 @@ export default function MenuEditorForm({
   const [modelFile, setModelFile] = useState<{ name: string; size: number } | null>(null);
   const [tripo, setTripo] = useState<Tripo>({ state: "idle", progress: 0, preview: null, error: null });
   const [fullscreen, setFullscreen] = useState(false);
-  /* Pratinjau menyala di tab 3D & Digital Menu; bisa disembunyikan kalau
-     pemilik butuh ruang formulir di layar sempit. */
+  /* Pratinjau menyala di SEMUA tab, termasuk Umum: nama, deskripsi, harga,
+     dan foto adalah yang paling dilihat tamu, jadi menyembunyikan akibatnya
+     justru di tab yang paling sering dipakai tidak masuk akal. Tetap bisa
+     ditutup kalau pemilik butuh ruang formulir di layar sempit. */
   const [previewOn, setPreviewOn] = useState(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -137,7 +139,7 @@ export default function MenuEditorForm({
   }, []);
 
   const previewSrc = previewUrl ?? existingUrl;
-  const showPreview = tab !== "umum" && previewOn;
+  const showPreview = previewOn;
 
   function set<K extends keyof MenuFormValues>(key: K, value: MenuFormValues[K]) {
     setValues(prev => ({ ...prev, [key]: value }));
@@ -359,9 +361,10 @@ export default function MenuEditorForm({
       </div>
 
       {/* ── Badan: formulir kiri, pratinjau telepon kanan ──
-          Pratinjau bukan hiasan: tab 3D & Digital Menu mengubah hal-hal yang
-          hanya kelihatan di sisi tamu (kartu meredup di luar jadwal, strip
-          diskon, tombol "Lihat Model 3D"). Menaruh akibatnya di sebelah
+          Pratinjau bukan hiasan: setiap tab mengubah hal-hal yang hanya
+          kelihatan di sisi tamu (kartu meredup di luar jadwal, strip diskon,
+          tombol "Lihat Model 3D"; di tab Umum: bagaimana nama panjang
+          terpotong dan harga tercetak). Menaruh akibatnya di sebelah
           kendalinya membuat setiap ketukan langsung terbaca. */}
       <div className={`dp-menufx-body${showPreview ? " dp-menufx-split" : ""}`}>
         <div className="dp-menufx-pane">
@@ -780,7 +783,7 @@ export default function MenuEditorForm({
         </>
       )}
 
-          {tab !== "umum" && !previewOn && (
+          {!previewOn && (
             <button type="button" className="dp-lp-show" onClick={() => setPreviewOn(true)}>
               <EyeIcon className="h-3.5 w-3.5" aria-hidden /> Tampilkan pratinjau
             </button>
@@ -792,7 +795,7 @@ export default function MenuEditorForm({
             values={{ ...values, model_3d_url: modelUrl }}
             imageSrc={previewSrc}
             modelUrl={modelUrl}
-            focus={tab === "3d" ? "3d" : "digital"}
+            focus={tab}
             onHide={() => setPreviewOn(false)}
           />
         )}

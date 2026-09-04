@@ -1,0 +1,658 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   ANALITIK — lapisan kartu untuk dua lembar analitik konsol.
+
+   Dimuat SETELAH console.css, dan hanya menimpa yang perlu ditimpa. Arah
+   berubah dari "editorial ledger" (garis rambut, tanpa kotak) menjadi
+   "kartu dasbor": tiap blok berdiri di atas kertas abu sebagai permukaan
+   putih ber-radius dengan garis rambut dan bayangan sangat tipis.
+
+   Aturan yang tetap berlaku dari console.css:
+   · Warna diambil dari token --dv3-*, tidak ada hex baru. Mode gelap ikut
+     tanpa satu pun aturan tambahan karena tokennya yang berganti.
+   · Oranye 3Diner tetap satu-satunya aksen — di rujukan visual posisi ini
+     dipegang biru; menukarnya akan memutus identitas merek, jadi peran
+     "seri utama" diambil alih oranye dan navy.
+   · Hijau/merah tetap semantik (naik/turun), bukan warna seri.
+
+   Gerak ditangani Framer Motion di komponen, bukan di sini. Yang tersisa
+   di CSS hanya transisi hover dan bar tumbuh yang tidak perlu JS.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.dv3-root {
+  --an-radius: 14px;
+  --an-radius-sm: 10px;
+  --an-pad: 20px;
+  --an-gap: 16px;
+  --an-t-kpi: 1.875rem;   /* 30px — figur kartu KPI */
+  --an-t-hero: 2.5rem;    /* 40px — figur otoritatif kartu utama */
+  --an-shadow: 0 1px 2px oklch(0.26 0.05 258 / 0.045), 0 4px 12px -8px oklch(0.26 0.05 258 / 0.10);
+  --an-shadow-lift: 0 2px 4px oklch(0.26 0.05 258 / 0.05), 0 16px 32px -14px oklch(0.26 0.05 258 / 0.20);
+  /* Kertas sedikit lebih dalam supaya kartu putih benar-benar terangkat;
+     tanpa ini beda kertas↔permukaan hanya 1.1% dan kartunya rata. */
+  --dv3-paper: oklch(0.977 0.0035 258);
+}
+
+html[data-theme="dark"] .dv3-root {
+  --an-shadow: 0 1px 2px oklch(0 0 0 / 0.30), 0 4px 12px -8px oklch(0 0 0 / 0.45);
+  --an-shadow-lift: 0 2px 6px oklch(0 0 0 / 0.35), 0 16px 32px -14px oklch(0 0 0 / 0.60);
+  --dv3-paper: oklch(0.170 0.018 258);
+}
+
+/* Kartu lebih rapat dari ritme ledger: 16px, bukan 32px. */
+.dv3-content { gap: var(--an-gap); }
+
+/* ═══ Kartu dasar ═══════════════════════════════════════════════════════
+   .dv3-panel dipakai ulang supaya kedua lembar dan GagalMuat ikut berganti
+   tanpa disentuh satu per satu. */
+.dv3-panel {
+  background: var(--dv3-surface);
+  border: 1px solid var(--dv3-line);
+  border-radius: var(--an-radius);
+  padding: var(--an-pad);
+  box-shadow: var(--an-shadow);
+  transition: box-shadow 0.22s var(--dv3-ease), border-color 0.22s var(--dv3-ease);
+}
+.dv3-panel:hover { box-shadow: var(--an-shadow-lift); border-color: var(--dv3-line-strong); }
+
+/* Kepala kartu: tanpa garis pemisah — kartu sendiri sudah jadi bingkainya. */
+.dv3-panel-head {
+  align-items: center;
+  gap: var(--dv3-s2);
+  padding-bottom: 0;
+  border-bottom: 0;
+  margin-bottom: var(--dv3-s4);
+}
+.dv3-panel-title { font-size: var(--dv3-t-base); font-weight: 600; letter-spacing: -0.008em; }
+.dv3-panel-note { margin-left: auto; text-align: right; }
+.dv3-panel-link + .dv3-panel-note, .dv3-panel-note + .dv3-panel-link { margin-left: 0; }
+
+/* Grid antar-kartu memakai ritme 16px. */
+.dv3-grid-a { gap: var(--an-gap); }
+.dv3-grid-b { gap: var(--an-gap); }
+
+/* ═══ Kepala lembar ═════════════════════════════════════════════════════
+   Judul besar di kiri, seluruh kontrol dalam satu baris di kanan — persis
+   pola bilah dasbor: rentang, preset, lalu satu tombol terisi. */
+.an-head {
+  display: flex;
+  align-items: center;
+  gap: var(--dv3-s4);
+  flex-wrap: wrap;
+  margin-bottom: calc(var(--an-gap) * -0.25);
+}
+.an-head-text { min-width: 0; margin-right: auto; }
+.an-head-title {
+  margin: 0;
+  font-size: 1.625rem;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.028em;
+  color: var(--dv3-ink);
+}
+.an-head-sum {
+  margin: 6px 0 0;
+  font-size: var(--dv3-t-sm);
+  line-height: 1.5;
+  color: var(--dv3-ink-3);
+  max-width: 68ch;
+  text-wrap: pretty;
+}
+.an-head-ctrl { display: flex; align-items: center; gap: var(--dv3-s2); flex-wrap: wrap; }
+
+/* Tab jadi segmen pil di dalam satu kapsul, bukan garis bawah. */
+.an-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--dv3-line);
+  border-radius: 999px;
+  background: var(--dv3-sunken);
+}
+.an-tab {
+  position: relative;
+  display: inline-flex; align-items: center;
+  height: 28px; padding: 0 14px;
+  border-radius: 999px;
+  font-size: var(--dv3-t-sm); font-weight: 500;
+  color: var(--dv3-ink-3);
+  white-space: nowrap;
+  transition: color 0.16s var(--dv3-ease);
+}
+.an-tab:hover { color: var(--dv3-ink); }
+.an-tab.is-on { color: var(--dv3-ink); font-weight: 600; }
+.an-tab-bg {
+  position: absolute; inset: 0;
+  border-radius: 999px;
+  background: var(--dv3-surface);
+  box-shadow: 0 1px 2px oklch(0.26 0.05 258 / 0.10);
+  z-index: -1;
+}
+.an-tab-label { position: relative; z-index: 1; }
+
+/* Kapsul rentang: pemilih tanggal + catatan pembanding duduk berdampingan. */
+.an-range { display: flex; align-items: center; gap: var(--dv3-s2); }
+.an-range-note { display: inline-flex; align-items: center; gap: 2px; font-size: var(--dv3-t-xs); color: var(--dv3-ink-3); }
+.dv3-root .an-range .dp-dt-btn { height: 34px; border-radius: 999px; padding: 0 14px; }
+
+.an-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 14px;
+  border: 0; border-radius: 999px;
+  background: var(--dv3-accent-ink);
+  color: oklch(0.999 0 0);
+  font-family: inherit; font-size: var(--dv3-t-sm); font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.16s var(--dv3-ease);
+}
+.an-btn svg { width: 14px; height: 14px; }
+.an-btn:hover { filter: brightness(1.06); }
+html[data-theme="dark"] .an-btn { color: oklch(0.16 0.02 258); }
+
+/* ═══ Figur angka ═══════════════════════════════════════════════════════
+   Satu perlakuan untuk setiap angka otoritatif di lembar ini.
+
+   Tiga keputusan, semuanya diukur pada Instrument Sans yang sedang dipakai,
+   bukan ditaksir:
+
+   · Imbuhan diturunkan. Pada setelan lama (28px/700) "Rp 69.492" selebar
+     125.5px dan "Rp " sendiri 38.9px — 31% figur otoritatif dihabiskan
+     satuan, dengan berat yang sama persis dengan angkanya, sehingga terbaca
+     dua kata alih-alih satu besaran. Prefiks turun ke 0.58em/600/tinta-3;
+     sufiks "%" hanya ke 0.68em/600/tinta-2 karena ia bagian dari maknanya,
+     bukan label.
+
+   · Jarak huruf dilonggarkan dari -0.032em ke -0.018em. Angka tabular sudah
+     memakai lebar tetap; jarak negatif tidak merapatkan iramanya, ia hanya
+     menarik glif ke tepi kotaknya sendiri dan membuat deret terlihat sesak.
+
+   · Berat turun 700 → 640 pada KPI dan → 620 pada hero. Instrument Sans
+     berhenti di 700; memakai ujung sumbu membuat mangkuk 6/8/9 hampir
+     tertutup pada 30px. Angka yang lebih kecil justru diberi berat sedikit
+     lebih besar (640 pada 30px, 620 pada 40px) — kompensasi ukuran optis
+     supaya kepadatan visual keduanya setara.
+
+   Set fitur OpenType diseragamkan di sini. Sebelumnya .dv3-num memakai
+   "tnum","lnum" (membuang cv01 yang diwarisi dari .dv3-root) sementara figur
+   KPI memakai font-variant-numeric + cv01 — dua tumpukan fitur berbeda untuk
+   angka yang berdiri bersebelahan. */
+.dv3-num,
+.an-fig,
+.an-kpi-val,
+.an-seg-val,
+.an-gauge-val,
+.an-hero .dv3-ledger-figure {
+  /* Geist memegang SEMUA angka konsol; Instrument Sans tetap memegang huruf.
+     "cv01" milik Instrument Sans dan tak berlaku di sini, jadi dilepas —
+     menyisakan tnum/lnum yang memang dimiliki keduanya. */
+  font-family: var(--font-angka), var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+.an-fig { display: inline-flex; align-items: baseline; }
+.an-fig-pre {
+  /* "Rp" huruf, bukan angka — dikembalikan ke muka teks supaya tidak ikut
+     lebar digit Geist yang sengaja longgar. */
+  font-family: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.58em; font-weight: 600; font-style: normal;
+  color: var(--dv3-ink-3);
+  margin-right: 0.14em;
+  letter-spacing: 0;
+}
+.an-fig-post {
+  font-size: 0.68em; font-weight: 600; font-style: normal;
+  color: var(--dv3-ink-2);
+  margin-left: 0.02em;
+  letter-spacing: 0;
+}
+
+/* ═══ Kartu KPI ═════════════════════════════════════════════════════════
+   Empat angka setara di satu baris. Label + ikon di atas, angka besar,
+   pil delta sebaris, lalu satu baris pembanding di bawah garis rambut. */
+.an-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--an-gap);
+}
+.an-kpi {
+  background: var(--dv3-surface);
+  border: 1px solid var(--dv3-line);
+  border-radius: var(--an-radius);
+  padding: var(--dv3-s4) var(--an-pad) var(--dv3-s3);
+  box-shadow: var(--an-shadow);
+  min-width: 0;
+}
+.an-kpi-top { display: flex; align-items: center; gap: var(--dv3-s3); }
+.an-kpi-label {
+  font-size: var(--dv3-t-sm); font-weight: 500; color: var(--dv3-ink-2);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.an-kpi-icon {
+  margin-left: auto; flex: none;
+  width: 30px; height: 30px;
+  border-radius: var(--an-radius-sm);
+  display: grid; place-items: center;
+  background: var(--dv3-sunken);
+  color: var(--dv3-ink-2);
+}
+.an-kpi-icon svg { width: 15px; height: 15px; }
+.an-kpi-icon[data-tone="accent"] { background: var(--dv3-accent-wash); color: var(--dv3-accent-ink); }
+.an-kpi-icon[data-tone="ok"] { background: var(--dv3-ok-wash); color: var(--dv3-ok); }
+.an-kpi-icon[data-tone="navy"] { background: color-mix(in oklab, var(--dv3-series-2) 12%, transparent); color: var(--dv3-series-2); }
+.an-kpi-fig {
+  display: flex; align-items: center; gap: var(--dv3-s2);
+  margin-top: var(--dv3-s3);
+  /* TIDAK boleh membungkus: satu kartu yang pilnya turun ke baris kedua
+     menaikkan tingginya ~29px dan seluruh baris KPI kehilangan garis dasar
+     bersama — empat angka berhenti terbaca sebagai empat sejawat. */
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.an-kpi-val {
+  font-size: var(--an-t-kpi);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.022em;
+  color: var(--dv3-ink);
+  white-space: nowrap;
+}
+.an-kpi-fig .an-pill { flex: none; }
+.an-kpi-note {
+  margin: var(--dv3-s3) 0 0;
+  padding-top: var(--dv3-s2);
+  border-top: 1px solid var(--dv3-line);
+  font-size: var(--dv3-t-xs);
+  color: var(--dv3-ink-3);
+}
+
+/* Pil delta: hijau/merah lembut, bukan teks telanjang. */
+.an-pill {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: var(--dv3-t-xs); font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.an-pill svg { width: 12px; height: 12px; }
+.an-pill[data-arah="up"] { background: var(--dv3-ok-wash); color: var(--dv3-ok); }
+.an-pill[data-arah="down"] { background: var(--dv3-bad-wash); color: var(--dv3-bad); }
+.an-pill[data-arah="flat"] { background: var(--dv3-sunken); color: var(--dv3-ink-3); }
+
+/* ═══ Kartu utama: angka otoritatif + grafik ════════════════════════════ */
+.an-hero { padding: var(--an-pad); }
+.an-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 17rem) minmax(0, 1fr);
+  gap: var(--dv3-s5);
+  /* Menyerap tinggi sisa saat kartu ini diregangkan setinggi kolom kanan. */
+  flex: 1 1 auto;
+  /* Slack itu diserap GRAFIKNYA, bukan dibagi rata jadi dua lubang kosong di
+     atas dan di bawah isi. Dulu `align-items/align-content: center` membuat
+     sisa ruang — di 1440px sekitar 175px — muncul sebagai udara mengapit
+     angka; sekarang kolom grafik yang memanjang. Keduanya memang bisa
+     diregangkan: sparkline memakai preserveAspectRatio="none", dan area
+     batang tingginya relatif terhadap plot.
+     Hanya berlaku di atas 1180px; di bawah itu .dv3-grid-a jadi satu kolom,
+     tak ada yang meregang, dan aturan di media query bawah yang berlaku. */
+  align-items: stretch;
+  align-content: stretch;
+}
+.dv3-hero-chart .dv3-panel-title { white-space: nowrap; }
+.an-hero .dv3-hero-fig { align-self: center; }
+.an-hero .dv3-hero-quiet { align-self: center; }
+
+/* Sparkline boleh memanjang, tapi ada batasnya: ia digambar pada 240×88 dan
+   diregangkan tanpa menjaga rasio, jadi di atas ~200px kurvanya berubah jadi
+   tebing dan lajunya justru salah dibaca. */
+.an-hero .dv3-hero-spark { justify-content: center; }
+.an-hero .dv3-hero-spark .dv3-spark { flex: 1 1 auto; height: auto; min-height: 118px; max-height: 200px; }
+
+.an-hero .dv3-hero-chart { display: flex; flex-direction: column; }
+.an-hero .dv3-hero-chart .dv3-chart-root {
+  display: flex; flex-direction: column;
+  flex: 1 1 auto; min-height: 0;
+}
+.an-hero .dv3-hero-chart .dv3-plot {
+  flex: 1 1 auto;
+  min-height: var(--dv3-plot-h);
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+/* Tinggi diserahkan ke baris grid (align-self: stretch bawaan), bukan
+   dipaksa 100%: keduanya punya margin-atas sebagai ruang label puncak, dan
+   `height: 100%` menghitungnya di luar kotak sehingga plot melorot 20px
+   menimpa baris tanggal di bawahnya. */
+.an-hero .dv3-hero-chart .dv3-plot-axis,
+.an-hero .dv3-hero-chart .dv3-plot-area { height: auto; min-height: 0; }
+
+/* Label tanggal di bawah batang dipotong diam-diam saat kolomnya sempit —
+   "30 Agu" butuh 40px, slotnya 37px, dan `overflow: hidden` memakan huruf
+   terakhirnya tanpa tanda. Label ditaruh rata tengah dan jaraknya 8px, jadi
+   3px yang menyembul itu jatuh di sela antar-label, bukan menimpa
+   tetangganya. */
+.dv3-bars-axis > span { overflow: visible; }
+.an-hero .dv3-ledger-figure {
+  font-size: var(--an-t-hero);
+  font-weight: 660;
+  letter-spacing: -0.026em;
+  line-height: 1;
+  margin-top: var(--dv3-s3);
+}
+.an-hero-meta { margin-top: var(--dv3-s3); display: flex; align-items: center; gap: var(--dv3-s2); flex-wrap: wrap; }
+.an-hero-meta span { font-size: var(--dv3-t-xs); color: var(--dv3-ink-3); }
+
+/* Kartu bersarang: satu tingkat lebih dalam, jadi lebih cekung, tanpa
+   bayangan — kalau dua kartu sama-sama melayang keduanya berhenti bicara. */
+.an-nested {
+  margin-top: var(--an-gap);
+  border: 1px solid var(--dv3-line);
+  border-radius: var(--an-radius-sm);
+  padding: var(--dv3-s4);
+  background: var(--dv3-paper);
+  box-shadow: none;
+}
+.an-nested .dv3-panel-head { margin-bottom: var(--dv3-s3); }
+
+/* Sel grid yang isinya satu kartu: kartunya ikut meregang setinggi baris,
+   jadi kolom kiri dan kanan berakhir di garis yang sama. */
+.an-cell { display: flex; flex-direction: column; min-width: 0; }
+.an-cell > * { flex: 1 1 auto; }
+
+/* Kolom kanan yang menumpuk dua kartu dengan ritme yang sama. */
+.an-stack { display: flex; flex-direction: column; gap: var(--an-gap); min-width: 0; }
+.an-stack > * { flex: none; }
+.an-stack > *:only-child { flex: 1 1 auto; }
+
+/* Dua kolom setara — dipakai saat kolom ketiga naik ke tumpukan kanan. */
+.an-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--an-gap); }
+
+/* ═══ Segmen: tiga kolom, tiap kolom punya batang warnanya sendiri ══════ */
+.an-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
+.an-seg-col { padding: 0 var(--dv3-s4); min-width: 0; border-left: 1px solid var(--dv3-line); }
+.an-seg-col:first-child { padding-left: 0; border-left: 0; }
+.an-seg-col:last-child { padding-right: 0; }
+.an-seg-top { display: flex; align-items: center; gap: var(--dv3-s2); }
+.an-seg-dot {
+  width: 22px; height: 22px; flex: none;
+  border-radius: 7px; display: grid; place-items: center;
+  background: color-mix(in oklab, var(--an-c) 14%, transparent); color: var(--an-c);
+}
+.an-seg-dot svg { width: 13px; height: 13px; }
+.an-seg-val { font-size: var(--dv3-t-lg); font-weight: 700; letter-spacing: -0.018em; color: var(--dv3-ink); }
+.an-seg-label { display: block; margin-top: 2px; font-size: var(--dv3-t-xs); color: var(--dv3-ink-3); }
+.an-seg-track { display: block; height: 4px; margin-top: var(--dv3-s3); border-radius: 999px; background: var(--dv3-sunken); overflow: hidden; }
+.an-seg-track i { display: block; height: 100%; border-radius: 999px; background: var(--an-c); }
+
+/* ═══ Batang hari-teraktif ══════════════════════════════════════════════
+   Tiga baris tetap: baris label nilai (tinggi tetap supaya tujuh kolom tetap
+   sejajar walau hanya satu yang berisi), lubang batang, lalu nama hari. */
+.an-days { display: flex; align-items: stretch; gap: var(--dv3-s2); height: 176px; }
+.an-day { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.an-day-tagrow { height: 16px; display: flex; align-items: center; }
+.an-day-tag {
+  font-size: var(--dv3-t-xs); font-weight: 600; color: var(--dv3-ink);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.an-day-slot { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; align-items: flex-end; }
+.an-day-bar {
+  display: block; width: 100%; border-radius: 8px; background: var(--dv3-sunken);
+  transform-origin: bottom;
+  transition: background 0.18s var(--dv3-ease);
+}
+.an-day.is-on .an-day-bar { background: var(--dv3-accent); }
+.an-day-lab { font-size: var(--dv3-t-xs); color: var(--dv3-ink-3); }
+.an-day.is-on .an-day-lab { color: var(--dv3-accent-ink); font-weight: 600; }
+
+/* ═══ Gauge kipas ═══════════════════════════════════════════════════════ */
+.an-gauge { display: grid; place-items: center; padding: var(--dv3-s2) 0 0; }
+.an-gauge-wrap { position: relative; width: 100%; max-width: 240px; }
+.an-gauge svg { display: block; width: 100%; height: auto; overflow: visible; }
+.an-gauge-tick { stroke-linecap: round; }
+.an-gauge-center {
+  position: absolute; left: 0; right: 0; bottom: 8%;
+  padding: 0 22%;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.an-gauge-val { font-size: var(--an-t-kpi); font-weight: 700; letter-spacing: -0.022em; color: var(--dv3-ink); }
+.an-gauge-lab { font-size: var(--dv3-t-xs); color: var(--dv3-ink-3); text-align: center; text-wrap: balance; }
+
+/* ═══ Penyesuaian komponen lama supaya betah di dalam kartu ═════════════ */
+/* Cincin titik ujung sparkline "melubangi" latar; latarnya kini permukaan
+   kartu, bukan kertas, jadi warnanya harus ikut pindah. */
+.dv3-spark-dot-ring { stroke: var(--dv3-surface); }
+.dv3-empty { padding: var(--dv3-s4) 0; }
+
+/* ═══ Responsif ═════════════════════════════════════════════════════════ */
+/* Empat KPI berdampingan butuh ~200px ruang isi per kartu: figur terpanjang
+   ("Rp 69.492" pada 30px) 120px, pil delta 64px, jeda 8px. Diukur, bukan
+   ditaksir — pada lebar jendela 1200px sisanya 171px dan barisnya meluap.
+   Turun ke dua kolom di sini lebih jujur daripada mengecilkan angkanya:
+   figur otoritatif yang menyusut di laptop justru membuang hierarki yang
+   baru saja dibangun. */
+@media (max-width: 1320px) {
+  .an-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1180px) {
+  .an-hero-grid { grid-template-columns: minmax(0, 1fr); align-items: start; }
+}
+@media (max-width: 900px) {
+  .an-grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .an-head { align-items: flex-start; }
+  .an-head-text { margin-right: 0; flex: 1 1 100%; }
+  .an-head-ctrl { flex: 1 1 100%; }
+  .an-days { height: 140px; }
+}
+@media (max-width: 560px) {
+  .an-kpis { grid-template-columns: minmax(0, 1fr); }
+  .an-head-title { font-size: 1.375rem; }
+  .dv3-root { --an-t-hero: 2rem; --an-t-kpi: 1.75rem; }
+  .an-seg { grid-template-columns: minmax(0, 1fr); gap: var(--dv3-s3); }
+  .an-seg-col { padding: 0; border-left: 0; border-top: 1px solid var(--dv3-line); padding-top: var(--dv3-s3); }
+  .an-seg-col:first-child { border-top: 0; padding-top: 0; }
+  .dv3-panel { padding: var(--dv3-s4); }
+}
+
+/* ═══ Asisten AI ════════════════════════════════════════════════════════
+   Panggung + bilah tanya. Yang mengambang di tengah bukan bola abstrak
+   melainkan marka 3Diner utuh — logo dua warna itu sudah punya bentuk dan
+   kedalamannya sendiri, dan menaruhnya di atas cakram berwarna hanya akan
+   menutupinya. Warna baru masuk belakangan: begitu marka berubah jadi
+   lencana aksi, pelat warna seri tumbuh di belakang ikonnya.
+
+   Empat sel selalu ada di DOM. Yang berpindah cuma skala, posisi, dan
+   kepekatan — semua dianimasikan Framer di komponen; CSS di sini hanya
+   menyiapkan bentuk akhirnya. */
+.ai-kartu { display: flex; flex-direction: column; }
+
+.ai-lebar-btn {
+  margin-left: auto;
+  display: grid; place-items: center;
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  color: var(--dv3-ink-4);
+  transition: color 0.16s var(--dv3-ease), background 0.16s var(--dv3-ease);
+}
+.ai-lebar-btn:hover { color: var(--dv3-ink); background: var(--dv3-sunken); }
+.ai-lebar-btn svg { width: 15px; height: 15px; }
+
+/* Panggung menumpuk dua lapis di sel grid yang sama: marka tunggal dan kisi
+   2×2. Keduanya di baris-kolom 1/1 supaya yang satu bisa mengecil tepat ke
+   titik tempat yang lain berangkat. */
+.ai-panggung {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 172px;
+  display: grid;
+  place-items: center;
+  padding: var(--dv3-s2) 0 var(--dv3-s4);
+  isolation: isolate;
+  /* Sebelum pecah, keempat sel diparkir di titik tengah lewat translate yang
+     diukur dari DOM — di layar sempit posisi parkir itu jatuh di luar kartu
+     dan melebarkan dokumen (terukur: +168px geseran mendatar di 390px).
+     Mereka transparan di sana, jadi memotongnya tak menghilangkan apa pun. */
+  overflow: hidden;
+}
+.ai-panggung > * { grid-area: 1 / 1; width: 100%; }
+.ai-kartu[data-lebar="true"] .ai-panggung { min-height: 272px; }
+
+.ai-solo { position: relative; display: grid; place-items: center; }
+.ai-halo {
+  position: absolute;
+  width: 138px; height: 138px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    color-mix(in oklab, var(--dv3-accent) 22%, transparent) 0%,
+    transparent 68%);
+}
+
+/* Marka: bingkai kosong yang isinya logo. Tanpa latar, tanpa bayangan —
+   pelat baru muncul di keadaan lencana. */
+.ai-marka {
+  position: relative;
+  display: grid; place-items: center;
+  flex: none;
+  width: 56px; height: 56px;
+  border-radius: 12px;
+  color: #fff;
+  transition: width 0.34s var(--dv3-ease), height 0.34s var(--dv3-ease), box-shadow 0.34s var(--dv3-ease);
+}
+.ai-marka-solo { width: 92px; height: 92px; }
+.ai-marka[data-lencana="true"] {
+  width: 34px; height: 34px;
+  box-shadow:
+    0 6px 14px -6px color-mix(in oklab, var(--ai-c) 60%, transparent),
+    inset 0 -2px 6px -3px color-mix(in oklab, black 34%, transparent);
+}
+
+/* Pelat warna seri — kepekatannya dianimasikan, jadi ia tumbuh di belakang
+   ikon persis saat logonya berputar keluar. */
+.ai-plat {
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 34% 26%,
+      color-mix(in oklab, white 62%, var(--ai-c)) 0%,
+      var(--ai-c) 46%,
+      color-mix(in oklab, var(--ai-c) 74%, black) 100%);
+}
+
+.ai-marka-isi, .ai-logo {
+  position: relative;
+  display: grid; place-items: center;
+  width: 100%; height: 100%;
+}
+.ai-marka[data-lencana="true"] .ai-marka-isi { width: 52%; height: 52%; }
+.ai-marka svg { width: 100%; height: 100%; }
+.ai-logo {
+  background: url("/brand/logo-mark-t.svg") no-repeat center / contain;
+  filter: drop-shadow(0 6px 14px color-mix(in oklab, var(--dv3-ink) 18%, transparent));
+}
+
+/* Kisi 2×2. Kotak kartu baru terlihat di keadaan "menu": sebelum itu
+   bingkainya bening supaya yang terbaca hanya empat marka melayang. */
+.ai-kisi {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--dv3-s3);
+}
+.ai-aksi {
+  display: flex; align-items: center; justify-content: center; gap: var(--dv3-s3);
+  min-width: 0; min-height: 62px;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: var(--an-radius-sm);
+  background: transparent;
+  cursor: default;
+  transition:
+    border-color 0.28s var(--dv3-ease),
+    background 0.28s var(--dv3-ease),
+    justify-content 0s;
+}
+.ai-panggung[data-fase="menu"] .ai-aksi {
+  justify-content: flex-start;
+  cursor: pointer;
+  border-color: var(--dv3-line);
+  background: var(--dv3-paper);
+}
+.ai-panggung[data-fase="menu"] .ai-aksi:hover {
+  border-color: color-mix(in oklab, var(--ai-c) 45%, var(--dv3-line));
+  background: var(--dv3-surface);
+}
+.ai-aksi-label {
+  min-width: 0;
+  font-size: var(--dv3-t-sm);
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--dv3-ink);
+  text-wrap: balance;
+}
+.ai-panggung:not([data-fase="menu"]) .ai-aksi-label { width: 0; overflow: hidden; }
+
+/* Bilah tanya: satu kapsul, cincin fokus memakai aksen merek. */
+.ai-bar {
+  display: flex; align-items: center; gap: var(--dv3-s2);
+  padding: 6px 6px 6px 8px;
+  border: 1.5px solid var(--dv3-line);
+  border-radius: 999px;
+  background: var(--dv3-surface);
+  transition: border-color 0.2s var(--dv3-ease), box-shadow 0.2s var(--dv3-ease);
+}
+.ai-bar:focus-within,
+.ai-bar[data-aktif="true"] {
+  border-color: var(--dv3-accent);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--dv3-accent) 16%, transparent);
+}
+
+.ai-bulat {
+  display: grid; place-items: center;
+  width: 32px; height: 32px; flex: none;
+  border-radius: 50%;
+  color: var(--dv3-ink-3);
+  background: var(--dv3-sunken);
+  transition: color 0.16s var(--dv3-ease), background 0.16s var(--dv3-ease);
+}
+.ai-bulat:hover { color: var(--dv3-ink); background: var(--dv3-line); }
+.ai-bulat svg { width: 15px; height: 15px; }
+
+.ai-input {
+  flex: 1 1 auto; min-width: 0;
+  height: 32px;
+  border: 0; background: none;
+  font-size: var(--dv3-t-sm);
+  color: var(--dv3-ink);
+}
+.ai-input::placeholder { color: var(--dv3-ink-4); }
+.ai-input:focus { outline: none; }
+
+.ai-kirim {
+  display: grid; place-items: center;
+  width: 34px; height: 34px; flex: none;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--dv3-accent-ink);
+  transition: opacity 0.16s var(--dv3-ease);
+}
+.ai-kirim:disabled { opacity: 0.42; cursor: default; }
+.ai-kirim svg { width: 16px; height: 16px; }
+/* Di kanvas gelap --dv3-accent-ink justru nada terang (L 65%), jadi panah
+   putih di atasnya cuma 2,6:1 — di bawah ambang 3:1 untuk grafik yang jadi
+   satu-satunya isi tombol. Ikut aturan yang sudah dipakai .an-btn. */
+html[data-theme="dark"] .ai-kirim { color: oklch(0.16 0.02 258); }
+
+.ai-catatan {
+  margin: var(--dv3-s3) 0 0;
+  font-size: var(--dv3-t-xs);
+  line-height: 1.45;
+  color: var(--dv3-ink-3);
+}
+
+@media (max-width: 1100px) {
+  .ai-kisi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .ai-kisi { grid-template-columns: minmax(0, 1fr); gap: var(--dv3-s2); }
+  .ai-panggung { min-height: 168px; }
+  .ai-aksi { min-height: 48px; }
+}
