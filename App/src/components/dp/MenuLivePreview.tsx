@@ -42,8 +42,10 @@ export type MenuLivePreviewProps = {
   /** URL model GLB terkini (state lokal tab 3D, belum tentu tersimpan). */
   modelUrl: string;
   cafeName?: string;
-  /** Tab editor yang sedang terbuka — menentukan layar awal. */
-  focus: "3d" | "digital";
+  /** Tab editor yang sedang terbuka — menentukan layar awal.
+   *  "umum" membuka layar DETAIL: tab itu menyunting nama, deskripsi, harga,
+   *  dan foto, dan hanya layar detail memperlihatkan keempatnya sekaligus. */
+  focus: "umum" | "3d" | "digital";
   onHide: () => void;
 };
 
@@ -107,7 +109,7 @@ export default function MenuLivePreview({
   onHide,
 }: MenuLivePreviewProps) {
   const [screen, setScreen] = useState<PreviewScreen>(() => (focus === "digital" ? "katalog" : "detail"));
-  const [lastFocus, setLastFocus] = useState<"3d" | "digital">(focus);
+  const [lastFocus, setLastFocus] = useState<"umum" | "3d" | "digital">(focus);
 
   // Pindah tab editor menggeser layar pratinjau ke yang paling relevan:
   // Digital Menu → kartu katalog (jadwal & diskon paling kentara di sana),
@@ -141,10 +143,16 @@ export default function MenuLivePreview({
 
   const nama = values.nama_menu.trim() || "Nama Hidangan";
 
+  /* Layar ketiga dinamai "Model 3D", BUKAN "3D & AR" seperti tab editornya.
+     Sejak pratinjau ikut menyala di tab Umum, kedua daftar tab selalu ada di
+     layar bersamaan; dua tombol bernama sama persis membuat pembaca layar
+     mengumumkan "3D & AR, tab" dua kali tanpa cara membedakannya. Nama ini
+     juga lebih jujur: yang ditampilkan panggung modelnya, dan AR sendiri
+     hanya hidup di telepon tamu. */
   const MODES: Array<{ key: PreviewScreen; label: string }> = [
     { key: "katalog", label: "Katalog" },
     { key: "detail", label: "Detail" },
-    { key: "ar", label: "3D & AR" },
+    { key: "ar", label: "Model 3D" },
   ];
 
   /* ── Foto: blob: URL tidak bisa lewat next/image, jadi <img> polos. ── */

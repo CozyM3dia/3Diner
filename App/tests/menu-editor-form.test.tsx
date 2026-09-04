@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import MenuEditorForm from "../src/components/dp/MenuEditorForm";
@@ -146,7 +146,10 @@ describe("MenuEditorForm dropzone", () => {
 
   it("uploads a .glb with empty MIME via the signed menu-media path", async () => {
     renderForm();
-    await userEvent.click(screen.getByRole("tab", { name: /3D & AR/ }));
+    // Dicari di dalam daftar tab EDITOR: pratinjau langsung punya daftar tab
+    // sendiri di sebelahnya, dan pencarian global akan menemukan keduanya.
+    const tabEditor = screen.getByRole("tablist", { name: "Bagian editor menu" });
+    await userEvent.click(within(tabEditor).getByRole("tab", { name: /3D & AR/ }));
 
     const glb = new File([new Uint8Array(32)], "steak.glb", { type: "" });
     const zone = screen.getByText("Tarik file .glb ke sini").closest("label");
