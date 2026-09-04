@@ -18,6 +18,30 @@ export const rupiahBertanda = (n: number) => `${n > 0 ? "+" : n < 0 ? "-" : ""}$
 
 export const persen = (x: number, digit = 0) => `${(x * 100).toFixed(digit)}%`;
 
+/** Bentuk angka otoritatif yang dipakai figur besar lembar analitik. */
+export type BentukAngka = "rupiah" | "bulat" | "persen";
+
+/** Angka besar dipecah jadi imbuhan + besaran.
+ *
+ *  Alasannya tipografis, bukan kosmetik: pada 30px/700, "Rp " memakan 48%
+ *  lebar "Rp 69.492" — separuh figur otoritatif dihabiskan oleh satuan, dan
+ *  mata membaca dua kata alih-alih satu angka. Dengan dipisah, imbuhan bisa
+ *  diturunkan ukuran, berat, dan tintanya sehingga besaran yang memimpin.
+ *  Hasil `pre + num + post` selalu identik dengan `rupiah()`/`persen()`
+ *  supaya teks untuk pembaca layar tidak pernah berbeda dari yang terlihat. */
+export function pisahAngka(n: number, bentuk: BentukAngka): { pre: string; num: string; post: string } {
+  if (bentuk === "rupiah") return { pre: "Rp", num: Math.round(n).toLocaleString("id-ID"), post: "" };
+  if (bentuk === "persen") return { pre: "", num: (n * 100).toFixed(0), post: "%" };
+  return { pre: "", num: Math.round(n).toLocaleString("id-ID"), post: "" };
+}
+
+/** Teks utuh dari bentuk yang sama — untuk `aria-label` dan judul. */
+export function teksAngka(n: number, bentuk: BentukAngka): string {
+  if (bentuk === "rupiah") return rupiah(n);
+  if (bentuk === "persen") return persen(n);
+  return Math.round(n).toLocaleString("id-ID");
+}
+
 export const fmtTanggal = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short" });
 export const fmtTanggalPanjang = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" });
 export const fmtJam = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" });

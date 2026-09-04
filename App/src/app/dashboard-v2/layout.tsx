@@ -10,6 +10,8 @@ import "../role-pill.css";
 // Terakhir: lapisan konsol menuntun token --dp-* warisan ke palet baru,
 // jadi ia harus menang atas dp.css dalam urutan kaskade.
 import "../console.css";
+// Lapisan kartu lembar analitik — harus setelah console.css.
+import "../analitik.css";
 // Lembar panduan + tur pemandu. Diimpor di layout, bukan di halamannya:
 // dialog tur dipicu dari bilah atas SETIAP halaman konsol.
 import "../panduan.css";

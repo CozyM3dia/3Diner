@@ -34,6 +34,27 @@ export function buatCsv(harian: TitikHari[], transaksi: OrderRow[]): string {
   return baris.join("\n");
 }
 
+/** Satu jalur unduh untuk kedua tombol Ekspor (kepala lembar dan tabel ini),
+ *  supaya keduanya tidak pernah berbeda isi maupun perilaku.
+ *
+ *  BOM di depan supaya Excel Indonesia membaca UTF-8 dan pemisah titik koma.
+ *  Tautan harus terpasang di dokumen sebelum diklik — Firefox mengabaikan
+ *  klik pada elemen lepas — dan URL objeknya baru dicabut setelah peramban
+ *  sempat mengambil isinya; mencabutnya di baris yang sama membatalkan
+ *  unduhan di Safari dan Firefox. */
+export function unduhCsv(harian: TitikHari[], transaksi: OrderRow[], namaBerkas: string) {
+  const blob = new Blob(["﻿" + buatCsv(harian, transaksi)], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = namaBerkas;
+  a.style.display = "none";
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 export default function TransaksiTable({
   transaksi,
   harian,
@@ -43,22 +64,11 @@ export default function TransaksiTable({
   harian: TitikHari[];
   namaBerkas: string;
 }) {
-  function unduh() {
-    // BOM supaya Excel Indonesia membaca UTF-8 dan pemisah titik koma.
-    const blob = new Blob(["\ufeff" + buatCsv(harian, transaksi)], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = namaBerkas;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   return (
     <div>
       <div className="dv3-chart-bar">
         <span className="dv3-panel-note">Pesanan lunas terbaru dalam rentang</span>
-        <button type="button" className="dv3-seg-btn dv3-seg-solo" onClick={unduh}>
+        <button type="button" className="dv3-seg-btn dv3-seg-solo" onClick={() => unduhCsv(harian, transaksi, namaBerkas)}>
           <DownloadIcon aria-hidden />
           Unduh CSV
         </button>

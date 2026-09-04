@@ -140,7 +140,7 @@ export default function StoreSettingsForm({ cafe }: { cafe: Cafe }) {
   }
 
   return (
-    <div className="dp-card">
+    <div id="profil-toko" className="dp-card scroll-mt-24">
       <div className="dp-card-head">
         <h2 className="dp-card-title">Informasi &amp; Profil Toko</h2>
       </div>

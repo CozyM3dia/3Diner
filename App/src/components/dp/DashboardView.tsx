@@ -1,21 +1,19 @@
-import type { CSSProperties } from "react";
 import Link from "next/link";
-import {
-  ArrowUpRightIcon,
-  ChevronRightIcon,
-  MousePointerClickIcon,
-  ReceiptTextIcon,
-  ScaleIcon,
-  TargetIcon,
-} from "lucide-react";
+import { ArrowUpRightIcon, ChevronRightIcon } from "lucide-react";
 import AnalyticsHeader, { labelPembanding, type LembarAnalitik } from "@/components/dp/AnalyticsHeader";
 import HeatmapJam from "@/components/dp/HeatmapJam";
 import Petunjuk from "@/components/dp/Petunjuk";
 import Funnel from "@/components/dp/Funnel";
 import Sparkline from "@/components/dp/Sparkline";
-import { Angka, DeltaTag, Kosong } from "@/components/dp/ledger";
+import KpiKartu, { PilDelta } from "@/components/dp/KpiKartu";
+import HariAktif, { type BarisHari } from "@/components/dp/HariAktif";
+import GaugeKipas from "@/components/dp/GaugeKipas";
+import SegmenKartu from "@/components/dp/SegmenKartu";
+import AsistenAI from "@/components/dp/AsistenAI";
+import { Kartu, Wadah } from "@/components/dp/motion-dp";
+import { Kosong, Nilai } from "@/components/dp/ledger";
 import type { PresetKey } from "@/lib/date-range";
-import { hitungCorong, hitungDelta, type Metrik } from "@/lib/dashboard-metrics";
+import { hitungCorong, hitungDelta, NAMA_HARI, type Metrik } from "@/lib/dashboard-metrics";
 import type { PeristiwaTamu } from "@/lib/dashboard-query";
 import { fmtJam, rupiah } from "@/lib/dashboard-format";
 
@@ -23,13 +21,31 @@ import { fmtJam, rupiah } from "@/lib/dashboard-format";
  *
  *  Menjawab dua hal dalam hitungan detik: bagaimana kafe berjalan pada
  *  rentang ini (uang, pesanan, tamu yang membuka menu) dan apa yang perlu
- *  disentuh sekarang. Rincian uang — metode bayar, kategori, transaksi —
- *  dipindah ke lembar Penjualan supaya lembar ini tetap bisa dibaca dari
- *  ponsel saat tutup kasir.
+ *  disentuh sekarang. Rincian uang — kategori, transaksi satu per satu —
+ *  tetap di lembar Penjualan supaya lembar ini masih bisa dibaca dari ponsel
+ *  saat tutup kasir.
+ *
+ *  Susunannya kartu dasbor: baris KPI di atas, lalu kolom lebar berisi angka
+ *  otoritatif + laju + komposisi pembayaran, dan kolom sempit berisi dua
+ *  ringkasan berbentuk grafik (hari teraktif, konversi). Sisanya menyusul
+ *  sebagai kartu setara.
  *
  *  Dipisah dari `page.tsx` supaya susunan yang sama bisa dijalankan dengan
  *  data Supabase nyata maupun fixture (`/dev-preview`).
  */
+
+/** Total pendapatan lunas per hari-minggu, dari matriks jam×hari. */
+function perHari(sel: Metrik["jam"]["sel"]): BarisHari[] {
+  return NAMA_HARI.map((label, hari) => {
+    const baris = sel.filter((s) => s.hari === hari);
+    return {
+      label,
+      nilai: baris.reduce((t, s) => t + s.nilai, 0),
+      pesanan: baris.reduce((t, s) => t + s.pesanan, 0),
+    };
+  });
+}
+
 export default function DashboardView({
   m,
   tamu,
@@ -59,16 +75,17 @@ export default function DashboardView({
   const deltaBuka = hitungDelta(tamu.kini.click_menu, tamu.lalu.click_menu);
   const konversi = tamu.kini.click_menu ? m.kini.pesanan / tamu.kini.click_menu : null;
   const konversiLalu = tamu.lalu.click_menu ? m.lalu.pesanan / tamu.lalu.click_menu : null;
+  const deltaKonversi = hitungDelta(konversi ?? 0, konversiLalu ?? 0);
   const maxKlik = Math.max(...tamu.perMenu.map((d) => d.klik), 1);
+  const hari = perHari(m.jam.sel);
 
-  const ringkasan =
-    m.kafeBaru
-      ? "Kafe ini belum menerima pesanan. Begitu QR Smart Menu terpasang di meja, angka-angka di sini mulai terisi sendiri."
-      : m.deltaPendapatan.pct === null
-        ? `${rupiah(m.kini.pendapatan)} masuk dari ${m.kini.pesananLunas} pesanan lunas; periode sebelumnya belum ada penjualan yang bisa dibandingkan.`
-        : `${rupiah(m.kini.pendapatan)} masuk dari ${m.kini.pesananLunas} pesanan lunas, ${
-            m.deltaPendapatan.arah === "up" ? "naik" : m.deltaPendapatan.arah === "down" ? "turun" : "setara"
-          }${m.deltaPendapatan.arah === "flat" ? "" : ` ${Math.abs(m.deltaPendapatan.pct).toFixed(1)}%`} dibanding ${banding}.`;
+  const ringkasan = m.kafeBaru
+    ? "Kafe ini belum menerima pesanan. Begitu QR Smart Menu terpasang di meja, angka-angka di sini mulai terisi sendiri."
+    : m.deltaPendapatan.pct === null
+      ? `${rupiah(m.kini.pendapatan)} masuk dari ${m.kini.pesananLunas} pesanan lunas; periode sebelumnya belum ada penjualan yang bisa dibandingkan.`
+      : `${rupiah(m.kini.pendapatan)} masuk dari ${m.kini.pesananLunas} pesanan lunas, ${
+          m.deltaPendapatan.arah === "up" ? "naik" : m.deltaPendapatan.arah === "down" ? "turun" : "setara"
+        }${m.deltaPendapatan.arah === "flat" ? "" : ` ${Math.abs(m.deltaPendapatan.pct).toFixed(1)}%`} dibanding ${banding}.`;
 
   return (
     <>
@@ -78,92 +95,172 @@ export default function DashboardView({
         toIso={toIso}
         preset={preset}
         spanDays={spanDays}
-        kicker="Ringkasan operasional"
-        judul="Bagaimana kafe berjalan"
+        judul="Ringkasan"
         ringkasan={ringkasan}
         hrefBase={hrefBase}
+        harian={m.harian}
+        transaksi={m.transaksi}
       />
 
-      {/* ── Kepala ledger: satu angka otoritatif + sparkline kumulatif. ── */}
-      <section className="dv3-hero dv3-reveal" style={{ "--i": 0 } as CSSProperties} aria-labelledby="judul-pendapatan">
-        <div className="dv3-hero-fig">
-          <h2 className="dv3-eyebrow" id="judul-pendapatan">
-            Pendapatan lunas · {spanDays} hari
-          </h2>
-          <strong className="dv3-ledger-figure dv3-num">{rupiah(m.kini.pendapatan)}</strong>
-          <div className="dv3-ledger-meta">
-            <DeltaTag delta={m.deltaPendapatan} satuan="pendapatan" />
-            <span>
-              {m.deltaPendapatan.pct !== null
-                ? `dari ${rupiah(m.lalu.pendapatan)} pada ${banding}`
-                : `${banding} tanpa penjualan lunas`}
-            </span>
-          </div>
-          <Link href={(hrefBase?.penjualan ?? `/dashboard-v2/penjualan?from=${fromIso}&to=${toIso}`) as never} className="dv3-hero-link">
-            Rincian penjualan
-            <ArrowUpRightIcon aria-hidden />
-          </Link>
-        </div>
-
-        {m.kini.pendapatan === 0 && m.lalu.pendapatan === 0 ? (
-          <p className="dv3-annot dv3-hero-quiet">
-            {m.kafeBaru
-              ? "Belum ada laju untuk digambar — grafik ini terisi begitu pesanan lunas pertama masuk."
-              : "Belum ada penjualan lunas pada kedua periode; garis laju menunggu pembayaran pertama."}
-          </p>
-        ) : (
-          <figure className="dv3-hero-spark">
-            <Sparkline titik={m.kumulatif} />
-            <figcaption className="dv3-legend">
-              <span className="dv3-legend-item">
-                <span className="dv3-key dv3-key-now" aria-hidden />
-                Kumulatif periode ini
-              </span>
-              <span className="dv3-legend-item">
-                <span className="dv3-key dv3-key-dash" aria-hidden />
-                {banding}
-              </span>
-            </figcaption>
-          </figure>
-        )}
-      </section>
-
-      {/* ── Angka sekunder: garis rambut vertikal, tanpa kartu. ── */}
-      <div className="dv3-strip dv3-reveal" style={{ "--i": 1 } as CSSProperties}>
-        <Angka
-          icon={<ReceiptTextIcon />}
-          label="Pesanan masuk"
-          nilai={m.kini.pesanan}
-          bawah={<DeltaTag delta={m.deltaPesanan} satuan="pesanan" />}
-        />
-        <Angka
-          icon={<ScaleIcon />}
-          label="Nilai rata-rata"
-          nilai={m.kini.nilaiRata > 0 ? rupiah(m.kini.nilaiRata) : "—"}
-          bawah={m.kini.nilaiRata > 0 ? <DeltaTag delta={m.deltaNilaiRata} satuan="transaksi lunas" /> : "Belum ada transaksi lunas"}
-        />
-        <Angka
-          icon={<MousePointerClickIcon />}
+      {/* ── Empat angka setara. Uang sengaja TIDAK ada di sini: ia punya
+          kartunya sendiri di bawah, dan mengulangnya di strip akan membuat
+          dua angka otoritatif bersaing di layar yang sama. ── */}
+      <Wadah className="an-kpis">
+        <KpiKartu
           label="Tamu buka menu"
-          nilai={tamu.gagal ? "—" : tamu.kini.click_menu.toLocaleString("id-ID")}
-          bawah={tamu.gagal ? "Data peristiwa tak terbaca" : <DeltaTag delta={deltaBuka} satuan="kunjungan" />}
+          ikon="buka"
+          tone="navy"
+          nilai={tamu.gagal ? undefined : tamu.kini.click_menu}
+          nilaiTeks={tamu.gagal ? "—" : undefined}
+          delta={tamu.gagal ? undefined : deltaBuka}
+          satuan="kunjungan"
+          catatan={
+            tamu.gagal
+              ? "Data peristiwa tak terbaca"
+              : `vs ${tamu.lalu.click_menu.toLocaleString("id-ID")} pada ${banding}`
+          }
         />
-        <Angka
-          icon={<TargetIcon />}
+        <KpiKartu
+          label="Pesanan masuk"
+          ikon="pesanan"
+          nilai={m.kini.pesanan}
+          delta={m.deltaPesanan}
+          satuan="pesanan"
+          catatan={`vs ${m.lalu.pesanan.toLocaleString("id-ID")} pada ${banding}`}
+        />
+        <KpiKartu
+          label="Nilai rata-rata"
+          ikon="rata"
+          nilai={m.kini.nilaiRata > 0 ? m.kini.nilaiRata : undefined}
+          nilaiTeks={m.kini.nilaiRata > 0 ? undefined : "—"}
+          bentuk="rupiah"
+          delta={m.kini.nilaiRata > 0 ? m.deltaNilaiRata : undefined}
+          satuan="transaksi lunas"
+          catatan={m.lalu.nilaiRata > 0 ? `vs ${rupiah(m.lalu.nilaiRata)} pada ${banding}` : "Belum ada pembanding"}
+        />
+        <KpiKartu
           label="Buka menu → pesan"
-          nilai={konversi === null ? "—" : `${Math.round(konversi * 100)}%`}
-          bawah={
+          ikon="konversi"
+          tone="accent"
+          nilai={konversi ?? undefined}
+          nilaiTeks={konversi === null ? "—" : undefined}
+          bentuk="persen"
+          delta={konversi !== null && konversiLalu !== null ? deltaKonversi : undefined}
+          satuan="konversi"
+          catatan={
             konversi === null
               ? "Belum ada tamu membuka menu"
               : konversiLalu === null
                 ? "Tanpa pembanding"
-                : `dari ${Math.round(konversiLalu * 100)}% pada ${banding}`
+                : `vs ${Math.round(konversiLalu * 100)}% pada ${banding}`
           }
         />
+      </Wadah>
+
+      {/* ── Kolom lebar: uang + laju + jalur pembayaran. Kolom sempit: dua
+          ringkasan berbentuk grafik yang menjawab "kapan" dan "seberapa
+          sering tamu jadi memesan". ── */}
+      <div className="dv3-grid-a">
+        <Wadah className="an-cell">
+          <Kartu className="dv3-panel an-hero" aria-labelledby="judul-pendapatan">
+            <div className="an-hero-grid">
+              <div className="dv3-hero-fig">
+                <h2 className="dv3-eyebrow" id="judul-pendapatan">
+                  Pendapatan lunas · {spanDays} hari
+                </h2>
+                <Nilai className="dv3-ledger-figure" nilai={m.kini.pendapatan} bentuk="rupiah" />
+                <div className="an-hero-meta">
+                  <PilDelta delta={m.deltaPendapatan} satuan="pendapatan" />
+                  <span>
+                    {m.deltaPendapatan.pct !== null
+                      ? `dari ${rupiah(m.lalu.pendapatan)} pada ${banding}`
+                      : `${banding} tanpa penjualan lunas`}
+                  </span>
+                </div>
+                <Link
+                  href={(hrefBase?.penjualan ?? `/dashboard-v2/penjualan?from=${fromIso}&to=${toIso}`) as never}
+                  className="dv3-hero-link"
+                >
+                  Rincian penjualan
+                  <ArrowUpRightIcon aria-hidden />
+                </Link>
+              </div>
+
+              {m.kini.pendapatan === 0 && m.lalu.pendapatan === 0 ? (
+                <p className="dv3-annot dv3-hero-quiet">
+                  {m.kafeBaru
+                    ? "Belum ada laju untuk digambar — grafik ini terisi begitu pesanan lunas pertama masuk."
+                    : "Belum ada penjualan lunas pada kedua periode; garis laju menunggu pembayaran pertama."}
+                </p>
+              ) : (
+                <figure className="dv3-hero-spark">
+                  <Sparkline titik={m.kumulatif} />
+                  <figcaption className="dv3-legend">
+                    <span className="dv3-legend-item">
+                      <span className="dv3-key dv3-key-now" aria-hidden />
+                      Kumulatif periode ini
+                    </span>
+                    <span className="dv3-legend-item">
+                      <span className="dv3-key dv3-key-dash" aria-hidden />
+                      {banding}
+                    </span>
+                  </figcaption>
+                </figure>
+              )}
+            </div>
+
+            {/* Kartu bersarang: pangsa tiap jalur pembayaran, sejajar dengan
+                uang yang baru saja dibaca di atasnya. */}
+            <div className="an-nested">
+              <div className="dv3-panel-head">
+                <h3 className="dv3-panel-title">Jalur pembayaran</h3>
+                <span className="dv3-panel-note">Pesanan lunas · tiga teratas</span>
+              </div>
+              <SegmenKartu irisan={m.metodeBayar} kosong="Belum ada pembayaran lunas untuk dibagi per metode." />
+            </div>
+          </Kartu>
+        </Wadah>
+
+        <Wadah className="an-stack">
+          <Kartu aria-labelledby="judul-hari">
+            <div className="dv3-panel-head">
+              <h2 className="dv3-panel-title" id="judul-hari">
+                Hari paling ramai
+              </h2>
+              <Petunjuk judul="Hari paling ramai" bab="ringkasan">
+                Pendapatan lunas dijumlahkan per hari-minggu sepanjang rentang, jadi rentang yang memuat dua hari
+                Sabtu akan menumpuk keduanya di batang yang sama.
+              </Petunjuk>
+              <span className="dv3-panel-note">Pendapatan lunas</span>
+            </div>
+            <HariAktif baris={hari} />
+          </Kartu>
+
+          <Kartu aria-labelledby="judul-konversi">
+            <div className="dv3-panel-head">
+              <h2 className="dv3-panel-title" id="judul-konversi">
+                Tingkat konversi
+              </h2>
+              <Petunjuk judul="Tingkat konversi" bab="ringkasan">
+                Berapa persen tamu yang membuka menu berakhir mengirim pesanan. Dihitung dari peristiwa di ponsel
+                tamu dibagi pesanan masuk pada rentang yang sama.
+              </Petunjuk>
+            </div>
+            <GaugeKipas
+              rasio={tamu.gagal ? null : konversi}
+              label="tamu yang buka menu lalu memesan"
+              kosong={
+                tamu.gagal
+                  ? "Peristiwa tamu tidak terbaca, jadi konversi belum bisa dihitung. Muat ulang halaman."
+                  : "Belum ada tamu yang membuka menu pada rentang ini."
+              }
+            />
+          </Kartu>
+        </Wadah>
       </div>
 
-      <div className="dv3-grid-a">
-        <section className="dv3-panel dv3-reveal" style={{ "--i": 2 } as CSSProperties} aria-labelledby="judul-jam">
+      <Wadah className="dv3-grid-a">
+        <Kartu aria-labelledby="judul-jam">
           <div className="dv3-panel-head">
             <h2 className="dv3-panel-title" id="judul-jam">
               Jam ramai
@@ -189,9 +286,9 @@ export default function DashboardView({
           ) : (
             <HeatmapJam jam={m.jam} spanDays={spanDays} />
           )}
-        </section>
+        </Kartu>
 
-        <section className="dv3-panel dv3-reveal" style={{ "--i": 3 } as CSSProperties} aria-labelledby="judul-perhatian">
+        <Kartu aria-labelledby="judul-perhatian">
           <div className="dv3-panel-head">
             <h2 className="dv3-panel-title" id="judul-perhatian">
               Butuh perhatian
@@ -226,11 +323,16 @@ export default function DashboardView({
               ))}
             </ul>
           )}
-        </section>
-      </div>
+        </Kartu>
+      </Wadah>
 
-      <div className="dv3-grid-b">
-        <section className="dv3-panel dv3-reveal" style={{ "--i": 4 } as CSSProperties} aria-labelledby="judul-corong">
+      {/* Asisten AI berdiri sendiri selebar lembar, bukan menumpuk di kolom
+          sempit: kolom itu memaksa kartu hero di sebelahnya meregang setinggi
+          tumpukannya, dan hero jadi setengah ruang kosong. */}
+      <AsistenAI />
+
+      <Wadah className="dv3-grid-b">
+        <Kartu aria-labelledby="judul-corong">
           <div className="dv3-panel-head">
             <h2 className="dv3-panel-title" id="judul-corong">
               Corong tamu
@@ -252,9 +354,9 @@ export default function DashboardView({
               kosong="Belum ada tamu yang membuka menu pada rentang ini. Corong mulai terisi begitu QR Smart Menu dipindai."
             />
           )}
-        </section>
+        </Kartu>
 
-        <section className="dv3-panel dv3-reveal" style={{ "--i": 5 } as CSSProperties} aria-labelledby="judul-dilirik">
+        <Kartu aria-labelledby="judul-dilirik">
           <div className="dv3-panel-head">
             <h2 className="dv3-panel-title" id="judul-dilirik">
               Paling dilirik
@@ -299,9 +401,9 @@ export default function DashboardView({
               })}
             </ol>
           )}
-        </section>
+        </Kartu>
 
-        <section className="dv3-panel dv3-reveal" style={{ "--i": 6 } as CSSProperties} aria-labelledby="judul-berjalan">
+        <Kartu aria-labelledby="judul-berjalan">
           <div className="dv3-panel-head">
             <h2 className="dv3-panel-title" id="judul-berjalan">
               Pesanan berjalan
@@ -340,8 +442,9 @@ export default function DashboardView({
               })}
             </ul>
           )}
-        </section>
-      </div>
+        </Kartu>
+      </Wadah>
+
     </>
   );
 }

@@ -175,7 +175,13 @@ export default function CumulativeChart({ titik, labelBanding }: { titik: TitikK
         </div>
       </div>
 
-      <table className="sr-only">
+      {/* Tabel setara untuk pembaca layar. Kelas sr-only dipasang pada div
+          pembungkus, bukan pada <table>: tabel mengabaikan lebar di bawah
+          min-content-nya, jadi kotak 1px itu tetap melebar ~400px, menyembul
+          lewat tepi kanan viewport, dan seluruh halaman bisa digeser 4px ke
+          samping. */}
+      <div className="sr-only">
+      <table>
         <caption>Pendapatan kumulatif per hari, dibanding periode sebelumnya</caption>
         <thead>
           <tr>
@@ -194,6 +200,7 @@ export default function CumulativeChart({ titik, labelBanding }: { titik: TitikK
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

@@ -1,9 +1,43 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRightIcon, MinusIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
 import type { Delta } from "@/lib/dashboard-metrics";
+import { pisahAngka, teksAngka, type BentukAngka } from "@/lib/dashboard-format";
 
 /** Potongan bahasa ledger yang dipakai kedua lembar analitik. */
+
+/** Figur angka statis — pasangan server dari `AngkaHidup`.
+ *
+ *  Menulis satuan dan besaran sebagai satu untai teks membuat "Rp" berdiri
+ *  setara dengan angkanya: pada figur hero lama (40px/700), "Rp " memakan
+ *  55.4px dari 233.9px — 24% lebar total, dengan berat yang sama persis.
+ *  Dipisah, satuan bisa turun ke 0.58em dan tinta ketiga, dan yang memimpin
+ *  kembali besarannya. */
+export function Nilai({
+  nilai,
+  bentuk = "rupiah",
+  className,
+}: {
+  nilai: number;
+  bentuk?: BentukAngka;
+  className?: string;
+}) {
+  const { pre, num, post } = pisahAngka(nilai, bentuk);
+  return (
+    <strong className={`an-fig ${className ?? ""}`} aria-label={teksAngka(nilai, bentuk)}>
+      {pre && (
+        <i className="an-fig-pre" aria-hidden>
+          {pre}
+        </i>
+      )}
+      <span aria-hidden>{num}</span>
+      {post && (
+        <i className="an-fig-post" aria-hidden>
+          {post}
+        </i>
+      )}
+    </strong>
+  );
+}
 
 /** Delta nyata: dihitung dari periode setara sebelumnya, tidak pernah dikarang. */
 export function DeltaTag({ delta, satuan }: { delta: Delta; satuan: string }) {
@@ -38,34 +72,6 @@ export function Kosong({ judul, isi, aksi }: { judul: string; isi: string; aksi?
           <ArrowRightIcon />
         </Link>
       )}
-    </div>
-  );
-}
-
-/** Satu angka sekunder di strip: eyebrow + nilai + baris bawah. */
-export function Angka({
-  label,
-  nilai,
-  bawah,
-  icon,
-}: {
-  label: string;
-  nilai: ReactNode;
-  bawah: ReactNode;
-  icon?: ReactNode;
-}) {
-  return (
-    <div className="dv3-angka">
-      <span className="dv3-eyebrow dv3-eyebrow-row">
-        {icon && (
-          <span className="dv3-icon" aria-hidden>
-            {icon}
-          </span>
-        )}
-        {label}
-      </span>
-      <span className="dv3-strip-val dv3-num">{nilai}</span>
-      <span className="dv3-strip-sub">{bawah}</span>
     </div>
   );
 }

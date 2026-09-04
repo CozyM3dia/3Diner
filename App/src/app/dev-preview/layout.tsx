@@ -5,6 +5,8 @@ import "@/app/menu-editor.css";
 import "@/app/menu-preview.css";
 import "../role-pill.css";
 import "../console.css";
+// Lapisan kartu lembar analitik — harus setelah console.css.
+import "../analitik.css";
 import "../panduan.css";
 import "../kitchen.css";
 

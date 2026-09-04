@@ -54,6 +54,12 @@ describe("StoreSettingsForm image slots", () => {
 
   afterEach(cleanup);
 
+  it("exposes the profile form as the onboarding deep-link target", () => {
+    render(<StoreSettingsForm cafe={cafe} />);
+
+    expect(screen.getByText("Informasi & Profil Toko").closest(".dp-card")?.id).toBe("profil-toko");
+  });
+
   it("rejects a .txt on Logo Toko in Indonesian and does not call signed upload", () => {
     render(<StoreSettingsForm cafe={cafe} />);
 

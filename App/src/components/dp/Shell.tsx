@@ -31,6 +31,7 @@ import SearchModal from "@/components/dp/SearchModal";
 import TourDialog from "@/components/dp/TourDialog";
 import ProfileMenu from "@/components/dp/ProfileMenu";
 import DashboardNavLink from "@/components/dp/DashboardNavLink";
+import SetupChecklist from "@/components/dp/SetupChecklist";
 import {
   Dock,
   DockIcon,
@@ -422,6 +423,7 @@ export default function DpShell({
         <main className="dv3-content">{children}</main>
       </div>
 
+      <SetupChecklist />
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
