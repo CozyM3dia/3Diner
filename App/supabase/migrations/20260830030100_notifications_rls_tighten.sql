@@ -1,0 +1,22 @@
+-- 3Diner — cabut policy baca terbuka di Notifications.
+--
+-- Policy "Notifications read by cafe staff" namanya menjanjikan penyaringan
+-- per-kafe, tetapi isinya `using (true)`: ia berlaku untuk peran `public`,
+-- jadi SIAPA PUN yang memegang kunci anon — dan kunci itu memang dikirim ke
+-- setiap peramban tamu lewat NEXT_PUBLIC_SUPABASE_ANON_KEY — bisa membaca
+-- seluruh baris Notifications MILIK SEMUA KAFE. Judul dan isi notifikasi
+-- memuat nomor meja, nilai pesanan, dan kabar operasional dapur; itu bukan
+-- data yang boleh dibaca lintas-kafe, apalagi oleh tamu.
+--
+-- Mencabutnya tidak menghentikan apa pun yang berjalan. Setiap pembacaan dan
+-- penulisan tabel ini melewati `supabaseAdmin` (service role) di
+-- notification-actions dan pada pemuatan Shell konsol; service role melewati
+-- RLS sepenuhnya, jadi policy ini tidak pernah menjadi jalan masuk yang
+-- dipakai aplikasi. Tidak ada satu pun kode peramban yang memanggil
+-- .from("Notifications") — sudah diperiksa: yang tersisa di sisi klien hanya
+-- komentar yang menyebut nama modulnya.
+--
+-- Tanpa policy, tabel ini mengikuti pola yang sama dengan Role_Permissions:
+-- RLS menyala, nol policy, hanya service role yang bisa masuk.
+
+drop policy if exists "Notifications read by cafe staff" on public."Notifications";
