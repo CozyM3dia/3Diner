@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRightIcon, AlertTriangleIcon } from "lucide-react";
+import { ArrowRightIcon, ChevronDownIcon } from "lucide-react";
 import type { Metrik } from "@/lib/dashboard-metrics";
 import type { PeristiwaTamu } from "@/lib/dashboard-query";
 
@@ -9,6 +10,7 @@ interface AnomalyPulseStripProps {
   m: Metrik;
   tamu: PeristiwaTamu;
   hrefPesanan?: string;
+  defaultExpanded?: boolean;
 }
 
 interface MetricItem {
@@ -21,11 +23,40 @@ interface MetricItem {
   sparkline: string;
 }
 
+const STORAGE_KEY = "3diner_vitals_expanded";
+
 export default function AnomalyPulseStrip({
   m,
   tamu,
   hrefPesanan = "/dashboard-v2/pesanan",
+  defaultExpanded = false,
 }: AnomalyPulseStripProps) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  // Sync preference with localStorage (client-side only)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved !== null) {
+        setIsExpanded(saved === "true");
+      }
+    } catch {
+      // Ignore localStorage read errors in private browsing / sandboxes
+    }
+  }, []);
+
+  const toggleExpanded = () => {
+    setIsExpanded((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(STORAGE_KEY, String(next));
+      } catch {
+        // Ignore localStorage write errors
+      }
+      return next;
+    });
+  };
+
   // 1. Waktu Dapur (Usia pesanan berjalan di dapur)
   const dapurOrders = m.berjalan.filter(
     (o) => o.status === "received" || o.status === "preparing",
@@ -79,6 +110,13 @@ export default function AnomalyPulseStrip({
     isAntreanAnomaly ||
     isKonvAnomaly ||
     hasPerhatian;
+
+  const anomalyCount = [
+    isDapurAnomaly,
+    isBatalAnomaly,
+    isAntreanAnomaly,
+    isKonvAnomaly,
+  ].filter(Boolean).length;
 
   // Formulate diagnosis
   let diagnosisText =
@@ -156,94 +194,10 @@ export default function AnomalyPulseStrip({
           borderColor: hasAnomaly ? "var(--dv3-warn)" : "var(--dv3-line)",
         }}
       >
+        {/* Main Status Strip Header (Always visible, single sleek row) */}
         <div
-          className="grid divide-y sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4"
-          style={{ borderColor: "var(--dv3-line)" }}
-        >
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="p-4 sm:p-5 transition-colors"
-              style={{
-                backgroundColor: item.isAnomaly
-                  ? "var(--dv3-warn-wash)"
-                  : "transparent",
-              }}
-            >
-              <p
-                className="text-xs font-medium truncate"
-                style={{
-                  color: item.isAnomaly
-                    ? "var(--dv3-warn)"
-                    : "var(--dv3-ink-3)",
-                }}
-              >
-                {item.label}
-              </p>
-
-              <div className="mt-2 flex items-end justify-between gap-2">
-                <strong
-                  className="text-2xl font-bold tabular-nums"
-                  style={{
-                    color: item.isAnomaly
-                      ? "var(--dv3-warn)"
-                      : "var(--dv3-ink)",
-                  }}
-                >
-                  {item.value}
-                </strong>
-                <span
-                  className="text-[11px] font-semibold px-2 py-0.5 rounded-full tabular-nums"
-                  style={{
-                    backgroundColor: item.isAnomaly
-                      ? "var(--dv3-warn)"
-                      : "var(--dv3-ok-wash)",
-                    color: item.isAnomaly ? "#ffffff" : "var(--dv3-ok)",
-                  }}
-                >
-                  {item.statusText}
-                </span>
-              </div>
-
-              <svg
-                viewBox="0 0 120 28"
-                className="mt-3 h-7 w-full"
-                style={{
-                  color: item.isAnomaly
-                    ? "var(--dv3-warn)"
-                    : "var(--dv3-line-strong)",
-                }}
-                aria-hidden="true"
-              >
-                <path
-                  d={item.sparkline}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-
-              <p
-                className="mt-2 text-[11px] tabular-nums truncate"
-                style={{
-                  color: item.isAnomaly
-                    ? "var(--dv3-warn)"
-                    : "var(--dv3-ink-3)",
-                }}
-              >
-                {item.rangeText}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Diagnostic Footer Bar */}
-        <div
-          className="flex flex-col gap-3 border-t px-5 py-3 sm:flex-row sm:items-center"
+          className="flex flex-wrap items-center justify-between gap-2.5 px-4 py-2.5 sm:px-5"
           style={{
-            borderColor: hasAnomaly ? "var(--dv3-warn)" : "var(--dv3-line)",
             backgroundColor: hasAnomaly
               ? "var(--dv3-warn-wash)"
               : "var(--dv3-paper)",
@@ -251,42 +205,180 @@ export default function AnomalyPulseStrip({
           role="status"
           aria-live="polite"
         >
-          <span
-            className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-              hasAnomaly ? "animate-pulse" : ""
-            }`}
-            style={{
-              backgroundColor: hasAnomaly
-                ? "var(--dv3-warn)"
-                : "var(--dv3-ok)",
-            }}
-            aria-hidden="true"
-          />
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <span
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                hasAnomaly ? "animate-pulse" : ""
+              }`}
+              style={{
+                backgroundColor: hasAnomaly
+                  ? "var(--dv3-warn)"
+                  : "var(--dv3-ok)",
+              }}
+              aria-hidden="true"
+            />
 
-          <p
-            className="flex-1 text-[13px] font-medium leading-relaxed"
-            style={{
-              color: hasAnomaly ? "var(--dv3-ink)" : "var(--dv3-ink-2)",
-            }}
-          >
-            {diagnosisText}
-          </p>
+            <p
+              className="text-xs sm:text-[13px] font-medium leading-relaxed truncate"
+              style={{
+                color: hasAnomaly ? "var(--dv3-ink)" : "var(--dv3-ink-2)",
+              }}
+              title={diagnosisText}
+            >
+              {diagnosisText}
+            </p>
+          </div>
 
-          <Link
-            href={hrefPesanan}
-            className="inline-flex items-center justify-center gap-1.5 self-start sm:self-auto rounded-[6px] px-3.5 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90"
-            style={{
-              backgroundColor: hasAnomaly
-                ? "var(--dv3-accent)"
-                : "var(--dv3-sunken)",
-              color: hasAnomaly ? "#ffffff" : "var(--dv3-ink)",
-              border: hasAnomaly ? "none" : "1px solid var(--dv3-line)",
-            }}
-          >
-            {hasAnomaly ? "Tindak Lanjuti" : "Kelola Pesanan"}
-            <ArrowRightIcon size={13} aria-hidden="true" />
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Quick status pill */}
+            {hasAnomaly ? (
+              <span
+                className="hidden sm:inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: "var(--dv3-warn)",
+                  color: "#ffffff",
+                }}
+              >
+                {anomalyCount > 0 ? `${anomalyCount} Anomali` : "Perlu Tindakan"}
+              </span>
+            ) : (
+              <span
+                className="hidden sm:inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: "var(--dv3-ok-wash)",
+                  color: "var(--dv3-ok)",
+                }}
+              >
+                Vitals Normal
+              </span>
+            )}
+
+            {/* Collapsible toggle button */}
+            <button
+              type="button"
+              onClick={toggleExpanded}
+              className="inline-flex items-center gap-1 rounded-[6px] px-2.5 py-1 text-xs font-medium transition-colors hover:opacity-90"
+              style={{
+                backgroundColor: "var(--dv3-sunken)",
+                color: "var(--dv3-ink-2)",
+                border: "1px solid var(--dv3-line)",
+              }}
+              aria-expanded={isExpanded}
+              aria-label={isExpanded ? "Ciutkan rincian 4 vitals" : "Lihat rincian 4 vitals"}
+            >
+              <span>{isExpanded ? "Ciutkan" : "Rincian"}</span>
+              <ChevronDownIcon
+                size={13}
+                className={`transition-transform duration-200 ${
+                  isExpanded ? "rotate-180" : ""
+                }`}
+                aria-hidden="true"
+              />
+            </button>
+
+            {/* CTA action button */}
+            <Link
+              href={hrefPesanan}
+              className="inline-flex items-center justify-center gap-1.5 rounded-[6px] px-3 py-1 text-xs font-semibold transition-opacity hover:opacity-90"
+              style={{
+                backgroundColor: hasAnomaly
+                  ? "var(--dv3-accent)"
+                  : "var(--dv3-sunken)",
+                color: hasAnomaly ? "#ffffff" : "var(--dv3-ink)",
+                border: hasAnomaly ? "none" : "1px solid var(--dv3-line)",
+              }}
+            >
+              {hasAnomaly ? "Tindak Lanjuti" : "Kelola Pesanan"}
+              <ArrowRightIcon size={12} aria-hidden="true" />
+            </Link>
+          </div>
         </div>
+
+        {/* Collapsible Content: The 4 Metric Cards */}
+        {isExpanded && (
+          <div
+            className="grid divide-y border-t sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4 transition-all"
+            style={{ borderColor: "var(--dv3-line)" }}
+          >
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="p-4 sm:p-5 transition-colors"
+                style={{
+                  backgroundColor: item.isAnomaly
+                    ? "var(--dv3-warn-wash)"
+                    : "var(--dv3-surface)",
+                }}
+              >
+                <p
+                  className="text-xs font-medium truncate"
+                  style={{
+                    color: item.isAnomaly
+                      ? "var(--dv3-warn)"
+                      : "var(--dv3-ink-3)",
+                  }}
+                >
+                  {item.label}
+                </p>
+
+                <div className="mt-2 flex items-end justify-between gap-2">
+                  <strong
+                    className="text-2xl font-bold tabular-nums"
+                    style={{
+                      color: item.isAnomaly
+                        ? "var(--dv3-warn)"
+                        : "var(--dv3-ink)",
+                    }}
+                  >
+                    {item.value}
+                  </strong>
+                  <span
+                    className="text-[11px] font-semibold px-2 py-0.5 rounded-full tabular-nums"
+                    style={{
+                      backgroundColor: item.isAnomaly
+                        ? "var(--dv3-warn)"
+                        : "var(--dv3-ok-wash)",
+                      color: item.isAnomaly ? "#ffffff" : "var(--dv3-ok)",
+                    }}
+                  >
+                    {item.statusText}
+                  </span>
+                </div>
+
+                <svg
+                  viewBox="0 0 120 28"
+                  className="mt-3 h-7 w-full"
+                  style={{
+                    color: item.isAnomaly
+                      ? "var(--dv3-warn)"
+                      : "var(--dv3-line-strong)",
+                  }}
+                  aria-hidden="true"
+                >
+                  <path
+                    d={item.sparkline}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+
+                <p
+                  className="mt-2 text-[11px] tabular-nums truncate"
+                  style={{
+                    color: item.isAnomaly
+                      ? "var(--dv3-warn)"
+                      : "var(--dv3-ink-3)",
+                  }}
+                >
+                  {item.rangeText}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

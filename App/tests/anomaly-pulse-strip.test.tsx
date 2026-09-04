@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import AnomalyPulseStrip from "@/components/dp/AnomalyPulseStrip";
 import type { Metrik } from "@/lib/dashboard-metrics";
 import type { PeristiwaTamu } from "@/lib/dashboard-query";
 
 afterEach(() => {
   cleanup();
+  try {
+    localStorage.clear();
+  } catch {}
 });
 
 const MOCK_METRIK_NORMAL: Metrik = {
@@ -52,11 +55,11 @@ const MOCK_METRIK_NORMAL: Metrik = {
       payment_status: "paid",
       table_number: "1",
       items: [],
-      created_at: new Date(Date.now() - 5 * 60000).toISOString(), // 5 mins ago -> Normal
+      created_at: new Date(Date.now() - 5 * 60000).toISOString(),
     },
   ],
   transaksi: [],
-  perhatian: [], // Normal, no overdue
+  perhatian: [],
   kafeBaru: false,
 };
 
@@ -69,7 +72,7 @@ const MOCK_TAMU_NORMAL: PeristiwaTamu = {
 };
 
 describe("AnomalyPulseStrip component", () => {
-  it("renders 4 operational metrics in normal state", () => {
+  it("renders collapsed by default as a sleek single-line bar", () => {
     render(
       <AnomalyPulseStrip
         m={MOCK_METRIK_NORMAL}
@@ -78,24 +81,48 @@ describe("AnomalyPulseStrip component", () => {
       />,
     );
 
-    expect(screen.getByText("Waktu saji dapur")).toBeDefined();
-    expect(screen.getByText("Tingkat pembatalan")).toBeDefined();
-    expect(screen.getByText("Antrean aktif dapur")).toBeDefined();
-    expect(screen.getByText("Konversi tamu meja")).toBeDefined();
-
-    // In normal state, status text should display "Normal"
-    const normalBadges = screen.getAllByText("Normal");
-    expect(normalBadges.length).toBeGreaterThanOrEqual(3);
-
-    // Normal diagnosis text
+    // Normal diagnosis text is visible in the single-line bar
     expect(
       screen.getByText(
         "Seluruh metrik operasional dapur dan transaksi berjalan lancar dalam batas normal.",
       ),
     ).toBeDefined();
 
+    // The toggle button is "Rincian"
+    const toggleBtn = screen.getByRole("button", { name: /Lihat rincian 4 vitals/i });
+    expect(toggleBtn).toBeDefined();
+    expect(screen.getByText("Rincian")).toBeDefined();
+
     // CTA button text
     expect(screen.getByText("Kelola Pesanan")).toBeDefined();
+
+    // The 4 cards should NOT be expanded initially
+    expect(screen.queryByText("Waktu saji dapur")).toBeNull();
+  });
+
+  it("expands and collapses 4 metric cards on button click", () => {
+    render(
+      <AnomalyPulseStrip
+        m={MOCK_METRIK_NORMAL}
+        tamu={MOCK_TAMU_NORMAL}
+        hrefPesanan="/dashboard-v2/pesanan"
+      />,
+    );
+
+    const toggleBtn = screen.getByRole("button", { name: /Lihat rincian 4 vitals/i });
+    
+    // Click to expand
+    fireEvent.click(toggleBtn);
+    expect(screen.getByText("Waktu saji dapur")).toBeDefined();
+    expect(screen.getByText("Tingkat pembatalan")).toBeDefined();
+    expect(screen.getByText("Antrean aktif dapur")).toBeDefined();
+    expect(screen.getByText("Konversi tamu meja")).toBeDefined();
+    expect(screen.getByText("Ciutkan")).toBeDefined();
+
+    // Click to collapse
+    fireEvent.click(screen.getByRole("button", { name: /Ciutkan rincian 4 vitals/i }));
+    expect(screen.queryByText("Waktu saji dapur")).toBeNull();
+    expect(screen.getByText("Rincian")).toBeDefined();
   });
 
   it("detects and highlights anomaly when order is overdue in kitchen", () => {
@@ -109,7 +136,7 @@ describe("AnomalyPulseStrip component", () => {
           payment_status: "paid",
           table_number: "4",
           items: [],
-          created_at: new Date(Date.now() - 32 * 60000).toISOString(), // 32 minutes ago -> Anomaly!
+          created_at: new Date(Date.now() - 32 * 60000).toISOString(),
         },
       ],
       perhatian: [
@@ -130,6 +157,7 @@ describe("AnomalyPulseStrip component", () => {
         m={metrikAnomaly}
         tamu={MOCK_TAMU_NORMAL}
         hrefPesanan="/dashboard-v2/pesanan"
+        defaultExpanded={true}
       />,
     );
 
@@ -160,6 +188,7 @@ describe("AnomalyPulseStrip component", () => {
         m={metrikBatal}
         tamu={MOCK_TAMU_NORMAL}
         hrefPesanan="/dashboard-v2/pesanan"
+        defaultExpanded={true}
       />,
     );
 
