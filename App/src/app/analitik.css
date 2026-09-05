@@ -345,8 +345,7 @@ html[data-theme="dark"] .an-btn { color: oklch(0.16 0.02 258); }
 }
 .an-nested .dv3-panel-head { margin-bottom: var(--dv3-s3); }
 
-/* Sel grid yang isinya satu kartu: kartu mengikuti isi, bukan tinggi baris
-   kanan, supaya tidak menyisakan bidang putih di dalam kartu. */
+/* Sel grid yang isinya satu kartu. */
 .an-cell { display: flex; flex-direction: column; min-width: 0; }
 .an-cell > * { flex: none; }
 
@@ -354,26 +353,48 @@ html[data-theme="dark"] .an-btn { color: oklch(0.16 0.02 258); }
 .an-stack { display: flex; flex-direction: column; gap: var(--an-gap); min-width: 0; }
 .an-stack > * { flex: none; }
 
-/* Kolom kanan berisi SATU kartu: kartu meregang setinggi baris, dan GRAFIK di
-   dalamnya yang menyerap sisa tinggi. Meregangkan kartu tanpa memberi tahu
-   grafiknya hanya memindahkan bidang kosong ke dalam kartu — yang justru lebih
-   buruk, karena di sana ia dibingkai. Pola sama dengan .an-hero .dv3-hero-chart
-   di atas; SVG kumulatif memakai preserveAspectRatio="none" sehingga ikut
-   tinggi wadahnya tanpa distorsi yang berarti. */
+/* ── Kolom yang isinya SATU kartu meregang setinggi baris ──
+   Kartu yang memeluk isinya membuang selisihnya jadi bidang putih di bawah
+   kartu — 287px di Penjualan, 71px di Ringkasan. Jadi kartunya diregangkan,
+   TAPI yang menyerap sisa tinggi harus grafiknya, bukan kartunya: meregangkan
+   kartu tanpa memberi tahu grafik di dalamnya cuma memindahkan bidang kosong
+   ke dalam kartu, di mana ia justru dibingkai dan makin kentara.
+
+   Dua tempat memakainya, dan keduanya kebetulan sama-sama grafik kumulatif:
+   kartu tunggal di kolom kanan (Penjualan → Laju periode) dan kolom kumulatif
+   di dalam kartu uang (Ringkasan). SVG-nya preserveAspectRatio="none",
+   jadi ia mengikuti tinggi wadahnya tanpa distorsi yang berarti.
+
+   Di bawah 1180px `.dv3-grid-a` jadi satu kolom: tak ada baris yang tingginya
+   perlu disamakan, tinggi kembali mengikuti isi, dan aturan ini jadi tak
+   berdampak dengan sendirinya. */
 .an-stack > *:only-child { flex: 1 1 auto; display: flex; flex-direction: column; }
-.an-stack > *:only-child .dv3-cum { flex: 1 1 auto; min-height: 0; }
+.an-cell > *:only-child { flex: 1 1 auto; display: flex; flex-direction: column; }
+.an-cell > *:only-child > .an-hero-grid { flex: 1 1 auto; align-content: stretch; }
+/* Hanya kolom kumulatif yang ikut meregang. `.dv3-hero-fig` (angka + pil delta
+   + tautan) tetap `align-self: start` seperti aturan di atas — angka otoritatif
+   yang melayang di tengah kolom kehilangan pijakannya pada garis atas kartu. */
+.an-cell > *:only-child .dv3-hero-cumulative {
+  align-self: stretch; display: flex; flex-direction: column;
+}
+
+.an-stack > *:only-child .dv3-cum,
+.an-cell > *:only-child .dv3-hero-cumulative .dv3-cum { flex: 1 1 auto; min-height: 0; }
 /* Baris grid dikunci: `.dv3-plot` tidak menyatakan grid-template-rows, jadi
    saat plotnya diberi tinggi lebih, kedua baris implisitnya membagi rata sisa
    ruang — dan baris tanggal di bawah ikut membengkak jadi 153px, menjauh dari
    grafik yang ia beri nama. Baris pertama yang boleh tumbuh; baris tanggal
    memeluk isinya. */
-.an-stack > *:only-child .dv3-plot-cum {
+.an-stack > *:only-child .dv3-plot-cum,
+.an-cell > *:only-child .dv3-hero-cumulative .dv3-plot-cum {
   flex: 1 1 auto;
   min-height: var(--dv3-plot-h);
   grid-template-rows: minmax(0, 1fr) auto;
 }
 .an-stack > *:only-child .dv3-plot-cum > .dv3-plot-axis,
-.an-stack > *:only-child .dv3-plot-cum > .dv3-plot-area { height: auto; min-height: 0; }
+.an-stack > *:only-child .dv3-plot-cum > .dv3-plot-area,
+.an-cell > *:only-child .dv3-hero-cumulative .dv3-plot-cum > .dv3-plot-axis,
+.an-cell > *:only-child .dv3-hero-cumulative .dv3-plot-cum > .dv3-plot-area { height: auto; min-height: 0; }
 
 /* Dua kolom setara — dipakai saat kolom ketiga naik ke tumpukan kanan. */
 .an-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--an-gap); }
