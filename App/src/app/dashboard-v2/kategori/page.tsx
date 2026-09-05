@@ -13,11 +13,12 @@ export default async function Page() {
   const ctx = await getStaffContext();
   if (!canOpenOwnerConsole(ctx.role)) redirect("/login");
 
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("Menus")
     .select("nama_menu,image_url,category,is_active,created_at")
     .eq("cafe_id", ctx.cafe_id ?? "")
     .order("created_at", { ascending: true });
+  if (error) throw new Error("Data gagal dimuat. Coba lagi.");
 
   const byName = new Map<string, CategoryRow>();
   for (const m of data ?? []) {

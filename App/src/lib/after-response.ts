@@ -6,7 +6,7 @@ import { after } from "next/server";
  *  insert notifikasi. Di luar request scope (unit test) dijalankan langsung. */
 export function afterResponse(task: () => Promise<unknown>): void {
   const run = () => {
-    void Promise.resolve()
+    return Promise.resolve()
       .then(task)
       .catch((err) => {
         console.error("[afterResponse]", err);

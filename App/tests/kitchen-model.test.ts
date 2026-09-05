@@ -107,7 +107,7 @@ describe("durasi", () => {
   it("beralih ke hari supaya tidak terbaca sebagai menit", () => {
     // "51:20" pada pesanan berumur dua hari terbaca sebagai lima puluh satu
     // menit oleh mata yang sedang buru-buru.
-    expect(durasi(2 * 86400_000 + 3 * 3600_000)).toBe("2h 3j");
+    expect(durasi(2 * 86400_000 + 3 * 3600_000)).toBe("2 hari 3j");
   });
 
   it("menampilkan placeholder saat jam klien belum jalan", () => {

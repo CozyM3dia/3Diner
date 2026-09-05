@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "./supabase-admin";
 import { getAuthenticatedSupabaseUserId } from "./clerk-identity";
 import { getOwnerCafeSlug } from "./analytics";
-import { requireOwnerCafe } from "./authorization";
+import { requireOwnerCafe, requireStaffPermission } from "./authorization";
 import { optionGroupsValidationError, type OptionGroupDraft } from "./menu-option-drafts";
 import { normalizeReceiptSettings } from "./receipt-settings";
 import { revalidateGuestCafe } from "./guest-revalidate";
@@ -102,6 +102,8 @@ export async function createMenu(fd: FormData): Promise<ActionResult> {
     .single();
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
+  revalidatePath("/dashboard-v2/items");
+  revalidatePath("/dashboard-v2/pos");
   await revalidateGuestCatalog();
   return { id_menu: (data?.id_menu as string | undefined) };
 }
@@ -141,6 +143,8 @@ export async function bulkCreateMenus(
   const { error } = await supabaseAdmin.from("Menus").insert(rows);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
+  revalidatePath("/dashboard-v2/items");
+  revalidatePath("/dashboard-v2/pos");
   await revalidateGuestCatalog();
   return { inserted: rows.length };
 }
@@ -157,6 +161,8 @@ export async function updateMenu(menuId: string, fd: FormData): Promise<ActionRe
     .eq("cafe_id", cafeId);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
+  revalidatePath("/dashboard-v2/items");
+  revalidatePath("/dashboard-v2/pos");
   revalidatePath("/dashboard/scheduler");
   await revalidateGuestCatalog();
   return {};
@@ -172,6 +178,8 @@ export async function deleteMenu(menuId: string): Promise<ActionResult> {
     .eq("cafe_id", cafeId);
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
+  revalidatePath("/dashboard-v2/items");
+  revalidatePath("/dashboard-v2/pos");
   await revalidateGuestCatalog();
   return {};
 }
@@ -190,6 +198,8 @@ export async function setMenuAvailability(
   if (error) return { error: error.message };
   revalidatePath("/dashboard/scheduler");
   revalidatePath("/dashboard/menu");
+  revalidatePath("/dashboard-v2/items");
+  revalidatePath("/dashboard-v2/pos");
   await revalidateGuestCatalog();
   return {};
 }
@@ -207,6 +217,8 @@ export async function reorderMenus(orderedIds: string[]): Promise<ActionResult> 
   });
   if (error) return { error: error.message };
   revalidatePath("/dashboard/menu");
+  revalidatePath("/dashboard-v2/items");
+  revalidatePath("/dashboard-v2/pos");
   await revalidateGuestCatalog();
   return {};
 }
@@ -348,6 +360,8 @@ export async function createInventoryItem(fd: FormData): Promise<ActionResult> {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/inventory");
   revalidatePath("/dashboard/menu");
+  revalidatePath("/dashboard-v2/items");
+  revalidatePath("/dashboard-v2/pos");
   return {};
 }
 
@@ -369,6 +383,8 @@ export async function updateInventoryItem(id: string, fd: FormData): Promise<Act
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/inventory");
   revalidatePath("/dashboard/menu");
+  revalidatePath("/dashboard-v2/items");
+  revalidatePath("/dashboard-v2/pos");
   return {};
 }
 
@@ -448,6 +464,8 @@ export async function saveMenuRecipes(menuId: string, rows: RecipeDraftInput[]):
   if (rpcError === "invalid_recipe_rows") return { error: "Data resep tidak valid." };
 
   revalidatePath("/dashboard/menu");
+  revalidatePath("/dashboard-v2/items");
+  revalidatePath("/dashboard-v2/pos");
   revalidatePath("/dashboard/menu/" + menuId + "/edit");
   await revalidateGuestCatalog();
   return {};
@@ -497,6 +515,8 @@ export async function saveMenuOptions(
   if (rpcError) return { error: "Data varian tidak valid." };
 
   revalidatePath("/dashboard/menu");
+  revalidatePath("/dashboard-v2/items");
+  revalidatePath("/dashboard-v2/pos");
   revalidatePath("/dashboard/menu/" + menuId + "/edit");
   await revalidateGuestCatalog();
   return {};
@@ -579,29 +599,11 @@ export async function updateOrderStatus(
   orderId: string,
   status: "received" | "preparing" | "ready" | "completed"
 ): Promise<ActionResult> {
-  const cafeId = await getAuthCafeId();
-  if (!cafeId) return { error: "Sesi tidak valid. Masuk ulang." };
-  const { error } = await supabaseAdmin
-    .from("Orders")
-    .update({ status })
-    .eq("id_order", orderId)
-    .eq("cafe_id", cafeId);
-  if (error) return { error: error.message };
-  if (status === "ready") {
-    // Event "Pesanan Siap" — hormati preferensi notifikasi kafe.
-    const { createNotifications } = await import("@/lib/notifications");
-    await createNotifications(cafeId, "kitchen_ready", [
-      {
-        type: "order",
-        title: `Pesanan siap · #${orderId.slice(0, 5)}`,
-        body: "Dapur menandai pesanan siap diantar.",
-        href: "/dashboard-v2/pesanan",
-      },
-    ]);
-  }
-  revalidatePath("/dashboard/orders");
-  revalidatePath("/dashboard-v2/pesanan");
-  return {};
+  try { await requireStaffPermission("operate_orders"); }
+  catch { return { error: "Anda tidak berwenang mengubah pesanan." }; }
+  if (status === "received") return { error: "Terima pesanan dengan kode check-in di Kasir." };
+  const { mulaiMasak, tandaiSiap, serahkanPesanan } = await import("./kitchen-actions");
+  return status === "preparing" ? mulaiMasak(orderId) : status === "ready" ? tandaiSiap(orderId) : serahkanPesanan(orderId);
 }
 
 /** Kasir menandai pesanan tunai sudah dibayar.

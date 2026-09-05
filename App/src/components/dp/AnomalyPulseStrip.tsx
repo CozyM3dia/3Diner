@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { ArrowRightIcon, ChevronDownIcon } from "lucide-react";
 import type { Metrik } from "@/lib/dashboard-metrics";
@@ -24,6 +24,12 @@ interface MetricItem {
 }
 
 const STORAGE_KEY = "3diner_vitals_expanded";
+const subscribeClock = (onChange: () => void) => {
+  const timer = window.setInterval(onChange, 60_000);
+  return () => window.clearInterval(timer);
+};
+const getClock = () => Math.floor(Date.now() / 60_000) * 60_000;
+const getServerClock = () => 0;
 
 export default function AnomalyPulseStrip({
   m,
@@ -35,14 +41,15 @@ export default function AnomalyPulseStrip({
 
   // Sync preference with localStorage (client-side only)
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved !== null) {
-        setIsExpanded(saved === "true");
+    const timer = window.setTimeout(() => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved !== null) setIsExpanded(saved === "true");
+      } catch {
+        // Ignore localStorage read errors in private browsing / sandboxes
       }
-    } catch {
-      // Ignore localStorage read errors in private browsing / sandboxes
-    }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const toggleExpanded = () => {
@@ -61,7 +68,7 @@ export default function AnomalyPulseStrip({
   const dapurOrders = m.berjalan.filter(
     (o) => o.status === "received" || o.status === "preparing",
   );
-  const nowMs = Date.now();
+  const nowMs = useSyncExternalStore(subscribeClock, getClock, getServerClock);
   const maxDapurAgeMnt =
     dapurOrders.length > 0
       ? Math.max(

@@ -15,12 +15,13 @@ export default async function Page() {
   const ctx = await getStaffContext();
   if (!canOpenOwnerConsole(ctx.role)) redirect("/login");
 
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("Staff")
     .select("id_staff,full_name,role,is_active,created_at,user_id")
     .eq("cafe_id", ctx.cafe_id ?? "")
     .order("is_active", { ascending: false })
     .order("created_at", { ascending: true });
+  if (error) throw new Error("Data gagal dimuat. Coba lagi.");
 
   const staff = (data ?? []).map(s => ({
     id_staff: s.id_staff,

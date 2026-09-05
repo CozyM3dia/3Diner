@@ -14,11 +14,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
   const ctx = await getStaffContext();
   if (!canOpenOwnerConsole(ctx.role)) redirect("/login");
 
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("Menus")
     .select("id_menu,nama_menu,harga_menu,image_url,category,is_active")
     .eq("cafe_id", ctx.cafe_id ?? "")
     .order("nama_menu", { ascending: true });
+  if (error) throw new Error("Data gagal dimuat. Coba lagi.");
 
   const categories = Array.from(
     new Set((data ?? []).map(m => (m.category ?? "").trim()).filter(Boolean))

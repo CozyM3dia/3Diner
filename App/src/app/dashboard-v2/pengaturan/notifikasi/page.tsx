@@ -16,11 +16,12 @@ export default async function Page() {
   const ctx = await getStaffContext();
   if (!canOpenOwnerConsole(ctx.role)) redirect("/login");
 
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("Cafes")
     .select("notification_settings")
     .eq("id_cafe", ctx.cafe_id ?? "")
     .single();
+  if (error) throw new Error("Data gagal dimuat. Coba lagi.");
 
   return (
     <>

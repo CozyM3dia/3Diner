@@ -61,11 +61,12 @@ export default async function Page() {
 /** Daftar menu untuk dropdown modal Add — diambil terpisah dari addon rows,
  *  supaya menu yang BELUM punya addon pun tetap bisa dipilih. */
 async function fetchMenus(cafeId: string) {
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("Menus")
     .select("id_menu, nama_menu, category")
     .eq("cafe_id", cafeId)
     .order("nama_menu", { ascending: true })
     .limit(300);
+  if (error) throw new Error("Data gagal dimuat. Coba lagi.");
   return (data ?? []).map(m => ({ id: m.id_menu, name: m.nama_menu, category: m.category }));
 }

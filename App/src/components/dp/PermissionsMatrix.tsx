@@ -95,7 +95,7 @@ export default function PermissionsMatrix({
       PERM_ROLES.map((r) => [r.key, next[r.key][modKey].lihat]),
     ) as Record<UiRoleKey, boolean>;
     startTransition(async () => {
-      const res = await savePermission(perm, payload);
+      const res = await savePermission(perm, payload).catch(() => ({ error: "Perubahan belum terkonfirmasi. Muat ulang untuk memeriksa." } as Awaited<ReturnType<typeof savePermission>>));
       if (res.tableMissing) {
         setMsg({ kind: "err", text: "Tabel wewenang tidak terbaca, jadi perubahan ini belum tersimpan. Muat ulang halaman; bila tetap muncul, laporkan ke dukungan." });
         setLocal(matriksAwal(serverMatrix));
@@ -118,7 +118,7 @@ export default function PermissionsMatrix({
     const perm = mod.perm;
     const bawaan = defaults[perm] ?? { owner: true, manager: false, cashier: false, kitchen: false, staff: false, override: false };
     startTransition(async () => {
-      const res = await resetPermission(perm);
+      const res = await resetPermission(perm).catch(() => ({ error: "Perubahan belum terkonfirmasi. Muat ulang untuk memeriksa." } as Awaited<ReturnType<typeof resetPermission>>));
       if (res.tableMissing) {
         setMsg({ kind: "info", text: "Tidak ada override tersimpan untuk dikembalikan." });
         return;
@@ -141,28 +141,20 @@ export default function PermissionsMatrix({
 
   function kembalikanSemua() {
     startTransition(async () => {
-      let adaError = "";
+      let nextServer = { ...serverMatrix };
+      const errors: string[] = [];
       for (const mod of PERM_MODULES) {
         if (!mod.perm || !overrides[mod.perm]) continue;
-        const res = await resetPermission(mod.perm);
-        if (res.error && !res.tableMissing) adaError = res.error;
+        try {
+          const res = await resetPermission(mod.perm);
+          if (res.error || res.tableMissing) { errors.push(res.error || "Wewenang belum dapat dibaca."); continue; }
+          nextServer = { ...nextServer, [mod.perm]: { ...defaults[mod.perm], override: false } };
+        } catch { errors.push("Sebagian perubahan belum terkonfirmasi. Muat ulang untuk memeriksa."); }
       }
-      setLocal(matriksAwal({}));
-      setServerMatrix((s) => {
-        const out: MatrixUi = {};
-        for (const mod of PERM_MODULES) {
-          if (!mod.perm || !(mod.perm in s)) continue;
-          const bawaan = defaults[mod.perm] ?? { owner: true, manager: false, cashier: false, kitchen: false, staff: false, override: false };
-          out[mod.perm] = { ...bawaan, override: false };
-        }
-        return out;
-      });
-      setOverrides(overrideAwal({}));
-      setMsg(
-        adaError
-          ? { kind: "err", text: adaError }
-          : { kind: "ok", text: "Semua override dikembalikan ke bawaan kode." },
-      );
+      setServerMatrix(nextServer);
+      setLocal(matriksAwal(nextServer));
+      setOverrides(overrideAwal(nextServer));
+      setMsg(errors.length ? { kind: "err", text: errors[0] } : { kind: "ok", text: "Semua override dikembalikan ke bawaan kode." });
     });
   }
 
@@ -292,11 +284,11 @@ export default function PermissionsMatrix({
                                 type="checkbox"
                                 className="dp-check"
                                 checked={local[role][m.key][a.key]}
-                                disabled={pending || terkunci}
+                                disabled={pending || terkunci || !selTersambung(m.key, a.key)}
                                 title={
                                   terkunci
                                     ? "Akses Pengaturan untuk Kasir/Staf tidak dapat diaktifkan"
-                                    : undefined
+                                    : !selTersambung(m.key, a.key) ? "Informasi saja; izin ini belum dapat diatur terpisah" : undefined
                                 }
                                 aria-label={`${a.nama} ${m.nama} untuk ${roleInfo.nama}`}
                                 onChange={() => toggle(m.key, a.key)}
@@ -325,7 +317,7 @@ export default function PermissionsMatrix({
             Centang sel <b>Lihat</b> pada modul ber-permission (Pesanan, Menu, Inventaris,
             Pengaturan) tersimpan per kafe untuk kelima peran dan langsung ditegakkan di
             server — tanpa deploy. Aksi granular (Tambah/Ubah/Hapus/Ekspor/Setujui) masih
-            pratinjau UI; ikon <RotateCcwIcon className="h-3 w-3 inline" /> mengembalikan sel
+            informasi saja dan tidak dapat diubah; ikon <RotateCcwIcon className="h-3 w-3 inline" /> mengembalikan sel
             yang diubah ke bawaan kode.
           </p>
         </div>

@@ -14,13 +14,14 @@ export default async function Page() {
   const ctx = await getStaffContext();
   if (!canOpenOwnerConsole(ctx.role)) redirect("/login");
 
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("Cafes")
     .select(
       "tax_rate_pct,service_charge_pct,prices_include_tax,tax_configured_at,tax_pending_rate_pct,tax_pending_service_pct,tax_pending_include,tax_pending_from",
     )
     .eq("id_cafe", ctx.cafe_id ?? "")
     .single();
+  if (error) throw new Error("Data gagal dimuat. Coba lagi.");
 
   const config: TaxConfig = {
     taxPct: Number(data?.tax_rate_pct ?? 0),

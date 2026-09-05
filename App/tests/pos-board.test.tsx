@@ -23,6 +23,8 @@ import PosBoard, {
  *  • Dine In tanpa nomor meja tidak boleh mengirim apa pun.
  *  • Take Away mengirim table_number "Bungkus" tanpa meminta nomor meja. */
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+
 vi.mock("next/image", () => ({
   default: ({ alt = "", ...rest }: Record<string, unknown> & { alt?: string }) => {
     const { src, width, height, sizes, loading, priority, ...safe } = rest as Record<string, unknown>;
@@ -307,7 +309,7 @@ describe("PosBoard — setelah pesanan terkirim", () => {
     await waitFor(() => expect(quotes().length).toBeGreaterThan(0), { timeout: 3000 });
 
     fireEvent.click(screen.getByRole("button", { name: /Kirim Pesanan/i }));
-    await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/dikirim ke dapur/i), {
+    await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/Selesaikan pembayaran/i), {
       timeout: 3000,
     });
 
@@ -337,7 +339,7 @@ describe("PosBoard — setelah pesanan terkirim", () => {
     await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Stok habis."), { timeout: 3000 });
 
     expect(document.querySelectorAll(".pos-line")).toHaveLength(1);
-    expect(screen.getByRole("button", { name: /Kirim Pesanan/i })).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole("button", { name: /Kirim Pesanan/i })).toBeTruthy());
   });
 });
 
@@ -371,7 +373,7 @@ describe("PosBoard — modal pembayaran & reset", () => {
     await kirimPesanan();
     fireEvent.click(screen.getByRole("button", { name: /Pesanan Baru/i }));
 
-    expect(screen.getByRole("button", { name: /Kirim Pesanan/i })).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole("button", { name: /Kirim Pesanan/i })).toBeTruthy());
     expect((screen.getByRole("combobox", { name: /Lokasi Meja/i }) as HTMLInputElement).value).toBe("");
     expect((screen.getByLabelText("Nama Pelanggan") as HTMLInputElement).value).toBe("");
     expect((document.querySelector(".pos-grand b") as HTMLElement).textContent).toBe("—");

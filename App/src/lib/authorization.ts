@@ -50,6 +50,12 @@ export async function requireStaffPermission(permission: StaffPermission): Promi
   return staff;
 }
 
+/** Cashier writes must respect runtime permissions, not just staff membership. */
+export async function getOperationsCafeId(): Promise<string | null> {
+  try { return (await requireStaffPermission("operate_orders")).cafeId; }
+  catch { return null; }
+}
+
 export async function requireOrderCapability(
   orderId: string,
   scope: "read_status" | "pay" | "view_qr"

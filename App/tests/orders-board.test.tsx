@@ -36,25 +36,6 @@ vi.mock("@/lib/receipt-html", () => ({
   printReceipt: (...a: unknown[]) => printReceipt(...(a as [])),
 }));
 
-/** Realtime tidak diuji di sini — yang penting ia tidak menyentuh jaringan
- *  saat komponen dirender, dan `subscribe` melaporkan status ke lencana. */
-let subscribeCb: ((status: string) => void) | null = null;
-const removeChannel = vi.fn();
-vi.mock("@/lib/supabase/client", () => ({
-  createClient: () => ({
-    channel: () => ({
-      on() {
-        return this;
-      },
-      subscribe(cb: (status: string) => void) {
-        subscribeCb = cb;
-        return this;
-      },
-    }),
-    removeChannel: (...a: unknown[]) => removeChannel(...(a as [])),
-  }),
-}));
-
 vi.mock("@/components/dp/Petunjuk", () => ({
   default: () => null,
 }));
@@ -92,7 +73,7 @@ function pesanan(over: Partial<BoardOrder> & { id_order: string }): BoardOrder {
 }
 
 const ROWS: BoardOrder[] = [
-  pesanan({ id_order: "aaaaaaaa-0000-4000-8000-00000000aaa01", status: "awaiting" }),
+  pesanan({ id_order: "aaaaaaaa-0000-4000-8000-00000000aaa01", status: "received" }),
   pesanan({ id_order: "aaaaaaaa-0000-4000-8000-00000000bbb02", status: "preparing", table_number: "Bungkus" }),
   pesanan({
     id_order: "aaaaaaaa-0000-4000-8000-00000000ccc03",
@@ -129,15 +110,16 @@ function kpi(label: string): HTMLElement {
   return hit;
 }
 const barisDaftar = () => document.querySelectorAll(".psn-rowbody");
-const nomorTampil = (id: string) => `#${id.slice(-5)}`;
+const nomorTampil = (id: string) => `#${id.slice(-8).toUpperCase()}`;
 
 beforeEach(() => {
-  subscribeCb = null;
+  vi.stubGlobal("fetch", vi.fn(async () => ({ok:true, json:async () => ({orders: ROWS})})));
 });
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("OrdersBoard — KPI dan saringan bercerita sama", () => {
@@ -440,8 +422,8 @@ describe("OrdersBoard — lencana Realtime", () => {
     papan();
     expect(document.querySelector(".psn-live")?.textContent).toMatch(/Tersambung ulang/);
 
-    subscribeCb?.("SUBSCRIBED");
+
     await waitFor(() => expect(document.querySelector(".psn-live-on")).not.toBeNull());
-    expect(document.querySelector(".psn-live")?.textContent).toMatch(/Langsung/);
+    expect(document.querySelector(".psn-live")?.textContent).toMatch(/Tersinkron/);
   });
 });

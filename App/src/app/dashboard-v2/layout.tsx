@@ -27,6 +27,8 @@ export const dynamic = "force-dynamic";
  *  belum login → /login, bukan owner → /kasir. */
 export default async function DashboardV2Layout({ children }: { children: React.ReactNode }) {
   const ctx = await getStaffContext();
+  if (ctx.error) throw new Error("Konteks staf gagal dimuat.");
+  if (ctx.is_active === false) redirect("/login?alasan=nonaktif");
   // Terautentikasi tapi bukan staf kafe mana pun. `?alasan=` menahan proxy
   // melempar sesi ini balik ke konsol — tanpa itu /login dan /dashboard-v2
   // saling mengoper dan halamannya tidak pernah berhenti.
@@ -40,7 +42,7 @@ export default async function DashboardV2Layout({ children }: { children: React.
       cafeName={ctx.cafe_name ?? "Kafe kamu"}
       userInitial={(ctx.full_name ?? "O").slice(0, 1).toUpperCase()}
       userName={ctx.full_name ?? ""}
-      userRole={ctx.role === "owner" ? "Owner" : "Kasir"}
+      userRole={ctx.role === "owner" ? "Owner" : "Manager"}
       notifRows={notif.rows}
     >
       {children}

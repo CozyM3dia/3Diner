@@ -14,11 +14,12 @@ export default async function Page() {
   if (!canOpenOwnerConsole(ctx.role)) redirect("/login");
 
   const cafeId = ctx.cafe_id ?? "";
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("Cafes")
     .select("nama_cafe,alamat_cafe,greeting,google_maps_review_url,logo_url,cover_url,slug_url")
     .eq("id_cafe", cafeId)
     .single();
+  if (error) throw new Error("Data gagal dimuat. Coba lagi.");
 
   const slug = (data?.slug_url as string | null) ?? null;
   const cafeName = data?.nama_cafe ?? "Kafe";

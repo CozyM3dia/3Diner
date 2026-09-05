@@ -88,10 +88,10 @@ async function majukan(
 
   // Kasir melihat antrean yang sama. Tanpa baris ini, tiket yang sudah
   // diserahkan dapur masih menggantung di layar kasir sampai ia memuat ulang.
-  revalidatePath("/dapur");
-  revalidatePath("/dashboard-v2/dapur");
-  revalidatePath("/kasir");
-  revalidatePath("/dashboard-v2/pesanan");
+  // A cache failure must not report a committed database transition as failed.
+  for (const path of ["/dapur", "/dashboard-v2/dapur", "/kasir", "/dashboard-v2/pesanan", "/dashboard-v2/pos", "/dashboard-v2"]) {
+    try { revalidatePath(path); } catch { /* the authenticated feed reconciles the committed state */ }
+  }
   return {};
 }
 

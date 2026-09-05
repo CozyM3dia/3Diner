@@ -423,7 +423,7 @@ export default function DpShell({
         <main className="dv3-content">{children}</main>
       </div>
 
-      <SetupChecklist />
+      {pathname !== "/dashboard-v2/dapur" && <SetupChecklist />}
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
