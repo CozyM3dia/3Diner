@@ -63,6 +63,10 @@ const developmentScriptSources = process.env.NODE_ENV === "development" ? " 'uns
 const captchaOrigin = "https://challenges.cloudflare.com";
 
 const nextConfig: NextConfig = {
+  // The framework's floating dev-tools badge overlaps the console logout
+  // affordance at narrow widths. Request insights remain available in logs;
+  // the badge itself is not part of the product UI.
+  devIndicators: false,
   // The app is commonly opened through 127.0.0.1 during local testing.
   allowedDevOrigins: ["127.0.0.1", "localhost"],
 

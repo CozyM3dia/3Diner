@@ -35,7 +35,7 @@ const SECTION_DEFS: Record<Tab, Array<{ title: string; desc: string; items: Arra
       title: "Informasi Outlet",
       desc: "Atur informasi-informasi utama yang akan tampil pada bagian teratas struk",
       items: [
-        { key: "show_logo", label: "Logo", note: "Pakai logo yang diunggah di Store Settings" },
+        { key: "show_logo", label: "Logo", note: "Pakai logo yang diunggah di Pengaturan Toko" },
         { key: "show_business_name", label: "Nama Usaha" },
         { key: "show_address", label: "Alamat" },
         { key: "show_powered_by", label: "Powered by 3Diner" },
@@ -195,20 +195,29 @@ export default function StrukSettingsDp({
       </div>
 
       {/* ── Batasan jumlah cetak — kontrol belum ada backend-nya: jujur. ── */}
-      <div className="dp-card rsp-limit">
+      <div className="dp-card rsp-limit" data-availability="unavailable">
         <div className="dp-card-body rsp-limit-row">
-          <div>
-            <p className="rsp-outlet-title">Batasan Jumlah Cetak Struk</p>
-            <p className="rsp-outlet-sub">
-              Batasi jumlah pemakaian cetakan struk yang akan digunakan di setiap transaksi
+          <div className="rsp-limit-copy">
+            <div className="rsp-limit-titleline">
+              <p className="rsp-outlet-title">Batasan Jumlah Cetak Struk</p>
+              <span className="rsp-unavailable-badge">Belum tersedia</span>
+            </div>
+            <p className="rsp-outlet-sub" id="rsp-print-limit-description">
+              Pengaturan batas cetak belum terhubung ke sistem printer. Toggle ini dinonaktifkan sampai fiturnya siap.
             </p>
           </div>
           <label
             className="dp-switch rsp-limit-switch"
-            title="Modul pembatasan cetak menyusul"
+            title="Batas jumlah cetak belum tersedia"
           >
-            <input type="checkbox" disabled aria-label="Batasan jumlah cetak struk (belum tersedia)" />
+            <input
+              type="checkbox"
+              disabled
+              aria-label="Batasan jumlah cetak struk (belum tersedia)"
+              aria-describedby="rsp-print-limit-description"
+            />
             <i aria-hidden />
+            <span className="rsp-limit-state" aria-hidden>Dinonaktifkan</span>
           </label>
         </div>
       </div>

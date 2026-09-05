@@ -122,14 +122,15 @@
   font-size: 12px; font-weight: 600;
 }
 
-/* Footer sticky */
+/* Bilah aksi akhir: ikut normal flow supaya tidak menutupi upload/preview. */
 .dp-menuf-foot {
-  position: sticky; bottom: 0; z-index: 10;
+  position: static;
   display: flex; align-items: center; gap: 10px;
   background: var(--dp-surface); border: 1px solid var(--dp-border); border-radius: 6px;
-  padding: 12px 16px; box-shadow: 0 -6px 18px rgba(2, 44, 96, .07);
+  padding: 12px 16px;
 }
-.dp-menuf-footnote { margin-right: auto; display: grid; }
+.dp-menuf-footnote { min-width: 0; margin-right: auto; display: grid; }
+.dp-menuf-actions { display: flex; align-items: center; gap: 10px; flex: none; }
 .dp-menuf-cancel {
   border: 1px solid var(--dp-border); background: var(--dp-surface); border-radius: 6px;
   font: inherit; font-size: 13px; font-weight: 600; color: var(--dp-text);
@@ -146,7 +147,15 @@
 
 @media (max-width: 640px) {
   .dp-menuf-grid { grid-template-columns: 1fr; }
-  .dp-menuf-foot { flex-wrap: wrap; }
+  .dp-menuf-foot { align-items: stretch; flex-direction: column; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .dp-menuf-footnote:empty { display: none; }
+  .dp-menuf-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); width: 100%; }
+  .dp-menuf-cancel,
+  .dp-menuf-save { width: 100%; min-height: 42px; padding-inline: 12px; white-space: nowrap; }
+}
+
+@media (max-width: 360px) {
+  .dp-menuf-actions { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -272,9 +281,171 @@
 .dp-menufx-day-on { background: var(--dp-blue); border-color: var(--dp-blue); color: #fff; }
 .dp-menufx-day:focus-visible { outline: 2px solid var(--dp-blue); outline-offset: 2px; }
 
-/* Drawer diperlebar: form 3 tab butuh ruang untuk panggung 3D */
+/* Angka di tab (jumlah grup tambahan) */
+.dp-menufx-tabnum {
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: var(--dp-blue-soft); color: var(--dp-accent-ink);
+  font-size: 10.5px; font-weight: 800; line-height: 18px; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.dp-menufx-tab-on .dp-menufx-tabnum { background: rgba(255, 255, 255, .24); color: #fff; }
+
+/* Pintasan dari footer ke tab yang menolak simpanan */
+.dp-menuf-jump {
+  display: inline-flex; align-items: center; gap: 6px; align-self: start;
+  border: 0; background: none; padding: 0; cursor: pointer;
+  font: inherit; font-size: 11px; font-weight: 700; color: #dc2626;
+  text-align: left; text-decoration: underline; text-underline-offset: 2px;
+}
+
+/* Drawer diperlebar: form 4 tab butuh ruang untuk panggung 3D */
 .dp-mdrawer { width: min(600px, 94vw); }
 @media (max-width: 640px) {
   .dp-mdrawer { width: 100vw; }
   .dp-menufx-src { grid-template-columns: 1fr; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ADN — tab "Tambahan": grup varian & pilihannya
+
+   Ini FORMULIR, bukan etalase. Semuanya meminjam bahasa .dp-menuf di
+   atas — label 12px di atas kolom, kolom berbingkai radius 6, hint 11px —
+   supaya berpindah dari tab Umum ke sini tidak terasa berpindah aplikasi.
+   Yang khas hanya dua: bingkai grup (karena satu menu punya banyak grup)
+   dan baris pilihan berjudul kolom (karena satu grup punya banyak baris,
+   dan tanpa judul kolom angka rupiah di kanan tidak punya arti).
+   ════════════════════════════════════════════════════════════════════ */
+
+.dp-adn-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dp-adn-count { font-size: 11px; color: var(--dp-muted); font-variant-numeric: tabular-nums; }
+.dp-adn-none { margin: 12px 0 0; font-size: 12.5px; color: var(--dp-muted); }
+.dp-adn-span { margin-top: 12px; }
+.dp-adn-foot { display: block; margin-top: 14px; }
+
+/* Dropdown: pola sama dengan .dp-tax-select-wrap, token .dp-menuf-input */
+.dp-menuf-selectwrap { position: relative; display: block; }
+.dp-menuf-selectwrap select {
+  width: 100%; appearance: none; border: 1px solid var(--dp-border); border-radius: 6px;
+  background: var(--dp-surface); padding: 9px 34px 9px 12px;
+  font: inherit; font-size: 13px; color: var(--dp-heading); cursor: pointer;
+}
+.dp-menuf-selectwrap select:focus { outline: 2px solid var(--dp-blue); outline-offset: -1px; }
+.dp-menuf-selectwrap::after {
+  content: ""; position: absolute; right: 13px; top: 50%; width: 7px; height: 7px;
+  border-right: 1.5px solid var(--dp-muted); border-bottom: 1.5px solid var(--dp-muted);
+  transform: translateY(-70%) rotate(45deg); pointer-events: none;
+}
+
+/* ── Bingkai grup ── */
+.dp-adn-list { display: grid; gap: 12px; margin-top: 14px; }
+.dp-adn-group {
+  border: 1px solid var(--dp-border); border-radius: 8px;
+  padding: 10px 14px 14px; margin: 0; min-width: 0;
+}
+.dp-adn-group-bad { border-color: #dc2626; }
+.dp-adn-ghead {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--dp-border);
+}
+.dp-adn-gtitle {
+  font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--dp-muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dp-adn-gtools { display: flex; align-items: center; gap: 2px; flex: none; }
+.dp-adn-sum { margin: 10px 0 0; font-size: 12px; color: var(--dp-muted); }
+
+/* Tombol ikon: netral, hanya berwarna saat ditunjuk. */
+.dp-adn-icon {
+  width: 28px; height: 28px; border-radius: 6px; flex: none;
+  border: 1px solid transparent; background: none; cursor: pointer;
+  color: var(--dp-muted); display: grid; place-items: center;
+}
+.dp-adn-icon:hover:not(:disabled) {
+  background: var(--dp-bg); border-color: var(--dp-border); color: var(--dp-heading);
+}
+.dp-adn-icon:focus-visible { outline: 2px solid var(--dp-blue); outline-offset: 1px; }
+.dp-adn-icon:disabled { opacity: .3; cursor: default; }
+.dp-adn-icon-bad:hover:not(:disabled) { color: #dc2626; border-color: #dc2626; }
+.dp-adn-fold svg { transition: transform .16s ease; }
+.dp-adn-fold-open svg { transform: rotate(180deg); }
+
+.dp-adn-limits { margin-top: 2px; }
+
+/* ── Tabel pilihan ──
+   Judul kolom bukan hiasan: tanpa "Selisih Harga", angka 6.000 di baris
+   Upsize terbaca sebagai HARGA, bukan tambahan atas harga menu. */
+.dp-adn-table { display: grid; gap: 6px; margin-top: 6px; }
+.dp-adn-thead,
+.dp-adn-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 148px 52px 104px;
+  gap: 8px; align-items: center;
+}
+.dp-adn-thead {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--dp-muted); padding: 0 2px 2px;
+}
+.dp-adn-c { text-align: center; }
+.dp-adn-row-off .dp-menuf-input,
+.dp-adn-row-off .dp-adn-money { opacity: .55; }
+.dp-adn-row .dp-menuf-input { padding: 8px 10px; }
+.dp-adn-rowtools { display: flex; align-items: center; justify-content: center; gap: 1px; }
+/* "Tampil" adalah keadaan WAJAR sebuah pilihan. Mewarnainya hijau berarti
+   setiap baris di setiap grup berteriak sama kencang, dan yang justru perlu
+   ditemukan cepat — satu topping yang disembunyikan — tenggelam. Jadi yang
+   normal dibiarkan diam; yang disembunyikan yang diberi tanda. */
+.dp-adn-eye { justify-self: center; }
+.dp-adn-row-off .dp-adn-eye { color: var(--dp-accent-ink); }
+.dp-adn-rowerr,
+.dp-adn-rownote { grid-column: 1 / -1; margin: 0; font-size: 11px; padding-left: 2px; }
+.dp-adn-rowerr { color: #dc2626; font-weight: 600; }
+.dp-adn-rownote { color: var(--dp-muted); }
+.dp-adn-none-row { margin: 2px 0 0; }
+
+/* Kolom rupiah: awalan "Rp" menempel di kolom, angka rata kanan supaya
+   ribuan berbaris lurus antarbaris. */
+.dp-adn-money {
+  display: flex; align-items: center; gap: 6px; height: 36px;
+  border: 1px solid var(--dp-border); border-radius: 6px; background: var(--dp-surface);
+  padding: 0 10px;
+}
+.dp-adn-money:focus-within { outline: 2px solid var(--dp-blue); outline-offset: -1px; }
+.dp-adn-money-bad { border-color: #dc2626; }
+.dp-adn-money-pre { font-size: 12px; font-weight: 600; color: var(--dp-muted); flex: none; }
+.dp-adn-money-in {
+  width: 100%; min-width: 0; border: 0; background: none; outline: 0;
+  font: inherit; font-size: 13px; color: var(--dp-heading);
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.dp-adn-money-in::placeholder { color: var(--dp-muted); }
+
+/* ── Tombol tambah ── */
+.dp-adn-addrow {
+  margin-top: 10px; display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--dp-border); background: var(--dp-surface); border-radius: 6px;
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--dp-text);
+  padding: 7px 13px; cursor: pointer;
+}
+.dp-adn-addrow:hover:not(:disabled) { background: var(--dp-bg); color: var(--dp-heading); }
+.dp-adn-addrow:disabled { opacity: .45; cursor: default; }
+
+.dp-adn-add { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.dp-adn-addbtn {
+  display: inline-flex; align-items: center; gap: 7px; flex: none;
+  border: 1px solid var(--dp-border); background: var(--dp-surface); border-radius: 6px;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--dp-heading);
+  padding: 9px 16px; cursor: pointer;
+}
+.dp-adn-addbtn:hover:not(:disabled) { border-color: var(--dp-blue); color: var(--dp-blue); }
+.dp-adn-addbtn:disabled { opacity: .45; cursor: default; }
+.dp-adn-preset { width: 172px; flex: none; }
+.dp-adn-preset select { padding-top: 8px; padding-bottom: 8px; font-size: 12.5px; }
+
+@media (max-width: 760px) {
+  .dp-adn-thead { display: none; }
+  .dp-adn-row {
+    grid-template-columns: minmax(0, 1fr) 52px 104px;
+    border: 1px solid var(--dp-border); border-radius: 8px; padding: 8px;
+  }
+  .dp-adn-row .dp-adn-money { grid-column: 1 / -1; }
 }

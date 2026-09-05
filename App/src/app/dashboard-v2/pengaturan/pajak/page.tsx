@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import TaxSettingsForm, { type TaxConfig } from "@/components/dp/TaxSettingsForm";
 import "../../../tax-settings.css";
 
-export const metadata = { title: "Tax Settings · 3Diner" };
+export const metadata = { title: "Pengaturan Pajak · 3Diner" };
 export const dynamic = "force-dynamic";
 
 /** Tax Settings — recreation `tax-settings.html` Dream POS.
@@ -42,7 +42,7 @@ export default async function Page() {
   return (
     <>
       <div className="dp-page-head">
-        <h1>Tax Settings</h1>
+        <h1>Pengaturan Pajak</h1>
       </div>
       <TaxSettingsForm config={config} />
     </>

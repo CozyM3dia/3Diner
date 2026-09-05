@@ -43,7 +43,7 @@ export default function TaxSettingsForm({ config }: { config: TaxConfig }) {
   const [modalErr, setModalErr] = useState<string | null>(null);
   const [pesan, setPesan] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const tipeLabel = (include: boolean) => (include ? "Inclusive" : "Exclusive");
+  const tipeLabel = (include: boolean) => (include ? "Termasuk harga" : "Di luar harga");
 
   function bukaAdd() {
     setModal({ mode: "add" });
@@ -63,12 +63,12 @@ export default function TaxSettingsForm({ config }: { config: TaxConfig }) {
 
   async function simpanModal() {
     const rateNum = Number(rate);
-    if (!title.trim()) { setModalErr("Title wajib diisi."); return; }
+    if (!title.trim()) { setModalErr("Judul wajib diisi."); return; }
     if (!Number.isFinite(rateNum) || rateNum < 0 || rateNum > 100) {
-      setModalErr("Tax Rate harus angka antara 0 dan 100.");
+      setModalErr("Tarif pajak harus angka antara 0 dan 100.");
       return;
     }
-    if (!type) { setModalErr("Pilih Tax Type dulu."); return; }
+    if (!type) { setModalErr("Pilih tipe pajak dulu."); return; }
 
     setBusy(true);
     setModalErr(null);
@@ -123,7 +123,7 @@ export default function TaxSettingsForm({ config }: { config: TaxConfig }) {
         <div className="dp-card-head">
           <h2 className="dp-card-title">Daftar Pajak</h2>
           <button type="button" className="dp-add-btn" onClick={bukaAdd}>
-            <PlusIcon className="h-4 w-4" /> Add New
+            <PlusIcon className="h-4 w-4" /> Tambah
           </button>
         </div>
         <div className="dp-card-body">
@@ -135,7 +135,7 @@ export default function TaxSettingsForm({ config }: { config: TaxConfig }) {
                   <th>Nama Pajak</th>
                   <th>Tarif</th>
                   <th>Tipe</th>
-                  <th className="dp-tax-actions-col">Actions</th>
+                  <th className="dp-tax-actions-col">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -204,14 +204,14 @@ export default function TaxSettingsForm({ config }: { config: TaxConfig }) {
             aria-label={modal.mode === "add" ? "Add Tax" : "Edit Tax"}
           >
             <div className="dp-tax-modal-head">
-              <h3>{modal.mode === "add" ? "Add Tax" : "Edit Tax"}</h3>
+              <h3>{modal.mode === "add" ? "Tambah Pajak" : "Edit Pajak"}</h3>
               <button type="button" className="dp-tax-modal-x" aria-label="Tutup" onClick={() => setModal(null)}>
                 <XIcon className="h-4 w-4" />
               </button>
             </div>
 
             <label className="dp-tax-field">
-              <span>Title<b>*</b></span>
+              <span>Judul<b>*</b></span>
               <input
                 value={title}
                 onChange={e => setTitle(e.target.value)}
@@ -221,7 +221,7 @@ export default function TaxSettingsForm({ config }: { config: TaxConfig }) {
             </label>
 
             <label className="dp-tax-field">
-              <span>Tax Rate (%)<b>*</b></span>
+              <span>Tarif Pajak (%)<b>*</b></span>
               <input
                 type="number"
                 min={0}
@@ -234,15 +234,15 @@ export default function TaxSettingsForm({ config }: { config: TaxConfig }) {
             </label>
 
             <label className="dp-tax-field">
-              <span>Tax Type<b>*</b></span>
+              <span>Tipe Pajak<b>*</b></span>
               <span className="dp-tax-select-wrap">
                 <select
                   value={type}
                   onChange={e => setType(e.target.value as "" | "inclusive" | "exclusive")}
                 >
-                  <option value="">Select</option>
-                  <option value="inclusive">Inclusive — sudah termasuk harga</option>
-                  <option value="exclusive">Exclusive — ditambahkan di luar harga</option>
+                  <option value="">Pilih</option>
+                  <option value="inclusive">Termasuk harga — sudah termasuk harga</option>
+                  <option value="exclusive">Di luar harga — ditambahkan di luar harga</option>
                 </select>
               </span>
             </label>
@@ -251,10 +251,10 @@ export default function TaxSettingsForm({ config }: { config: TaxConfig }) {
 
             <div className="dp-tax-modal-foot">
               <button type="button" className="dp-tax-btn" onClick={() => setModal(null)} disabled={busy}>
-                Cancel
+                Batal
               </button>
               <button type="button" className="dp-tax-btn dp-tax-btn-primary" onClick={simpanModal} disabled={busy}>
-                {busy ? "Saving…" : "Save"}
+                {busy ? "Menyimpan…" : "Simpan"}
               </button>
             </div>
           </div>

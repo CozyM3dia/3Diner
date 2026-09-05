@@ -366,8 +366,8 @@ model-viewer::part(default-ar-button) { display: none !important; }
   transition: border-color 0.2s var(--ease-out), box-shadow 0.25s var(--ease-out);
 }
 .search-field:focus-within {
-  border-color: rgba(253,80,2,0.55);
-  box-shadow: 0 0 0 4px rgba(253,80,2,0.10), var(--shadow-md);
+  border-color: rgba(2,44,96,0.22);
+  box-shadow: 0 0 0 4px rgba(2,44,96,0.06), var(--shadow-md);
 }
 
 /* ── 3D badge pill ── */

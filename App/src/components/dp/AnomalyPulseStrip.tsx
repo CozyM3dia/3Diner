@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { ArrowRightIcon, ChevronDownIcon } from "lucide-react";
-import type { Metrik } from "@/lib/dashboard-metrics";
+import { hitungRasioTerbatas, type Metrik } from "@/lib/dashboard-metrics";
 import type { PeristiwaTamu } from "@/lib/dashboard-query";
 
 interface AnomalyPulseStripProps {
@@ -104,8 +104,8 @@ export default function AnomalyPulseStrip({
 
   // 4. Konversi Tamu Meja (Table Order Conversion)
   const bukaMenu = tamu.kini.click_menu;
-  const konvPct =
-    bukaMenu > 0 ? Math.round((totalPesanan / bukaMenu) * 100) : null;
+  const konversiTamu = hitungRasioTerbatas(tamu.kini.click_order, bukaMenu);
+  const konvPct = konversiTamu === null ? null : Math.round(konversiTamu * 100);
   const isKonvAnomaly =
     bukaMenu >= 10 && konvPct !== null && konvPct < 35;
 

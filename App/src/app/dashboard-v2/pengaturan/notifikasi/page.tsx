@@ -5,7 +5,7 @@ import { normalizeNotifSettings } from "@/lib/notification-settings";
 import NotifSettingsDp from "@/components/dp/NotifSettingsDp";
 import "../../../nsw.css";
 
-export const metadata = { title: "Notifications · 3Diner" };
+export const metadata = { title: "Notifikasi · 3Diner" };
 export const dynamic = "force-dynamic";
 
 /** Pengaturan Notifikasi — recreation modul "Notifications" Dream POS:
@@ -26,7 +26,7 @@ export default async function Page() {
   return (
     <>
       <div className="dp-page-head">
-        <h1>Notifications</h1>
+        <h1>Notifikasi</h1>
       </div>
       <NotifSettingsDp initial={normalizeNotifSettings(data?.notification_settings)} />
     </>

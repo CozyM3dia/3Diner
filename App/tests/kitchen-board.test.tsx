@@ -10,7 +10,7 @@ vi.mock("@/lib/kitchen-actions", () => ({ mulaiMasak: mocks.start, tandaiSiap: m
 vi.mock("@/lib/kitchen-lonceng", () => ({ bunyikanLonceng: mocks.bell }));
 vi.mock("@clerk/nextjs", () => ({ useClerk: () => ({ signOut: vi.fn() }) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ back: vi.fn(), replace: vi.fn(), refresh: vi.fn() }) }));
-const ticket = (id: string, status: TiketDapur['status'] = 'received'): TiketDapur => ({ id_order:id, created_at:new Date().toISOString(), status, payment_status:'paid', table_number:'Meja 7', notes:'Tanpa kacang', items:[{ id_menu:'m1',nama_menu:'Nasi Goreng',harga_menu:20000,qty:2 }] });
+const ticket = (id: string, status: TiketDapur['status'] = 'received', createdAt = new Date().toISOString()): TiketDapur => ({ id_order:id, created_at:createdAt, status, payment_status:'paid', table_number:'Meja 7', notes:'Tanpa kacang', items:[{ id_menu:'m1',nama_menu:'Nasi Goreng',harga_menu:20000,qty:2 }] });
 const fetchMock = vi.fn();
 beforeEach(() => {
   vi.clearAllMocks(); localStorage.clear();
@@ -18,10 +18,36 @@ beforeEach(() => {
   fetchMock.mockResolvedValue({ ok:true, json:async () => ({ tickets:[ticket('a')] }) });
   vi.stubGlobal('fetch', fetchMock);
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const board = (initial=[ticket('a')]) => render(<PapanDapur awal={initial} cafeId="cafe-a" namaKafe="Senja" bingkai="konsol" />);
 
 describe('kitchen end-to-end client contract', () => {
+  it('defaults to today at the WIB boundary and keeps older tickets discoverable', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-05T17:30:00.000Z')); // 6 Sep 00:30 WIB
+    const previous = ticket('previous', 'received', '2026-09-05T16:59:59.999Z'); // 5 Sep 23:59 WIB
+    const today = ticket('today', 'received', '2026-09-05T17:00:00.000Z'); // 6 Sep 00:00 WIB
+    fetchMock.mockResolvedValue({ ok:true, json:async () => ({ tickets:[previous,today] }) });
+
+    board([previous,today]);
+
+    expect(await screen.findByText('TIKET #TODAY')).toBeTruthy();
+    expect(screen.queryByText('TIKET #PREVIOUS')).toBeNull();
+    expect(screen.getByText('1 pesanan dari hari sebelumnya')).toBeTruthy();
+    expect(screen.getByRole('button',{name:/Sebelumnya/}).textContent).toBe('Sebelumnya1');
+    expect(screen.getByText('1 tiket · 2 porsi')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button',{name:/Lihat pesanan/}));
+
+    expect(await screen.findByText('TIKET #PREVIOUS')).toBeTruthy();
+    expect(screen.queryByText('TIKET #TODAY')).toBeNull();
+    expect(screen.getByRole('button',{name:/Sebelumnya/}).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText('1 tiket · 2 porsi')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button',{name:'Hari ini'}));
+    expect(await screen.findByText('TIKET #TODAY')).toBeTruthy();
+    expect(screen.queryByText('TIKET #PREVIOUS')).toBeNull();
+  });
+
   it('restores preferences before persisting and labels a table only once', async () => {
     localStorage.setItem('dapur-preferensi', JSON.stringify({lonceng:true,rapat:'besar'}));
     board();

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getStaffContext } from "@/lib/staff-context";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { startOfTodayWIB } from "@/lib/dashboard-today";
+import { dedupeMenuCatalog } from "@/lib/menu-catalog";
 import PosBoard, {
   type PosMenu,
   type PosMenuOption,
@@ -81,11 +82,11 @@ export default async function PosPage() {
     values: RawValue[] | null;
   };
 
-  const menus: PosMenu[] = ((menusRes.data ?? []) as unknown as Array<{
+  const menus: PosMenu[] = dedupeMenuCatalog(((menusRes.data ?? []) as unknown as Array<{
     id_menu: string; nama_menu: string; harga_menu: number | null; discount_pct: number | null;
     image_url: string | null; category: string | null; is_active: boolean;
     description_menu: string | null;
-  }>).map(m => ({
+  }>)).map(m => ({
     id: m.id_menu,
     name: m.nama_menu,
     price: m.harga_menu ?? 0,

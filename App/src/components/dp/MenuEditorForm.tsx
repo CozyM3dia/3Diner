@@ -6,6 +6,7 @@ import {
   BoxIcon,
   CalendarClockIcon,
   EyeIcon,
+  LayersIcon,
   Loader2Icon,
   Maximize2Icon,
   Minimize2Icon,
@@ -16,7 +17,13 @@ import {
   XIcon,
 } from "lucide-react";
 import GlbViewer from "@/components/viewer/GlbViewer";
+import MenuAddonsEditor from "@/components/dp/MenuAddonsEditor";
 import MenuLivePreview from "@/components/dp/MenuLivePreview";
+import {
+  addonIssues,
+  pruneAddonDrafts,
+  type AddonGroupDraft,
+} from "@/lib/menu-addon-drafts";
 import { createMediaUploadUrl } from "@/lib/dashboard-actions";
 import { createClient } from "@/lib/supabase/client";
 import { fileNameFromUrl } from "@/components/dashboard/file-upload-validation";
@@ -24,11 +31,15 @@ import { validateSchedulePair, WEEKDAY_LABELS } from "@/lib/schedule-days";
 import DpFileDropzone from "./DpFileDropzone";
 import { validateMenuModel, validateMenuPhoto } from "./menu-editor-upload";
 
-/** Form Tambah/Edit Menu dashboard-v2 — TIGA TAB di dalam drawer floating:
- *  Umum (identitas + foto), 3D & AR (model GLB: unggah manual atau generate
- *  Tripo + preview three.js live + skala), Digital Menu (tayang, jadwal,
- *  diskon, redirect). Semua nilai satu objek `MenuFormValues` — disimpan
- *  satu baris `Menus` oleh satu server action. */
+/** Form Tambah/Edit Menu dashboard-v2 — EMPAT TAB di dalam drawer floating:
+ *  Umum (identitas + foto), Tambahan (grup varian & addon), 3D & AR (model GLB:
+ *  unggah manual atau generate Tripo + preview three.js live + skala), Digital
+ *  Menu (tayang, jadwal, diskon, redirect).
+ *
+ *  Semua nilai satu objek `MenuFormValues`. Baris `Menus` dan seluruh grup
+ *  `Menu_Option_Groups`/`Menu_Option_Values` menu ini disimpan oleh SATU server
+ *  action lewat satu tombol — halaman Tambahan yang berdiri sendiri dihapus
+ *  karena addon tak bisa dinilai tanpa harga menunya di layar yang sama. */
 
 export type MenuFormValues = {
   nama_menu: string;
@@ -39,6 +50,12 @@ export type MenuFormValues = {
   serve_time_minutes: number | null;
   calories: number | null;
   ingredients: string;
+  /* ── Tambahan (grup varian) ──
+     Bukan kolom tabel `Menus`: disimpan ke Menu_Option_Groups/Values oleh
+     server action yang sama, supaya pemilik hanya menekan satu tombol Simpan.
+     `undefined` berarti "tab tidak pernah dimuat" — server WAJIB membiarkan
+     tambahan yang sudah ada apa adanya dalam kasus itu, bukan menghapusnya. */
+  option_groups?: AddonGroupDraft[];
   /* ── Digital Menu ── */
   is_active: boolean;
   /** ISO weekday "1,2,3" (1=Sen..7=Min); "" = tiap hari. */
@@ -55,6 +72,8 @@ export type MenuEditorFormProps = {
   mode: "create" | "edit";
   initial?: Partial<MenuFormValues>;
   categories: string[];
+  /** Grup varian gagal dimuat: tab Tambahan hanya menjelaskan, tidak menyunting. */
+  optionsError?: string | null;
   busy?: boolean;
   lastSavedAt?: string | null;
   serverError?: string | null;
@@ -67,9 +86,10 @@ const MAX_DESK = 280;
 
 const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 
-type Tab = "umum" | "3d" | "digital";
+type Tab = "umum" | "tambahan" | "3d" | "digital";
 const TABS: Array<{ key: Tab; label: string; icon: typeof UtensilsCrossedIcon }> = [
   { key: "umum", label: "Umum", icon: UtensilsCrossedIcon },
+  { key: "tambahan", label: "Tambahan", icon: LayersIcon },
   { key: "3d", label: "3D & AR", icon: BoxIcon },
   { key: "digital", label: "Digital Menu", icon: CalendarClockIcon },
 ];
@@ -83,6 +103,7 @@ export default function MenuEditorForm({
   mode,
   initial,
   categories,
+  optionsError = null,
   busy = false,
   lastSavedAt = null,
   serverError = null,
@@ -99,6 +120,9 @@ export default function MenuEditorForm({
     serve_time_minutes: initial?.serve_time_minutes ?? null,
     calories: initial?.calories ?? null,
     ingredients: initial?.ingredients ?? "",
+    // undefined DIPERTAHANKAN (bukan jadi []): itu tanda "belum/ gagal dimuat",
+    // dan mengirim [] dari keadaan itu berarti menghapus varian pemilik.
+    option_groups: initial?.option_groups,
     is_active: initial?.is_active ?? true,
     schedule_days: initial?.schedule_days ?? "",
     schedule_start: initial?.schedule_start ?? "",
@@ -167,6 +191,11 @@ export default function MenuEditorForm({
     return Math.round(values.harga_menu * (1 - d / 100));
   }, [values.harga_menu, values.discount_pct]);
 
+  const jumlahGrup = useMemo(
+    () => (values.option_groups ? pruneAddonDrafts(values.option_groups).length : 0),
+    [values.option_groups],
+  );
+
   const hariTerpilih = useMemo(
     () => values.schedule_days.split(",").map(s => s.trim()).filter(Boolean),
     [values.schedule_days],
@@ -199,6 +228,18 @@ export default function MenuEditorForm({
     }
     const jamErr = validateSchedulePair(values.schedule_start, values.schedule_end);
     if (jamErr) e.schedule_start = jamErr;
+    // Tambahan divalidasi dengan aturan yang persis dipakai server; barisnya
+    // sendiri sudah ditandai merah di tab Tambahan, jadi di sini cukup hitungan
+    // supaya pemilik tahu ke mana harus menengok.
+    const masalah = values.option_groups
+      ? addonIssues(pruneAddonDrafts(values.option_groups))
+      : [];
+    if (masalah.length > 0) {
+      e.option_groups =
+        masalah.length === 1
+          ? masalah[0].message
+          : `${masalah.length} tambahan belum benar — periksa tab Tambahan.`;
+    }
     return e;
   }
 
@@ -298,6 +339,7 @@ export default function MenuEditorForm({
     if (Object.values(e).some(Boolean)) {
       // Lompat ke tab yang punya error agar pesan tidak terasa "hilang".
       if (e.nama_menu || e.harga_menu) setTab("umum");
+      else if (e.option_groups) setTab("tambahan");
       else if (e.schedule_start || e.discount_pct) setTab("digital");
       return;
     }
@@ -312,6 +354,11 @@ export default function MenuEditorForm({
           schedule_end: values.schedule_end.trim(),
           redirect_link: values.redirect_link.trim(),
           model_3d_url: modelUrl.trim(),
+          // Baris setengah jadi dibuang di sini, bukan di server: yang dibuang
+          // harus sama persis dengan yang barusan divalidasi.
+          option_groups: values.option_groups
+            ? pruneAddonDrafts(values.option_groups)
+            : undefined,
         },
         photo,
       );
@@ -356,6 +403,11 @@ export default function MenuEditorForm({
             onClick={() => setTab(t.key)}
           >
             <t.icon className="h-4 w-4" aria-hidden /> {t.label}
+            {/* Jumlah grup dibawa ke tab-nya: tanpa ini, satu-satunya cara tahu
+                sebuah menu punya varian adalah membuka tabnya satu per satu. */}
+            {t.key === "tambahan" && jumlahGrup > 0 && (
+              <span className="dp-menufx-tabnum">{jumlahGrup}</span>
+            )}
           </button>
         ))}
       </div>
@@ -536,6 +588,28 @@ export default function MenuEditorForm({
             )}
           </section>
         </>
+      )}
+
+      {tab === "tambahan" && (
+        values.option_groups ? (
+          <MenuAddonsEditor
+            groups={values.option_groups}
+            basePrice={hargaEfektif ?? values.harga_menu}
+            onChange={g => set("option_groups", g)}
+          />
+        ) : (
+          <section className="dp-menuf-card" aria-label="Tambahan menu">
+            <h2 className="dp-menuf-title">Tambahan &amp; Varian</h2>
+            <p className="dp-menuf-err" role="alert">
+              <TriangleAlertIcon className="h-4 w-4" aria-hidden />{" "}
+              {optionsError ?? "Tambahan menu belum bisa dimuat."}
+            </p>
+            <p className="dp-menuf-hint">
+              Tutup lalu buka lagi editor ini untuk mencoba memuat ulang. Menyimpan menu sekarang
+              tetap aman — tambahan yang sudah ada dibiarkan apa adanya, tidak terhapus.
+            </p>
+          </section>
+        )
       )}
 
       {tab === "3d" && (
@@ -801,18 +875,32 @@ export default function MenuEditorForm({
         )}
       </div>
 
-      {/* ── Footer sticky ── */}
-      <div className="dp-menuf-foot">
+      {/* Bilah aksi berada di alur editor agar tidak menutup dropzone atau pratinjau. */}
+      <div className="dp-menuf-foot" data-layout="flow">
         <span className="dp-menuf-footnote">
           {serverError && <b className="dp-menuf-err">{serverError}</b>}
+          {/* Kesalahan tambahan disebut di footer, bukan hanya di tabnya:
+              tombol Simpan ada di sini, dan penolakan yang tak terlihat dari
+              tempat tombolnya ditekan terbaca sebagai tombol yang rusak. */}
+          {errors.option_groups && tab !== "tambahan" && (
+            <button
+              type="button"
+              className="dp-menuf-jump"
+              onClick={() => setTab("tambahan")}
+            >
+              <TriangleAlertIcon className="h-3.5 w-3.5" aria-hidden /> {errors.option_groups}
+            </button>
+          )}
           {lastSavedAt && <span className="dp-menuf-hint">Tersimpan otomatis · {lastSavedAt}</span>}
         </span>
-        <button type="button" className="dp-menuf-cancel" onClick={onCancel} disabled={busy}>
-          Batal
-        </button>
-        <button type="button" className="dp-menuf-save" onClick={submit} disabled={busy}>
-          {busy ? "Menyimpan…" : mode === "create" ? "Simpan Menu" : "Simpan Perubahan"}
-        </button>
+        <span className="dp-menuf-actions" role="group" aria-label="Aksi editor menu">
+          <button type="button" className="dp-menuf-cancel" onClick={onCancel} disabled={busy}>
+            Batal
+          </button>
+          <button type="button" className="dp-menuf-save" onClick={submit} disabled={busy}>
+            {busy ? "Menyimpan…" : mode === "create" ? "Simpan Menu" : "Simpan Perubahan"}
+          </button>
+        </span>
       </div>
     </div>
   );

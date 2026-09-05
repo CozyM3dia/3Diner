@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { Corong } from "@/lib/dashboard-metrics";
+import { hitungRasioTerbatas, type Corong } from "@/lib/dashboard-metrics";
 
 /** Corong tamu: dari membuka QR menu sampai uang masuk.
  *
@@ -16,7 +16,10 @@ export default function Funnel({ corong, kosong }: { corong: Corong; kosong: str
   const semuaNol = langkah.every((l) => l.nilai === 0);
   if (semuaNol) return <p className="dv3-annot dv3-mix-empty">{kosong}</p>;
 
-  const rasio = (a: number, b: number) => (b > 0 ? `${Math.round((a / b) * 100)}%` : "—");
+  const rasio = (a: number, b: number) => {
+    const nilai = hitungRasioTerbatas(a, b);
+    return nilai === null ? "—" : `${Math.round(nilai * 100)}%`;
+  };
 
   return (
     <ol className="dv3-funnel">

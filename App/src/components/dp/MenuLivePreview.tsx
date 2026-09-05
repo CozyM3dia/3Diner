@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BatteryFullIcon,
   BoxIcon,
@@ -18,6 +18,7 @@ import {
 import GlbViewer from "@/components/viewer/GlbViewer";
 import { formatRupiah } from "@/lib/format";
 import { WEEKDAY_LABELS } from "@/lib/schedule-days";
+import { pruneAddonDrafts } from "@/lib/menu-addon-drafts";
 import type { MenuFormValues } from "@/components/dp/MenuEditorForm";
 
 /** Pratinjau langsung menu digital — telepon mock di samping editor.
@@ -44,8 +45,9 @@ export type MenuLivePreviewProps = {
   cafeName?: string;
   /** Tab editor yang sedang terbuka — menentukan layar awal.
    *  "umum" membuka layar DETAIL: tab itu menyunting nama, deskripsi, harga,
-   *  dan foto, dan hanya layar detail memperlihatkan keempatnya sekaligus. */
-  focus: "umum" | "3d" | "digital";
+   *  dan foto, dan hanya layar detail memperlihatkan keempatnya sekaligus.
+   *  "tambahan" juga ke DETAIL: di sanalah grup pilihan muncul buat tamu. */
+  focus: "umum" | "tambahan" | "3d" | "digital";
   onHide: () => void;
 };
 
@@ -109,7 +111,7 @@ export default function MenuLivePreview({
   onHide,
 }: MenuLivePreviewProps) {
   const [screen, setScreen] = useState<PreviewScreen>(() => (focus === "digital" ? "katalog" : "detail"));
-  const [lastFocus, setLastFocus] = useState<"umum" | "3d" | "digital">(focus);
+  const [lastFocus, setLastFocus] = useState<MenuLivePreviewProps["focus"]>(focus);
 
   // Pindah tab editor menggeser layar pratinjau ke yang paling relevan:
   // Digital Menu → kartu katalog (jadwal & diskon paling kentara di sana),
@@ -119,6 +121,13 @@ export default function MenuLivePreview({
     setLastFocus(focus);
     setScreen(focus === "digital" ? "katalog" : "detail");
   }
+
+  /* Grup pilihan berada di bawah lipatan layar detail — tepat seperti di
+     telepon tamu. Karena itu membuka tab Tambahan tanpa menggulir akan
+     memperlihatkan pratinjau yang tampak TIDAK berubah, dan pemilik menyimpulkan
+     tambahannya tidak berpengaruh. Panel digulir sendiri ke sana. */
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const optsRef = useRef<HTMLDivElement | null>(null);
 
   // Jam berjalan: status "tayang / tidak tayang" ikut berubah saat jendela
   // jadwal terlewati, tanpa perlu menutup-buka panel.
@@ -142,6 +151,37 @@ export default function MenuLivePreview({
   const live = status.live;
 
   const nama = values.nama_menu.trim() || "Nama Hidangan";
+
+  useEffect(() => {
+    if (focus !== "tambahan" || screen !== "detail") return;
+    const wadah = scrollRef.current;
+    const target = optsRef.current;
+    if (!wadah || !target) return;
+    wadah.scrollTo({ top: Math.max(0, target.offsetTop - 48), behavior: "smooth" });
+  }, [focus, screen, values.option_groups]);
+
+  /* ── Tambahan: grup yang benar-benar akan dilihat tamu ──
+     Sisi tamu membuang pilihan nonaktif dan grup yang habis pilihannya
+     (`shapeOptionGroups`, activeOnly), jadi pratinjau melakukan hal yang sama —
+     kalau tidak, pemilik akan melihat topping yang justru tak pernah muncul. */
+  const grupTamu = useMemo(() => {
+    return pruneAddonDrafts(values.option_groups ?? [])
+      .map(g => ({ ...g, values: g.values.filter(v => v.is_active) }))
+      .filter(g => g.values.length > 0);
+  }, [values.option_groups]);
+
+  /* Pilihan awal tamu, meniru MenuOrderPanel: grup wajib langsung memilih
+     pilihan pertamanya. Karena itu grup wajib berbayar MENAIKKAN angka di
+     tombol pesan sebelum tamu menyentuh apa pun — dan itulah yang harus
+     terlihat di sini, bukan harga dasar yang tak pernah dibayar siapa pun. */
+  const hargaTombol = useMemo(() => {
+    const dasar = hargaEfektif || 0;
+    const tambah = grupTamu.reduce(
+      (s, g) => (g.min_select > 0 && g.values[0] ? s + g.values[0].price_delta : s),
+      0,
+    );
+    return Math.max(0, dasar + tambah);
+  }, [hargaEfektif, grupTamu]);
 
   /* Layar ketiga dinamai "Model 3D", BUKAN "3D & AR" seperti tab editornya.
      Sejak pratinjau ikut menyala di tab Umum, kedua daftar tab selalu ada di
@@ -285,13 +325,20 @@ export default function MenuLivePreview({
 
               {screen === "detail" && (
                 <div className="dp-lp-detail">
-                  <div className="dp-lp-detail-scroll">
+                  <div className="dp-lp-detail-scroll" ref={scrollRef}>
                   <div className="dp-lp-detail-hero">
                     {foto("dp-lp-detail-img")}
                     <div className="dp-lp-detail-fade" />
                   </div>
 
-                  <div className="dp-lp-detail-card">
+                  {/* Bantalan bawah kartu berpindah ke blok pilihan saat ada
+                      grup: di halaman tamu, grup-lah yang terakhir sebelum
+                      bilah pesan, jadi ia yang harus menyediakan ruangnya. */}
+                  <div
+                    className={`dp-lp-detail-card${
+                      live && grupTamu.length > 0 ? " dp-lp-detail-card-opts" : ""
+                    }`}
+                  >
                     {values.category.trim() && <span className="dp-lp-kat-chip">{values.category.trim()}</span>}
                     <h1>{nama}</h1>
 
@@ -340,6 +387,50 @@ export default function MenuLivePreview({
                       </div>
                     )}
                   </div>
+
+                  {/* Grup pilihan berada DI BAWAH kartu detail dan di atas bilah
+                      pesan — persis urutan halaman tamu (MenuOrderPanel). */}
+                  {live && grupTamu.length > 0 && (
+                    <div className="dp-lp-opts" ref={optsRef}>
+                      {grupTamu.map(g => {
+                        const banyak = g.max_select > 1;
+                        const petunjuk = banyak
+                          ? `Pilih sampai ${g.max_select}`
+                          : g.min_select === 0
+                            ? "Opsional"
+                            : "Wajib pilih satu";
+                        return (
+                          <div key={g.key} className="dp-lp-opt">
+                            <p className="dp-lp-opt-head">
+                              <b>{g.name.trim() || "Grup"}</b>
+                              <span>{petunjuk}</span>
+                            </p>
+                            {g.values.map((v, i) => {
+                              const dipilih = g.min_select > 0 && i === 0;
+                              return (
+                                <div
+                                  key={v.key}
+                                  className={`dp-lp-optrow${dipilih ? " dp-lp-optrow-on" : ""}`}
+                                >
+                                  <span
+                                    className={`dp-lp-optbox${banyak ? " dp-lp-optbox-sq" : ""}`}
+                                    aria-hidden
+                                  />
+                                  <span className="dp-lp-optname">{v.name.trim() || "Pilihan"}</span>
+                                  {v.price_delta !== 0 && (
+                                    <span className="dp-lp-optprice">
+                                      {v.price_delta > 0 ? "+" : "−"}
+                                      {formatRupiah(Math.abs(v.price_delta))}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   </div>
 
                   <div className="dp-lp-detail-bar" aria-hidden>
@@ -351,7 +442,7 @@ export default function MenuLivePreview({
                     {live ? (
                       <div className="dp-lp-orderbtn">
                         <span>Tambah ke Pesanan</span>
-                        <b>{formatRupiah(hargaEfektif || 0)}</b>
+                        <b>{formatRupiah(hargaTombol)}</b>
                       </div>
                     ) : (
                       <div className="dp-lp-orderbtn dp-lp-orderbtn-off">

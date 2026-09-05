@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 
 type LoadState = "loading" | "transient-error" | "not-found";
@@ -16,7 +16,7 @@ export function OrderLoadState({
 }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (state !== "loading") headingRef.current?.focus();
   }, [state]);
 

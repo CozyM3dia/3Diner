@@ -74,7 +74,11 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${poppins.variable} ${instrumentSans.variable} ${geist.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className="min-h-dvh">
-        <Script id="theme-init" strategy="beforeInteractive">{THEME_INIT}</Script>
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: THEME_INIT }}
+        />
         {clerkConfigured ? (
           // Telemetry posts to clerk-telemetry.com, an origin the app CSP does not
           // allow. Disabling it keeps the console clean and keeps auth traffic on

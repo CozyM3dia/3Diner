@@ -410,6 +410,15 @@
   gap: 12px;
 }
 
+/* Kartu-kartu di dalam badan gulir TIDAK BOLEH ikut menyusut. Flex item
+   yang overflow-nya bukan visible (mis. .pos-items dengan overflow:hidden
+   untuk rounded corner) otomatis ber-floor di ketinggian 0 — saat kartu
+   Ringkasan ter-cap max-height viewport, flexbox menyusutkan .pos-items
+   di bawah tinggi kontennya dan overflow:hidden memotong baris terakhir
+   keranjang TANPA scrollbar (bug "item kedua hilang"). Yang menyusut
+   harus .pos-cart-body sendiri lewat overflow-y:auto-nya. */
+.pos-cart-body > * { flex-shrink: 0; }
+
 /* ── Pesanan aktif (panel ikon mata) ── */
 .pos-live {
   border: 1px solid var(--dp-border);

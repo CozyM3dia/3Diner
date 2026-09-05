@@ -133,10 +133,9 @@ function Cincin({ selesai, total }: { selesai: number; total: number }) {
  * sumber kebenaran konfigurasi toko. Setiap langkah tetap bisa dibatalkan
  * bila owner ingin meninjau ulang persiapannya.
  *
- * Bawaannya TERKATUP. Ia hidup di atas setiap layar konsol, jadi bentuk
- * bawaannya harus yang paling kecil: kapsul 40px yang menyebut sisa
- * langkahnya. Kartu penuh dibuka atas kehendak pemakai, dan pilihan buka /
- * katup itu diingat antar-halaman. */
+ * Bawaannya TERKATUP. Ia hidup di akhir alur konten setiap layar konsol,
+ * sehingga baik kapsul maupun kartu terbuka menambah tinggi halaman alih-
+ * alih menutupi panel/tabel. Pilihan buka/katup diingat antar-halaman. */
 export default function SetupChecklist() {
   const diam = useReducedMotion();
   const snapshot = useSyncExternalStore(subscribe, bacaProgres, () => "");
@@ -169,7 +168,7 @@ export default function SetupChecklist() {
   const sisa = TASKS.length - count;
 
   return (
-    <div className="dv3-setup" data-selesai={allDone}>
+    <div className="dv3-setup" data-layout="flow" data-selesai={allDone}>
       {/* Sengaja tanpa AnimatePresence: animasi keluar menahan kartu di DOM
           sampai selesai, jadi selama itu kapsul terkatup dan kartu yang
           sedang mati saling menumpuk di sudut yang sama. Mengatup harus

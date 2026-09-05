@@ -24,6 +24,7 @@ const updateOrderStatus = vi.fn(async () => ({}) as { error?: string });
 const cancelOrder = vi.fn(async () => ({}) as { error?: string });
 const printReceipt = vi.fn();
 const buildReceiptHtml = vi.fn(() => "<html></html>");
+const fetchMock = vi.fn();
 
 vi.mock("@/lib/dashboard-actions", () => ({
   updateOrderStatus: (...a: unknown[]) => updateOrderStatus(...(a as [])),
@@ -113,7 +114,9 @@ const barisDaftar = () => document.querySelectorAll(".psn-rowbody");
 const nomorTampil = (id: string) => `#${id.slice(-8).toUpperCase()}`;
 
 beforeEach(() => {
-  vi.stubGlobal("fetch", vi.fn(async () => ({ok:true, json:async () => ({orders: ROWS})})));
+  fetchMock.mockReset();
+  fetchMock.mockResolvedValue({ ok: true, json: async () => ({ orders: ROWS }) });
+  vi.stubGlobal("fetch", fetchMock);
 });
 
 afterEach(() => {
@@ -418,12 +421,26 @@ describe("OrdersBoard — pembatalan", () => {
 });
 
 describe("OrdersBoard — lencana Realtime", () => {
-  it("baru menyala setelah kanal benar-benar tersambung", async () => {
+  it("mengakui snapshot server yang sudah termuat tanpa menampilkan reconnecting palsu", async () => {
     papan();
-    expect(document.querySelector(".psn-live")?.textContent).toMatch(/Tersambung ulang/);
-
-
-    await waitFor(() => expect(document.querySelector(".psn-live-on")).not.toBeNull());
+    expect(barisDaftar()).toHaveLength(ROWS.length);
+    expect(document.querySelector(".psn-live-on")).not.toBeNull();
     expect(document.querySelector(".psn-live")?.textContent).toMatch(/Tersinkron/);
+    expect(document.querySelector(".psn-live")?.textContent).not.toMatch(/Tersambung ulang/);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+  });
+
+  it("menampilkan retry saat refresh gagal lalu bersih kembali setelah snapshot pemulihan", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("offline"));
+    papan();
+
+    await waitFor(() => expect(document.querySelector(".psn-live")?.textContent).toMatch(/Tersambung ulang/));
+    expect(document.querySelector(".psn-live-on")).toBeNull();
+
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ orders: ROWS }) });
+    window.dispatchEvent(new Event("online"));
+
+    await waitFor(() => expect(document.querySelector(".psn-live")?.textContent).toMatch(/Tersinkron/));
+    expect(document.querySelector(".psn-live-on")).not.toBeNull();
   });
 });

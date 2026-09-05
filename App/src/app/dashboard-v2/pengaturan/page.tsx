@@ -5,7 +5,7 @@ import { canonicalOrigin, menuUrlFor } from "@/lib/site-url";
 import StoreSettingsForm from "@/components/dp/StoreSettingsForm";
 import QrSmartMenuDp from "@/components/dp/QrSmartMenuDp";
 
-export const metadata = { title: "Store Settings & QR Menu · 3Diner" };
+export const metadata = { title: "Pengaturan Toko & QR Menu · 3Diner" };
 export const dynamic = "force-dynamic";
 
 /** Pengaturan Toko & QR Smart Menu — digabung dalam satu section konsol owner. */

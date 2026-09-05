@@ -197,4 +197,32 @@ describe("AnomalyPulseStrip component", () => {
     expect(screen.getByText("10.0%")).toBeDefined();
     expect(screen.getByText("Tindak Lanjuti")).toBeDefined();
   });
+
+  it("menghitung konversi dari event mulai pesan, bukan seluruh pesanan POS", () => {
+    const metrikDenganPesananPos: Metrik = {
+      ...MOCK_METRIK_NORMAL,
+      kini: {
+        ...MOCK_METRIK_NORMAL.kini,
+        pesanan: 14,
+      },
+      berjalan: [],
+      perhatian: [],
+    };
+    const tamu: PeristiwaTamu = {
+      ...MOCK_TAMU_NORMAL,
+      kini: { click_menu: 10, view_3d: 4, click_order: 7 },
+    };
+
+    render(
+      <AnomalyPulseStrip
+        m={metrikDenganPesananPos}
+        tamu={tamu}
+        hrefPesanan="/dashboard-v2/pesanan"
+        defaultExpanded={true}
+      />,
+    );
+
+    expect(screen.getByText("70%")).toBeDefined();
+    expect(screen.queryByText("140%")).toBeNull();
+  });
 });

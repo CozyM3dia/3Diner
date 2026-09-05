@@ -26,7 +26,7 @@ export default function PapanDapur({ awal, cafeId, namaKafe, bingkai }: {
   const [tiket, setTiket] = useState(awal);
   const [kueri, setKueri] = useState("");
   const [saring, setSaring] = useState<Set<Tahap>>(() => new Set());
-  const [period, setPeriod] = useState<Period>("semua");
+  const [period, setPeriod] = useState<Period>("hari-ini");
   const [pref, setPref] = useState(defaults);
   const [restored, setRestored] = useState(false);
   const [plating, setPlating] = useState<Record<string, string[]>>({});
