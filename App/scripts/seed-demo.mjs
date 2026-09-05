@@ -335,7 +335,13 @@ async function salinKatalog(demoId, sumber) {
   await kosongkanKatalogDemo(demoId);
 
   const idMenu = {};
-  const barisMenu = sumberMenus.map(m => {
+  const seenCatalog = new Set();
+  const barisMenu = sumberMenus.filter(m => {
+    const key = `${String(m.nama_menu ?? "").trim().replace(/\s*\((?:compress|generate\s+\d+)\)\s*$/i, "").toLocaleLowerCase()}\u0000${String(m.image_url ?? "").trim()}`;
+    if (!String(m.nama_menu ?? "").trim() || seenCatalog.has(key)) return false;
+    seenCatalog.add(key);
+    return true;
+  }).map(m => {
     const id = randomUUID();
     idMenu[m.id_menu] = id;
     const salinan = { id_menu: id, cafe_id: demoId };

@@ -224,7 +224,7 @@ export default function StoreSettingsForm({ cafe }: { cafe: Cafe }) {
               Batal
             </button>
             <button type="submit" className="dp-add-btn" disabled={busy}>
-              {busy ? "Menyimpan…" : "Save Changes"}
+              {busy ? "Menyimpan…" : "Simpan Perubahan"}
             </button>
           </div>
         </form>

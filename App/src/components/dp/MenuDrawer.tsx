@@ -25,13 +25,17 @@ export type MenuDrawerProps = {
 };
 
 type Loaded =
-  | { state: "loading" }
+  /** `key` = id menu yang sedang dimuat; dipakai membuang jawaban basi. */
+  | { state: "loading"; key: string | null }
   | { state: "error"; message: string }
   | {
       state: "ready";
       values: Partial<MenuFormValues>;
       imageUrl: string | null;
       categories: string[];
+      /** Grup varian gagal dimuat — tab Tambahan dikunci agar simpan tidak
+       *  menghapus varian yang tidak pernah sempat terlihat. */
+      optionsError: string | null;
     };
 
 export default function MenuDrawer({ open, editId, categories = [], onClose, onSaved }: MenuDrawerProps) {
@@ -39,32 +43,48 @@ export default function MenuDrawer({ open, editId, categories = [], onClose, onS
   const [busy, setBusy] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState<Loaded>({ state: "loading" });
+  const [loaded, setLoaded] = useState<Loaded>({ state: "loading", key: null });
   const [, startTransition] = useTransition();
   // Kunci muat: hanya berubah saat panel dibuka / target edit berganti.
   const loadKey = open ? editId ?? "create" : null;
   const [lastLoadKey, setLastLoadKey] = useState<string | null>(null);
 
   // Muat data menu tiap kali panel dibuka untuk EDIT (adjust-during-render,
-  // bukan effect-setState).
+  // bukan effect-setState — aturan lint React Compiler repo ini melarang
+  // setState di dalam efek).
   if (open && loadKey !== lastLoadKey) {
     setLastLoadKey(loadKey);
     setServerError(null);
     if (!editId) {
-      setLoaded({ state: "ready", values: {}, imageUrl: null, categories });
+      // Menu baru: daftar tambahan memang kosong, bukan gagal dimuat.
+      setLoaded({
+        state: "ready",
+        values: { option_groups: [] },
+        imageUrl: null,
+        categories,
+        optionsError: null,
+      });
     } else {
-      setLoaded({ state: "loading" });
+      const key = editId;
+      setLoaded({ state: "loading", key });
       void (async () => {
-        const res = await getMenuEditorData(editId);
-        if (res.error) {
-          setLoaded({ state: "error", message: res.error });
-          return;
-        }
-        setLoaded({
-          state: "ready",
-          values: res.values ?? {},
-          imageUrl: res.imageUrl ?? null,
-          categories: res.categories?.length ? res.categories : categories,
+        const res = await getMenuEditorData(key);
+        // Penjaga balapan: dua permintaan bisa beriringan kalau pemilik cepat
+        // berpindah menu, dan yang lebih lambat akan datang belakangan. Tanpa
+        // ini, daftar TAMBAHAN menu lain bisa mendarat di formulir yang salah —
+        // lalu tertulis ke basis data begitu Simpan ditekan. Pembaruan
+        // fungsional dipakai supaya perbandingannya membaca state terkini
+        // tanpa ref (yang tidak boleh disentuh saat render).
+        setLoaded(prev => {
+          if (prev.state !== "loading" || prev.key !== key) return prev;
+          if (res.error) return { state: "error", message: res.error };
+          return {
+            state: "ready",
+            values: res.values ?? {},
+            imageUrl: res.imageUrl ?? null,
+            categories: res.categories?.length ? res.categories : categories,
+            optionsError: res.optionsError ?? null,
+          };
         });
       })();
     }
@@ -134,6 +154,7 @@ export default function MenuDrawer({ open, editId, categories = [], onClose, onS
                 image_url: loaded.imageUrl,
               } as Partial<MenuFormValues> & { image_url?: string | null }}
               categories={loaded.categories}
+              optionsError={loaded.optionsError}
               busy={busy}
               lastSavedAt={savedAt}
               serverError={serverError}

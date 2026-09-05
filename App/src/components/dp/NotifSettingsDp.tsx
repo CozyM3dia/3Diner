@@ -138,17 +138,26 @@ export default function NotifSettingsDp({ initial }: { initial: NotifSettings })
           <MonitorIcon className="h-4 w-4" style={{ color: "var(--dp-blue)" }} aria-hidden />
         </div>
         <div className="dp-card-body">
+          <p className="nsw-matrix-intro" id="nsw-matrix-help">
+            Pilih kanal untuk setiap kejadian. Di layar kecil, setiap kejadian ditampilkan sebagai kartu agar mudah dipindai.
+          </p>
           {/* Header kolom channel */}
-          <div className="nsw-matrix" role="table" aria-label="Matriks notifikasi per event">
+          <div
+            className="nsw-matrix"
+            role="table"
+            aria-label="Matriks notifikasi per kejadian"
+            aria-describedby="nsw-matrix-help"
+            data-responsive="event-cards"
+          >
             <div className="nsw-matrix-head" role="row">
-              <span className="nsw-matrix-event">Event</span>
+              <span className="nsw-matrix-event" role="columnheader">Kejadian</span>
               {ALL_CHANNELS.map(ch => (
                 <span key={ch} className="nsw-matrix-ch" role="columnheader">
                   {CHANNEL_LABELS[ch]}
                   {!CHANNEL_META[ch].live && <span className="nsw-soon">menyusul</span>}
                 </span>
               ))}
-              <span className="nsw-matrix-ch nsw-matrix-all">Semua</span>
+              <span className="nsw-matrix-ch nsw-matrix-all" role="columnheader">Semua</span>
             </div>
 
             {((Object.keys(EVENT_LABELS) as NotifEventType[])).map(ev => {
@@ -168,7 +177,17 @@ export default function NotifSettingsDp({ initial }: { initial: NotifSettings })
                   {ALL_CHANNELS.map(ch => {
                     const live = CHANNEL_META[ch].live;
                     return (
-                      <span key={ch} className="nsw-matrix-ch" role="cell">
+                      <span
+                        key={ch}
+                        className="nsw-matrix-ch"
+                        role="cell"
+                        data-channel={ch}
+                        data-available={live ? "true" : "false"}
+                      >
+                        <span className="nsw-mobile-label" aria-hidden>
+                          {CHANNEL_LABELS[ch]}
+                          {!live && <span className="nsw-soon">menyusul</span>}
+                        </span>
                         <label
                           className="dp-switch nsw-cell"
                           title={live ? CHANNEL_META[ch].note : `${CHANNEL_META[ch].note} — belum tersedia`}
@@ -178,14 +197,18 @@ export default function NotifSettingsDp({ initial }: { initial: NotifSettings })
                             disabled={!live}
                             checked={st.events[ev][ch]}
                             onChange={e => setEventChannel(ev, ch, e.target.checked)}
-                            aria-label={`${meta.label} via ${CHANNEL_LABELS[ch]}`}
+                            aria-label={`${meta.label} via ${CHANNEL_LABELS[ch]}${live ? "" : " (belum tersedia)"}`}
                           />
                           <i aria-hidden />
                         </label>
                       </span>
                     );
                   })}
-                  <span className="nsw-matrix-ch nsw-matrix-all" role="cell">
+                  <span
+                    className="nsw-matrix-ch nsw-matrix-all"
+                    role="cell"
+                    aria-label={`Aksi massal untuk ${meta.label}`}
+                  >
                     <button
                       type="button"
                       className="nsw-all-btn"

@@ -81,7 +81,7 @@ export const BAB: Bab[] = [
     langkah: [
       {
         t: "Baca angka otoritatif dulu",
-        d: "Pendapatan lunas untuk periode terpilih, dengan sparkline kumulatif di sampingnya. Sparkline menunjukkan apakah sampai hari ini kafe berada di depan atau di belakang laju periode pembanding.",
+        d: "Pendapatan lunas untuk periode terpilih, dengan grafik kumulatif interaktif di sampingnya. Grafik menunjukkan apakah sampai hari ini kafe berada di depan atau di belakang laju periode pembanding.",
       },
       {
         t: "Lanjut ke strip empat metrik",
@@ -360,32 +360,45 @@ export const BAB: Bab[] = [
     grup: "Menu",
     judul: "Tambahan (addon)",
     jawab: "Bagaimana saya menjual level pedas, topping, atau ukuran sebagai pilihan berbayar?",
-    rute: "/dashboard-v2/addons",
+    rute: "/dashboard-v2/items",
     status: "siap",
     langkah: [
       {
-        t: "Klik Add Addon",
-        d: "Pilih menunya dari dropdown. Daftarnya diambil dari seluruh menu kafe, jadi menu yang belum punya addon pun bisa dipilih.",
+        t: "Buka Item, lalu Edit menunya",
+        d: "Tambahan tidak lagi punya halaman sendiri. Ia jadi tab di editor menu, karena harga tambahan hanya bisa dinilai sambil melihat harga menunya.",
       },
       {
-        t: "Tentukan grup pilihan",
-        d: "Grup adalah wadah pilihan, misalnya \"Level\" atau \"Topping\". Grup pertama dibuat otomatis dengan minimum 0 dan maksimum 5 pilihan saat sebuah menu mendapat addon pertamanya.",
+        t: "Pilih tab Tambahan",
+        d: "Angka di sebelah nama tab menunjukkan berapa grup yang sudah dipunya menu ini.",
       },
       {
-        t: "Isi nama dan harga tambahan",
-        d: "Harga tambahan adalah selisih rupiah di atas harga menu, boleh 0 untuk pilihan gratis seperti tingkat es.",
+        t: "Mulai dari cetakan, atau buat grup kosong",
+        d: "Cetakan Ukuran, Tingkat Gula, Suhu, Level Pedas, Topping, dan Tanpa Bahan sudah berisi pilihan yang tinggal diubah nama dan harganya.",
       },
       {
-        t: "Nyalakan atau matikan lewat badge Status",
-        d: "Klik badge untuk menonaktifkan tanpa menghapus. Ini cara menyembunyikan topping yang stoknya habis hari ini.",
+        t: "Tentukan aturannya",
+        d: "Wajib pilih 1 berarti tamu tidak bisa memesan sebelum memilih. Opsional boleh dilewati. Pilih banyak membuka batas minimal dan maksimal centang.",
+      },
+      {
+        t: "Isi selisih harga tiap pilihan",
+        d: "Angkanya selisih terhadap harga menu, boleh 0 untuk pilihan gratis dan boleh negatif untuk potongan seperti \"Tanpa Keju\".",
+      },
+      {
+        t: "Simpan menu",
+        d: "Satu tombol Simpan menulis menu dan seluruh tambahannya sekaligus. Pratinjau telepon di sebelah kanan sudah menunjukkan bentuknya di layar tamu sebelum disimpan.",
       },
     ],
     baca: [
-      "Nama pilihan tidak boleh kembar dalam satu grup. Simpan akan ditolak dengan alasannya.",
-      "Menyunting addon butuh wewenang kelola menu, dan hanya menyentuh data kafe yang sedang aktif.",
+      "Baris \"Yang dibayar tamu\" menghitung rentang harga akhir: grup wajib berbayar menaikkan lantai harga, grup opsional hanya menaikkan batas atasnya.",
+      "Ikon mata menyembunyikan satu pilihan tanpa menghapusnya — itu cara menandai topping yang habis hari ini.",
+      "Nama pilihan tidak boleh kembar dalam satu grup, dan grup tidak boleh meminta lebih banyak pilihan daripada yang tersedia. Simpan ditolak dengan alasannya.",
+      "Menyunting tambahan butuh wewenang kelola menu, dan hanya menyentuh data kafe yang sedang aktif.",
+      "Bahan inventory yang sudah tertaut ke sebuah pilihan ikut tersimpan apa adanya, walau tab ini tidak menyuntingnya.",
     ],
     batas: [
-      "Kupon tidak dibuat, atas permintaan pemilik produk. Grup Menu berisi Kategori, Item, dan Tambahan saja.",
+      "Maksimal 10 grup per menu dan 20 pilihan per grup.",
+      "Kupon tidak dibuat, atas permintaan pemilik produk. Grup Menu kini berisi Kategori dan Item saja.",
+      "Alamat lama /dashboard-v2/addons dialihkan ke halaman Item.",
     ],
   },
 

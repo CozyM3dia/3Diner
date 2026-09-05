@@ -1,14 +1,12 @@
 "use client";
 
-import { DownloadIcon } from "lucide-react";
 import type { OrderRow, TitikHari } from "@/lib/dashboard-metrics";
 import { LABEL_METODE } from "@/lib/dashboard-metrics";
 import { fmtHariTanggal, fmtJam, rupiah } from "@/lib/dashboard-format";
 
 /** Transaksi lunas terbaru sebagai tabel — untuk presisi, bukan bentuk.
- *  Tombol Unduh CSV melakukan pekerjaan sungguhan: deret harian dan
- *  transaksi rentang ini dirakit di klien dan diunduh — bukan tombol pajangan
- *  seperti "Export" pada template lama. */
+ *  Ekspor CSV dipusatkan di kepala lembar analitik supaya aksi utamanya
+ *  terlihat sebelum pemilik harus menggulir ke tabel. */
 
 function csvEscape(v: string | number): string {
   const s = String(v);
@@ -57,21 +55,13 @@ export function unduhCsv(harian: TitikHari[], transaksi: OrderRow[], namaBerkas:
 
 export default function TransaksiTable({
   transaksi,
-  harian,
-  namaBerkas,
 }: {
   transaksi: OrderRow[];
-  harian: TitikHari[];
-  namaBerkas: string;
 }) {
   return (
     <div>
       <div className="dv3-chart-bar">
         <span className="dv3-panel-note">Pesanan lunas terbaru dalam rentang</span>
-        <button type="button" className="dv3-seg-btn dv3-seg-solo" onClick={() => unduhCsv(harian, transaksi, namaBerkas)}>
-          <DownloadIcon aria-hidden />
-          Unduh CSV
-        </button>
       </div>
       {transaksi.length === 0 ? (
         <p className="dv3-annot dv3-mix-empty">Belum ada transaksi lunas pada rentang ini.</p>

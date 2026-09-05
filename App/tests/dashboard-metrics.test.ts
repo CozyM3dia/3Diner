@@ -4,6 +4,7 @@ import {
   AMBANG,
   hitungCorong,
   hitungMetrik,
+  hitungRasioTerbatas,
   usia,
   type MenuRow,
   type OrderRow,
@@ -367,6 +368,13 @@ describe("corong tamu", () => {
     expect(c.langkah.map((l) => l.nilai)).toEqual([200, 120, 40, 30, 28]);
     expect(c.langkah.map((l) => l.lalu)).toEqual([150, 90, 30, 20, 19]);
     expect(c.langkah[4].label).toBe("Lunas");
+  });
+
+  it("membatasi rasio bagian ke 0–100% dan tidak mengarang nilai saat penyebut nol", () => {
+    expect(hitungRasioTerbatas(7, 10)).toBe(0.7);
+    expect(hitungRasioTerbatas(14, 10)).toBe(1);
+    expect(hitungRasioTerbatas(-2, 10)).toBe(0);
+    expect(hitungRasioTerbatas(4, 0)).toBeNull();
   });
 });
 

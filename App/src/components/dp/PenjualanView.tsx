@@ -11,8 +11,8 @@ import KpiKartu, { PilDelta } from "@/components/dp/KpiKartu";
 import { Kartu, Wadah } from "@/components/dp/motion-dp";
 import { Kosong, Nilai } from "@/components/dp/ledger";
 import type { PresetKey } from "@/lib/date-range";
-import { hitungDelta, type Metrik } from "@/lib/dashboard-metrics";
-import { rupiah } from "@/lib/dashboard-format";
+import { hitungDelta, hitungRasioTerbatas, type Metrik } from "@/lib/dashboard-metrics";
+import { persen, rupiah } from "@/lib/dashboard-format";
 
 /** Lembar PENJUALAN — murni presentasional.
  *
@@ -52,7 +52,7 @@ export default function PenjualanView({
   const banding = labelPembanding(fromIso, spanDays);
   const metodeUtama = m.metodeBayar[0];
   const pangsaUtama = metodeUtama && m.kini.pendapatan ? Math.round((metodeUtama.nilai / m.kini.pendapatan) * 100) : null;
-  const deltaLunas = hitungDelta(m.kini.pesananLunas, m.lalu.pesananLunas);
+  const porsiLunas = hitungRasioTerbatas(m.kini.pesananLunas, m.kini.pesanan);
   const deltaBelum = hitungDelta(m.kini.belumLunasNilai, m.lalu.belumLunasNilai);
 
   const ringkasan =
@@ -83,9 +83,12 @@ export default function PenjualanView({
           ikon="pesanan"
           tone="navy"
           nilai={m.kini.pesananLunas}
-          delta={deltaLunas}
           satuan="pesanan lunas"
-          catatan={`dari ${m.kini.pesanan.toLocaleString("id-ID")} pesanan masuk`}
+          catatan={
+            porsiLunas === null
+              ? "Belum ada pesanan masuk"
+              : `${persen(porsiLunas, 1)} dari ${m.kini.pesanan.toLocaleString("id-ID")} pesanan masuk`
+          }
         />
         <KpiKartu
           label="Nilai rata-rata"
@@ -199,22 +202,15 @@ export default function PenjualanView({
               <CumulativeChart titik={m.kumulatif} labelBanding={banding} />
             )}
           </Kartu>
-
-          <Kartu aria-labelledby="judul-status">
-            <div className="dv3-panel-head">
-              <h2 className="dv3-panel-title" id="judul-status">
-                Status pesanan
-              </h2>
-              <Link href="/dashboard-v2/pesanan" className="dv3-panel-link">
-                Semua <ChevronRightIcon aria-hidden />
-              </Link>
-            </div>
-            <MixBar irisan={m.statusMix} dasar="jumlah" warna={WARNA_STATUS} kosong="Belum ada pesanan masuk pada rentang ini." />
-          </Kartu>
         </Wadah>
       </div>
 
-      <Wadah className="an-grid-2">
+      {/* Tiga rincian yang menjawab pertanyaan sejenis — "dari total tadi,
+          berapa bagian tiap menu / kategori / status" — berdiri sejajar.
+          Status pesanan dulu menumpuk di kolom kanan atas dan membuat baris
+          itu 287px lebih tinggi daripada kartu uang di sebelahnya; ruang
+          kosong sebesar itu terbaca sebagai layar yang belum selesai dimuat. */}
+      <Wadah className="an-grid-3">
         <Kartu aria-labelledby="judul-terlaris">
           <div className="dv3-panel-head">
             <h2 className="dv3-panel-title" id="judul-terlaris">
@@ -253,6 +249,17 @@ export default function PenjualanView({
           )}
         </Kartu>
 
+        <Kartu aria-labelledby="judul-status">
+          <div className="dv3-panel-head">
+            <h2 className="dv3-panel-title" id="judul-status">
+              Status pesanan
+            </h2>
+            <Link href="/dashboard-v2/pesanan" className="dv3-panel-link">
+              Semua <ChevronRightIcon aria-hidden />
+            </Link>
+          </div>
+          <MixBar irisan={m.statusMix} dasar="jumlah" warna={WARNA_STATUS} kosong="Belum ada pesanan masuk pada rentang ini." />
+        </Kartu>
       </Wadah>
 
       <Wadah>
@@ -269,7 +276,7 @@ export default function PenjualanView({
               Semua pesanan <ChevronRightIcon aria-hidden />
             </Link>
           </div>
-          <TransaksiTable transaksi={m.transaksi} harian={m.harian} namaBerkas={`penjualan-${fromIso}_${toIso}.csv`} />
+          <TransaksiTable transaksi={m.transaksi} />
         </Kartu>
       </Wadah>
     </>

@@ -18,10 +18,10 @@ import {
  *  pintasan pengaturan, Logout. Semua item rute nyata. */
 
 const LINKS = [
-  { href: "/dashboard-v2/pengaturan", label: "Store Settings", icon: SettingsIcon },
-  { href: "/dashboard-v2/pengaturan/peran", label: "Roles & Permissions", icon: ShieldCheckIcon },
-  { href: "/dashboard-v2/pesanan", label: "Orders & Transaksi", icon: ClipboardListIcon },
-  { href: "/dashboard-v2/pengaturan/staf", label: "Manage Staffs", icon: UsersIcon },
+  { href: "/dashboard-v2/pengaturan", label: "Pengaturan Toko", icon: SettingsIcon },
+  { href: "/dashboard-v2/pengaturan/peran", label: "Peran & Izin", icon: ShieldCheckIcon },
+  { href: "/dashboard-v2/pesanan", label: "Pesanan & Transaksi", icon: ClipboardListIcon },
+  { href: "/dashboard-v2/pengaturan/staf", label: "Kelola Staf", icon: UsersIcon },
 ];
 
 const clerkConfigured = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
@@ -59,7 +59,7 @@ function ProfileLogoutButton({ onLogout }: { onLogout: () => Promise<void> }) {
   return (
     <button type="button" className="dp-profile-logout" role="menuitem" onClick={onLogout}>
       <LogOutIcon className="h-4 w-4" />
-      Logout
+      Keluar
     </button>
   );
 }

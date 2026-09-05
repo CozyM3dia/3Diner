@@ -2,6 +2,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { PRESETS, presetRange, isoDay, parseDay, addDays, dashboardRangeTimestamps, type PresetKey } from "@/lib/date-range";
 import type { MenuRow, OrderRow } from "@/lib/dashboard-metrics";
+import { dedupeMenuCatalog } from "@/lib/menu-catalog";
 
 /** Pengambilan data untuk dua halaman analitik konsol (Ringkasan & Penjualan).
  *
@@ -104,7 +105,7 @@ export async function muatPesanan(cafeId: string, r: Rentang): Promise<PesananDu
   return {
     kini: semua.filter((o) => o.created_at >= r.since),
     lalu: semua.filter((o) => o.created_at < r.since),
-    menus: (menusRes.data ?? []) as MenuRow[],
+    menus: dedupeMenuCatalog((menusRes.data ?? []) as MenuRow[]),
   };
 }
 

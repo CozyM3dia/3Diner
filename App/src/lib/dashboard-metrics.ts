@@ -258,6 +258,17 @@ function bagianWib(d: Date) {
   };
 }
 
+/** Rasio bagian terhadap total yang aman untuk ditampilkan sebagai persen.
+ *
+ *  Event analytics dapat terduplikasi atau tertinggal dari Orders. Karena itu
+ *  pembilang tidak boleh membuat rasio bagian melewati 100%, dan penyebut nol
+ *  berarti rasionya memang tidak tersedia (bukan 0%).
+ */
+export function hitungRasioTerbatas(pembilang: number, penyebut: number): number | null {
+  if (!Number.isFinite(pembilang) || !Number.isFinite(penyebut) || penyebut <= 0) return null;
+  return Math.min(Math.max(pembilang, 0), penyebut) / penyebut;
+}
+
 /** Kunci hari bisnis WIB, independen dari zona waktu proses Node. */
 function kunciHari(d: Date): string {
   const wib = bagianWib(d);

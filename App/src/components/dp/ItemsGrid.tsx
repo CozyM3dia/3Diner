@@ -26,6 +26,46 @@ const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 
 const PAGE_SIZE = 12;
 
+function ItemImage({ src, name }: { src: string | null; name: string }) {
+  const [state, setState] = useState<"loading" | "loaded" | "error">(
+    src ? "loading" : "error",
+  );
+
+  if (!src || state === "error") {
+    return (
+      <span
+        className="dp-food-img dp-food-img-empty"
+        role="img"
+        aria-label={src ? `Foto ${name} tidak dapat dimuat` : `${name} belum memiliki foto`}
+      >
+        <ImageOffIcon className="h-5 w-5" aria-hidden />
+        <span>{src ? "Foto tidak dapat dimuat" : "Belum ada foto"}</span>
+      </span>
+    );
+  }
+
+  return (
+    <>
+      {state === "loading" && (
+        <span className="dp-food-img-skeleton" role="status" aria-label={`Memuat foto ${name}`}>
+          <span className="dp-food-img-skeleton-art" aria-hidden />
+        </span>
+      )}
+      <Image
+        src={src}
+        alt={name}
+        width={320}
+        height={240}
+        sizes="(max-width: 560px) calc(100vw - 72px), (max-width: 900px) calc((100vw - 112px) / 2), (max-width: 1200px) calc((100vw - 360px) / 3), 280px"
+        className="dp-food-img"
+        data-state={state}
+        onLoad={() => setState("loaded")}
+        onError={() => setState("error")}
+      />
+    </>
+  );
+}
+
 export default function ItemsGrid({
   items,
   initialQuery = "",
@@ -56,7 +96,7 @@ export default function ItemsGrid({
   return (
     <>
       <div className="dp-page-head">
-        <h1>Items</h1>
+        <h1>Item</h1>
         <div className="dp-page-head-tools">
           <label className="dp-field">
             <input
@@ -72,7 +112,7 @@ export default function ItemsGrid({
             <SearchIcon className="h-4 w-4" />
           </label>
           <button type="button" className="dp-add-btn" onClick={openCreate}>
-            <PlusIcon className="h-4 w-4" /> Add New
+            <PlusIcon className="h-4 w-4" /> Tambah Item
           </button>
         </div>
       </div>
@@ -88,20 +128,7 @@ export default function ItemsGrid({
           {slice.map(it => (
             <article key={it.id_menu} className="dp-card dp-food">
               <div className="dp-food-media">
-                {it.image_url ? (
-                  <Image
-                    src={it.image_url}
-                    alt={it.nama_menu}
-                    width={320}
-                    height={240}
-                    sizes="(max-width: 560px) calc(100vw - 72px), (max-width: 900px) calc((100vw - 112px) / 2), (max-width: 1200px) calc((100vw - 360px) / 3), 280px"
-                    className="dp-food-img"
-                  />
-                ) : (
-                  <span className="dp-food-img dp-food-img-empty">
-                    <ImageOffIcon className="h-5 w-5" />
-                  </span>
-                )}
+                <ItemImage key={`${it.id_menu}:${it.image_url ?? "empty"}`} src={it.image_url} name={it.nama_menu} />
                 <button
                   type="button"
                   className="dp-food-menu"
@@ -115,7 +142,7 @@ export default function ItemsGrid({
                   <div className="dp-food-drop">
                     <button type="button" className="dp-food-drop-item" onClick={() => openEdit(it.id_menu)}>
                       <PencilLineIcon className="h-4 w-4" />
-                      Edit Item
+                      Edit item
                     </button>
                   </div>
                 )}
@@ -129,7 +156,7 @@ export default function ItemsGrid({
                 <span className="dp-food-price">{rupiah(it.harga_menu ?? 0)}</span>
                 <span className={`dp-food-flag${it.is_active ? "" : " dp-food-flag-off"}`}>
                   <i />
-                  {it.is_active ? "Live" : "Offline"}
+                  {it.is_active ? "Tayang" : "Disembunyikan"}
                 </span>
               </div>
             </article>
@@ -140,7 +167,7 @@ export default function ItemsGrid({
       {pages > 1 && (
         <nav className="dp-pager" aria-label="Halaman menu">
           <button type="button" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
-            Pre
+            Sebelumnya
           </button>
           {Array.from({ length: pages }, (_, i) => (
             <button
@@ -158,7 +185,7 @@ export default function ItemsGrid({
             disabled={safePage >= pages - 1}
             onClick={() => setPage(safePage + 1)}
           >
-            Next
+            Berikutnya
           </button>
         </nav>
       )}

@@ -188,10 +188,15 @@ export default function OrdersBoard({
 }) {
   // Salinan lokal untuk mutasi optimis — prop baru (revalidasi) selalu menang.
   const [rows, setRows] = useState<BoardOrder[]>(orders);
+  // Komponen hanya dirender setelah snapshot server berhasil dimuat. Jangan
+  // menyebut kondisi awal sebagai reconnecting; status itu khusus kegagalan
+  // refresh sesudah snapshot valid sudah tersedia.
+  const [syncState, setSyncState] = useState<"synced" | "retrying">(cafeId ? "synced" : "retrying");
   const [lastProp, setLastProp] = useState<BoardOrder[]>(orders);
   if (orders !== lastProp) {
     setLastProp(orders);
     setRows(orders);
+    setSyncState("synced");
   }
 
   const [tab, setTab] = useState<string>("semua");
@@ -202,8 +207,6 @@ export default function OrdersBoard({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pesan, setPesan] = useState<{ ok: boolean; text: string } | null>(null);
   const [batalFor, setBatalFor] = useState<BoardOrder | null>(null);
-  const [liveOn, setLiveOn] = useState(false);
-
   useEffect(() => {
     if (!cafeId || busyId || batalFor) return;
     let disposed = false;
@@ -216,8 +219,8 @@ export default function OrdersBoard({
         const response = await fetch("/api/console/orders", { cache: "no-store", signal: request.signal });
         const body = await response.json();
         if (!response.ok || !Array.isArray(body.orders)) throw new Error("sync_failed");
-        if (!disposed) { setRows(body.orders); setLiveOn(true); }
-      } catch { if (!disposed) setLiveOn(false); }
+        if (!disposed) { setRows(body.orders); setSyncState("synced"); }
+      } catch { if (!disposed) setSyncState("retrying"); }
       finally { clearTimeout(timeout); request = null; }
     };
     const first = setTimeout(() => void refresh(), 0);
@@ -364,9 +367,9 @@ export default function OrdersBoard({
           <p>30 hari terakhir + semua pesanan terbuka · {rows.length} pesanan</p>
         </div>
         <div className="psn-head-side">
-          <span className={liveOn ? "psn-live psn-live-on" : "psn-live"}>
+          <span className={syncState === "synced" ? "psn-live psn-live-on" : "psn-live"}>
             <i aria-hidden />
-            {liveOn ? "Tersinkron" : "Tersambung ulang…"}
+            {syncState === "synced" ? "Tersinkron" : "Tersambung ulang…"}
           </span>
           <Petunjuk judul="Saringan & tampilan" bab="pesanan" align="end">
             Papan membaca jendela 30 hari, bukan hari ini saja, jadi pesanan lama yang masih terbuka tetap terlihat.

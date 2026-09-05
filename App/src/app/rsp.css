@@ -14,7 +14,17 @@
 .rsp-limit { margin-bottom: 20px; }
 .rsp-limit-row { display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 16px 18px; }
-.rsp-limit-switch { opacity: .55; cursor: not-allowed; }
+.rsp-limit-copy { min-width: 0; }
+.rsp-limit-titleline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rsp-unavailable-badge {
+  display: inline-flex; align-items: center; min-height: 22px; padding: 2px 8px;
+  border: 1px solid var(--dp-border); border-radius: 999px; background: var(--dp-bg);
+  color: var(--dp-text); font-size: 10.5px; font-weight: 700;
+}
+.rsp-limit-switch { opacity: 1; cursor: not-allowed; flex: none; }
+.rsp-limit-switch i { border: 1px dashed var(--dp-muted); background: var(--dp-bg); }
+.rsp-limit-switch i::after { background: var(--dp-muted); }
+.rsp-limit-state { color: var(--dp-muted); font-size: 11.5px; font-weight: 600; }
 
 /* Kiri sakelar, kanan kertas — 1fr / 380px seperti template */
 .rsp-grid { display: grid; grid-template-columns: 1fr 380px; gap: 20px; align-items: start; }
@@ -60,4 +70,9 @@
   .rsp-grid { grid-template-columns: 1fr; }
   .rsp-right { position: static; }
   .rsp-preview { min-height: 90mm; }
+}
+
+@media (max-width: 560px) {
+  .rsp-limit-row { align-items: flex-start; flex-direction: column; }
+  .rsp-limit-switch { width: 100%; justify-content: space-between; }
 }

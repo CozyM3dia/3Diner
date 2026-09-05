@@ -201,7 +201,7 @@ export default function PermissionsMatrix({
         {/* ── Kartu Roles (kiri) ── */}
         <div className="dp-card">
           <div className="dp-card-body">
-            <p className="dp-perm-roles-title">Roles</p>
+            <p className="dp-perm-roles-title">Peran</p>
             <div className="dp-perm-roles" role="tablist" aria-label="Pilih peran">
               {PERM_ROLES.map((r) => (
                 <button
@@ -238,9 +238,24 @@ export default function PermissionsMatrix({
           </div>
           <p className="dp-perm-head-ket">{roleInfo.ket}</p>
 
+          <div className="dp-perm-legend" role="note" aria-label="Keterangan status kontrol wewenang">
+            <span>
+              <i className="dp-perm-key dp-perm-key-editable" aria-hidden />
+              Bisa diubah dan langsung tersimpan
+            </span>
+            <span id="dp-perm-preview-note">
+              <i className="dp-perm-key dp-perm-key-preview" aria-hidden />
+              Belum dapat diubah karena dukungan backend belum tersedia
+            </span>
+            <span id="dp-perm-guard-note">
+              <i className="dp-perm-key dp-perm-key-guard" aria-hidden />
+              Dikunci demi keamanan akses Pengaturan
+            </span>
+          </div>
+
           <div className="dp-card">
             <div className="dp-card-body">
-              <div className="dp-table-wrap">
+              <div className="dp-table-wrap dp-perm-table-wrap" data-responsive="module-cards">
                 <table className="dp-table dp-perm-table">
                   <thead>
                     <tr>
@@ -278,21 +293,40 @@ export default function PermissionsMatrix({
                             m.perm === "manage_settings" &&
                             a.key === "lihat" &&
                             (role === "cashier" || role === "staff");
+                          const tersambung = selTersambung(m.key, a.key);
+                          const mode = terkunci ? "guard" : tersambung ? "editable" : "preview";
                           return (
-                            <td key={a.key} className="dp-perm-cell">
+                            <td
+                              key={a.key}
+                              className="dp-perm-cell"
+                              data-control-state={mode}
+                            >
+                              <span className="dp-perm-mobile-label" aria-hidden>{a.nama}</span>
                               <input
                                 type="checkbox"
                                 className="dp-check"
                                 checked={local[role][m.key][a.key]}
-                                disabled={pending || terkunci || !selTersambung(m.key, a.key)}
+                                disabled={pending || mode !== "editable"}
                                 title={
                                   terkunci
                                     ? "Akses Pengaturan untuk Kasir/Staf tidak dapat diaktifkan"
-                                    : !selTersambung(m.key, a.key) ? "Informasi saja; izin ini belum dapat diatur terpisah" : undefined
+                                    : !tersambung ? "Informasi saja; izin ini belum dapat diatur terpisah" : undefined
                                 }
                                 aria-label={`${a.nama} ${m.nama} untuk ${roleInfo.nama}`}
+                                aria-describedby={
+                                  mode === "guard"
+                                    ? "dp-perm-guard-note"
+                                    : mode === "preview"
+                                      ? "dp-perm-preview-note"
+                                      : undefined
+                                }
                                 onChange={() => toggle(m.key, a.key)}
                               />
+                              {mode !== "editable" && (
+                                <span className="dp-perm-cell-note" aria-hidden>
+                                  {mode === "guard" ? "Dikunci" : "Belum tersedia"}
+                                </span>
+                              )}
                             </td>
                           );
                         })}

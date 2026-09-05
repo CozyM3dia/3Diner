@@ -1,4 +1,8 @@
+"use client";
+
+import { useId, useState } from "react";
 import type { TitikKumulatif } from "@/lib/dashboard-metrics";
+import { rupiah, rupiahBertanda } from "@/lib/dashboard-format";
 import { pathMonoton, type Pt } from "@/lib/path-monotone";
 
 /** Sparkline kumulatif di sisi angka otoritatif — clipped area chart.
@@ -13,7 +17,18 @@ import { pathMonoton, type Pt } from "@/lib/path-monotone";
  *  persis ada di "Laju periode" di halaman Penjualan.
  */
 
-export default function Sparkline({ titik, className = "" }: { titik: TitikKumulatif[]; className?: string }) {
+export default function Sparkline({
+  titik,
+  labelBanding = "Periode sebelumnya",
+  className = "",
+}: {
+  titik: TitikKumulatif[];
+  labelBanding?: string;
+  className?: string;
+}) {
+  const [aktif, setAktif] = useState<number | null>(null);
+  const idTip = useId();
+  const uid = useId().replace(/:/g, "");
   const n = titik.length;
   const max = Math.max(...titik.map((t) => Math.max(t.kini, t.lalu)), 0);
   if (n < 2 || max === 0) return null;
@@ -36,17 +51,12 @@ export default function Sparkline({ titik, className = "" }: { titik: TitikKumul
       ? `${pathKini} L${ptsKini[iAkhir].x.toFixed(2)} ${H} L${ptsKini[0].x.toFixed(2)} ${H} Z`
       : "";
 
-  // uid stabil per isi deret — cukup unik dalam satu halaman tanpa "use client".
-  const uid = `sp-${titik[0]?.iso ?? "x"}-${n}-${Math.round(max)}`;
+  const pctX = (i: number) => (i / (n - 1)) * 100;
+  const t = aktif === null ? null : titik[aktif];
 
   return (
-    <svg
-      className={`dv3-spark ${className}`}
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-      aria-hidden
-      focusable="false"
-    >
+    <div className={`dv3-spark-interactive ${className}`} onPointerLeave={() => setAktif(null)}>
+      <svg className="dv3-spark" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden focusable="false">
       <defs>
         <linearGradient id={`${uid}-fill`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" className="dv3-spark-stop-top" />
@@ -76,6 +86,60 @@ export default function Sparkline({ titik, className = "" }: { titik: TitikKumul
           />
         </g>
       )}
-    </svg>
+      </svg>
+
+      {t && (
+        <span className="dv3-spark-cursor" aria-hidden style={{ left: `${pctX(aktif!)}%` }}>
+          {!t.masaDepan && <i className="dv3-spark-cursor-now" style={{ top: `${(y(t.kini) / H) * 100}%` }} />}
+          <i className="dv3-spark-cursor-prev" style={{ top: `${(y(t.lalu) / H) * 100}%` }} />
+        </span>
+      )}
+
+      <div className="dv3-spark-hit">
+        {titik.map((d, i) => (
+          <button
+            key={d.iso}
+            type="button"
+            className="dv3-spark-col"
+            aria-describedby={aktif === i ? idTip : undefined}
+            aria-label={
+              d.masaDepan
+                ? `${d.label}: belum tiba, pembanding ${rupiah(d.lalu)}`
+                : `${d.label}: kumulatif ${rupiah(d.kini)}, pembanding ${rupiah(d.lalu)}`
+            }
+            onPointerEnter={() => setAktif(i)}
+            onFocus={() => setAktif(i)}
+            onBlur={() => setAktif(null)}
+          />
+        ))}
+      </div>
+
+      {t && (
+        <div
+          id={idTip}
+          role="status"
+          className={`dv3-spark-tip${aktif! > n / 2 ? " dv3-spark-tip-left" : ""}`}
+          style={{ left: `${pctX(aktif!)}%` }}
+        >
+          <span className="dv3-tip-day">{t.label}{t.masaDepan ? " · belum tiba" : ""}</span>
+          {!t.masaDepan && (
+            <span className="dv3-tip-row">
+              <span className="dv3-key dv3-key-now" aria-hidden />
+              <b className="dv3-num">{rupiah(t.kini)}</b>
+            </span>
+          )}
+          <span className="dv3-tip-row">
+            <span className="dv3-key dv3-key-prev" aria-hidden />
+            <b className="dv3-num">{rupiah(t.lalu)}</b>
+          </span>
+          {!t.masaDepan && (
+            <span className={`dv3-tip-delta ${t.kini - t.lalu >= 0 ? "is-up" : "is-down"}`}>
+              {rupiahBertanda(t.kini - t.lalu)}
+            </span>
+          )}
+          <span className="sr-only">{labelBanding}</span>
+        </div>
+      )}
+    </div>
   );
 }

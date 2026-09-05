@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -8,9 +10,9 @@ import SetupChecklist from "@/components/dp/SetupChecklist";
 const STORAGE_KEY = "3diner.dashboard-v2.setup-checklist.v1";
 const OPEN_KEY = "3diner.dashboard-v2.setup-checklist.open";
 
-/** Checklist hidup di atas SETIAP layar konsol, jadi bentuk bawaannya kapsul
- *  terkatup — kartunya dibuka atas kehendak pemakai. Setiap tes yang menguji
- *  isi kartu membukanya dulu lewat kapsul itu, persis seperti pemakainya. */
+/** Checklist hidup di akhir alur SETIAP layar konsol, dengan bentuk bawaan
+ *  kapsul terkatup. Setiap tes yang menguji isi kartu membukanya dulu lewat
+ *  kapsul itu, persis seperti pemakainya. */
 async function bukaKartu(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: /Buka checklist/i }));
 }
@@ -23,13 +25,40 @@ describe("SetupChecklist", () => {
   afterEach(cleanup);
 
   it("starts collapsed so it never covers the screen it is guiding", () => {
-    render(<SetupChecklist />);
+    const { container } = render(<SetupChecklist />);
 
+    expect(container.querySelector(".dv3-setup")?.getAttribute("data-layout")).toBe("flow");
     expect(screen.queryByRole("heading", { name: "Siapkan digital menu" })).toBeNull();
     const tab = screen.getByRole("button", { name: /Buka checklist/i });
     expect(tab.getAttribute("aria-label")).toContain("Siapkan digital menu");
     expect(tab.getAttribute("aria-label")).toContain("0 dari 4 selesai");
     expect(within(tab).getByText("4 lagi")).toBeTruthy();
+  });
+
+  it("tetap berada di normal flow saat kartu dibuka, termasuk layout ponsel", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<SetupChecklist />);
+    await bukaKartu(user);
+
+    expect(container.querySelector(".dv3-setup")?.getAttribute("data-layout")).toBe("flow");
+    expect(container.querySelector(".dv3-setup-kartu")).toBeTruthy();
+
+    const css = readFileSync(resolve(process.cwd(), "src/app/console.css"), "utf8");
+    const shell = readFileSync(resolve(process.cwd(), "src/components/dp/Shell.tsx"), "utf8");
+    const wrapperRule = css.match(/\.dv3-setup\s*\{([^}]*)\}/)?.[1] ?? "";
+    const cardRule = css.match(/\.dv3-setup-kartu\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(wrapperRule).toContain("position: static");
+    expect(wrapperRule).not.toContain("position: fixed");
+    expect(cardRule).toContain("max-width: 100%");
+    expect(cardRule).toContain("overflow: visible");
+    expect(css).toMatch(/@media \(max-width: 560px\)[\s\S]*?\.dv3-setup-kartu\s*\{[^}]*width: 100%/);
+
+    const mainStart = shell.indexOf('<main className="dv3-content">');
+    const checklist = shell.indexOf("<SetupChecklist />", mainStart);
+    const mainEnd = shell.indexOf("</main>", mainStart);
+    expect(mainStart).toBeGreaterThan(-1);
+    expect(checklist).toBeGreaterThan(mainStart);
+    expect(checklist).toBeLessThan(mainEnd);
   });
 
   it("remembers that the card was opened, and closes back to the capsule", async () => {

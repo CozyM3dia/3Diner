@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import StaffManager from "@/components/dp/StaffManager";
 import type { StaffRole } from "@/types";
 
-export const metadata = { title: "Manage Staffs · 3Diner" };
+export const metadata = { title: "Kelola Staf · 3Diner" };
 export const dynamic = "force-dynamic";
 
 /** Manage Staffs — recreation `users.html` Dream POS dengan kontrol nyata:

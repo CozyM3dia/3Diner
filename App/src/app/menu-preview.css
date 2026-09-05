@@ -263,6 +263,38 @@
   background: linear-gradient(135deg, var(--navy-bright), var(--navy));
   color: #fff; font-size: 15px; font-weight: 600;
 }
+/* ── Grup pilihan (tambahan) di layar detail ──
+   Di halaman tamu grup dirender SETELAH kartu putih, di atas latar paper, dan
+   dialah yang terakhir sebelum bilah pesan. Karena itu bantalan bawah 124px
+   berpindah dari kartu ke blok ini saat grup ada — kalau keduanya memilikinya,
+   akan muncul lubang kosong sepanjang satu layar di tengah pratinjau. */
+.dp-lp-detail-card-opts { padding-bottom: 18px; }
+.dp-lp-opts { padding: 4px 16px 124px; background: var(--paper); display: grid; gap: 18px; }
+.dp-lp-opt { display: grid; gap: 8px; }
+.dp-lp-opt-head { margin: 0; display: flex; align-items: baseline; gap: 8px; }
+.dp-lp-opt-head b { font-size: 15px; font-weight: 700; color: var(--navy); }
+.dp-lp-opt-head span { font-size: 11px; color: var(--navy-muted); }
+.dp-lp-optrow {
+  display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 14px;
+  border-radius: 16px; background: var(--white); border: 1.5px solid var(--border);
+}
+.dp-lp-optrow-on { background: var(--orange-blush); border-color: var(--orange); }
+.dp-lp-optbox {
+  width: 20px; height: 20px; flex: none; border-radius: 50%;
+  border: 1.5px solid var(--border); background: transparent;
+}
+.dp-lp-optbox-sq { border-radius: 6px; }
+.dp-lp-optrow-on .dp-lp-optbox { border-color: var(--orange); background: var(--orange); }
+.dp-lp-optname {
+  flex: 1; min-width: 0; font-size: 14px; font-weight: 500; color: var(--navy);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dp-lp-optprice {
+  flex: none; font-size: 13px; font-weight: 600; color: var(--navy-muted);
+  font-variant-numeric: tabular-nums;
+}
+.dp-lp-optrow-on .dp-lp-optprice { color: var(--orange-ink); }
+
 .dp-lp-orderbar {
   position: absolute; inset-inline: 0; bottom: 0; z-index: 5; padding: 12px 16px 22px;
   background: linear-gradient(180deg, rgba(246, 248, 251, 0), var(--paper) 42%);

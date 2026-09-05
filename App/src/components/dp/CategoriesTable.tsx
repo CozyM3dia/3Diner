@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { ChevronDownIcon, ImageOffIcon, ListFilterIcon, SearchIcon } from "lucide-react";
+import { ChevronDownIcon, ListFilterIcon, SearchIcon } from "lucide-react";
 
 /** Tabel Categories ala Dream POS `categories.html`: kartu berisi toolbar
  *  (search kiri, kontrol kanan) + tabel Category / No of Items / Created On /
@@ -11,8 +10,8 @@ import { ChevronDownIcon, ImageOffIcon, ListFilterIcon, SearchIcon } from "lucid
  *
  *  Kafe ini tidak punya tabel Categories — kategori adalah teks bebas di
  *  `Menus.category`. Jadi tiap kolom diisi agregasi nyata:
- *  thumbnail = foto item pertama, jumlah item, tanggal menu terlama di
- *  kategori itu, status = ada item tayang atau tidak. Karena tak ada entitas
+ *  jumlah item, tanggal menu terlama di kategori itu, status = ada item
+ *  tayang atau tidak. Karena tak ada entitas
  *  kategori yang bisa diubah/dihapus, kolom Actions hanya berisi satu tautan
  *  nyata: buka daftar Items yang tersaring ke kategori tersebut. */
 
@@ -21,7 +20,6 @@ export type CategoryRow = {
   items: number;
   liveItems: number;
   firstCreatedAt: string;
-  thumb: string | null;
 };
 
 const SORTS = [
@@ -63,10 +61,13 @@ export default function CategoriesTable({ rows }: { rows: CategoryRow[] }) {
   return (
     <>
       <div className="dp-page-head">
-        <h1>Categories</h1>
+        <h1>Kategori</h1>
       </div>
 
-      <div className="dp-card">
+      <div
+        className="dp-card dp-category-card"
+        data-content-size={view.length <= 5 ? "short" : "standard"}
+      >
         <div className="dp-card-body">
           <div className="dp-table-tools">
             <label className="dp-field">
@@ -79,90 +80,86 @@ export default function CategoriesTable({ rows }: { rows: CategoryRow[] }) {
               />
             </label>
 
-            <div className="dp-drop-wrap">
-              <button
-                type="button"
-                className="dp-btn-white"
-                aria-expanded={sortOpen}
-                onClick={() => setSortOpen(!sortOpen)}
-              >
-                <ListFilterIcon className="h-4 w-4" />
-                Urut: {SORTS.find(s => s.key === sort)?.label}
-                <ChevronDownIcon className="h-4 w-4" />
-              </button>
-              {sortOpen && (
-                <div className="dp-drop">
-                  {SORTS.map(s => (
-                    <button
-                      key={s.key}
-                      type="button"
-                      className={`dp-drop-item${s.key === sort ? " dp-drop-item-on" : ""}`}
-                      onClick={() => {
-                        setSort(s.key);
-                        setSortOpen(false);
-                      }}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+            <div className="dp-category-tools-end">
+              <span className="dp-category-count" role="status" aria-live="polite">
+                {view.length} kategori
+              </span>
+              <div className="dp-drop-wrap">
+                <button
+                  type="button"
+                  className="dp-btn-white"
+                  aria-expanded={sortOpen}
+                  onClick={() => setSortOpen(!sortOpen)}
+                >
+                  <ListFilterIcon className="h-4 w-4" />
+                  Urut: {SORTS.find(s => s.key === sort)?.label}
+                  <ChevronDownIcon className="h-4 w-4" />
+                </button>
+                {sortOpen && (
+                  <div className="dp-drop">
+                    {SORTS.map(s => (
+                      <button
+                        key={s.key}
+                        type="button"
+                        className={`dp-drop-item${s.key === sort ? " dp-drop-item-on" : ""}`}
+                        onClick={() => {
+                          setSort(s.key);
+                          setSortOpen(false);
+                        }}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="dp-table-wrap">
-            <table className="dp-table">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Jumlah Item</th>
-                  <th>Menu Pertama</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {view.map(r => (
-                  <tr key={r.name}>
-                    <td>
-                      <span className="dp-cell-cat">
-                        <span className="dp-avatar-sm">
-                          {r.thumb ? (
-                            <Image src={r.thumb} alt="" width={32} height={32} />
-                          ) : (
-                            <ImageOffIcon className="h-4 w-4" />
-                          )}
-                        </span>
-                        {r.name}
-                      </span>
-                    </td>
-                    <td>{r.items}</td>
-                    <td>{tanggal(r.firstCreatedAt)}</td>
-                    <td>
-                      {r.liveItems > 0 ? (
-                        <span className="dp-badge dp-badge-success">
-                          {r.liveItems === r.items ? "Semua tayang" : `${r.liveItems} dari ${r.items} tayang`}
-                        </span>
-                      ) : (
-                        <span className="dp-badge dp-badge-danger">Tidak ada yang tayang</span>
-                      )}
-                    </td>
-                    <td>
-                      <Link
-                        href={`/dashboard-v2/items?q=${encodeURIComponent(r.name)}`}
-                        className="dp-btn-white dp-btn-link"
-                      >
-                        Lihat item
-                      </Link>
-                    </td>
+          {view.length > 0 ? (
+            <div className="dp-table-wrap dp-category-table-wrap">
+              <table className="dp-table">
+                <thead>
+                  <tr>
+                    <th>Kategori</th>
+                    <th>Jumlah Item</th>
+                    <th>Menu Pertama</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {view.length === 0 && (
-            <p className="dp-empty">
+                </thead>
+                <tbody>
+                  {view.map(r => (
+                    <tr key={r.name}>
+                      <td>
+                        <span className="dp-category-name">{r.name}</span>
+                      </td>
+                      <td>{r.items}</td>
+                      <td>{tanggal(r.firstCreatedAt)}</td>
+                      <td>
+                        {r.liveItems > 0 ? (
+                          <span className="dp-badge dp-badge-success">
+                            {r.liveItems === r.items ? "Semua tayang" : `${r.liveItems} dari ${r.items} tayang`}
+                          </span>
+                        ) : (
+                          <span className="dp-badge dp-badge-danger">Tidak ada yang tayang</span>
+                        )}
+                      </td>
+                      <td>
+                        <Link
+                          href={`/dashboard-v2/items?q=${encodeURIComponent(r.name)}`}
+                          className="dp-btn-white dp-btn-link"
+                        >
+                          Lihat item
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="dp-empty dp-category-empty" role="status">
               {rows.length === 0
                 ? "Belum ada menu, jadi belum ada kategori."
                 : `Tidak ada kategori yang cocok dengan “${q.trim()}”.`}

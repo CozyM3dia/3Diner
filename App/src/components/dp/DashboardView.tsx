@@ -5,7 +5,7 @@ import AnomalyPulseStrip from "@/components/dp/AnomalyPulseStrip";
 import HeatmapJam from "@/components/dp/HeatmapJam";
 import Petunjuk from "@/components/dp/Petunjuk";
 import Funnel from "@/components/dp/Funnel";
-import Sparkline from "@/components/dp/Sparkline";
+import CumulativeChart from "@/components/dp/CumulativeChart";
 import KpiKartu, { PilDelta } from "@/components/dp/KpiKartu";
 import HariAktif, { type BarisHari } from "@/components/dp/HariAktif";
 import GaugeKipas from "@/components/dp/GaugeKipas";
@@ -14,7 +14,7 @@ import AsistenAI from "@/components/dp/AsistenAI";
 import { Kartu, Wadah } from "@/components/dp/motion-dp";
 import { Kosong, Nilai } from "@/components/dp/ledger";
 import type { PresetKey } from "@/lib/date-range";
-import { hitungCorong, hitungDelta, NAMA_HARI, type Metrik } from "@/lib/dashboard-metrics";
+import { hitungCorong, hitungDelta, hitungRasioTerbatas, NAMA_HARI, type Metrik } from "@/lib/dashboard-metrics";
 import type { PeristiwaTamu } from "@/lib/dashboard-query";
 import { fmtJam, rupiah } from "@/lib/dashboard-format";
 
@@ -74,8 +74,11 @@ export default function DashboardView({
     lunasLalu: m.lalu.pesananLunas,
   });
   const deltaBuka = hitungDelta(tamu.kini.click_menu, tamu.lalu.click_menu);
-  const konversi = tamu.kini.click_menu ? m.kini.pesanan / tamu.kini.click_menu : null;
-  const konversiLalu = tamu.lalu.click_menu ? m.lalu.pesanan / tamu.lalu.click_menu : null;
+  // Konversi tamu harus memakai dua event dari sumber yang sama. Total Orders
+  // juga memuat pesanan kasir/POS, sehingga membaginya dengan event buka menu
+  // dapat menghasilkan angka mustahil seperti 140%.
+  const konversi = hitungRasioTerbatas(tamu.kini.click_order, tamu.kini.click_menu);
+  const konversiLalu = hitungRasioTerbatas(tamu.lalu.click_order, tamu.lalu.click_menu);
   const deltaKonversi = hitungDelta(konversi ?? 0, konversiLalu ?? 0);
   const maxKlik = Math.max(...tamu.perMenu.map((d) => d.klik), 1);
   const hari = perHari(m.jam.sel);
@@ -201,19 +204,9 @@ export default function DashboardView({
                     : "Belum ada penjualan lunas pada kedua periode; garis laju menunggu pembayaran pertama."}
                 </p>
               ) : (
-                <figure className="dv3-hero-spark">
-                  <Sparkline titik={m.kumulatif} />
-                  <figcaption className="dv3-legend">
-                    <span className="dv3-legend-item">
-                      <span className="dv3-key dv3-key-now" aria-hidden />
-                      Kumulatif periode ini
-                    </span>
-                    <span className="dv3-legend-item">
-                      <span className="dv3-key dv3-key-dash" aria-hidden />
-                      {banding}
-                    </span>
-                  </figcaption>
-                </figure>
+                <div className="dv3-hero-cumulative">
+                  <CumulativeChart titik={m.kumulatif} labelBanding={banding} />
+                </div>
               )}
             </div>
 

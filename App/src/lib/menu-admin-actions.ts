@@ -5,6 +5,9 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { AuthorizationError, requireStaffPermission } from "@/lib/authorization";
 import { buildScheduleFields } from "@/lib/schedule-days";
 import { revalidateGuestCafe } from "@/lib/guest-revalidate";
+import { getMenuOptionsForOwner } from "@/lib/menu-options";
+import { optionGroupsValidationError, type OptionGroupDraft } from "@/lib/menu-option-drafts";
+import { pruneAddonDrafts, withKeys, type AddonGroupDraft } from "@/lib/menu-addon-drafts";
 import type { MenuFormValues } from "@/components/dp/MenuEditorForm";
 
 export interface UpsertMenuResult {
@@ -128,7 +131,23 @@ export async function upsertMenuFromEditor(input: {
     ...(imageUrl !== undefined ? { image_url: imageUrl } : {}),
   };
 
-  // ── Create ─────────────────────────────────────────────────────────────────
+  // ── Tambahan (grup varian) ─────────────────────────────────────────────────
+  // Divalidasi SEBELUM baris menu ditulis. Urutan ini disengaja: menolak lebih
+  // dulu berarti pemilik tidak pernah berada di keadaan "menu tersimpan, tapi
+  // varian ditolak" — keadaan yang tidak bisa dijelaskan dengan satu kalimat
+  // dan tidak bisa dibatalkan dengan satu tombol.
+  //
+  // `undefined` = editor tidak mengirim tab Tambahan sama sekali; varian yang
+  // sudah ada DIBIARKAN. Array kosong = pemilik memang mengosongkannya.
+  let optionGroups: OptionGroupDraft[] | null = null;
+  if (Array.isArray(input.values.option_groups)) {
+    optionGroups = toOptionDrafts(input.values.option_groups);
+    const optionError = optionGroupsValidationError(optionGroups);
+    if (optionError) return { error: optionError };
+  }
+
+  // ── Create / Update ────────────────────────────────────────────────────────
+  let menuId: string;
   if (!input.id_menu) {
     const { data, error } = await supabaseAdmin
       .from("Menus")
@@ -136,22 +155,77 @@ export async function upsertMenuFromEditor(input: {
       .select("id_menu")
       .single();
     if (error) return { error: error.message };
-    revalidateAll(cafeSlug, cafeId);
-    return { id_menu: data.id_menu as string };
+    menuId = data.id_menu as string;
+  } else {
+    const updatePayload: Omit<typeof payload, "cafe_id"> & { cafe_id?: string } = { ...payload };
+    delete updatePayload.cafe_id;
+    const { error } = await supabaseAdmin
+      .from("Menus")
+      .update(updatePayload)
+      .eq("id_menu", input.id_menu)
+      .eq("cafe_id", cafeId);
+    if (error) return { error: error.message };
+    menuId = input.id_menu;
   }
 
-  // ── Update ─────────────────────────────────────────────────────────────────
-  const updatePayload: Omit<typeof payload, "cafe_id"> & { cafe_id?: string } = { ...payload };
-  delete updatePayload.cafe_id;
-  const { error } = await supabaseAdmin
-    .from("Menus")
-    .update(updatePayload)
-    .eq("id_menu", input.id_menu)
-    .eq("cafe_id", cafeId);
-  if (error) return { error: error.message };
+  if (optionGroups) {
+    const optionError = await replaceOptions(cafeId, menuId, optionGroups);
+    if (optionError) {
+      revalidateAll(cafeSlug, cafeId);
+      // Menunya SUDAH tersimpan di titik ini; menyebut keduanya adalah satu-
+      // satunya laporan yang jujur.
+      return { id_menu: menuId, error: `Menu tersimpan, tetapi tambahan gagal: ${optionError}` };
+    }
+  }
 
   revalidateAll(cafeSlug, cafeId);
-  return { id_menu: input.id_menu };
+  return { id_menu: menuId };
+}
+
+/** Draft editor → bentuk yang dimengerti `replace_menu_options`.
+ *  `recipes` dibawa apa adanya: editor tambahan tidak menyuntingnya, dan RPC
+ *  menulis ulang seluruh grup, jadi menjatuhkannya di sini akan diam-diam
+ *  memutus potongan stok otomatis yang dipasang lewat editor menu lama. */
+function toOptionDrafts(groups: AddonGroupDraft[]): OptionGroupDraft[] {
+  return pruneAddonDrafts(groups).map(g => ({
+    name: String(g.name ?? "").trim(),
+    min_select: Number(g.min_select),
+    max_select: Number(g.max_select),
+    values: (g.values ?? []).map(v => ({
+      name: String(v.name ?? "").trim(),
+      price_delta: Math.trunc(Number(v.price_delta) || 0),
+      is_active: v.is_active !== false,
+      recipes: (v.recipes ?? [])
+        .map(r => ({
+          inventory_item_id: String(r.inventory_item_id ?? "").trim(),
+          qty_per_menu: Number(r.qty_per_menu),
+        }))
+        .filter(r => r.inventory_item_id !== ""),
+    })),
+  }));
+}
+
+/** Tulis ulang seluruh grup varian satu menu dalam satu transaksi RPC.
+ *  Mengembalikan pesan kesalahan, atau null bila berhasil. */
+async function replaceOptions(
+  cafeId: string,
+  menuId: string,
+  groups: OptionGroupDraft[],
+): Promise<string | null> {
+  const { data, error } = await supabaseAdmin.rpc("replace_menu_options", {
+    p_cafe_id: cafeId,
+    p_menu_id: menuId,
+    p_groups: groups,
+  });
+  if (error) return error.message;
+
+  const rpcError = (data as { error?: string } | null)?.error;
+  if (!rpcError) return null;
+  if (rpcError === "menu_not_found") return "menu tidak ditemukan.";
+  if (rpcError === "inventory_item_not_found") return "bahan inventory tidak ditemukan.";
+  if (rpcError === "too_many_groups") return "maksimal 10 grup per menu.";
+  if (rpcError === "invalid_option_recipe") return "data bahan varian tidak valid.";
+  return "data varian tidak valid.";
 }
 
 /** Revalidate konsol dashboard dan sisi pelanggan satu kafe (bukan seluruh `/`). */
@@ -171,6 +245,11 @@ export async function getMenuEditorData(id: string): Promise<{
   values?: Partial<MenuFormValues>;
   imageUrl?: string | null;
   categories?: string[];
+  /** Terisi bila grup varian gagal dimuat. Saat itu `values.option_groups`
+   *  sengaja DIBIARKAN undefined — form yang mengirim array kosong dari daftar
+   *  yang gagal dimuat akan menghapus varian pemilik tanpa ia pernah
+   *  melihatnya. */
+  optionsError?: string;
 }> {
   let cafeId: string;
   try {
@@ -179,7 +258,7 @@ export async function getMenuEditorData(id: string): Promise<{
     return { error: pesanOtorisasi(e) };
   }
 
-  const [menuRes, catRes] = await Promise.all([
+  const [menuRes, catRes, opsi] = await Promise.all([
     supabaseAdmin
       .from("Menus")
       .select(
@@ -189,6 +268,9 @@ export async function getMenuEditorData(id: string): Promise<{
       .eq("cafe_id", cafeId)
       .maybeSingle(),
     supabaseAdmin.from("Menus").select("category").eq("cafe_id", cafeId),
+    // Varian nonaktif ikut ditarik (activeOnly=false): pemilik harus bisa
+    // menyalakannya kembali saat topping yang habis kemarin datang lagi.
+    getMenuOptionsForOwner(cafeId, id),
   ]);
   if (menuRes.error) return { error: menuRes.error.message };
   if (!menuRes.data) return { error: "Menu tidak ditemukan." };
@@ -215,6 +297,23 @@ export async function getMenuEditorData(id: string): Promise<{
       serve_time_minutes: m.prep_time_minutes ?? null,
       calories: m.calories ?? null,
       ingredients: m.ingredients ?? "",
+      // ── Tambahan ──
+      option_groups: opsi.error ? undefined : withKeys(
+        opsi.groups.map(g => ({
+          name: g.name,
+          min_select: g.min_select,
+          max_select: g.max_select,
+          values: (g.values ?? []).map(v => ({
+            name: v.name,
+            price_delta: v.price_delta,
+            is_active: v.is_active,
+            recipes: (v.recipes ?? []).map(r => ({
+              inventory_item_id: r.inventory_item_id,
+              qty_per_menu: r.qty_per_menu,
+            })),
+          })),
+        })),
+      ),
       // ── Digital Menu ──
       is_active: m.is_active !== false,
       schedule_days: m.schedule_days ?? "",
@@ -227,5 +326,6 @@ export async function getMenuEditorData(id: string): Promise<{
     },
     imageUrl: m.image_url,
     categories,
+    optionsError: opsi.error ?? undefined,
   };
 }

@@ -8,6 +8,7 @@ import RevenueChart from "@/components/dp/RevenueChart";
 import RankPanel from "@/components/dp/RankPanel";
 import HeatmapJam from "@/components/dp/HeatmapJam";
 import CumulativeChart from "@/components/dp/CumulativeChart";
+import Sparkline from "@/components/dp/Sparkline";
 import MixBar from "@/components/dp/MixBar";
 import Funnel from "@/components/dp/Funnel";
 import { buatCsv } from "@/components/dp/TransaksiTable";
@@ -28,6 +29,26 @@ const TITIK: TitikHari[] = [
   { iso: "2026-08-28", label: "28 Agu", value: 250_000, valuePrev: 300_000, orders: 9, ordersPrev: 11 },
   { iso: "2026-08-29", label: "29 Agu", value: 0, valuePrev: 50_000, orders: 0, ordersPrev: 3 },
 ];
+
+const KUMULATIF: TitikKumulatif[] = [
+  { iso: "2026-08-30", label: "30 Agu", kini: 48_000, lalu: 0, masaDepan: false },
+  { iso: "2026-08-31", label: "31 Agu", kini: 48_000, lalu: 0, masaDepan: false },
+  { iso: "2026-09-01", label: "1 Sep", kini: 48_000, lalu: 0, masaDepan: false },
+  { iso: "2026-09-02", label: "2 Sep", kini: 96_250, lalu: 0, masaDepan: false },
+];
+
+describe("sparkline pendapatan di Ringkasan", () => {
+  it("memberi tooltip interaktif dan akses keyboard untuk setiap hari", async () => {
+    render(<Sparkline titik={KUMULATIF} labelBanding="23 Agu – 29 Agu" />);
+    const hari = screen.getByRole("button", { name: /1 Sep: kumulatif Rp 48.000/ });
+
+    hari.focus();
+    const tip = await screen.findByRole("status");
+    expect(within(tip).getByText("Rp 48.000")).toBeTruthy();
+    expect(within(tip).getByText("Rp 0")).toBeTruthy();
+    expect(hari.getAttribute("aria-describedby")).toBe(tip.id);
+  });
+});
 
 function renderChart() {
   return render(<RevenueChart titik={TITIK} puncak={1} labelBanding="20 Agu – 26 Agu" />);
@@ -299,6 +320,26 @@ describe("corong tamu", () => {
     expect(screen.getByText("0% lanjut")).toBeTruthy();
     expect(screen.getByText("— lanjut")).toBeTruthy();
     expect(screen.getByText("150 sebelumnya")).toBeTruthy();
+  });
+
+  it("tidak menampilkan rasio di atas 100% ketika cacah antar sumber tidak berurutan", () => {
+    render(
+      <Funnel
+        corong={{
+          langkah: [
+            { key: "a", label: "Buka menu", nilai: 5, lalu: 4 },
+            { key: "b", label: "Mulai pesan", nilai: 20, lalu: 10 },
+            { key: "c", label: "Checkout", nilai: 19, lalu: 18 },
+            { key: "d", label: "Pesanan masuk", nilai: 50, lalu: 20 },
+          ],
+        }}
+        kosong="kosong"
+      />,
+    );
+
+    expect(screen.getAllByText("100% lanjut")).toHaveLength(2);
+    expect(screen.queryByText("400% lanjut")).toBeNull();
+    expect(screen.queryByText("263% lanjut")).toBeNull();
   });
 });
 

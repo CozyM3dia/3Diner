@@ -3,8 +3,9 @@ import { getStaffContext, canOpenOwnerConsole } from "@/lib/staff-context";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import ItemsGrid, { type GridItem } from "@/components/dp/ItemsGrid";
 import MenuEditorHost from "@/components/dp/MenuEditorHost";
+import { dedupeMenuCatalog } from "@/lib/menu-catalog";
 
-export const metadata = { title: "Items · 3Diner" };
+export const metadata = { title: "Item · 3Diner" };
 export const dynamic = "force-dynamic";
 
 /** Halaman Items — recreation `items.html` Dream POS.
@@ -25,7 +26,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
     new Set((data ?? []).map(m => (m.category ?? "").trim()).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b, "id"));
 
-  const items: GridItem[] = (data ?? []).map(m => ({
+  const items: GridItem[] = dedupeMenuCatalog((data ?? []) as Array<{ nama_menu: string | null; image_url: string | null; id_menu: string; harga_menu: number | null; category: string | null; is_active: boolean }>).map(m => ({
     id_menu: m.id_menu,
     nama_menu: m.nama_menu ?? "(tanpa nama)",
     harga_menu: m.harga_menu,

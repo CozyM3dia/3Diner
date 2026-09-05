@@ -3,7 +3,7 @@ import { getStaffContext, canOpenOwnerConsole } from "@/lib/staff-context";
 import { getEffectivePermissions, getDefaultMatrix } from "@/lib/role-permissions";
 import PermissionsMatrix from "@/components/dp/PermissionsMatrix";
 
-export const metadata = { title: "Roles & Permissions · 3Diner" };
+export const metadata = { title: "Peran & Izin · 3Diner" };
 export const dynamic = "force-dynamic";
 
 /** Roles & Permissions — matriks wewenang EFEKTIF per kafe:
@@ -20,7 +20,7 @@ export default async function Page() {
     <>
       <div className="dp-page-head">
         <div>
-          <h1>Roles &amp; Permissions</h1>
+          <h1>Peran &amp; Izin</h1>
           <p className="dp-page-sub">
             Bawaan ditetapkan di kode; perubahan di halaman ini disimpan sebagai override
             per kafe dan langsung berlaku.

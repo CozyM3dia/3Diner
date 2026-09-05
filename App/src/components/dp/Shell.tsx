@@ -18,7 +18,6 @@ import {
   PanelLeftOpenIcon,
   PercentIcon,
   PrinterIcon,
-  PuzzleIcon,
   SearchIcon,
   SettingsIcon,
   ShieldCheckIcon,
@@ -52,6 +51,21 @@ type NavItem = {
 
 type NavSection = { title: string; items: NavItem[] };
 
+type ShellRouteDefinition = {
+  path: string;
+  section: string;
+  label: string;
+  /** Item sidebar yang mewakili rute ini. Kosong untuk lembar tanpa item rail. */
+  activeHref?: Route;
+  exact?: boolean;
+};
+
+export type ShellRouteState = {
+  section: string | null;
+  label: string | null;
+  activeHref: Route | null;
+};
+
 /** Semua bagian tampil sekaligus. Rail-ikon-plus-panel milik template lama
  *  menyembunyikan tiga dari empat grup di balik klik, menghabiskan 276px
  *  tetap, dan grup teratasnya hanya berisi satu item. */
@@ -74,7 +88,6 @@ const NAV: NavSection[] = [
     items: [
       { label: "Kategori", href: "/dashboard-v2/kategori", icon: TagsIcon },
       { label: "Item", href: "/dashboard-v2/items", icon: PackageIcon },
-      { label: "Tambahan", href: "/dashboard-v2/addons", icon: PuzzleIcon },
     ],
   },
   {
@@ -89,6 +102,48 @@ const NAV: NavSection[] = [
     ],
   },
 ];
+
+/** Lembar yang tidak punya item sidebar sendiri, atau memakai item induk.
+ *  Rute editor menu sengaja menunjuk ke Item; Penjualan dan Panduan hanya
+ *  mengisi breadcrumb agar Dashboard tidak ikut menyala sebagai fallback.
+ */
+const ROUTE_ALIASES: ShellRouteDefinition[] = [
+  { path: "/dashboard-v2/menu/new", section: "Menu", label: "Item baru", activeHref: "/dashboard-v2/items" },
+  { path: "/dashboard-v2/menu", section: "Menu", label: "Edit item", activeHref: "/dashboard-v2/items" },
+  { path: "/dashboard-v2/addons", section: "Menu", label: "Tambahan", activeHref: "/dashboard-v2/items" },
+  { path: "/dashboard-v2/penjualan", section: "Ringkasan", label: "Penjualan" },
+  { path: "/dashboard-v2/panduan", section: "Bantuan", label: "Panduan" },
+  {
+    path: "/dashboard-v2/pengaturan/qr",
+    section: "Pengaturan",
+    label: "QR Smart Menu",
+    activeHref: "/dashboard-v2/pengaturan",
+  },
+];
+
+/** Satu resolver dipakai breadcrumb dan status aktif supaya keduanya tidak
+ *  bisa berbeda pendapat. Pencocokan terpanjang menang untuk rute nested;
+ *  Dashboard root wajib exact agar bukan fallback semua `/dashboard-v2/*`.
+ */
+export function resolveShellRoute(pathname: string): ShellRouteState {
+  const routes: ShellRouteDefinition[] = [
+    ...NAV.flatMap((section) =>
+      section.items.flatMap((item) =>
+        item.href
+          ? [{ path: item.href, section: section.title, label: item.label, activeHref: item.href, exact: item.href === "/dashboard-v2" }]
+          : [],
+      ),
+    ),
+    ...ROUTE_ALIASES,
+  ];
+  const matches = (route: ShellRouteDefinition) =>
+    route.exact ? pathname === route.path : pathname === route.path || pathname.startsWith(`${route.path}/`);
+  const active = routes.filter(matches).sort((a, b) => b.path.length - a.path.length)[0];
+
+  return active
+    ? { section: active.section, label: active.label, activeHref: active.activeHref ?? null }
+    : { section: null, label: null, activeHref: null };
+}
 
 const clerkConfigured = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
@@ -251,18 +306,10 @@ export default function DpShell({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // Rute bersarang (`/pengaturan` vs `/pengaturan/pajak`) membuat startsWith
-  // menyalakan dua item sekaligus. Yang menyala adalah pencocokan TERPANJANG.
-  const semuaItem = NAV.flatMap((s) => s.items);
-  const cocok = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
-  const hrefTerpanjang = semuaItem
-    .map((i) => i.href)
-    .filter((h): h is Route => !!h && cocok(h))
-    .sort((a, b) => b.length - a.length)[0];
-
-  const isActive = (item: NavItem) => !!item.href && item.href === hrefTerpanjang;
-  const itemAktif = semuaItem.find(isActive);
-  const seksiAktif = NAV.find((s) => s.items.some(isActive));
+  // Resolver yang sama mengendalikan breadcrumb dan rail aktif. Ini mencegah
+  // root Dashboard menjadi fallback untuk lembar seperti Penjualan/Panduan.
+  const routeState = resolveShellRoute(pathname);
+  const isActive = (item: NavItem) => !!item.href && item.href === routeState.activeHref;
 
   const renderItem = (item: NavItem) => {
     const aktif = isActive(item);
@@ -387,11 +434,11 @@ export default function DpShell({
           {/* Remah roti menggantikan search bar dekoratif yang dulu duduk di
               sini: memberi tahu posisi, bukan berpura-pura punya fungsi. */}
           <div className="dv3-crumb">
-            {seksiAktif && itemAktif ? (
+            {routeState.section && routeState.label ? (
               <>
-                <span>{seksiAktif.title}</span>
+                <span>{routeState.section}</span>
                 <span aria-hidden>/</span>
-                <b>{itemAktif.label}</b>
+                <b>{routeState.label}</b>
               </>
             ) : (
               <b>Konsol</b>
@@ -420,10 +467,12 @@ export default function DpShell({
           </div>
         </header>
 
-        <main className="dv3-content">{children}</main>
+        <main className="dv3-content">
+          {children}
+          {pathname !== "/dashboard-v2/dapur" && <SetupChecklist />}
+        </main>
       </div>
 
-      {pathname !== "/dashboard-v2/dapur" && <SetupChecklist />}
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );

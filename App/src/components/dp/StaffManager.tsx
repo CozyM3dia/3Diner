@@ -105,7 +105,7 @@ export default function StaffManager({
   return (
     <>
       <div className="dp-page-head">
-        <h1>Manage Staffs</h1>
+        <h1>Kelola Staf</h1>
         <div className="dp-page-head-tools">
           <button
             type="button"
@@ -116,7 +116,7 @@ export default function StaffManager({
               setAddOpen(true);
             }}
           >
-            <PlusIcon className="h-4 w-4" /> Add Staff
+            <PlusIcon className="h-4 w-4" /> Tambah Staf
           </button>
         </div>
       </div>
@@ -161,7 +161,7 @@ export default function StaffManager({
                     <th>Peran</th>
                     <th>Bergabung</th>
                     <th>Status</th>
-                    <th>Actions</th>
+                    <th>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
