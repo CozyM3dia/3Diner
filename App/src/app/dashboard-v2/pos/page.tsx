@@ -67,6 +67,9 @@ export default async function PosPage() {
       .limit(400),
   ]);
 
+  for (const result of [menusRes, groupsRes, cafeRes, recentRes, tablesRes]) {
+    if (result.error) throw new Error("Data POS belum dapat dimuat.");
+  }
   const cafe = cafeRes.data;
 
   // Cast eksplisit: tanpa generic Database, embed bersarang diinfer PostgREST

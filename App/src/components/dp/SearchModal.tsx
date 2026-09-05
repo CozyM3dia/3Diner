@@ -158,7 +158,7 @@ export default function SearchModal({ open, onClose }: { open: boolean; onClose:
                   <b>{STATUS_LABEL[o.status ?? ""] ?? o.status ?? "Pesanan"} · Meja {o.table_number ?? "-"}</b>
                   <small>{new Intl.DateTimeFormat("id-ID", { dateStyle: "short", timeStyle: "short" }).format(new Date(o.created_at))}</small>
                 </span>
-                <span className="dp-smodal-row-side">#{o.id_order.slice(0, 5).toUpperCase()}</span>
+                <span className="dp-smodal-row-side">#{o.id_order.slice(-8).toUpperCase()}</span>
               </Link>
             ))
           ) : (

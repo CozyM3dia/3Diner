@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { XIcon } from "lucide-react";
-import { addLineToExistingOrder, type ExistingOrderLine } from "@/lib/pos-order-actions";
+import { addLineToExistingOrder, type ExistingOrderLine, type PosOrderActionResult } from "@/lib/pos-order-actions";
 import type { PosMenu, PosMenuOption } from "@/components/pos/PosBoard";
 
 const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
@@ -15,7 +15,7 @@ type Props = {
   cafeId: string;
   onClose: () => void;
   /** Dipanggil setelah item sukses ditambahkan (di luar tombol close). */
-  onDone?: () => void;
+  onDone?: (result: PosOrderActionResult) => void;
 };
 
 /** Modal "Item Details" ala template: foto besar + deskripsi + varian + add-ons.
@@ -24,19 +24,25 @@ type Props = {
  *  tetap divalidasi server). */
 export default function PosItemModal({ menu, optionGroups, order, cafeId, onClose, onDone }: Props) {
   const groups = optionGroups.filter(g => g.menuId === menu.id);
-  const [pick, setPick] = useState<Map<string, string>>(new Map());
+  const salePrice = Math.round(menu.price * (1 - Math.min(100, Math.max(0, menu.discountPct ?? 0)) / 100));
+  const [pick, setPick] = useState<Set<string>>(new Set());
   const [itemNote, setItemNote] = useState("");
   const [qty, setQty] = useState(1);
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const submitting = useRef(false);
   function toggle(groupId: string, v: { id: string }) {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
     setPick(prev => {
-      const next = new Map(prev);
-      if (next.get(groupId) === v.id) {
-        next.delete(groupId);
-      } else {
-        next.set(groupId, v.id);
+      const next = new Set(prev);
+      if (next.has(v.id)) next.delete(v.id);
+      else {
+        const selected = group.values.filter(option => next.has(option.id));
+        if (group.maxSelect === 1) selected.forEach(option => next.delete(option.id));
+        else if (selected.length >= group.maxSelect) return prev;
+        next.add(v.id);
       }
       return next;
     });
@@ -46,7 +52,7 @@ export default function PosItemModal({ menu, optionGroups, order, cafeId, onClos
   function add() {
     const options: ExistingOrderLine["options"] = [];
     for (const g of groups) {
-      const pickedIds = [...pick.entries()].filter(([gid]) => gid === g.id).map(([, vid]) => vid);
+      const pickedIds = g.values.filter(v => pick.has(v.id)).map(v => v.id);
       if (pickedIds.length < g.minSelect) {
         setErr(`Pilih minimal ${g.minSelect} pada “${g.name}”.`);
         return;
@@ -62,15 +68,21 @@ export default function PosItemModal({ menu, optionGroups, order, cafeId, onClos
       harga_menu: menu.price,
       qty,
       options,
+      note: itemNote.trim() || undefined,
     };
+    if (submitting.current) return;
+    submitting.current = true;
     startTransition(async () => {
+      try {
       const res = await addLineToExistingOrder(cafeId, order.id, [line]);
       if (res.error) {
         setErr(res.error);
         return;
       }
-      onDone?.();
+      onDone?.(res);
       onClose();
+      } catch { setErr("Koneksi terputus. Coba lagi."); }
+      finally { submitting.current = false; }
     });
   }
 
@@ -102,7 +114,7 @@ export default function PosItemModal({ menu, optionGroups, order, cafeId, onClos
                 <legend>{g.name}</legend>
                 <div className="dp-item-sizes">
                   {g.values.map(v => {
-                    const on = pick.get(g.id) === v.id;
+                    const on = pick.has(v.id);
                     return (
                       <button
                         key={v.id}
@@ -133,7 +145,7 @@ export default function PosItemModal({ menu, optionGroups, order, cafeId, onClos
                   −
                 </button>
                 <b>{qty}</b>
-                <button type="button" aria-label="Tambah" onClick={() => setQty(q => q + 1)}>
+                <button type="button" aria-label="Tambah" onClick={() => setQty(q => Math.min(50, q + 1))}>
                   +
                 </button>
               </span>
@@ -145,6 +157,7 @@ export default function PosItemModal({ menu, optionGroups, order, cafeId, onClos
                 value={itemNote}
                 onChange={e => setItemNote(e.target.value)}
                 rows={2}
+                maxLength={140}
                 placeholder="mis. tanpa bawang, saus terpisah"
               />
             </label>
@@ -154,7 +167,7 @@ export default function PosItemModal({ menu, optionGroups, order, cafeId, onClos
         </div>
 
         <div className="dp-modal-foot">
-          <span className="dp-item-total">{rupiah((menu.price + [...pick.values()].reduce((s, vid) => {
+          <span className="dp-item-total">{rupiah((salePrice + [...pick.values()].reduce((s, vid) => {
             const g = groups.find(x => x.values.some(v => v.id === vid));
             return s + (g?.values.find(v => v.id === vid)?.priceDelta ?? 0);
           }, 0)) * qty)}</span>

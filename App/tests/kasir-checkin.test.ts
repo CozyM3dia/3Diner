@@ -7,7 +7,7 @@ vi.mock("@/lib/rate-limit", () => ({
   consumeRateLimit: vi.fn(async () => ({ allowed: true, retryAfterSeconds: 0 })),
   tooManyRequests: () => Response.json({ error: "rate" }, { status: 429 }),
 }));
-vi.mock("@/lib/staff-context", () => ({ getStaffCafeId: vi.fn(async () => "cafe-1") }));
+vi.mock("@/lib/authorization", () => ({ getOperationsCafeId: vi.fn(async () => "cafe-1") }));
 
 describe("POST /api/kasir/checkin", () => {
   beforeEach(() => { vi.resetModules(); vi.clearAllMocks(); });

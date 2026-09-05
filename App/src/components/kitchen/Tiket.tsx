@@ -1,6 +1,6 @@
 "use client";
 
-import { LockIcon, StickyNoteIcon } from "lucide-react";
+import { CheckIcon, LockIcon, StickyNoteIcon, UtensilsIcon, ShoppingBagIcon } from "lucide-react";
 import BumpAksi from "@/components/kitchen/BumpAksi";
 import {
   TAHAP,
@@ -50,6 +50,8 @@ export default function Tiket({
   const info = TAHAP[tahap];
   const baki = bakiTarget(umur);
   const belumLunas = tiket.payment_status !== "paid";
+  const takeaway = labelMeja(tiket) === "Bawa Pulang";
+  const old = umur !== null && umur >= 86400000;
 
   return (
     <article
@@ -57,6 +59,7 @@ export default function Tiket({
       data-tahap={tahap}
       data-panas={panas}
       data-pergi={pergi || undefined}
+      data-old={old || undefined}
       aria-label={`${labelMeja(tiket)}, ${info.label}, ${durasi(umur)}`}
     >
       <div className="kds-rel" aria-hidden>
@@ -66,17 +69,17 @@ export default function Tiket({
       <div className="kds-tiket-isi">
         <header className="kds-kepala">
           <div>
-            <h3 className="kds-meja">{labelMeja(tiket)}</h3>
+            <span className="kds-ticket-number">TIKET #{kodeTiket(tiket.id_order)}</span>
+            <h3 className="kds-meja">{takeaway ? <ShoppingBagIcon size={18} aria-hidden /> : <UtensilsIcon size={18} aria-hidden />}{labelMeja(tiket)}</h3>
             <p className="kds-jalur">
-              <span>{tiket.table_number ? "Makan di tempat" : "Bawa pulang"}</span>
-              <span className="kds-kode">#{kodeTiket(tiket.id_order)}</span>
+              <span>{takeaway ? "Bawa pulang" : "Makan di tempat"}</span>
               <span>Masuk {jamMasuk(tiket.created_at, sekarang)}</span>
             </p>
           </div>
           <div className="kds-waktu">
             <span className="kds-timer">{durasi(umur)}</span>
             <span className="kds-baki">
-              {tahap === "siap"
+              {old ? "Periksa pesanan lama" : tahap === "tahan" ? "Menunggu kasir" : tahap === "siap"
                 ? "Menunggu diantar"
                 : baki
                   ? baki.mode === "sisa"
@@ -118,6 +121,7 @@ export default function Tiket({
                     {qty}
                   </span>
                   <span className="kds-nama">{item.nama_menu || "Item tanpa nama"}</span>
+                  <span className="kds-line-check" aria-hidden>{selesai.has(kunci) && <CheckIcon size={12} />}</span>
                   {varian && <span className="kds-varian">{varian}</span>}
                   {catatan && <span className="kds-item-catatan">{catatan}</span>}
                 </button>

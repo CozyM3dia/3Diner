@@ -28,8 +28,8 @@ type Props = {
 
 export default function PosItemDetails({ menu, optionGroups, initialQty = 1, onAdd, onClose }: Props) {
   const groups = useMemo(() => optionGroups.filter(g => g.menuId === menu.id), [optionGroups, menu.id]);
-  const sizesGroup = groups[0] ?? null;
-  const addonGroups = groups.slice(1);
+  const sizesGroup = groups.find(g => g.maxSelect === 1) ?? null;
+  const addonGroups = groups.filter(g => g !== sizesGroup);
 
   const [sizeId, setSizeId] = useState<string | null>(
     // Referensi: tidak ada chip terpreselect — kasir memilih sendiri.
@@ -80,7 +80,7 @@ export default function PosItemDetails({ menu, optionGroups, initialQty = 1, onA
       const pickedCount =
         g === sizesGroup
           ? (sizeId ? 1 : 0)
-          : addonGroups.reduce((s, ag) => s + ([...addons].some(id => ag.values.some(v => v.id === id)) ? 1 : 0), 0);
+          : g.values.filter(v => addons.has(v.id)).length;
       if (pickedCount < g.minSelect) {
         setErr(`Pilih minimal ${g.minSelect} pada “${g.name}”.`);
         return;
@@ -158,7 +158,7 @@ export default function PosItemDetails({ menu, optionGroups, initialQty = 1, onA
                       type="button"
                       className={`pos-id-size${on ? " pos-id-size-on" : ""}`}
                       aria-pressed={on}
-                      onClick={() => { setSizeId(v.id); setErr(null); }}
+                      onClick={() => { setSizeId(on ? null : v.id); setErr(null); }}
                     >
                       {v.name}
                       <b>{v.priceDelta > 0 ? `+${rupiah(v.priceDelta)}` : rupiah(menu.price)}</b>

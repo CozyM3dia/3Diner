@@ -1,3 +1,4 @@
+import { orderNumber } from "@/lib/order-number";
 /** Model domain papan dapur. Murni — tanpa React, tanpa Supabase, tanpa DOM.
  *
  *  Papan lama mencampur dua hal berbeda ke dalam satu enum: "Pesanan Baru",
@@ -114,7 +115,8 @@ export function tahapDari(status: OrderStatus | string): Tahap {
  *  klien, dan React membuang seluruh pohonnya karena teksnya tidak cocok. */
 export function umurMs(tiket: TiketDapur, sekarang: number | null): number | null {
   if (sekarang === null) return null;
-  return Math.max(0, sekarang - Date.parse(tiket.created_at));
+  const created = Date.parse(tiket.created_at);
+  return Number.isFinite(created) ? Math.max(0, sekarang - created) : null;
 }
 
 /** Tingkat urgensi dari umur.
@@ -144,11 +146,11 @@ export function lajuPanas(umur: number | null): number {
  *  Lewat sehari: hari + jam, karena "51:20" terbaca sebagai lima puluh satu
  *  menit oleh mata yang sedang buru-buru. */
 export function durasi(ms: number | null): string {
-  if (ms === null) return "--:--";
+  if (ms === null || !Number.isFinite(ms)) return "--:--";
   const detikTotal = Math.max(0, Math.floor(ms / 1000));
   const dua = (n: number) => String(n).padStart(2, "0");
   const hari = Math.floor(detikTotal / 86400);
-  if (hari > 0) return `${hari}h ${Math.floor((detikTotal % 86400) / 3600)}j`;
+  if (hari > 0) return `${hari} hari ${Math.floor((detikTotal % 86400) / 3600)}j`;
   const jam = Math.floor(detikTotal / 3600);
   if (jam > 0) return `${jam}j ${dua(Math.floor((detikTotal % 3600) / 60))}m`;
   return `${dua(Math.floor(detikTotal / 60))}:${dua(detikTotal % 60)}`;
@@ -172,25 +174,25 @@ export function bakiTarget(umur: number | null): { mode: "sisa" | "lewat"; menit
  *  petunjuk bahwa kartu itu memang bukan dari shift ini. */
 export function jamMasuk(iso: string, sekarang: number | null): string {
   const t = new Date(iso);
-  const waktu = t.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  if (!Number.isFinite(t.getTime())) return "Waktu tidak tersedia";
+  const waktu = t.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
   if (sekarang === null) return waktu;
   const hariIni = new Date(sekarang);
-  const samaHari =
-    t.getFullYear() === hariIni.getFullYear() &&
-    t.getMonth() === hariIni.getMonth() &&
-    t.getDate() === hariIni.getDate();
+  const samaHari = t.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }) === hariIni.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
   if (samaHari) return waktu;
-  return `${t.toLocaleDateString("id-ID", { day: "numeric", month: "short" })} ${waktu}`;
+  return `${t.toLocaleDateString("id-ID", { day: "numeric", month: "short", timeZone: "Asia/Jakarta" })} ${waktu}`;
 }
 
 /** Empat digit terakhir id pesanan. Cukup untuk dipanggil dengan suara di
  *  dapur yang berisik, dan pendek supaya muat di satu baris bersama nomor meja. */
 export function kodeTiket(id: string): string {
-  return id.slice(-4).toUpperCase();
+  return orderNumber(id);
 }
 
 export function labelMeja(tiket: TiketDapur): string {
-  return tiket.table_number ? `Meja ${tiket.table_number}` : "Bawa Pulang";
+  const meja = tiket.table_number?.trim();
+  if (!meja || /^(bungkus|take\s*away|bawa\s*pulang)$/i.test(meja)) return "Bawa Pulang";
+  return /^meja\b/i.test(meja) ? meja : `Meja ${meja}`;
 }
 
 /** Varian yang dipilih pelanggan, diringkas jadi satu baris.

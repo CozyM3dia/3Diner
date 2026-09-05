@@ -1,5 +1,9 @@
 "use client";
 
+import Link from "next/link";
+import { orderNumber } from "@/lib/order-number";
+import type { SelectedOption } from "@/types";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircleIcon,
@@ -26,7 +30,7 @@ import Petunjuk from "@/components/dp/Petunjuk";
 import { updateOrderStatus } from "@/lib/dashboard-actions";
 import { cancelOrder } from "@/lib/kasir-actions";
 import { buildReceiptHtml, printReceipt } from "@/lib/receipt-html";
-import { createClient } from "@/lib/supabase/client";
+
 
 /** Papan Pesanan konsol owner (rebuild 5 Sep 2026).
  *
@@ -59,7 +63,7 @@ export type BoardOrder = {
   service_pct?: number | null;
   service_amount?: number | null;
   prices_include_tax?: boolean | null;
-  items: { nama_menu?: string | null; qty?: number | null; harga_menu?: number | null }[];
+  items: { nama_menu?: string | null; qty?: number | null; harga_menu?: number | null; notes?: string | null; options?: SelectedOption[] }[];
   notes?: string | null;
   cancelled_reason?: string | null;
 };
@@ -91,10 +95,10 @@ function umurLabel(iso: string): string {
 }
 
 /** Nomor tampilan mengikuti seluruh konsol: 5 karakter terakhir UUID. */
-const nomor = (id: string) => `#${id.slice(-5)}`;
+const nomor = (id: string) => `#${orderNumber(id)}`;
 
 const mejaLabel = (t: string | null) =>
-  !t?.trim() ? "Take Away" : /^(bungkus|delivery|take ?away)$/i.test(t.trim()) ? t.trim() : `Meja ${t.trim()}`;
+  !t?.trim() ? "Take Away" : /^(bungkus|delivery|take ?away)$/i.test(t.trim()) ? t.trim() : /^meja\b/i.test(t.trim()) ? t.trim() : `Meja ${t.trim()}`;
 
 /** Nada warna: satu peta untuk KPI, chip status, dan kepala kolom kanban.
  *  Nilainya adalah nama token yang didefinisikan di pesanan.css untuk kedua
@@ -164,48 +168,13 @@ const PRESET_BATAL = ["Tamu batal memesan", "Stok bahan habis", "Salah input mej
  *  Satu-satunya sumber kebenaran untuk tombol baris DAN tombol kartu, supaya
  *  dua tampilan tidak bisa menawarkan transisi yang berbeda. */
 function langkahBerikut(status: string): { ke: "preparing" | "completed"; label: string; icon: LucideIcon } | null {
-  if (["awaiting", "awaiting_checkin", "received"].includes(status)) {
+  if (status === "received") {
     return { ke: "preparing", label: "Proses", icon: ChefHatIcon };
   }
   if (["preparing", "ready", "on_delivery"].includes(status)) {
     return { ke: "completed", label: "Selesaikan", icon: CheckIcon };
   }
   return null;
-}
-
-function gabungPesanan(lama: BoardOrder | undefined, baris: Record<string, unknown>): BoardOrder | null {
-  const id = typeof baris.id_order === "string" ? baris.id_order : lama?.id_order;
-  if (!id) return lama ?? null;
-  const angka = (k: string, jatuh: number | null | undefined) =>
-    typeof baris[k] === "number" ? (baris[k] as number) : jatuh ?? null;
-  return {
-    id_order: id,
-    created_at:
-      typeof baris.created_at === "string" && baris.created_at ? baris.created_at : lama?.created_at ?? "",
-    status: typeof baris.status === "string" ? baris.status : lama?.status ?? "awaiting",
-    payment_status:
-      typeof baris.payment_status === "string" ? baris.payment_status : lama?.payment_status ?? "unpaid",
-    payment_method:
-      "payment_method" in baris ? (baris.payment_method as string | null) : lama?.payment_method ?? null,
-    table_number:
-      "table_number" in baris ? (baris.table_number as string | null) : lama?.table_number ?? null,
-    total: angka("total", lama?.total),
-    subtotal: angka("subtotal", lama?.subtotal),
-    tax_pct: angka("tax_pct", lama?.tax_pct),
-    tax_amount: angka("tax_amount", lama?.tax_amount),
-    service_pct: angka("service_pct", lama?.service_pct),
-    service_amount: angka("service_amount", lama?.service_amount),
-    prices_include_tax:
-      typeof baris.prices_include_tax === "boolean"
-        ? baris.prices_include_tax
-        : lama?.prices_include_tax ?? null,
-    items: Array.isArray(baris.items) ? (baris.items as BoardOrder["items"]) : lama?.items ?? [],
-    notes: "notes" in baris ? (baris.notes as string | null) : lama?.notes ?? null,
-    cancelled_reason:
-      "cancelled_reason" in baris
-        ? (baris.cancelled_reason as string | null)
-        : lama?.cancelled_reason ?? null,
-  };
 }
 
 export default function OrdersBoard({
@@ -222,13 +191,7 @@ export default function OrdersBoard({
   const [lastProp, setLastProp] = useState<BoardOrder[]>(orders);
   if (orders !== lastProp) {
     setLastProp(orders);
-    setRows(prev => {
-      const byId = new Map(orders.map(o => [o.id_order, o]));
-      for (const o of prev) {
-        if (!byId.has(o.id_order)) byId.set(o.id_order, o);
-      }
-      return [...byId.values()].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
-    });
+    setRows(orders);
   }
 
   const [tab, setTab] = useState<string>("semua");
@@ -242,45 +205,33 @@ export default function OrdersBoard({
   const [liveOn, setLiveOn] = useState(false);
 
   useEffect(() => {
-    if (!cafeId) return;
-    const supabase = createClient();
+    if (!cafeId || busyId || batalFor) return;
     let disposed = false;
-    const channel = supabase
-      .channel(`pesanan-${cafeId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "Orders", filter: `cafe_id=eq.${cafeId}` },
-        payload => {
-          if (disposed) return;
-          setRows(prev => {
-            if (payload.eventType === "DELETE") {
-              const gone = payload.old as { id_order?: string };
-              return prev.filter(o => o.id_order !== gone.id_order);
-            }
-            const baris = payload.new as Record<string, unknown>;
-            const next = gabungPesanan(
-              prev.find(o => o.id_order === baris.id_order),
-              baris,
-            );
-            if (!next) return prev;
-            if (prev.some(o => o.id_order === next.id_order)) {
-              return prev.map(o => (o.id_order === next.id_order ? next : o));
-            }
-            return [next, ...prev];
-          });
-        },
-      )
-      // Lencana "Langsung" hanya menyala kalau kanalnya benar-benar tersambung.
-      // Lencana yang selalu hijau tidak memberi tahu apa pun.
-      .subscribe(status => {
-        if (!disposed) setLiveOn(status === "SUBSCRIBED");
-      });
-    return () => {
-      disposed = true;
-      setLiveOn(false);
-      supabase.removeChannel(channel);
+    let request: AbortController | null = null;
+    const refresh = async () => {
+      if (disposed || request || document.visibilityState === "hidden") return;
+      request = new AbortController();
+      const timeout = setTimeout(() => request?.abort(), 12000);
+      try {
+        const response = await fetch("/api/console/orders", { cache: "no-store", signal: request.signal });
+        const body = await response.json();
+        if (!response.ok || !Array.isArray(body.orders)) throw new Error("sync_failed");
+        if (!disposed) { setRows(body.orders); setLiveOn(true); }
+      } catch { if (!disposed) setLiveOn(false); }
+      finally { clearTimeout(timeout); request = null; }
     };
-  }, [cafeId]);
+    const first = setTimeout(() => void refresh(), 0);
+    const timer = setInterval(() => void refresh(), 5000);
+    const wake = () => { void refresh(); };
+    document.addEventListener("visibilitychange", wake);
+    window.addEventListener("online", wake);
+    window.addEventListener("focus", wake);
+    return () => {
+      disposed = true; request?.abort(); clearTimeout(first); clearInterval(timer);
+      document.removeEventListener("visibilitychange", wake);
+      window.removeEventListener("online", wake); window.removeEventListener("focus", wake);
+    };
+  }, [cafeId, busyId, batalFor]);
 
   // Tutup panel/dialog dengan Escape.
   useEffect(() => {
@@ -295,14 +246,14 @@ export default function OrdersBoard({
   }, [openId, batalFor]);
 
   const count = useCallback(
-    (key: string) => (key === "semua" ? rows.length : rows.filter(o => o.status === key).length),
+    (key: string) => (key === "semua" ? rows.length : rows.filter(o => key === "awaiting" ? ["awaiting", "received"].includes(o.status) : o.status === key).length),
     [rows],
   );
 
   const unpaid = rows.filter(o => o.payment_status !== "paid" && o.status !== "cancelled").length;
 
   const filtered = useMemo(() => {
-    let base = tab === "semua" ? rows : rows.filter(o => o.status === tab);
+    let base = tab === "semua" ? rows : rows.filter(o => tab === "awaiting" ? ["awaiting", "received"].includes(o.status) : o.status === tab);
     if (onlyUnpaid) base = base.filter(o => o.payment_status !== "paid" && o.status !== "cancelled");
     const needle = q.trim().toLowerCase();
     if (!needle) return base;
@@ -351,8 +302,10 @@ export default function OrdersBoard({
   async function ubahStatus(o: BoardOrder, status: "preparing" | "completed") {
     setBusyId(o.id_order);
     setPesan(null);
-    const res = await updateOrderStatus(o.id_order, status);
-    setBusyId(null);
+    let res: { error?: string };
+    try { res = await updateOrderStatus(o.id_order, status); }
+    catch { res = { error: "Penyimpanan belum terkonfirmasi. Segarkan dan periksa status sebelum mencoba lagi." }; }
+    finally { setBusyId(null); }
     if (res.error) {
       setPesan({ ok: false, text: res.error });
       return;
@@ -373,7 +326,15 @@ export default function OrdersBoard({
             nama_menu: it.nama_menu ?? "Item",
             harga_menu: it.harga_menu ?? 0,
             qty: it.qty ?? 1,
+            notes: it.notes ?? undefined,
+            options: it.options,
           })),
+          subtotal: o.subtotal ?? undefined,
+          tax_pct: o.tax_pct ?? undefined,
+          tax_amount: o.tax_amount ?? undefined,
+          service_pct: o.service_pct ?? undefined,
+          service_amount: o.service_amount ?? undefined,
+          prices_include_tax: o.prices_include_tax ?? undefined,
           total: o.total ?? 0,
           payment_method: (o.payment_method ?? null) as never,
           payment_status: o.payment_status,
@@ -400,12 +361,12 @@ export default function OrdersBoard({
       <header className="psn-head">
         <div>
           <h1>Pesanan</h1>
-          <p>Jendela 30 hari terakhir · {rows.length} pesanan</p>
+          <p>30 hari terakhir + semua pesanan terbuka · {rows.length} pesanan</p>
         </div>
         <div className="psn-head-side">
           <span className={liveOn ? "psn-live psn-live-on" : "psn-live"}>
             <i aria-hidden />
-            {liveOn ? "Langsung" : "Tersambung ulang…"}
+            {liveOn ? "Tersinkron" : "Tersambung ulang…"}
           </span>
           <Petunjuk judul="Saringan & tampilan" bab="pesanan" align="end">
             Papan membaca jendela 30 hari, bukan hari ini saja, jadi pesanan lama yang masih terbuka tetap terlihat.
@@ -690,7 +651,11 @@ function OrderRow({
 
       {/* Aksi tidak boleh ikut membuka panel — klik dihentikan di sini. */}
       <span className="psn-c-act" onClick={e => e.stopPropagation()} role="presentation">
-        {next ? (
+        {o.status === "awaiting" ? (
+            <>
+              <Link className="psn-btn psn-btn-primary" href="/kasir">Check-in di kasir</Link>
+            </>
+          ) : next ? (
           <button
             type="button"
             className="psn-next"
@@ -779,7 +744,12 @@ function OrderCard({
         </p>
       ) : (
         <div className="psn-card-btns">
-          {next ? (
+          {o.status === "awaiting" ? (
+            <>
+              <button type="button" className="psn-btn psn-btn-danger" disabled={busy} onClick={onBatal}>Batalkan</button>
+              <Link className="psn-btn psn-btn-primary" href="/kasir">Check-in di kasir</Link>
+            </>
+          ) : next ? (
             <>
               <button type="button" className="psn-btn psn-btn-danger" disabled={busy} onClick={onBatal}>
                 Batalkan
@@ -894,6 +864,8 @@ function DetailDrawer({
                       <span className="psn-dw-item-amt">{rupiah(harga * qty)}</span>
                       <span className="psn-dw-item-calc">
                         {qty} × {rupiah(harga)}
+                        {it.options?.length ? <><br />{it.options.map(v => v.name).join(" · ")}</> : null}
+                        {it.notes ? <><br />Catatan: {it.notes}</> : null}
                       </span>
                     </li>
                   );
@@ -956,6 +928,7 @@ function DetailDrawer({
         </div>
 
         <footer className="psn-dw-foot">
+          {o.status === "awaiting" && <Link className="psn-btn psn-btn-primary" href="/kasir">Check-in di kasir</Link>}
           {next && (
             <button
               type="button"
@@ -1004,8 +977,10 @@ function BatalDialog({
     }
     setBusy(true);
     setError(null);
-    const res = await cancelOrder(o.id_order, reason.trim());
-    setBusy(false);
+    let res: { error?: string };
+    try { res = await cancelOrder(o.id_order, reason.trim()); }
+    catch { res = { error: "Pembatalan belum terkonfirmasi. Periksa koneksi dan status pesanan." }; }
+    finally { setBusy(false); }
     if (res.error) {
       setError(res.error);
       return;

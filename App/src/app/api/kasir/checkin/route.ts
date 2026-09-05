@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
-import { getStaffCafeId } from "@/lib/staff-context";
+import { getOperationsCafeId as getStaffCafeId } from "@/lib/authorization";
 
 const CHECKIN_PER_IP = { limit: 30, windowSeconds: 60 };
 const CODE_RE = /^[A-Z0-9]{8}$/;

@@ -1647,3 +1647,12 @@ html[data-theme="dark"] .dv3-skel::after {
 @media print {
   .dv3-setup { display: none !important; }
 }
+/* Keep wide tables inside their own scroll areas at phone/tablet widths. */
+.dv3-content, .dp-perm-layout, .dp-perm-layout > *, .dp-card, .dp-card-body { min-width: 0; }
+.dp-table-wrap { max-width: 100%; overscroll-behavior-x: contain; }
+@media (max-width: 900px) { .dp-perm-layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) {
+  .dp-card-head { flex-wrap: wrap; gap: 10px; }
+  .dp-perm-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dp-perm-role { min-height: 42px; }
+}

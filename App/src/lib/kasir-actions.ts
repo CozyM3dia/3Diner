@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getStaffCafeId, getStaffContext } from "@/lib/staff-context";
+import { getStaffContext } from "@/lib/staff-context";
+import { getOperationsCafeId as getStaffCafeId } from "@/lib/authorization";
+import { afterResponse } from "@/lib/after-response";
 
 export interface KasirResult {
   error?: string;
@@ -32,10 +34,9 @@ function readError(message: string | undefined): string {
 }
 
 function revalidateSurfaces() {
-  revalidatePath("/kasir");
-  revalidatePath("/dashboard-v2/pesanan");
-  revalidatePath("/dapur");
-  revalidatePath("/dashboard-v2/dapur");
+  for (const path of ["/kasir", "/dashboard-v2/pesanan", "/dapur", "/dashboard-v2/dapur", "/dashboard-v2/pos", "/dashboard-v2"]) {
+    try { revalidatePath(path); } catch { /* already committed; clients reconcile */ }
+  }
 }
 
 /** Memajukan pesanan satu tahap.
@@ -57,14 +58,14 @@ async function move(orderId: string, next: "preparing" | "ready" | "completed"):
   if (next === "ready") {
     // Event "Pesanan Siap" — hormati preferensi notifikasi kafe.
     const { createNotifications } = await import("@/lib/notifications");
-    await createNotifications(cafeId, "kitchen_ready", [
+    afterResponse(() => createNotifications(cafeId, "kitchen_ready", [
       {
         type: "order",
         title: `Pesanan siap · #${orderId.slice(0, 5)}`,
         body: "Dapur/kasir menandai pesanan siap diantar.",
         href: "/dashboard-v2/pesanan",
       },
-    ]);
+    ]));
   }
   revalidateSurfaces();
   return {};
@@ -112,14 +113,14 @@ export async function cancelOrder(orderId: string, reason: string): Promise<Kasi
 
   // Event "Pesanan Dibatalkan" — hormati preferensi notifikasi kafe.
   const { createNotifications } = await import("@/lib/notifications");
-  await createNotifications(cafeId, "order_cancelled", [
+  afterResponse(() => createNotifications(cafeId, "order_cancelled", [
     {
       type: "order",
       title: `Pesanan dibatalkan · #${orderId.slice(0, 5)}`,
       body: `Alasan: ${trimmed}`,
       href: "/dashboard-v2/pesanan",
     },
-  ]);
+  ]));
 
   revalidateSurfaces();
   return {};
@@ -145,14 +146,14 @@ export async function markCashPaid(orderId: string): Promise<KasirResult> {
   if (!result?.ok) return { error: "Gagal menandai lunas." };
 
   const { createNotifications } = await import("@/lib/notifications");
-  await createNotifications(cafeId, "payment_paid", [
+  afterResponse(() => createNotifications(cafeId, "payment_paid", [
     {
       type: "inbox",
       title: `Pembayaran tunai diterima · #${orderId.slice(0, 5)}`,
       body: "Pesanan ditandai lunas oleh kasir.",
       href: "/dashboard-v2/pesanan",
     },
-  ]);
+  ]));
 
   revalidateSurfaces();
   return {};

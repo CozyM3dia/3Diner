@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { orderNumber } from "@/lib/order-number";
+import { useRouter } from "next/navigation";
 import {
   AlertCircleIcon,
   BikeIcon,
@@ -144,12 +146,7 @@ function umurMenit(iso: string): number {
   return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
 }
 
-/** Nomor order tampilan: 6 hex pertama UUID -> desimal 5 digit.
- *  Memotong UUID mentah (#ec704) persis seperti kode warna CSS. */
-function nomorOrder(id: string): string {
-  const n = parseInt(id.replace(/-/g, "").slice(0, 6), 16) % 100000;
-  return `#${String(n).padStart(5, "0")}`;
-}
+const nomorOrder = (id: string) => `#${orderNumber(id)}`;
 
 /** Umur terformat manusiawi: "baru saja", "12 mnt", "1 j 51 mnt". */
 function umurLabel(iso: string): string {
@@ -255,8 +252,8 @@ export default function PosBoard({
   // Quote basi (keranjang sudah beda) dinetralkan saat render lewat
   // pencocokan signature, bukan setState di dalam effect.
   const cartKey = useMemo(
-    () => JSON.stringify([lines.map(l => [l.key, l.qty, l.note]), tableValue]),
-    [lines, tableValue],
+    () => JSON.stringify([lines.map(l => [l.key, l.qty, l.note]), tableValue, orderNotes]),
+    [lines, tableValue, orderNotes],
   );
   const quoted = quote && quoteKey === cartKey ? quote : null;
 
@@ -462,6 +459,9 @@ export default function PosBoard({
 
   // ── Tulis-path ──────────────────────────────────────────────────────────
 
+  const router = useRouter();
+  const submitting = useRef(false);
+  const attempt = useRef<{ key: string; quoteId: string; cartKey: string; quote: PosQuote } | null>(null);
   async function commit(draft: boolean): Promise<PosCommitted | null> {
     if (orderType === "dine" && !table.trim()) {
       // Galat ditandai pada medannya lalu fokus dipindahkan ke sana: kasir
@@ -471,11 +471,14 @@ export default function PosBoard({
       mejaRef.current?.focus();
       return null;
     }
-    if (lines.length === 0) return null;
-    const qq = await refreshQuote();
+    if (lines.length === 0 || submitting.current) return null;
+    submitting.current = true;
+    try {
+    const saved = attempt.current?.cartKey === cartKey ? attempt.current : null;
+    const qq = saved ? { ...saved.quote, quoteId: saved.quoteId } : await refreshQuote();
     if (!qq) return null;
-
-    const idempotencyKey = crypto.randomUUID();
+    const idempotencyKey = saved?.key ?? crypto.randomUUID();
+    attempt.current = { key: idempotencyKey, quoteId: qq.quoteId, cartKey, quote: qq };
     const res = await fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
@@ -497,12 +500,15 @@ export default function PosBoard({
       | { order?: { id_order?: string }; orderToken?: string; error?: string; message?: string }
       | null;
     if (!res.ok || !data?.order?.id_order || !data.orderToken) {
+      if (res.status >= 400 && res.status < 500) attempt.current = null;
       setMsg({ kind: "err", text: data?.message ?? data?.error ?? "Pesanan gagal dikirim." });
       return null;
     }
 
     const c: PosCommitted = { id: data.order.id_order, token: data.orderToken, table: tableValue };
+    attempt.current = null;
     setCommitted(c);
+    router.refresh();
     setLines([]);
     setNoteKey(null);
     setQuote(qq);
@@ -511,9 +517,13 @@ export default function PosBoard({
       kind: "ok",
       text: draft
         ? `Draf ${nomorOrder(c.id)} tersimpan. Selesaikan dari panel Pesanan Aktif.`
-        : `Pesanan ${nomorOrder(c.id)} dikirim ke dapur.`,
+        : `Pesanan ${nomorOrder(c.id)} tersimpan. Selesaikan pembayaran untuk masuk antrean dapur.`,
     });
     return c;
+    } catch {
+      setMsg({ kind: "err", text: "Koneksi terputus. Periksa Pesanan Aktif sebelum mengirim ulang." });
+      return null;
+    } finally { submitting.current = false; }
   }
 
   /** Setelah commit, keranjang kosong tapi angka pesanan harus tetap terbaca:
@@ -1013,7 +1023,7 @@ export default function PosBoard({
                       onKeyDown={e => {
                         if (e.key === "Enter" || e.key === "Escape") setNoteKey(null);
                       }}
-                      onBlur={() => setNoteKey(null)}
+
                       autoFocus
                       maxLength={140}
                       placeholder="Catatan untuk dapur (Enter untuk simpan)"
@@ -1076,7 +1086,7 @@ export default function PosBoard({
                 type="button"
                 className="pos-cta"
                 disabled={busy || lines.length === 0}
-                onClick={() => startTransition(() => void commit(false))}
+                onClick={() => startTransition(async () => { await commit(false); })}
               >
                 <ShoppingCartIcon className="h-4 w-4" aria-hidden />
                 {busy ? "Mengirim…" : "Kirim Pesanan"}
@@ -1086,7 +1096,7 @@ export default function PosBoard({
                   type="button"
                   className="pos-btn"
                   disabled={busy || lines.length === 0}
-                  onClick={() => startTransition(() => void commit(true))}
+                  onClick={() => startTransition(async () => { await commit(true); })}
                 >
                   <FilesIcon aria-hidden /> Simpan Draf
                 </button>
@@ -1218,7 +1228,15 @@ export default function PosBoard({
                   order={{ id: recentFor.id, table: recentFor.table }}
                   cafeId={cafeId}
                   onClose={() => setDetailMenu(null)}
-                  onDone={() => { setRecentFor(null); setDetailMenu(null); }}
+                  onDone={result => {
+                    if (result.replacement && lines.length === 0) {
+                      const { order, orderToken } = result.replacement;
+                      setCommitted({ id: order.id_order, table: order.table_number, token: orderToken });
+                      setQuote(order); setLines([]); setQuoteKey(""); setPayOpen(false); setQrisUrl(null);
+                    } else if (committed?.id === recentFor.id) newOrder();
+                    setRecentFor(null); setDetailMenu(null); router.refresh();
+                    setMsg({ kind: "ok", text: lines.length === 0 ? "Item ditambahkan. Ringkasan dan pembayaran memakai pesanan pengganti." : "Item ditambahkan. Pesanan pengganti tersedia di Kasir; keranjang Anda tetap tersimpan." });
+                  }}
                 />
               )}
             </div>
